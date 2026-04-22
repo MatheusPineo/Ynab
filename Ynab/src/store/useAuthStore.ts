@@ -11,7 +11,9 @@ interface User {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  login: (email: string, name: string) => Promise<void>;
+  accessToken: string | null;
+  refreshToken: string | null;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -20,23 +22,29 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
+      accessToken: null,
+      refreshToken: null,
 
-      login: async (email, name) => {
-        // Mocking a network delay for a real-app feel
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        
-        const mockUser: User = {
-          id: "1",
-          name: name || "Usuário Vault",
-          email: email,
-          avatar: "https://github.com/shadcn.png",
-        };
+      login: async (email, password) => {
+        const response = await fetch("http://localhost:8000/api/token/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: email, password }),
+        });
 
-        set({ user: mockUser, isAuthenticated: true });
+        if (!response.ok) throw new Error("Falha na autenticação");
+
+        const data = await response.json();
+        set({
+          accessToken: data.access,
+          refreshToken: data.refresh,
+          isAuthenticated: true,
+          user: { id: "1", name: "Usuário", email },
+        });
       },
 
       logout: () => {
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false, accessToken: null, refreshToken: null });
       },
     }),
     {

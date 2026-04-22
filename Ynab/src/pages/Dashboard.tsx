@@ -7,12 +7,13 @@ import { useCurrencyStore, type Currency } from "@/store/useCurrencyStore";
 
 const Dashboard = () => {
   const [base, setBase] = useState<Currency>("EUR");
-  const { tree } = useAccountStore();
+  const { tree, fetchAccounts } = useAccountStore();
   const { fetchRates, convert, isLoading } = useCurrencyStore();
 
   useEffect(() => {
     fetchRates();
-  }, []);
+    fetchAccounts();
+  }, [fetchAccounts, fetchRates]);
 
   // Recalculate net worth using real-time rates from store
   const total = useMemo(() => {

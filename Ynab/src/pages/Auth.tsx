@@ -25,14 +25,14 @@ const Auth = () => {
     
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
-    const name = formData.get("name") as string || "Lucas Mendes";
+    const password = formData.get("password") as string;
 
     try {
-      await login(email, name);
-      toast.success(isLogin ? "Bem-vindo de volta!" : "Conta criada com sucesso!");
+      await login(email, password);
+      toast.success("Bem-vindo de volta!");
       navigate("/dashboard");
     } catch (error) {
-      toast.error("Ocorreu um erro ao tentar entrar.");
+      toast.error("Erro ao autenticar. Verifique suas credenciais.");
     } finally {
       setIsLoading(false);
     }

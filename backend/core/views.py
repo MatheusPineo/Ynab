@@ -31,3 +31,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Retorna transações de todas as contas que pertencem ao usuário logado
         return Transaction.objects.filter(account__user=self.request.user).order_by('-date', '-created_at')
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import MyTokenObtainPairSerializer
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
