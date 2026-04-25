@@ -19,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAccountStore } from "@/store/useAccountStore";
-import { AccountNode } from "@/data/mockData";
+import { AccountNode } from "@/types";
 import { toast } from "sonner";
 import { AddAccountModal } from "./AddAccountModal";
 

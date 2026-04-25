@@ -11,7 +11,7 @@ import { toast } from "sonner";
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const { login, isAuthenticated } = useAuthStore();
+  const { login, register, isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
 
   // If already logged in, go to dashboard
@@ -26,13 +26,20 @@ const Auth = () => {
     const formData = new FormData(e.currentTarget);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
+    const name = formData.get("name") as string;
 
     try {
-      await login(email, password);
-      toast.success("Bem-vindo de volta!");
-      navigate("/dashboard");
-    } catch (error) {
-      toast.error("Erro ao autenticar. Verifique suas credenciais.");
+      if (isLogin) {
+        await login(email, password);
+        toast.success("Bem-vindo de volta!");
+        navigate("/dashboard");
+      } else {
+        await register(name, email, password);
+        toast.success("Conta criada com sucesso! Faça login.");
+        setIsLogin(true);
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao autenticar.");
     } finally {
       setIsLoading(false);
     }

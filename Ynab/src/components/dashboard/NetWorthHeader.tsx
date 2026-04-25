@@ -9,8 +9,7 @@ import {
 } from "@/components/ui/select";
 import {
   formatMoney,
-  totalsByCurrency,
-} from "@/data/mockData";
+} from "@/lib/currency-utils";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore, type Currency } from "@/store/useCurrencyStore";
 import { cn } from "@/lib/utils";
@@ -22,10 +21,10 @@ interface Props {
 }
 
 export const NetWorthHeader = ({ base, onBaseChange, customTotal }: Props) => {
-  const { tree } = useAccountStore();
+  const { tree, totalsByCurrency } = useAccountStore();
   const { isLoading, lastUpdated } = useCurrencyStore();
-  
-  const byCurrency = useMemo(() => totalsByCurrency(tree), [tree]);
+
+  const byCurrency = useMemo(() => totalsByCurrency(tree), [tree, totalsByCurrency]);
 
   return (
     <section className="relative overflow-hidden rounded-3xl gradient-card border border-border/60 p-6 sm:p-8 shadow-elevated transition-all">

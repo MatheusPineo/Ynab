@@ -3,10 +3,8 @@ import { ChevronRight, Plus, GripVertical } from "lucide-react";
 import {
   type AccountNode,
   type Currency,
-  CURRENCY_SYMBOL,
-  formatMoney,
-  sumNode,
-} from "@/data/mockData";
+} from "@/types";
+import { CURRENCY_SYMBOL, formatMoney } from "@/lib/currency-utils";
 import { cn } from "@/lib/utils";
 import { AccountActions } from "./AccountActions"; // Importa o novo componente
 import {
@@ -47,6 +45,7 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
   const [open, setOpen] = useState(depth === 0);
   const currency = nodeCurrency(node, parentCurrency);
   const hasChildren = !!node.children?.length;
+
   const total = sumNode(node);
   const isMaster = depth === 0;
 
@@ -230,6 +229,12 @@ export const AccountAccordion = ({ tree }: Props) => {
     </DndContext>
   );
 };
+
+function sumNode(node: AccountNode): number {
+  if (typeof node.balance === "number") return node.balance;
+  if (!node.children) return 0;
+  return node.children.reduce((acc, c) => acc + sumNode(c), 0);
+}
 
 function nodeCurrency(node: AccountNode, parentCurrency?: Currency): Currency {
   return node.currency ?? parentCurrency ?? "EUR";

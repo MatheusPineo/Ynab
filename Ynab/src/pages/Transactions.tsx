@@ -1,6 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useAccountStore } from "@/store/useAccountStore";
-import { formatMoney } from "@/data/mockData";
+import { useTransactions } from "@/hooks/useTransactions";
+import { formatMoney } from "@/lib/currency-utils";
+import { TableSkeleton } from "@/components/dashboard/TableSkeleton";
+import { EmptyState } from "@/components/dashboard/EmptyState";
+import { Receipt } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Search, ArrowUpDown, Filter, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
+import { Search, Filter, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -21,24 +25,44 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
 
 const Transactions = () => {
-  const { transactions, fetchTransactions, getAccountName, getCategoryName, deleteTransaction } = useAccountStore();
+  const { tree, getAccountName, getCategoryName } = useAccountStore();
+  const { transactions, isLoading, deleteTransaction } = useTransactions();
   const [search, setSearch] = useState("");
+  const [selectedAccountId, setSelectedAccountId] = useState("all");
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+  // Flatten tree to get all accounts for filter
+  const allAccounts = useMemo(() => {
+    const flatten = (nodes: any[]): any[] => {
+      let result: any[] = [];
+      nodes.forEach(n => {
+        result.push({ id: n.id, name: n.name });
+        if (n.children) result = [...result, ...flatten(n.children)];
+      });
+      return result;
+    };
+    return flatten(tree);
+  }, [tree]);
 
-  const filteredTransactions = transactions.filter((t) =>
-    t.description.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredTransactions = transactions.filter((t) => {
+    const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
+    const matchesAccount = selectedAccountId === "all" || t.account === selectedAccountId;
+    return matchesSearch && matchesAccount;
+  });
 
   const handleDelete = async (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir esta transação?")) {
-      await deleteTransaction(id);
+      await deleteTransaction.mutateAsync(id);
     }
   };
 
@@ -63,10 +87,18 @@ const Transactions = () => {
             className="pl-10 bg-muted/20 border-border/60 rounded-xl"
           />
         </div>
-        <Badge variant="outline" className="h-10 px-4 rounded-xl border-border/60 bg-muted/10 gap-2 cursor-pointer hover:bg-muted/20">
-          <Filter className="h-3.5 w-3.5" />
-          Filtros
-        </Badge>
+        
+        <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+          <SelectTrigger className="w-[180px] rounded-xl border-border/60 bg-muted/10">
+            <SelectValue placeholder="Filtrar Conta" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as Contas</SelectItem>
+            {allAccounts.map(acc => (
+              <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
@@ -82,10 +114,16 @@ const Transactions = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredTransactions.length === 0 ? (
+            {isLoading ? (
+                <TableSkeleton rows={8} />
+            ) : filteredTransactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                  Nenhuma transação encontrada.
+                <TableCell colSpan={6}>
+                  <EmptyState 
+                    icon={Receipt} 
+                    title="Nenhuma transação" 
+                    description="Ainda não existem movimentações registradas para este filtro."
+                  />
                 </TableCell>
               </TableRow>
             ) : (
@@ -97,7 +135,7 @@ const Transactions = () => {
                   <TableCell className="font-medium">{t.description}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal">
-                      {getAccountName(t.accountId)}
+                      {getAccountName(t.account)}
                     </Badge>
                   </TableCell>
                   <TableCell>
@@ -122,7 +160,6 @@ const Transactions = () => {
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         
-                        {/* Edit Action using Modal */}
                         <AddTransactionModal transaction={t}>
                           <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
                             <Edit2 className="mr-2 h-4 w-4" />

@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useAccountStore } from "@/store/useAccountStore";
-import { type Transaction } from "@/data/mockData";
+import { type Transaction } from "@/types";
 
 interface Props {
   children?: React.ReactNode;
@@ -142,7 +142,7 @@ export const AddTransactionModal = ({ children, transaction, onClose }: Props) =
               id="account" 
               name="account" 
               required 
-              defaultValue={transaction?.accountId || transaction?.account}
+              defaultValue={transaction?.account}
               className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background outline-none focus:ring-2 focus:ring-primary/20 transition-all"
             >
               <option value="" disabled>Selecione uma conta</option>

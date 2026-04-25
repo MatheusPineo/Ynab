@@ -1,5 +1,6 @@
 import { Search, Bell, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/ui/mode-toggle";
 import { AddTransactionModal } from "./AddTransactionModal";
 
 export const Topbar = () => {
@@ -25,6 +26,8 @@ export const Topbar = () => {
             ⌘K
           </kbd>
         </div>
+
+        <ModeToggle />
 
         <Button
           variant="ghost"

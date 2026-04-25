@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { NetWorthHeader } from "@/components/dashboard/NetWorthHeader";
 import { AccountAccordion } from "@/components/dashboard/AccountAccordion";
-import { netWorth } from "@/data/mockData";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore, type Currency } from "@/store/useCurrencyStore";
 import { AddRootAccountModal } from "@/components/dashboard/AddRootAccountModal";
@@ -18,19 +17,8 @@ const Dashboard = () => {
 
   // Recalculate net worth using real-time rates from store
   const total = useMemo(() => {
-    // Custom networth logic using the store's convert function
-    const totalsByCur: Record<Currency, number> = { EUR: 0, BRL: 0, USD: 0 };
-    
-    const walk = (node: any, inherited: Currency) => {
-      const cur = (node.currency || inherited) as Currency;
-      if (typeof node.balance === "number") {
-        totalsByCur[cur] += node.balance;
-      }
-      node.children?.forEach((c: any) => walk(c, cur));
-    };
-    
-    tree.forEach((root) => walk(root, (root.currency || "EUR") as Currency));
-    
+    const totalsByCur = useAccountStore.getState().totalsByCurrency(tree);
+
     return (Object.entries(totalsByCur) as [Currency, number][]).reduce(
       (acc, [cur, amount]) => acc + convert(amount, cur, base),
       0,

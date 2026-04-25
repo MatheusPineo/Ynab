@@ -4,7 +4,9 @@ import { authenticatedFetch } from "@/lib/api";
 import {
   type AccountNode,
   type Transaction,
-} from "@/data/mockData";
+  type Currency,
+  type Goal,
+} from "@/types";
 import { toast } from "sonner";
 
 export interface CategoryNode {
@@ -68,9 +70,13 @@ interface AccountState {
   updateGoal: (id: string, updates: Partial<Goal>) => Promise<void>;
   deleteGoal: (id: string) => Promise<void>;
   
+  copyBudgetFromPreviousMonth: () => Promise<void>;
+  
   // Helpers
   getAccountName: (id: string) => string;
   getCategoryName: (id: string) => string;
+  totalsByCurrency: (tree: AccountNode[]) => Record<Currency, number>;
+  getHistory: () => { date: string; balance: number }[];
 }
 
 const now = new Date();
@@ -356,6 +362,37 @@ export const useAccountStore = create<AccountState>()(
         }
       },
 
+      copyBudgetFromPreviousMonth: async () => {
+        try {
+          const { currentMonth, currentYear, categoryGroups } = get();
+          const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+          const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+          // Busca orçamentos do mês anterior
+          const response = await authenticatedFetch(`/monthly-budgets/?month=${prevMonth}&year=${prevYear}`);
+          if (!response.ok) throw new Error("Falha ao buscar orçamentos do mês anterior");
+          const prevBudgets = await response.json();
+
+          // Aplica para o mês atual
+          for (const budget of prevBudgets) {
+            await authenticatedFetch(`/monthly-budgets/set_budget/`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ 
+                category: budget.category, 
+                month: currentMonth, 
+                year: currentYear, 
+                amount: budget.amount 
+              }),
+            });
+          }
+          await get().fetchCategoryGroups();
+          toast.success("Orçamento copiado com sucesso!");
+        } catch (error: any) {
+          toast.error("Erro ao copiar orçamento: " + error.message);
+        }
+      },
+
       // --- HELPERS ---
       getAccountName: (id) => {
         const findAccount = (nodes: AccountNode[]): string | undefined => {
@@ -381,6 +418,38 @@ export const useAccountStore = create<AccountState>()(
           }
         };
         return findCategory(get().categoryGroups) || "Categoria";
+      },
+
+      totalsByCurrency: (tree: AccountNode[]): Record<Currency, number> => {
+        const totals: Record<Currency, number> = { EUR: 0, BRL: 0, USD: 0 };
+        const walk = (node: AccountNode, inherited: Currency) => {
+          const cur = node.currency ?? inherited;
+          if (typeof node.balance === "number") {
+            totals[cur] += node.balance;
+          }
+          node.children?.forEach((c) => walk(c, cur));
+        };
+        tree.forEach((root) => walk(root, root.currency ?? "EUR"));
+        return totals;
+      },
+
+      getHistory: () => {
+        const { transactions } = get();
+        if (!transactions.length) return [];
+
+        // Ordenar transações por data
+        const sorted = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        let currentBalance = 0; // Simplified
+        const history: { date: string; balance: number }[] = [];
+        
+        sorted.forEach(t => {
+          const amount = t.is_income ? t.amount : -t.amount;
+          currentBalance += amount;
+          history.push({ date: t.date, balance: currentBalance });
+        });
+        
+        return history;
       },
     }),
     { name: "vault-accounts-storage" }

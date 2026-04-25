@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useAccountStore } from "@/store/useAccountStore";
 import { toast } from "sonner";
-import { type AccountNode } from "@/data/mockData";
+import { type AccountNode } from "@/types";
 
 interface Props {
   parentAccount: AccountNode;

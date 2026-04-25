@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useAccountStore, CategoryGroup, CategoryNode } from "@/store/useAccountStore";
-import { formatMoney, netWorth } from "@/data/mockData";
+import { formatMoney } from "@/lib/currency-utils";
 import {
   Table,
   TableBody,
@@ -228,7 +228,17 @@ const Budget = () => {
     fetchCategoryGroups();
   }, [fetchCategoryGroups]);
 
-  const totalCash = useMemo(() => netWorth(tree, "EUR"), [tree]);
+  const totalCash = useMemo(() => {
+    const { convert } = useCurrencyStore.getState();
+    const totalsByCur = useAccountStore.getState().totalsByCurrency(tree);
+    
+    return (Object.entries(totalsByCur) as [Currency, number][]).reduce(
+      (acc, [cur, amount]) => {
+        return acc + convert(amount, cur, "EUR");
+      },
+      0
+    );
+  }, [tree]);
   
   const totalAssigned = useMemo(() => {
     const calculateTotal = (nodes: CategoryNode[]): number => {
@@ -296,13 +306,16 @@ const Budget = () => {
             
             <div className="flex flex-col gap-3 max-w-xs text-center sm:text-right">
               <p className="text-sm text-muted-foreground">Patrimônio disponível neste mês.</p>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
-                    <FolderPlus className="h-4 w-4" /> Novo Grupo
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="glass border-border/60">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => copyBudgetFromPreviousMonth()} className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
+                  <ChevronLeft className="h-4 w-4" /> Copiar Mês Anterior
+                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
+                      <FolderPlus className="h-4 w-4" /> Novo Grupo
+                    </Button>
+                  </DialogTrigger>                <DialogContent className="glass border-border/60">
                   <DialogHeader>
                     <DialogTitle>Criar Novo Grupo de Orçamento</DialogTitle>
                   </DialogHeader>

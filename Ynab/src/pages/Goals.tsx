@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { useAccountStore, Goal } from "@/store/useAccountStore";
-import { formatMoney } from "@/data/mockData";
+import { useState } from "react";
+import { useGoals } from "@/hooks/useGoals";
+import { formatMoney } from "@/lib/currency-utils";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,20 +16,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { Goal } from "@/types";
 
 const Goals = () => {
-  const { goals, fetchGoals, addGoal, updateGoal, deleteGoal } = useAccountStore();
+  const { goals, isLoading, addGoal, updateGoal, deleteGoal } = useGoals();
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    fetchGoals();
-  }, [fetchGoals]);
 
   const handleAddGoal = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    await addGoal({
+    await addGoal.mutateAsync({
       name: formData.get("name") as string,
       target_amount: parseFloat(formData.get("target") as string),
       current_amount: parseFloat(formData.get("current") as string) || 0,
@@ -101,14 +98,16 @@ const Goals = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {goals.length === 0 ? (
+        {isLoading ? (
+          <div className="col-span-full text-center text-muted-foreground">Carregando metas...</div>
+        ) : goals.length === 0 ? (
           <div className="col-span-full h-64 flex flex-col items-center justify-center border border-dashed border-border/60 rounded-3xl bg-muted/10 text-muted-foreground gap-3">
              <Target className="h-12 w-12 opacity-20" />
              <p className="font-medium">Você ainda não tem metas. Comece uma agora!</p>
           </div>
         ) : (
           goals.map((goal) => (
-            <GoalCard key={goal.id} goal={goal} updateGoal={updateGoal} deleteGoal={deleteGoal} />
+            <GoalCard key={goal.id} goal={goal} onUpdate={(id, updates) => updateGoal.mutate({ id, updates })} onDelete={(id) => deleteGoal.mutate(id)} />
           ))
         )}
       </div>
@@ -116,7 +115,7 @@ const Goals = () => {
   );
 };
 
-const GoalCard = ({ goal, updateGoal, deleteGoal }: { goal: Goal, updateGoal: any, deleteGoal: any }) => {
+const GoalCard = ({ goal, onUpdate, onDelete }: { goal: Goal, onUpdate: any, onDelete: any }) => {
   const percent = Math.min(Math.round((goal.current_amount / goal.target_amount) * 100), 100);
   const remaining = goal.target_amount - goal.current_amount;
   const isCompleted = percent >= 100;
@@ -141,7 +140,7 @@ const GoalCard = ({ goal, updateGoal, deleteGoal }: { goal: Goal, updateGoal: an
         </div>
         <button 
           onClick={() => {
-              if(window.confirm(`Excluir meta "${goal.name}"?`)) deleteGoal(goal.id);
+              if(window.confirm(`Excluir meta "${goal.name}"?`)) onDelete(goal.id);
           }}
           className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-rose-400 hover:bg-rose-400/10 transition-all opacity-0 group-hover:opacity-100"
         >
@@ -170,7 +169,7 @@ const GoalCard = ({ goal, updateGoal, deleteGoal }: { goal: Goal, updateGoal: an
             <Input 
               type="number" 
               defaultValue={goal.current_amount}
-              onBlur={(e) => updateGoal(goal.id, { current_amount: parseFloat(e.target.value) || 0 })}
+              onBlur={(e) => onUpdate(goal.id, { current_amount: parseFloat(e.target.value) || 0 })}
               className="h-9 bg-background/50 border-border/40 focus:border-primary/50 text-sm font-semibold"
             />
           </div>
