@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useAccountStore } from "@/store/useAccountStore";
-import { toast } from "sonner";
 import { type Transaction } from "@/data/mockData";
 
 interface Props {
@@ -41,28 +40,27 @@ export const AddTransactionModal = ({ children, transaction, onClose }: Props) =
   
   const leafAccounts = getLeafAccounts(tree);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const amountInput = parseFloat(formData.get("amount") as string);
+    const amountValue = parseFloat(formData.get("amount") as string);
     const type = formData.get("type") as string;
-    const finalAmount = type === "expense" ? -Math.abs(amountInput) : Math.abs(amountInput);
+    const is_income = type === "income";
 
     const transactionData = {
-      accountId: formData.get("accountId") as string,
+      account: formData.get("account") as string, // O backend espera o ID da conta no campo 'account'
       description: formData.get("description") as string,
-      amount: finalAmount,
-      date: formData.get("date") as string || new Date().toISOString(),
-      category: formData.get("categoryId") as string,
+      amount: amountValue,
+      is_income: is_income,
+      date: formData.get("date") as string || new Date().toISOString().split('T')[0],
+      category: formData.get("category") as string || null,
     };
 
     if (isEdit && transaction) {
-      updateTransaction(transaction.id, transactionData);
-      toast.success("Transação atualizada!");
+      await updateTransaction(transaction.id, transactionData);
     } else {
-      addTransaction(transactionData);
-      toast.success("Transação adicionada!");
+      await addTransaction(transactionData as any);
     }
 
     setOpen(false);
@@ -118,7 +116,7 @@ export const AddTransactionModal = ({ children, transaction, onClose }: Props) =
               <select 
                 id="type" 
                 name="type" 
-                defaultValue={transaction ? (transaction.amount < 0 ? "expense" : "income") : "expense"}
+                defaultValue={transaction ? (transaction.is_income ? "income" : "expense") : "expense"}
                 className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background outline-none focus:ring-2 focus:ring-primary/20 transition-all"
               >
                 <option value="expense">Despesa (-)</option>
@@ -139,14 +137,15 @@ export const AddTransactionModal = ({ children, transaction, onClose }: Props) =
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="accountId">Conta</Label>
+            <Label htmlFor="account">Conta</Label>
             <select 
-              id="accountId" 
-              name="accountId" 
+              id="account" 
+              name="account" 
               required 
-              defaultValue={transaction?.accountId}
+              defaultValue={transaction?.accountId || transaction?.account}
               className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background outline-none focus:ring-2 focus:ring-primary/20 transition-all"
             >
+              <option value="" disabled>Selecione uma conta</option>
               {leafAccounts.map(acc => (
                 <option key={acc.id} value={acc.id}>{acc.name}</option>
               ))}
@@ -154,17 +153,17 @@ export const AddTransactionModal = ({ children, transaction, onClose }: Props) =
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="categoryId">Categoria de Orçamento</Label>
+            <Label htmlFor="category">Categoria de Orçamento</Label>
             <select 
-              id="categoryId" 
-              name="categoryId" 
-              defaultValue={transaction?.category}
+              id="category" 
+              name="category" 
+              defaultValue={transaction?.category || ""}
               className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background outline-none focus:ring-2 focus:ring-primary/20 transition-all"
             >
               <option value="">Sem categoria</option>
               {categoryGroups.map(group => (
                 <optgroup key={group.id} label={group.name}>
-                  {group.categories.map(cat => (
+                  {(group.children || []).map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </optgroup>

@@ -4,6 +4,7 @@ import { AccountAccordion } from "@/components/dashboard/AccountAccordion";
 import { netWorth } from "@/data/mockData";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore, type Currency } from "@/store/useCurrencyStore";
+import { AddRootAccountModal } from "@/components/dashboard/AddRootAccountModal";
 
 const Dashboard = () => {
   const [base, setBase] = useState<Currency>("EUR");
@@ -51,6 +52,8 @@ const Dashboard = () => {
             Toque numa conta para expandir. Use o <span className="text-primary">+</span> para criar sub-contas.
           </p>
         </div>
+        {/* Botão para adicionar nova conta raiz */}
+        <AddRootAccountModal />
       </div>
 
       <AccountAccordion tree={tree} />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccountStore, Goal } from "@/store/useAccountStore";
 import { formatMoney } from "@/data/mockData";
 import { Progress } from "@/components/ui/progress";
@@ -15,26 +15,28 @@ import {
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 const Goals = () => {
-  const { goals, addGoal, updateGoal, deleteGoal } = useAccountStore();
+  const { goals, fetchGoals, addGoal, updateGoal, deleteGoal } = useAccountStore();
   const [open, setOpen] = useState(false);
 
-  const handleAddGoal = (e: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    fetchGoals();
+  }, [fetchGoals]);
+
+  const handleAddGoal = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    addGoal({
+    await addGoal({
       name: formData.get("name") as string,
-      targetAmount: parseFloat(formData.get("target") as string),
-      currentAmount: parseFloat(formData.get("current") as string) || 0,
+      target_amount: parseFloat(formData.get("target") as string),
+      current_amount: parseFloat(formData.get("current") as string) || 0,
       deadline: formData.get("deadline") as string,
       emoji: (formData.get("emoji") as string) || "🎯",
     });
 
-    toast.success("Meta criada com sucesso!");
     setOpen(false);
   };
 
@@ -115,8 +117,8 @@ const Goals = () => {
 };
 
 const GoalCard = ({ goal, updateGoal, deleteGoal }: { goal: Goal, updateGoal: any, deleteGoal: any }) => {
-  const percent = Math.min(Math.round((goal.currentAmount / goal.targetAmount) * 100), 100);
-  const remaining = goal.targetAmount - goal.currentAmount;
+  const percent = Math.min(Math.round((goal.current_amount / goal.target_amount) * 100), 100);
+  const remaining = goal.target_amount - goal.current_amount;
   const isCompleted = percent >= 100;
 
   return (
@@ -138,7 +140,9 @@ const GoalCard = ({ goal, updateGoal, deleteGoal }: { goal: Goal, updateGoal: an
           </div>
         </div>
         <button 
-          onClick={() => deleteGoal(goal.id)}
+          onClick={() => {
+              if(window.confirm(`Excluir meta "${goal.name}"?`)) deleteGoal(goal.id);
+          }}
           className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground/40 hover:text-rose-400 hover:bg-rose-400/10 transition-all opacity-0 group-hover:opacity-100"
         >
           <Trash2 className="h-4 w-4" />
@@ -155,8 +159,8 @@ const GoalCard = ({ goal, updateGoal, deleteGoal }: { goal: Goal, updateGoal: an
         <div className="space-y-2">
           <Progress value={percent} className={cn("h-2.5", isCompleted ? "bg-emerald-500/20" : "bg-primary/20")} />
           <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
-            <span>{formatMoney(goal.currentAmount, "EUR")}</span>
-            <span>Alvo: {formatMoney(goal.targetAmount, "EUR")}</span>
+            <span>{formatMoney(goal.current_amount, "EUR")}</span>
+            <span>Alvo: {formatMoney(goal.target_amount, "EUR")}</span>
           </div>
         </div>
 
@@ -165,8 +169,8 @@ const GoalCard = ({ goal, updateGoal, deleteGoal }: { goal: Goal, updateGoal: an
             <Label className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold mb-1.5 block">Atualizar Saldo</Label>
             <Input 
               type="number" 
-              defaultValue={goal.currentAmount}
-              onBlur={(e) => updateGoal(goal.id, parseFloat(e.target.value) || 0)}
+              defaultValue={goal.current_amount}
+              onBlur={(e) => updateGoal(goal.id, { current_amount: parseFloat(e.target.value) || 0 })}
               className="h-9 bg-background/50 border-border/40 focus:border-primary/50 text-sm font-semibold"
             />
           </div>

@@ -4,41 +4,28 @@ import { authenticatedFetch } from "@/lib/api";
 import {
   type AccountNode,
   type Transaction,
-  accountsTree as initialTree,
 } from "@/data/mockData";
+import { toast } from "sonner";
 
-export interface BudgetCategory {
+export interface CategoryNode {
   id: string;
   name: string;
-  assigned: number;
-  spent: number;
+  assigned_amount: number;
+  spent_amount: number;
+  parent: string | null;
+  children?: CategoryNode[];
 }
 
-export interface CategoryGroup {
-  id: string;
-  name: string;
-  categories: BudgetCategory[];
-}
+export type CategoryGroup = CategoryNode;
 
 export interface Goal {
   id: string;
   name: string;
-  targetAmount: number;
-  currentAmount: number;
+  target_amount: number;
+  current_amount: number;
   deadline: string;
   emoji: string;
 }
-
-const initialCategories: CategoryGroup[] = [
-  {
-    id: "g1",
-    name: "Custos Fixos",
-    categories: [
-      { id: "c1", name: "Aluguel", assigned: 800, spent: 0 },
-      { id: "c2", name: "Água e Luz", assigned: 150, spent: 0 },
-    ],
-  },
-];
 
 const initialGoals: Goal[] = [];
 
@@ -47,36 +34,66 @@ interface AccountState {
   transactions: Transaction[];
   categoryGroups: CategoryGroup[];
   goals: Goal[];
+  currentMonth: number;
+  currentYear: number;
+  
+  // Period Actions
+  setCurrentPeriod: (month: number, year: number) => void;
+
+  // Accounts Actions
   fetchAccounts: () => Promise<void>;
-  addNode: (parentId: string, node: Partial<AccountNode>) => void;
-  updateNode: (id: string, updates: Partial<AccountNode>) => void;
-  deleteNode: (id: string) => void;
+  addNode: (parentId: string, node: Partial<AccountNode>) => Promise<void>;
+  updateNode: (id: string, updates: Partial<AccountNode>) => Promise<void>;
+  deleteNode: (id: string) => Promise<void>;
   setTree: (newTree: AccountNode[]) => void;
-  addTransaction: (transaction: Omit<Transaction, "id">) => void;
-  updateTransaction: (id: string, updates: Omit<Transaction, "id">) => void;
-  deleteTransaction: (id: string) => void;
-  assignMoney: (categoryId: string, amount: number) => void;
-  addCategoryGroup: (name: string) => void;
-  addCategory: (groupId: string, name: string) => void;
+  
+  // Transactions Actions
+  fetchTransactions: () => Promise<void>;
+  addTransaction: (transaction: Omit<Transaction, "id">) => Promise<void>;
+  updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  
+  // Categories Actions
+  fetchCategoryGroups: () => Promise<void>;
+  assignMoney: (categoryId: string, amount: number) => Promise<void>;
+  addCategoryGroup: (name: string) => Promise<void>;
+  addCategory: (groupId: string, name: string) => Promise<void>;
+  updateCategory: (id: string, updates: Partial<CategoryNode>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   setCategoryGroups: (groups: CategoryGroup[]) => void;
-  addGoal: (goal: Omit<Goal, "id">) => void;
-  updateGoal: (id: string, amount: number) => void;
-  deleteGoal: (id: string) => void;
+  
+  // Goals Actions
+  fetchGoals: () => Promise<void>;
+  addGoal: (goal: Omit<Goal, "id">) => Promise<void>;
+  updateGoal: (id: string, updates: Partial<Goal>) => Promise<void>;
+  deleteGoal: (id: string) => Promise<void>;
+  
+  // Helpers
   getAccountName: (id: string) => string;
   getCategoryName: (id: string) => string;
 }
 
+const now = new Date();
+
 export const useAccountStore = create<AccountState>()(
   persist(
     (set, get) => ({
-      tree: initialTree,
+      tree: [],
       transactions: [],
-      categoryGroups: initialCategories,
+      categoryGroups: [],
       goals: initialGoals,
+      currentMonth: now.getMonth() + 1,
+      currentYear: now.getFullYear(),
 
+      setCurrentPeriod: (month, year) => {
+        set({ currentMonth: month, currentYear: year });
+        get().fetchCategoryGroups();
+      },
+
+      // --- ACCOUNTS ---
       fetchAccounts: async () => {
         try {
-          const response = await authenticatedFetch("/accounts/");
+          const response = await authenticatedFetch("/accounts/tree/");
           if (!response.ok) throw new Error("Falha ao buscar contas");
           const data = await response.json();
           set({ tree: data });
@@ -85,35 +102,286 @@ export const useAccountStore = create<AccountState>()(
         }
       },
 
-      addNode: (parentId, partialNode) => {
-        const id = Math.random().toString(36).substring(2, 9);
-        const newNode: AccountNode = { id, name: partialNode.name || "Nova", balance: partialNode.balance ?? 0, base: partialNode.base ?? 0, ...partialNode };
-        set((state) => ({ tree: addNodeRecursive(state.tree, parentId, newNode) }));
+      addNode: async (parentId, partialNode) => {
+        try {
+          const newAccountData = {
+            name: partialNode.name || "Nova",
+            balance: partialNode.balance ?? 0,
+            account_type: partialNode.account_type || "checking",
+            parent: parentId !== "root" ? parentId : null,
+          };
+
+          const response = await authenticatedFetch("/accounts/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newAccountData),
+          });
+
+          if (!response.ok) throw new Error("Falha ao criar conta");
+          
+          await get().fetchAccounts();
+          toast.success(`Conta "${partialNode.name}" criada!`);
+        } catch (error: any) {
+          toast.error(error.message);
+        }
       },
 
-      updateNode: (id, updates) => {
-        const updateRecursive = (nodes: AccountNode[]): AccountNode[] => nodes.map(n => n.id === id ? { ...n, ...updates } : n.children ? { ...n, children: updateRecursive(n.children) } : n);
-        set((state) => ({ tree: updateRecursive(state.tree) }));
+      updateNode: async (id, updates) => {
+        try {
+          const response = await authenticatedFetch(`/accounts/${id}/`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+          });
+
+          if (!response.ok) throw new Error("Falha ao atualizar conta");
+          
+          await get().fetchAccounts();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
       },
 
-      deleteNode: (id) => {
-        const deleteRecursive = (nodes: AccountNode[]): AccountNode[] => nodes.filter(n => n.id !== id).map(n => ({ ...n, children: n.children ? deleteRecursive(n.children) : undefined }));
-        set((state) => ({ tree: deleteRecursive(state.tree) }));
+      deleteNode: async (id) => {
+        try {
+          const response = await authenticatedFetch(`/accounts/${id}/`, {
+            method: "DELETE",
+          });
+
+          if (!response.ok) throw new Error("Falha ao excluir conta");
+          
+          await get().fetchAccounts();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
       },
 
       setTree: (newTree) => set({ tree: newTree }),
-      addTransaction: (t) => set((state) => ({ transactions: [{...t, id: Math.random().toString()}, ...state.transactions] })),
-      updateTransaction: (id, updates) => set((state) => ({ transactions: state.transactions.map(t => t.id === id ? {...updates, id} : t) })),
-      deleteTransaction: (id) => set((state) => ({ transactions: state.transactions.filter(t => t.id !== id) })),
-      assignMoney: (catId, amt) => set((state) => ({ categoryGroups: state.categoryGroups.map(g => ({...g, categories: g.categories.map(c => c.id === catId ? {...c, assigned: amt} : c)})) })),
-      addCategoryGroup: (name) => set((state) => ({ categoryGroups: [...state.categoryGroups, { id: Math.random().toString(), name, categories: [] }] })),
-      addCategory: (gId, name) => set((state) => ({ categoryGroups: state.categoryGroups.map(g => g.id === gId ? {...g, categories: [...g.categories, {id: Math.random().toString(), name, assigned:0, spent:0}]} : g) })),
+
+      // --- TRANSACTIONS ---
+      fetchTransactions: async () => {
+        try {
+          const response = await authenticatedFetch("/transactions/");
+          if (!response.ok) throw new Error("Falha ao buscar transações");
+          const data = await response.json();
+          set({ transactions: data });
+        } catch (error) {
+          console.error("Erro ao buscar transações:", error);
+        }
+      },
+
+      addTransaction: async (t) => {
+        try {
+          const response = await authenticatedFetch("/transactions/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(t),
+          });
+          if (!response.ok) throw new Error("Falha ao criar transação");
+          await get().fetchTransactions();
+          toast.success("Transação adicionada!");
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      updateTransaction: async (id, updates) => {
+        try {
+          const response = await authenticatedFetch(`/transactions/${id}/`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+          });
+          if (!response.ok) throw new Error("Falha ao atualizar transação");
+          await get().fetchTransactions();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      deleteTransaction: async (id) => {
+        try {
+          const response = await authenticatedFetch(`/transactions/${id}/`, {
+            method: "DELETE",
+          });
+          if (!response.ok) throw new Error("Falha ao excluir transação");
+          await get().fetchTransactions();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      // --- CATEGORIES ---
+      fetchCategoryGroups: async () => {
+        try {
+          const { currentMonth, currentYear } = get();
+          const response = await authenticatedFetch(`/categories/tree/?month=${currentMonth}&year=${currentYear}`);
+          if (!response.ok) throw new Error("Falha ao buscar categorias");
+          const data = await response.json();
+          set({ categoryGroups: data });
+        } catch (error) {
+          console.error("Erro ao buscar categorias:", error);
+        }
+      },
+
+      assignMoney: async (catId, amt) => {
+        try {
+          const { currentMonth, currentYear } = get();
+          const response = await authenticatedFetch(`/monthly-budgets/set_budget/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              category: catId, 
+              month: currentMonth, 
+              year: currentYear, 
+              amount: amt 
+            }),
+          });
+          if (!response.ok) throw new Error("Falha ao alocar dinheiro");
+          await get().fetchCategoryGroups();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      addCategoryGroup: async (name) => {
+        try {
+          const response = await authenticatedFetch("/categories/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, parent: null }),
+          });
+          if (!response.ok) throw new Error("Falha ao criar grupo");
+          await get().fetchCategoryGroups();
+          toast.success(`Grupo "${name}" criado!`);
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      addCategory: async (gId, name) => {
+        try {
+          const response = await authenticatedFetch("/categories/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, parent: gId }),
+          });
+          if (!response.ok) throw new Error("Falha ao criar categoria");
+          await get().fetchCategoryGroups();
+          toast.success(`Categoria "${name}" criada!`);
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      updateCategory: async (id, updates) => {
+        try {
+          const response = await authenticatedFetch(`/categories/${id}/`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+          });
+          if (!response.ok) throw new Error("Falha ao atualizar categoria");
+          await get().fetchCategoryGroups();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      deleteCategory: async (id) => {
+        try {
+          const response = await authenticatedFetch(`/categories/${id}/`, {
+            method: "DELETE",
+          });
+          if (!response.ok) throw new Error("Falha ao excluir categoria");
+          await get().fetchCategoryGroups();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
       setCategoryGroups: (groups) => set({ categoryGroups: groups }),
-      addGoal: (goal) => set((state) => ({ goals: [...state.goals, {...goal, id: Math.random().toString()}] })),
-      updateGoal: (id, amt) => set((state) => ({ goals: state.goals.map(g => g.id === id ? {...g, currentAmount: amt} : g) })),
-      deleteGoal: (id) => set((state) => ({ goals: state.goals.filter(g => g.id !== id) })),
-      getAccountName: (id) => "Conta",
-      getCategoryName: (id) => "Categoria"
+
+      // --- GOALS ---
+      fetchGoals: async () => {
+        try {
+          const response = await authenticatedFetch("/goals/");
+          if (!response.ok) throw new Error("Falha ao buscar metas");
+          const data = await response.json();
+          set({ goals: data });
+        } catch (error) {
+          console.error("Erro ao buscar metas:", error);
+        }
+      },
+
+      addGoal: async (goal) => {
+        try {
+          const response = await authenticatedFetch("/goals/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(goal),
+          });
+          if (!response.ok) throw new Error("Falha ao criar meta");
+          await get().fetchGoals();
+          toast.success("Meta criada!");
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      updateGoal: async (id, updates) => {
+        try {
+          const response = await authenticatedFetch(`/goals/${id}/`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(updates),
+          });
+          if (!response.ok) throw new Error("Falha ao atualizar meta");
+          await get().fetchGoals();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      deleteGoal: async (id) => {
+        try {
+          const response = await authenticatedFetch(`/goals/${id}/`, {
+            method: "DELETE",
+          });
+          if (!response.ok) throw new Error("Falha ao excluir meta");
+          await get().fetchGoals();
+          toast.success("Meta excluída!");
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      // --- HELPERS ---
+      getAccountName: (id) => {
+        const findAccount = (nodes: AccountNode[]): string | undefined => {
+          for (const node of nodes) {
+            if (node.id === id) return node.name;
+            if (node.children) {
+              const name = findAccount(node.children);
+              if (name) return name;
+            }
+          }
+        };
+        return findAccount(get().tree) || "Conta";
+      },
+
+      getCategoryName: (id) => {
+        const findCategory = (nodes: CategoryNode[]): string | undefined => {
+          for (const node of nodes) {
+            if (node.id === id) return node.name;
+            if (node.children) {
+              const name = findCategory(node.children);
+              if (name) return name;
+            }
+          }
+        };
+        return findCategory(get().categoryGroups) || "Categoria";
+      },
     }),
     { name: "vault-accounts-storage" }
   )

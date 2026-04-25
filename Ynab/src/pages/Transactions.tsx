@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccountStore } from "@/store/useAccountStore";
 import { formatMoney } from "@/data/mockData";
 import {
@@ -23,19 +23,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
-import { toast } from "sonner";
 
 const Transactions = () => {
-  const { transactions, getAccountName, getCategoryName, deleteTransaction } = useAccountStore();
+  const { transactions, fetchTransactions, getAccountName, getCategoryName, deleteTransaction } = useAccountStore();
   const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
   const filteredTransactions = transactions.filter((t) =>
     t.description.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleDelete = (id: string) => {
-    deleteTransaction(id);
-    toast.success("Transação removida.");
+  const handleDelete = async (id: string) => {
+    if (window.confirm("Tem certeza que deseja excluir esta transação?")) {
+      await deleteTransaction(id);
+    }
   };
 
   return (
@@ -103,9 +107,9 @@ const Transactions = () => {
                   </TableCell>
                   <TableCell className={cn(
                     "text-right font-semibold tabular",
-                    t.amount < 0 ? "text-rose-400" : "text-emerald-400"
+                    !t.is_income ? "text-rose-400" : "text-emerald-400"
                   )}>
-                    {t.amount > 0 ? "+" : ""}{formatMoney(t.amount, "EUR")}
+                    {t.is_income ? "+" : "-"}{formatMoney(Math.abs(t.amount), "EUR")}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

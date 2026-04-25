@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Account, Category, Transaction
+from .models import Account, Category, Transaction, Goal, MonthlyBudget
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
@@ -8,8 +8,13 @@ class AccountAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user', 'budgeted_amount')
+    list_display = ('name', 'user')
     list_filter = ('user',)
+
+@admin.register(MonthlyBudget)
+class MonthlyBudgetAdmin(admin.ModelAdmin):
+    list_display = ('category', 'month', 'year', 'amount')
+    list_filter = ('month', 'year', 'category__user')
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):

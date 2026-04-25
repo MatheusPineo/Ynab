@@ -8,7 +8,7 @@ import {
   sumNode,
 } from "@/data/mockData";
 import { cn } from "@/lib/utils";
-import { AddAccountModal } from "./AddAccountModal";
+import { AccountActions } from "./AccountActions"; // Importa o novo componente
 import {
   DndContext,
   closestCenter,
@@ -145,17 +145,9 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
           {formatMoney(total, currency)}
         </span>
 
-        {/* Add subaccount */}
+        {/* Account Actions (inclui add subaccount, edit, delete) */}
         <div onClick={(e) => e.stopPropagation()}>
-          <AddAccountModal parentAccount={node}>
-             <span
-              role="button"
-              className="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition-colors"
-              aria-label={`Adicionar sub-conta em ${node.name}`}
-            >
-              <Plus className="h-4 w-4" />
-            </span>
-          </AddAccountModal>
+          <AccountActions account={node} />
         </div>
       </button>
 

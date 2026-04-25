@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Category, Transaction
+from .models import Account, Category, Transaction, Goal, MonthlyBudget
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
@@ -9,15 +9,31 @@ class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = '__all__'
+        # Adiciona 'parent' para que o serializer possa lidar com a relação hierárquica
+        extra_kwargs = {'parent': {'required': False, 'allow_null': True}}
+
+class MonthlyBudgetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MonthlyBudget
+        fields = '__all__'
 
 class CategorySerializer(serializers.ModelSerializer):
+    assigned_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0.00)
+    spent_amount = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0.00)
+
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ['id', 'user', 'name', 'parent', 'assigned_amount', 'spent_amount']
+        extra_kwargs = {'parent': {'required': False, 'allow_null': True}}
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
+        fields = '__all__'
+
+class GoalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Goal
         fields = '__all__'
 
 # Serializer para JWT Customizado

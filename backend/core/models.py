@@ -13,6 +13,7 @@ class Account(models.Model):
     name = models.CharField(max_length=100)
     account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES, default='checking')
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -21,13 +22,25 @@ class Account(models.Model):
 class Category(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='categories')
     name = models.CharField(max_length=100)
-    budgeted_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
 
     def __str__(self):
         return self.name
 
     class Meta:
         verbose_name_plural = "Categories"
+
+class MonthlyBudget(models.Model):
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='monthly_budgets')
+    month = models.PositiveSmallIntegerField() # 1-12
+    year = models.PositiveSmallIntegerField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    class Meta:
+        unique_together = ('category', 'month', 'year')
+
+    def __str__(self):
+        return f"{self.category.name} - {self.month}/{self.year}: {self.amount}"
 
 class Transaction(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='transactions')
@@ -41,3 +54,15 @@ class Transaction(models.Model):
     def __str__(self):
         type_str = "Receita" if self.is_income else "Despesa"
         return f"{type_str}: {self.amount} - {self.description}"
+
+class Goal(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='goals')
+    name = models.CharField(max_length=100)
+    target_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    current_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    deadline = models.DateField()
+    emoji = models.CharField(max_length=20, default="🎯")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Meta: {self.name} ({self.current_amount}/{self.target_amount})"
