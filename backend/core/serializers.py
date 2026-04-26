@@ -57,3 +57,20 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             attrs['username'] = user.username
         
         return super().validate(attrs)
+
+class UserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'password', 'first_name')
+
+    def create(self, validated_data):
+        # Usamos o email como username para simplificar o login depois
+        user = User.objects.create_user(
+            username=validated_data['email'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            first_name=validated_data.get('first_name', '')
+        )
+        return user
