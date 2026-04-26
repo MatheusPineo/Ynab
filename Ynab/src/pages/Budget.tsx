@@ -352,7 +352,8 @@ const Budget = () => {
             </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={categoryGroups.map(g => g.id)} strategy={verticalListSortingStrategy}>
