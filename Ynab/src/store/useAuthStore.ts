@@ -28,7 +28,8 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
 
       login: async (email, password) => {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/token/`, {
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        const response = await fetch(`${baseUrl}/token/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ username: email, password }),
@@ -46,7 +47,8 @@ export const useAuthStore = create<AuthState>()(
       },
 
       register: async (name, email, password) => {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/register/`, {
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        const response = await fetch(`${baseUrl}/register/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ name, email, password }),
@@ -62,7 +64,8 @@ export const useAuthStore = create<AuthState>()(
         const { refreshToken } = get();
         if (!refreshToken) return null;
 
-        const response = await fetch("http://localhost:8000/api/token/refresh/", {
+        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        const response = await fetch(`${baseUrl}/token/refresh/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh: refreshToken }),

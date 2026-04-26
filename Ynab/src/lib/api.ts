@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "sonner";
 
-const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
 
 export async function authenticatedFetch(endpoint: string, options: RequestInit = {}) {
   let { accessToken } = useAuthStore.getState();
