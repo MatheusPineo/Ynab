@@ -21,11 +21,11 @@ class AccountViewSet(viewsets.ModelViewSet):
     def tree(self, request):
         accounts = self.get_queryset()
         
-        def build_tree(account_list, parent=None):
+        def build_tree(account_list, parent_id=None):
             branch = []
             for account in account_list:
-                if account['parent'] == parent:
-                    children = build_tree(account_list, account['id'])
+                if account.parent_id == parent_id:
+                    children = build_tree(account_list, account.id)
                     acc_dict = {
                         'id': str(account.id),
                         'name': account.name,
@@ -74,11 +74,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
         
         spent_map = {t['category_id']: t['total_spent'] for t in transactions}
         
-        def build_tree(category_list, parent=None):
+        def build_tree(category_list, parent_id=None):
             branch = []
             for category in category_list:
-                if category['parent'] == parent:
-                    children = build_tree(category_list, category['id'])
+                if category.parent_id == parent_id:
+                    children = build_tree(category_list, category.id)
                     
                     assigned = budget_map.get(category.id, 0)
                     spent = spent_map.get(category.id, 0)

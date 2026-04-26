@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useAccountStore, CategoryGroup, CategoryNode } from "@/store/useAccountStore";
+import { useCurrencyStore, type Currency } from "@/store/useCurrencyStore";
 import { formatMoney } from "@/lib/currency-utils";
 import {
   Table,
@@ -77,7 +78,7 @@ const MonthSelector = () => {
 
   return (
     <div className="flex items-center gap-4 bg-muted/20 px-4 py-2 rounded-2xl border border-border/40 shadow-sm">
-      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handlePrev}>
+      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handlePrev} data-testid="prev-month">
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <div className="flex flex-col items-center min-w-[120px]">
@@ -88,7 +89,7 @@ const MonthSelector = () => {
           {currentYear}
         </span>
       </div>
-      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleNext}>
+      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleNext} data-testid="next-month">
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
@@ -224,6 +225,7 @@ const Budget = () => {
   
   const [newGroupName, setNewGroupName] = useState("");
   const [newCatName, setNewCatName] = useState("");
+  const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchCategoryGroups();
@@ -276,6 +278,7 @@ const Budget = () => {
     if (!newGroupName.trim()) return;
     await addCategoryGroup(newGroupName);
     setNewGroupName("");
+    setIsGroupDialogOpen(false); // Fecha a modal após criar
   };
 
   const handleAddCategory = async (groupId: string) => {
@@ -329,7 +332,7 @@ const Budget = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-                <Dialog>
+                <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
                       <FolderPlus className="h-4 w-4" /> Novo Grupo
@@ -368,7 +371,7 @@ const Budget = () => {
                       <div className="flex items-center gap-1">
                         <Dialog>
                           <DialogTrigger asChild>
-                            <button className="h-5 w-5 rounded-md bg-muted/40 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
+                            <button data-testid="add-category-button" className="h-5 w-5 rounded-md bg-muted/40 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
                               <Plus className="h-3 w-3" />
                             </button>
                           </DialogTrigger>

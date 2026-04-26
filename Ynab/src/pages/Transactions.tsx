@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useTransactions } from "@/hooks/useTransactions";
 import { formatMoney } from "@/lib/currency-utils";
@@ -37,10 +37,14 @@ import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal"
 import { ImportModal } from "@/components/dashboard/ImportModal";
 
 const Transactions = () => {
-  const { tree, getAccountName, getCategoryName } = useAccountStore();
+  const { tree, fetchAccounts, getAccountName, getCategoryName } = useAccountStore();
   const { transactions, isLoading, deleteTransaction } = useTransactions();
   const [search, setSearch] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState("all");
+
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
 
   // Flatten tree to get all accounts for filter
   const allAccounts = useMemo(() => {

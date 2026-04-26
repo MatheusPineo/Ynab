@@ -17,3 +17,7 @@ Ynab/.env
 .DS_Store
 *.swp
 .env
+# Playwright
+Ynab/playwright-report/
+Ynab/test-results/
+test-results/

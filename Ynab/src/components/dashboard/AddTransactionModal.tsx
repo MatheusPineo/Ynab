@@ -29,8 +29,11 @@ export const AddTransactionModal = ({ children, transaction, onClose }: Props) =
 
   const getLeafAccounts = (nodes: any[]): any[] => {
     let leaves: any[] = [];
+    if (!nodes) return leaves;
+    
     nodes.forEach(node => {
-      if (node.children && node.children.length > 0) {
+      const hasChildren = node.children && Array.isArray(node.children) && node.children.length > 0;
+      if (hasChildren) {
         leaves = [...leaves, ...getLeafAccounts(node.children)];
       } else {
         leaves.push(node);

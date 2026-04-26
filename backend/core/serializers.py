@@ -9,8 +9,10 @@ class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
         fields = '__all__'
-        # Adiciona 'parent' para que o serializer possa lidar com a relação hierárquica
-        extra_kwargs = {'parent': {'required': False, 'allow_null': True}}
+        extra_kwargs = {
+            'parent': {'required': False, 'allow_null': True},
+            'user': {'read_only': True},  # Preenchido automaticamente pela view
+        }
 
 class MonthlyBudgetSerializer(serializers.ModelSerializer):
     class Meta:
@@ -24,7 +26,10 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ['id', 'user', 'name', 'parent', 'assigned_amount', 'spent_amount']
-        extra_kwargs = {'parent': {'required': False, 'allow_null': True}}
+        extra_kwargs = {
+            'parent': {'required': False, 'allow_null': True},
+            'user': {'read_only': True},  # Preenchido automaticamente pela view
+        }
 
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -35,6 +40,9 @@ class GoalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Goal
         fields = '__all__'
+        extra_kwargs = {
+            'user': {'read_only': True},  # Preenchido automaticamente pela view
+        }
 
 # Serializer para JWT Customizado
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
