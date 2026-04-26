@@ -420,6 +420,7 @@ class GoalViewSet(viewsets.ModelViewSet):
 
 from rest_framework import generics
 from django.contrib.auth.models import User
+from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer, UserSerializer
 
 class RegisterView(generics.CreateAPIView):
