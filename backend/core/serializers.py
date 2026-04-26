@@ -60,17 +60,22 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
+    name = serializers.CharField(write_only=True, required=False) # Aceita o campo do frontend
 
     class Meta:
         model = User
-        fields = ('username', 'email', 'password', 'first_name')
+        fields = ('email', 'password', 'name')
 
     def create(self, validated_data):
+        email = validated_data['email']
+        password = validated_data['password']
+        name = validated_data.get('name', '')
+        
         # Usamos o email como username para simplificar o login depois
         user = User.objects.create_user(
-            username=validated_data['email'],
-            email=validated_data['email'],
-            password=validated_data['password'],
-            first_name=validated_data.get('first_name', '')
+            username=email,
+            email=email,
+            password=password,
+            first_name=name
         )
         return user
