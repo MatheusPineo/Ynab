@@ -40,5 +40,20 @@ export const useTransactions = () => {
     },
   });
 
-  return { transactions, isLoading, addTransaction, deleteTransaction };
+  const importFile = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const response = await authenticatedFetch("/transactions/import_file/", {
+        method: "POST",
+        body: formData,
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Podemos recarregar as contas aqui usando import para garantir atualização do saldo
+      toast.success(data.message || "Arquivo importado com sucesso!");
+    },
+  });
+
+  return { transactions, isLoading, addTransaction, deleteTransaction, importFile };
 };

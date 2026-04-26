@@ -22,6 +22,7 @@ interface Props {
 
 export const AddTransactionModal = ({ children, transaction, onClose }: Props) => {
   const [open, setOpen] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(false);
   const { tree, categoryGroups, addTransaction, updateTransaction } = useAccountStore();
   
   const isEdit = !!transaction;
@@ -55,6 +56,8 @@ export const AddTransactionModal = ({ children, transaction, onClose }: Props) =
       is_income: is_income,
       date: formData.get("date") as string || new Date().toISOString().split('T')[0],
       category: formData.get("category") as string || null,
+      is_recurring: isRecurring,
+      recurrence_interval: isRecurring ? (formData.get("recurrence_interval") as string) : undefined,
     };
 
     if (isEdit && transaction) {
@@ -170,6 +173,38 @@ export const AddTransactionModal = ({ children, transaction, onClose }: Props) =
               ))}
             </select>
           </div>
+
+          {!isEdit && (
+            <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="is_recurring" 
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="is_recurring" className="font-medium cursor-pointer">Repetir esta transação?</Label>
+              </div>
+              
+              {isRecurring && (
+                <div className="grid gap-2 pl-6 animate-in slide-in-from-top-2">
+                  <Label htmlFor="recurrence_interval" className="text-xs text-muted-foreground">Frequência</Label>
+                  <select 
+                    id="recurrence_interval" 
+                    name="recurrence_interval" 
+                    defaultValue="monthly"
+                    className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm ring-offset-background outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  >
+                    <option value="daily">Diariamente</option>
+                    <option value="weekly">Semanalmente</option>
+                    <option value="monthly">Mensalmente</option>
+                    <option value="yearly">Anualmente</option>
+                  </select>
+                </div>
+              )}
+            </div>
+          )}
 
           <DialogFooter>
             <Button type="submit" className="w-full gradient-primary">

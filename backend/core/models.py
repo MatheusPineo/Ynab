@@ -12,6 +12,7 @@ class Account(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='accounts')
     name = models.CharField(max_length=100)
     account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES, default='checking')
+    currency = models.CharField(max_length=3, default='EUR')
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     created_at = models.DateTimeField(auto_now_add=True)
@@ -49,6 +50,12 @@ class Transaction(models.Model):
     description = models.CharField(max_length=255)
     date = models.DateField()
     is_income = models.BooleanField(default=False)
+    is_recurring = models.BooleanField(default=False)
+    recurrence_interval = models.CharField(
+        max_length=20, null=True, blank=True,
+        choices=[('daily', 'Diário'), ('weekly', 'Semanal'), ('monthly', 'Mensal'), ('yearly', 'Anual')]
+    )
+    next_recurrence_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

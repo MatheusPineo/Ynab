@@ -31,6 +31,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                         'name': account.name,
                         'account_type': account.account_type,
                         'balance': str(account.balance),
+                        'currency': account.currency,
                         'parent': str(account.parent_id) if account.parent_id else None,
                     }
                     if children:
@@ -97,6 +98,61 @@ class CategoryViewSet(viewsets.ModelViewSet):
         final_tree = build_tree(categories)
         return Response(final_tree)
 
+    @action(detail=False, methods=['post'])
+    def auto_assign(self, request):
+        rule = request.data.get('rule')
+        month = int(request.data.get('month'))
+        year = int(request.data.get('year'))
+        
+        if not rule or not month or not year:
+            return Response({'error': 'Rule, month e year são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        prev_month = month - 1 if month > 1 else 12
+        prev_year = year if month > 1 else year - 1
+        
+        with transaction.atomic():
+            if rule == 'spent_last_month':
+                transactions = Transaction.objects.filter(
+                    category__user=self.request.user, 
+                    date__month=prev_month, 
+                    date__year=prev_year,
+                    is_income=False
+                ).values('category_id').annotate(total_spent=Sum('amount'))
+                
+                for t in transactions:
+                    MonthlyBudget.objects.update_or_create(
+                        category_id=t['category_id'],
+                        month=month,
+                        year=year,
+                        defaults={'amount': t['total_spent']}
+                    )
+                    
+            elif rule == 'assigned_last_month':
+                prev_budgets = MonthlyBudget.objects.filter(
+                    category__user=self.request.user,
+                    month=prev_month,
+                    year=prev_year
+                )
+                
+                for b in prev_budgets:
+                    MonthlyBudget.objects.update_or_create(
+                        category_id=b.category_id,
+                        month=month,
+                        year=year,
+                        defaults={'amount': b.amount}
+                    )
+                    
+            elif rule == 'clear':
+                MonthlyBudget.objects.filter(
+                    category__user=self.request.user,
+                    month=month,
+                    year=year
+                ).delete()
+            else:
+                return Response({'error': 'Regra inválida.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+        return Response({'message': 'Auto-assign concluído com sucesso.'})
+
 class MonthlyBudgetViewSet(viewsets.ModelViewSet):
     serializer_class = MonthlyBudgetSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -125,11 +181,85 @@ class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        self.sync_recurring_transactions()
         return Transaction.objects.filter(account__user=self.request.user).order_by('-date', '-created_at')
+
+    def sync_recurring_transactions(self):
+        from datetime import date, timedelta
+        import calendar
+        
+        def add_months(sourcedate, months):
+            month = sourcedate.month - 1 + months
+            year = sourcedate.year + month // 12
+            month = month % 12 + 1
+            day = min(sourcedate.day, calendar.monthrange(year,month)[1])
+            return date(year, month, day)
+
+        today = date.today()
+        recurring = Transaction.objects.filter(
+            account__user=self.request.user, 
+            is_recurring=True, 
+            next_recurrence_date__lte=today
+        )
+
+        for template in recurring:
+            while template.next_recurrence_date and template.next_recurrence_date <= today:
+                new_t = Transaction.objects.create(
+                    account=template.account,
+                    category=template.category,
+                    amount=template.amount,
+                    description=template.description,
+                    date=template.next_recurrence_date,
+                    is_income=template.is_income,
+                    is_recurring=False
+                )
+                
+                # Update account balance
+                acc = new_t.account
+                if new_t.is_income:
+                    acc.balance += new_t.amount
+                else:
+                    acc.balance -= new_t.amount
+                acc.save()
+                
+                # Advance date
+                if template.recurrence_interval == 'daily':
+                    template.next_recurrence_date += timedelta(days=1)
+                elif template.recurrence_interval == 'weekly':
+                    template.next_recurrence_date += timedelta(days=7)
+                elif template.recurrence_interval == 'monthly':
+                    template.next_recurrence_date = add_months(template.next_recurrence_date, 1)
+                elif template.recurrence_interval == 'yearly':
+                    template.next_recurrence_date = add_months(template.next_recurrence_date, 12)
+                else:
+                    break
+            template.save()
 
     @transaction.atomic
     def perform_create(self, serializer):
         instance = serializer.save()
+        
+        if instance.is_recurring and not instance.next_recurrence_date:
+            from datetime import timedelta
+            import calendar
+            def add_months(sourcedate, months):
+                month = sourcedate.month - 1 + months
+                year = sourcedate.year + month // 12
+                month = month % 12 + 1
+                day = min(sourcedate.day, calendar.monthrange(year,month)[1])
+                from datetime import date
+                return date(year, month, day)
+
+            if instance.recurrence_interval == 'daily':
+                instance.next_recurrence_date = instance.date + timedelta(days=1)
+            elif instance.recurrence_interval == 'weekly':
+                instance.next_recurrence_date = instance.date + timedelta(days=7)
+            elif instance.recurrence_interval == 'monthly':
+                instance.next_recurrence_date = add_months(instance.date, 1)
+            elif instance.recurrence_interval == 'yearly':
+                instance.next_recurrence_date = add_months(instance.date, 12)
+            instance.save()
+            
         account = instance.account
         if instance.is_income:
             account.balance += instance.amount
@@ -180,6 +310,103 @@ class TransactionViewSet(viewsets.ModelViewSet):
             account.balance += instance.amount
         account.save()
         instance.delete()
+
+    @action(detail=False, methods=['post'])
+    def import_file(self, request):
+        import csv
+        from decimal import Decimal
+        from datetime import datetime
+        
+        file = request.FILES.get('file')
+        account_id = request.data.get('account')
+        
+        if not file or not account_id:
+            return Response({'error': 'Arquivo e Conta são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            account = Account.objects.get(id=account_id, user=request.user)
+        except Account.DoesNotExist:
+            return Response({'error': 'Conta não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        filename = file.name.lower()
+        imported_count = 0
+        
+        if filename.endswith('.csv'):
+            decoded_file = file.read().decode('utf-8', errors='replace').splitlines()
+            reader = csv.reader(decoded_file)
+            header = next(reader, None)
+            
+            with transaction.atomic():
+                for row in reader:
+                    if len(row) < 3:
+                        continue
+                    try:
+                        date_str = row[0]
+                        desc = row[1]
+                        amount_str = row[2].replace(',', '.')
+                        amount = Decimal(amount_str)
+                        is_income = amount > 0
+                        
+                        try:
+                            t_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                        except ValueError:
+                            try:
+                                t_date = datetime.strptime(date_str, '%d/%m/%Y').date()
+                            except ValueError:
+                                continue
+                        
+                        Transaction.objects.create(
+                            account=account,
+                            description=desc[:255],
+                            amount=abs(amount),
+                            date=t_date,
+                            is_income=is_income
+                        )
+                        if is_income:
+                            account.balance += abs(amount)
+                        else:
+                            account.balance -= abs(amount)
+                        imported_count += 1
+                    except Exception:
+                        pass
+                account.save()
+                
+        elif filename.endswith('.ofx'):
+            try:
+                from ofxparse import OfxParser
+                import io
+                
+                ofx = OfxParser.parse(io.BytesIO(file.read()))
+                
+                with transaction.atomic():
+                    for ofx_account in ofx.accounts:
+                        for st in ofx_account.statement.transactions:
+                            desc = st.payee or st.memo or "Importação OFX"
+                            amount = st.amount
+                            is_income = amount > 0
+                            t_date = st.date.date()
+                            
+                            Transaction.objects.create(
+                                account=account,
+                                description=str(desc)[:255],
+                                amount=abs(amount),
+                                date=t_date,
+                                is_income=is_income
+                            )
+                            if is_income:
+                                account.balance += abs(amount)
+                            else:
+                                account.balance -= abs(amount)
+                            imported_count += 1
+                    account.save()
+            except ImportError:
+                return Response({'error': 'A biblioteca ofxparse não está instalada.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            except Exception as e:
+                return Response({'error': f'Falha ao ler arquivo OFX: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'error': 'Formato não suportado. Envie .csv ou .ofx'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response({'message': f'{imported_count} transações importadas com sucesso!'})
 
 class GoalViewSet(viewsets.ModelViewSet):
     serializer_class = GoalSerializer

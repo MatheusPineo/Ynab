@@ -58,6 +58,7 @@ interface AccountState {
   // Categories Actions
   fetchCategoryGroups: () => Promise<void>;
   assignMoney: (categoryId: string, amount: number) => Promise<void>;
+  autoAssign: (rule: string) => Promise<void>;
   addCategoryGroup: (name: string) => Promise<void>;
   addCategory: (groupId: string, name: string) => Promise<void>;
   updateCategory: (id: string, updates: Partial<CategoryNode>) => Promise<void>;
@@ -115,6 +116,7 @@ export const useAccountStore = create<AccountState>()(
             balance: partialNode.balance ?? 0,
             account_type: partialNode.account_type || "checking",
             parent: parentId !== "root" ? parentId : null,
+            currency: partialNode.currency || "EUR",
           };
 
           const response = await authenticatedFetch("/accounts/", {
@@ -245,6 +247,22 @@ export const useAccountStore = create<AccountState>()(
           });
           if (!response.ok) throw new Error("Falha ao alocar dinheiro");
           await get().fetchCategoryGroups();
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      autoAssign: async (rule: string) => {
+        try {
+          const { currentMonth, currentYear } = get();
+          const response = await authenticatedFetch(`/categories/auto_assign/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ rule, month: currentMonth, year: currentYear }),
+          });
+          if (!response.ok) throw new Error("Falha no Auto-Assign");
+          await get().fetchCategoryGroups();
+          toast.success("Orçamento preenchido automaticamente!");
         } catch (error: any) {
           toast.error(error.message);
         }

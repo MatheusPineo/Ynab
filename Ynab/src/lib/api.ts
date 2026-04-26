@@ -6,11 +6,17 @@ const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 export async function authenticatedFetch(endpoint: string, options: RequestInit = {}) {
   let { accessToken } = useAuthStore.getState();
 
-  const getHeaders = (token: string | null) => ({
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options.headers,
-  });
+  const getHeaders = (token: string | null) => {
+    const defaultHeaders: any = {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    };
+    if (options.body instanceof FormData) {
+      delete defaultHeaders["Content-Type"];
+    }
+    return defaultHeaders;
+  };
 
   try {
     let response = await fetch(`${BASE_URL}${endpoint}`, {

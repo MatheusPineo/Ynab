@@ -8,6 +8,9 @@ export interface Transaction {
   date: string;
   is_income: boolean;
   category?: string; // ID da categoria
+  is_recurring?: boolean;
+  recurrence_interval?: "daily" | "weekly" | "monthly" | "yearly";
+  next_recurrence_date?: string;
   created_at?: string;
 }
 

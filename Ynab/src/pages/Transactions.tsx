@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
+import { ImportModal } from "@/components/dashboard/ImportModal";
 
 const Transactions = () => {
   const { tree, getAccountName, getCategoryName } = useAccountStore();
@@ -99,6 +100,9 @@ const Transactions = () => {
             ))}
           </SelectContent>
         </Select>
+        
+        <ImportModal />
+        <AddTransactionModal />
       </div>
 
       <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">

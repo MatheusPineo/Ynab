@@ -216,6 +216,7 @@ const Budget = () => {
     tree, 
     fetchCategoryGroups, 
     assignMoney, 
+    autoAssign,
     addCategoryGroup, 
     addCategory, 
     setCategoryGroups 
@@ -307,9 +308,27 @@ const Budget = () => {
             <div className="flex flex-col gap-3 max-w-xs text-center sm:text-right">
               <p className="text-sm text-muted-foreground">Patrimônio disponível neste mês.</p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => copyBudgetFromPreviousMonth()} className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
-                  <ChevronLeft className="h-4 w-4" /> Copiar Mês Anterior
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
+                      Automático ✨
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="glass border-border/60">
+                    <DropdownMenuLabel>Regras de Orçamento</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => autoAssign('spent_last_month')} className="cursor-pointer">
+                      Usar gastos do mês passado
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => autoAssign('assigned_last_month')} className="cursor-pointer">
+                      Repetir orçamento passado
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => autoAssign('clear')} className="cursor-pointer text-rose-500 focus:text-rose-500">
+                      Limpar todo o orçamento
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <Dialog>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm" className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
