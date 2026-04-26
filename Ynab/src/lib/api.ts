@@ -1,7 +1,17 @@
 import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "sonner";
 
-const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
+const getBaseUrl = () => {
+  let url = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  // Se a URL não termina com /api e não é localhost, adiciona o /api automaticamente
+  if (!url.includes("/api") && !url.startsWith("http://localhost")) {
+    url = url.replace(/\/$/, "") + "/api";
+  }
+  return url.replace(/\/$/, ""); // Retorna sem barra no final
+};
+
+const BASE_URL = getBaseUrl();
+console.log("🚀 API Base URL configurada como:", BASE_URL);
 
 export async function authenticatedFetch(endpoint: string, options: RequestInit = {}) {
   let { accessToken } = useAuthStore.getState();

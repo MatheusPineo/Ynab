@@ -28,7 +28,12 @@ export const useAuthStore = create<AuthState>()(
       refreshToken: null,
 
       login: async (email, password) => {
-        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        let baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        if (!baseUrl.includes("/api") && !baseUrl.startsWith("http://localhost")) {
+          baseUrl = baseUrl.replace(/\/$/, "") + "/api";
+        }
+        baseUrl = baseUrl.replace(/\/$/, "");
+
         const response = await fetch(`${baseUrl}/token/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -47,7 +52,12 @@ export const useAuthStore = create<AuthState>()(
       },
 
       register: async (name, email, password) => {
-        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        let baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        if (!baseUrl.includes("/api") && !baseUrl.startsWith("http://localhost")) {
+          baseUrl = baseUrl.replace(/\/$/, "") + "/api";
+        }
+        baseUrl = baseUrl.replace(/\/$/, "");
+
         const response = await fetch(`${baseUrl}/register/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -64,7 +74,12 @@ export const useAuthStore = create<AuthState>()(
         const { refreshToken } = get();
         if (!refreshToken) return null;
 
-        const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        let baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        if (!baseUrl.includes("/api") && !baseUrl.startsWith("http://localhost")) {
+          baseUrl = baseUrl.replace(/\/$/, "") + "/api";
+        }
+        baseUrl = baseUrl.replace(/\/$/, "");
+
         const response = await fetch(`${baseUrl}/token/refresh/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
