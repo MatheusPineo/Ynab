@@ -432,8 +432,9 @@ class RegisterView(generics.CreateAPIView):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
+from django.http import HttpResponse
+
 def ping(request):
-    return Response({"status": "ok", "message": "Pong! Seu backend está acordado."}, status=status.HTTP_200_OK)
+    """Endpoint público e leve para manter o servidor acordado via Cron-job."""
+    return HttpResponse("ok", content_type="text/plain", status=200)
 
