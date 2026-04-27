@@ -1,5 +1,6 @@
-from rest_framework import viewsets, permissions, status
-from rest_framework.decorators import action
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.db.models import Sum
@@ -430,3 +431,9 @@ class RegisterView(generics.CreateAPIView):
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def ping(request):
+    return Response({"status": "ok", "message": "Pong! Seu backend está acordado."}, status=status.HTTP_200_OK)
+

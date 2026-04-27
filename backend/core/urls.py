@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, MonthlyBudgetViewSet
+from .views import AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, MonthlyBudgetViewSet, ping
 
 # O Router do DRF cria automaticamente as rotas GET, POST, PUT, DELETE
 router = DefaultRouter()
@@ -12,4 +12,5 @@ router.register(r'monthly-budgets', MonthlyBudgetViewSet, basename='monthly-budg
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('ping/', ping, name='ping'),
 ]
