@@ -21,3 +21,5 @@ Ynab/.env
 Ynab/playwright-report/
 Ynab/test-results/
 test-results/
+# Debug logs
+backend/backend_debug.txt

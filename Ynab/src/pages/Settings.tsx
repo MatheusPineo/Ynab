@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
@@ -23,8 +24,64 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, accessToken } = useAuthStore();
+  const [name, setName] = useState(user?.name || "");
+  const [bio, setBio] = useState(localStorage.getItem("user_bio") || "Organizando o futuro...");
+  const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
+      const response = await fetch(`${baseUrl}/auth/profile/update/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({ name, bio })
+      });
+
+      if (!response.ok) throw new Error("Erro ao salvar perfil");
+
+      // Salva a bio localmente por enquanto já que o modelo User padrão não tem esse campo
+      localStorage.setItem("user_bio", bio);
+      
+      // Atualiza o store local (Zustand)
+      useAuthStore.setState((state) => ({
+        user: state.user ? { ...state.user, name: name } : null
+      }));
+
+      toast.success("Perfil atualizado com sucesso!");
+    } catch (error) {
+      toast.error("Falha ao salvar as alterações.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePhotoClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Por enquanto, apenas simula o upload para o UI
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        useAuthStore.setState((state) => ({
+          user: state.user ? { ...state.user, avatar: reader.result as string } : null
+        }));
+        toast.success("Foto atualizada localmente!");
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleResetData = () => {
     if (confirm("Tem certeza? Isso apagará TODAS as suas contas, transações e orçamentos permanentemente.")) {
@@ -41,6 +98,14 @@ const Settings = () => {
 
   return (
     <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleFileChange} 
+        accept="image/*" 
+        className="hidden" 
+      />
+      
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
           <SettingsIcon className="h-8 w-8 text-primary" />
@@ -84,30 +149,49 @@ const Settings = () => {
                     </Badge>
                   </div>
                 </div>
-                <Button variant="outline" className="sm:ml-auto rounded-xl h-10 border-border/60">
+                <Button 
+                  variant="outline" 
+                  onClick={handlePhotoClick}
+                  className="sm:ml-auto rounded-xl h-10 border-border/60"
+                >
                   Alterar Foto
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="p-8">
-              <form className="grid gap-6 max-w-2xl">
+              <form onSubmit={handleSave} className="grid gap-6 max-w-2xl">
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Nome Completo</Label>
-                    <Input id="name" defaultValue={user?.name} className="bg-background/50 rounded-xl" />
+                    <Input 
+                      id="name" 
+                      value={name} 
+                      onChange={(e) => setName(e.target.value)}
+                      className="bg-background/50 rounded-xl" 
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">E-mail de Acesso</Label>
-                    <Input id="email" defaultValue={user?.email} className="bg-background/50 rounded-xl" />
+                    <Input id="email" readOnly defaultValue={user?.email} className="bg-background/50 rounded-xl opacity-70 cursor-not-allowed" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bio">Bio / Nota Pessoal</Label>
-                  <Input id="bio" placeholder="Organizando o futuro..." className="bg-background/50 rounded-xl" />
+                  <Input 
+                    id="bio" 
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Organizando o futuro..." 
+                    className="bg-background/50 rounded-xl" 
+                  />
                 </div>
                 <div className="flex justify-end pt-4">
-                  <Button type="button" className="gradient-primary px-8 rounded-xl font-bold shadow-glow">
-                    Salvar Alterações
+                  <Button 
+                    type="submit" 
+                    disabled={isSaving}
+                    className="gradient-primary px-8 rounded-xl font-bold shadow-glow"
+                  >
+                    {isSaving ? "Salvando..." : "Salvar Alterações"}
                   </Button>
                 </div>
               </form>

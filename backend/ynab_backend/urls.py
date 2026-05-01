@@ -17,12 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework_simplejwt.views import TokenRefreshView
-from core.views import MyTokenObtainPairView, RegisterView
+from core.views import MyTokenObtainPairView, RegisterView, GoogleLoginView
 
 urlpatterns = [
     path('api/token/', MyTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/register/', RegisterView.as_view(), name='register'),
+    path('api/auth/google/', GoogleLoginView.as_view(), name='google_login'),
     path('api/register', RegisterView.as_view()), # Fallback sem barra
     path('admin/', admin.site.urls),
     path('api/', include('core.urls')), # Conecta as rotas do app core no prefixo /api/

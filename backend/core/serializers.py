@@ -68,11 +68,11 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    name = serializers.CharField(write_only=True, required=False) # Aceita o campo do frontend
 
     class Meta:
         model = User
-        fields = ('email', 'password', 'name')
+        fields = ('id', 'email', 'password', 'first_name', 'last_name')
+        extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
         email = validated_data['email']

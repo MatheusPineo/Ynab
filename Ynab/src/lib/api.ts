@@ -2,7 +2,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { toast } from "sonner";
 
 const getBaseUrl = () => {
-  let url = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  let url = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
   // Se a URL não termina com /api e não é localhost, adiciona o /api automaticamente
   if (!url.includes("/api") && !url.startsWith("http://localhost")) {
     url = url.replace(/\/$/, "") + "/api";

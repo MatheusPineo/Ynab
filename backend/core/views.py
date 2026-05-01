@@ -1,12 +1,16 @@
+from django.conf import settings
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.db.models import Sum
 from .models import Account, Category, Transaction, Goal, MonthlyBudget
 from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer
 from datetime import datetime
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from .social_auth import verify_google_token, get_or_create_google_user, verify_google_access_token
 
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
@@ -434,7 +438,80 @@ class MyTokenObtainPairView(TokenObtainPairView):
 
 from django.http import HttpResponse
 
+class UpdateProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        name = request.data.get('name')
+        
+        if name:
+            # Tenta separar o nome se possível
+            parts = name.split(' ', 1)
+            user.first_name = parts[0]
+            user.last_name = parts[1] if len(parts) > 1 else ''
+            user.save()
+            
+        return Response({
+            'message': 'Perfil atualizado com sucesso!',
+            'user': {
+                'id': user.id,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name
+            }
+        })
+
 def ping(request):
     """Endpoint público e leve para manter o servidor acordado via Cron-job."""
     return HttpResponse("ok", content_type="text/plain", status=200)
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        token = request.data.get('token')
+        with open("backend_debug.txt", "a") as f:
+            f.write(f"\n--- REQUEST {datetime.now()} ---\n")
+            f.write(f"Token: {token[:20]}...\n")
+            f.write(f"GOOGLE_CLIENT_ID: {settings.GOOGLE_CLIENT_ID}\n")
+        
+        if not token:
+            return Response({'error': 'Token é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Tenta verificar como ID Token primeiro, depois como Access Token
+            try:
+                idinfo = verify_google_token(token)
+            except Exception:
+                # Fallback para Access Token (usado em botões customizados)
+                idinfo = verify_google_access_token(token)
+            
+            # Obtém ou cria o usuário baseado no email do Google
+            user = get_or_create_google_user(idinfo)
+            
+            # Gera os tokens JWT para o usuário
+            refresh = RefreshToken.for_user(user)
+            
+            user_data = UserSerializer(user).data
+            user_data['avatar'] = getattr(user, 'google_picture', None)
+            
+            return Response({
+                'access': str(refresh.access_token),
+                'refresh': str(refresh),
+                'user': user_data
+            })
+            
+        except Exception as e:
+            import traceback
+            error_msg = f"Erro no login social: {str(e)}"
+            with open("backend_debug.txt", "a") as f:
+                f.write(f"\n--- {datetime.now()} ---\n")
+                f.write(error_msg + "\n")
+                f.write(traceback.format_exc() + "\n")
+            
+            return Response({
+                'error': error_msg,
+                'detail': traceback.format_exc()
+            }, status=status.HTTP_400_BAD_REQUEST)
 
