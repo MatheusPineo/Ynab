@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import { authenticatedFetch } from "@/lib/api";
 import {
   type AccountNode,
@@ -83,7 +82,6 @@ interface AccountState {
 const now = new Date();
 
 export const useAccountStore = create<AccountState>()(
-  persist(
     (set, get) => ({
       tree: [],
       transactions: [],
@@ -469,7 +467,5 @@ export const useAccountStore = create<AccountState>()(
         
         return history;
       },
-    }),
-    { name: "vault-accounts-storage" }
-  )
+    })
 );

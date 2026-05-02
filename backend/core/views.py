@@ -5,12 +5,100 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.db.models import Sum
-from .models import Account, Category, Transaction, Goal, MonthlyBudget
-from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer
+from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile
+
+from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer, UserSerializer
+
 from datetime import datetime
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .social_auth import verify_google_token, get_or_create_google_user, verify_google_access_token
+import pyotp
+import qrcode
+import io
+import base64
+
+class TwoFactorSetupView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        
+        if profile.two_factor_enabled:
+            return Response({"error": "2FA já está ativado."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Gera segredo se não existir
+        if not profile.two_factor_secret:
+            profile.two_factor_secret = pyotp.random_base32()
+            profile.save()
+            
+        totp = pyotp.TOTP(profile.two_factor_secret)
+        # O nome do app que aparece no Authenticator
+        provisioning_uri = totp.provisioning_uri(name=user.email, issuer_name="Vault Finance OS")
+        
+        return Response({
+            "secret": profile.two_factor_secret,
+            "provisioning_uri": provisioning_uri
+        })
+
+class TwoFactorVerifyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        profile = user.profile
+        code = request.data.get("code")
+        
+        if not code:
+            return Response({"error": "Código é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        totp = pyotp.TOTP(profile.two_factor_secret)
+        if totp.verify(code):
+            profile.two_factor_enabled = True
+            profile.save()
+            return Response({"message": "2FA ativado com sucesso!"})
+        else:
+            return Response({"error": "Código inválido."}, status=status.HTTP_400_BAD_REQUEST)
+
+class TwoFactorDisableView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        profile = user.profile
+        profile.two_factor_enabled = False
+        profile.two_factor_secret = None
+        profile.save()
+        return Response({"message": "2FA desativado com sucesso!"})
+
+class TwoFactorLoginView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        code = request.data.get("code")
+        
+        if not user_id or not code:
+            return Response({"error": "ID de usuário e código são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(id=user_id)
+            profile = user.profile
+            
+            totp = pyotp.TOTP(profile.two_factor_secret)
+            if totp.verify(code):
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'access': str(refresh.access_token),
+                    'refresh': str(refresh),
+                    'user': UserSerializer(user).data
+                })
+            else:
+                return Response({"error": "Código 2FA inválido."}, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            return Response({"error": "Usuário não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+
 
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
@@ -444,6 +532,9 @@ class UpdateProfileView(APIView):
     def post(self, request):
         user = request.user
         name = request.data.get('name')
+        bio = request.data.get('bio')
+        preferred_currency = request.data.get('preferred_currency')
+        language = request.data.get('language')
         
         if name:
             # Tenta separar o nome se possível
@@ -452,15 +543,22 @@ class UpdateProfileView(APIView):
             user.last_name = parts[1] if len(parts) > 1 else ''
             user.save()
             
+        profile, created = UserProfile.objects.get_or_create(user=user)
+        if bio is not None:
+            profile.bio = bio
+        if preferred_currency:
+            profile.preferred_currency = preferred_currency
+        if language:
+            profile.language = language
+            
+        profile.save()
+
+            
         return Response({
             'message': 'Perfil atualizado com sucesso!',
-            'user': {
-                'id': user.id,
-                'email': user.email,
-                'first_name': user.first_name,
-                'last_name': user.last_name
-            }
+            'user': UserSerializer(user).data
         })
+
 
 def ping(request):
     """Endpoint público e leve para manter o servidor acordado via Cron-job."""
@@ -490,11 +588,18 @@ class GoogleLoginView(APIView):
             # Obtém ou cria o usuário baseado no email do Google
             user = get_or_create_google_user(idinfo)
             
+            # Garante que o UserProfile existe e tem o avatar atualizado
+            avatar = idinfo.get('picture')
+            if avatar:
+                profile, created = UserProfile.objects.get_or_create(user=user)
+                profile.avatar_url = avatar
+                profile.save()
+            
             # Gera os tokens JWT para o usuário
             refresh = RefreshToken.for_user(user)
             
             user_data = UserSerializer(user).data
-            user_data['avatar'] = getattr(user, 'google_picture', None)
+
             
             return Response({
                 'access': str(refresh.access_token),
@@ -515,3 +620,29 @@ class GoogleLoginView(APIView):
                 'detail': traceback.format_exc()
             }, status=status.HTTP_400_BAD_REQUEST)
 
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        # Se o usuário não tem uma senha utilizável ou a senha está vazia, 
+        # significa que ele entrou pelo Google.
+        if not user.has_usable_password() or user.password == "":
+            return Response(
+                {"error": "Contas conectadas pelo Google não podem alterar a senha diretamente."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        new_password = request.data.get("new_password")
+        confirm_password = request.data.get("confirm_password")
+
+        if not new_password or not confirm_password:
+            return Response({"error": "Preencha todos os campos."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_password != confirm_password:
+            return Response({"error": "As senhas não coincidem."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({"message": "Senha alterada com sucesso!"})

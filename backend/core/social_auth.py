@@ -32,6 +32,8 @@ def verify_google_token(token):
     except Exception as e:
         raise exceptions.AuthenticationFailed(f'Invalid Google Token: {str(e)}')
 
+from .models import UserProfile
+
 def get_or_create_google_user(idinfo):
     email = idinfo.get('email')
     full_name = idinfo.get('name', '')
@@ -54,12 +56,19 @@ def get_or_create_google_user(idinfo):
         }
     )
     
-    if not created:
+    if created:
+        user.set_unusable_password()
+        user.save()
+    else:
         user.first_name = first_name
         user.last_name = last_name
         user.save()
         
-    # Adicionamos a foto no objeto temporário para retornar ao frontend
-    # Nota: O modelo User padrão não tem campo avatar, então passamos no retorno da view
-    user.google_picture = picture
+    # Salva ou atualiza o perfil com a foto do Google
+    profile, created = UserProfile.objects.get_or_create(user=user)
+    if picture:
+        profile.avatar_url = picture
+        profile.save()
+        
     return user
+

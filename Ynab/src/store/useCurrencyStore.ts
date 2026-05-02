@@ -1,18 +1,18 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 export type Currency = "EUR" | "BRL" | "USD";
 
 interface CurrencyState {
   rates: Record<Currency, number>;
   lastUpdated: string | null;
+  baseCurrency: Currency;
   isLoading: boolean;
   fetchRates: () => Promise<void>;
   convert: (amount: number, from: Currency, to: Currency) => number;
+  setBaseCurrency: (cur: Currency) => void;
 }
 
 export const useCurrencyStore = create<CurrencyState>()(
-  persist(
     (set, get) => ({
       rates: {
         EUR: 1,
@@ -20,7 +20,9 @@ export const useCurrencyStore = create<CurrencyState>()(
         USD: 1.08,
       },
       lastUpdated: null,
+      baseCurrency: "EUR",
       isLoading: false,
+
 
       fetchRates: async () => {
         set({ isLoading: true });
@@ -53,9 +55,7 @@ export const useCurrencyStore = create<CurrencyState>()(
         // Convert from EUR to target
         return inEur * rates[to];
       },
-    }),
-    {
-      name: "vault-currency-storage",
-    }
-  )
+      setBaseCurrency: (cur: Currency) => set({ baseCurrency: cur }),
+    })
 );
+

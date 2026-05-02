@@ -6,9 +6,9 @@ import { useCurrencyStore, type Currency } from "@/store/useCurrencyStore";
 import { AddRootAccountModal } from "@/components/dashboard/AddRootAccountModal";
 
 const Dashboard = () => {
-  const [base, setBase] = useState<Currency>("EUR");
   const { tree, fetchAccounts } = useAccountStore();
-  const { fetchRates, convert, isLoading } = useCurrencyStore();
+  const { fetchRates, convert, isLoading, baseCurrency, setBaseCurrency } = useCurrencyStore();
+
 
   useEffect(() => {
     fetchRates();
@@ -20,14 +20,14 @@ const Dashboard = () => {
     const totalsByCur = useAccountStore.getState().totalsByCurrency(tree);
 
     return (Object.entries(totalsByCur) as [Currency, number][]).reduce(
-      (acc, [cur, amount]) => acc + convert(amount, cur, base),
+      (acc, [cur, amount]) => acc + convert(amount, cur, baseCurrency),
       0,
     );
-  }, [tree, base, convert]);
+  }, [tree, baseCurrency, convert]);
 
   return (
     <>
-      <NetWorthHeader base={base} onBaseChange={setBase} customTotal={total} />
+      <NetWorthHeader base={baseCurrency} onBaseChange={setBaseCurrency} customTotal={total} />
 
       {/* Section header */}
       <div className="flex items-baseline justify-between mt-2">
