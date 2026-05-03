@@ -57,6 +57,7 @@ class Transaction(models.Model):
         choices=[('daily', 'Diário'), ('weekly', 'Semanal'), ('monthly', 'Mensal'), ('yearly', 'Anual')]
     )
     next_recurrence_date = models.DateField(null=True, blank=True)
+    transfer_group = models.UUIDField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -68,7 +69,8 @@ class Goal(models.Model):
     name = models.CharField(max_length=100)
     target_amount = models.DecimalField(max_digits=12, decimal_places=2)
     current_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    deadline = models.DateField()
+    currency = models.CharField(max_length=3, default='EUR')
+    deadline = models.DateField(null=True, blank=True)
     emoji = models.CharField(max_length=20, default="🎯")
     created_at = models.DateTimeField(auto_now_add=True)
 

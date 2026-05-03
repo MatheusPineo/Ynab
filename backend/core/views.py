@@ -8,7 +8,7 @@ from django.db.models import Sum
 from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile
 
 from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer, UserSerializer
-
+import uuid
 from datetime import datetime
 
 from rest_framework.views import APIView
@@ -401,13 +401,80 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        account = instance.account
-        if instance.is_income:
-            account.balance -= instance.amount
+        if instance.transfer_group:
+            # Encontra todas as transações do grupo para exclusão coordenada
+            group_transactions = Transaction.objects.filter(transfer_group=instance.transfer_group)
+            for t in group_transactions:
+                account = t.account
+                if t.is_income:
+                    account.balance -= t.amount
+                else:
+                    account.balance += t.amount
+                account.save()
+            group_transactions.delete()
         else:
-            account.balance += instance.amount
-        account.save()
-        instance.delete()
+            account = instance.account
+            if instance.is_income:
+                account.balance -= instance.amount
+            else:
+                account.balance += instance.amount
+            account.save()
+            instance.delete()
+
+    @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def transfer(self, request):
+        from_account_id = request.data.get('from_account')
+        to_account_id = request.data.get('to_account')
+        amount = request.data.get('amount')
+        to_amount = request.data.get('to_amount', amount) # Valor líquido após conversão/taxas
+        description = request.data.get('description', 'Transferência')
+        date_str = request.data.get('date')
+        
+        if not from_account_id or not to_account_id or not amount or not date_str:
+            return Response({'error': 'Campos obrigatórios ausentes.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            from_account = Account.objects.get(id=from_account_id, user=request.user)
+            to_account = Account.objects.get(id=to_account_id, user=request.user)
+        except Account.DoesNotExist:
+            return Response({'error': 'Conta não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        from decimal import Decimal
+        try:
+            val_amount = Decimal(str(amount))
+            val_to_amount = Decimal(str(to_amount))
+        except:
+            return Response({'error': 'Valores inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        t_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        group_id = uuid.uuid4()
+        
+        # 1. Transação de Saída (Origem)
+        Transaction.objects.create(
+            account=from_account,
+            description=f"{description} (Para {to_account.name})",
+            amount=val_amount,
+            date=t_date,
+            is_income=False,
+            transfer_group=group_id
+        )
+        from_account.balance -= val_amount
+        from_account.save()
+        
+        # 2. Transação de Entrada (Destino)
+        Transaction.objects.create(
+            account=to_account,
+            description=f"{description} (De {from_account.name})",
+            amount=val_to_amount,
+            date=t_date,
+            is_income=True,
+            transfer_group=group_id
+        )
+        to_account.balance += val_to_amount
+        to_account.save()
+        
+        return Response({'message': 'Transferência concluída com sucesso!'})
 
     @action(detail=False, methods=['post'])
     def import_file(self, request):

@@ -40,9 +40,11 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [accountId, setAccountId] = useState<string>(transaction?.account ? String(transaction.account) : (initialAccountId || ""));
   const [categoryId, setCategoryId] = useState<string>(transaction?.category ? String(transaction.category) : "none");
   const [recurrenceInterval, setRecurrenceInterval] = useState<string>(transaction?.recurrence_interval || "monthly");
+  const [toAccountId, setToAccountId] = useState<string>("");
+  const [toAmount, setToAmount] = useState<string>("");
 
   const { tree, categoryGroups } = useAccountStore();
-  const { addTransaction, updateTransaction } = useTransactions();
+  const { addTransaction, updateTransaction, transferTransaction } = useTransactions();
   
   const isEdit = !!transaction;
 
@@ -63,6 +65,11 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   
   const leafAccounts = getLeafAccounts(tree);
 
+  const fromAccount = leafAccounts.find(a => String(a.id) === accountId);
+  const toAccount = leafAccounts.find(a => String(a.id) === toAccountId);
+  const isTransfer = type === "transfer";
+  const showLiquidValue = isTransfer && fromAccount && toAccount && fromAccount.currency !== toAccount.currency;
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -81,7 +88,16 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       recurrence_interval: isRecurring ? recurrenceInterval : undefined,
     };
 
-    if (isEdit && transaction) {
+    if (isTransfer) {
+      await transferTransaction.mutateAsync({
+        from_account: accountId,
+        to_account: toAccountId,
+        amount: amountValue,
+        to_amount: showLiquidValue ? parseFloat(toAmount) : amountValue,
+        description: formData.get("description") as string,
+        date: formData.get("date") as string || new Date().toISOString().split('T')[0],
+      });
+    } else if (isEdit && transaction) {
       await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData });
     } else {
       await addTransaction.mutateAsync(transactionData as any);
@@ -144,10 +160,35 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                 <SelectContent className="glass border-border/60">
                   <SelectItem value="expense">Despesa (-)</SelectItem>
                   <SelectItem value="income">Receita (+)</SelectItem>
+                  {!isEdit && <SelectItem value="transfer">Transferência 🔄</SelectItem>}
                 </SelectContent>
               </Select>
             </div>
           </div>
+
+          {showLiquidValue && (
+            <div className="grid gap-2 animate-in fade-in slide-in-from-top-2">
+              <Label htmlFor="to_amount" className="text-emerald-400 font-semibold">
+                Valor Líquido Recebido ({toAccount?.currency})
+              </Label>
+              <div className="relative">
+                <Input 
+                  id="to_amount" 
+                  name="to_amount" 
+                  type="number" 
+                  step="0.01" 
+                  value={toAmount}
+                  onChange={(e) => setToAmount(e.target.value)}
+                  placeholder="Valor final na conta de destino" 
+                  required 
+                  className="bg-emerald-500/10 border-emerald-500/30 focus-visible:ring-emerald-500" 
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Informe o valor que de fato caiu na conta após taxas e câmbio.
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-2">
             <Label htmlFor="date">Data</Label>
@@ -160,43 +201,63 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             />
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="account">Conta</Label>
-            <Select value={accountId} onValueChange={setAccountId} required>
-              <SelectTrigger className="bg-background/50 border-border/60">
-                <SelectValue placeholder="Selecione uma conta" />
-              </SelectTrigger>
-              <SelectContent className="glass border-border/60">
-                {leafAccounts.map(acc => (
-                  <SelectItem key={acc.id} value={String(acc.id)}>{acc.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="account">{isTransfer ? "De Conta (Origem)" : "Conta"}</Label>
+              <Select value={accountId} onValueChange={setAccountId} required>
+                <SelectTrigger className="bg-background/50 border-border/60">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  {leafAccounts.map(acc => (
+                    <SelectItem key={acc.id} value={String(acc.id)}>{acc.name} ({acc.currency})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {isTransfer && (
+              <div className="grid gap-2 animate-in slide-in-from-right-2">
+                <Label htmlFor="to_account">Para Conta (Destino)</Label>
+                <Select value={toAccountId} onValueChange={setToAccountId} required>
+                  <SelectTrigger className="bg-background/50 border-border/60">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border/60">
+                    {leafAccounts.filter(acc => String(acc.id) !== accountId).map(acc => (
+                      <SelectItem key={acc.id} value={String(acc.id)}>{acc.name} ({acc.currency})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="category">Categoria de Orçamento</Label>
-            <Select value={categoryId} onValueChange={setCategoryId}>
-              <SelectTrigger className="bg-background/50 border-border/60">
-                <SelectValue placeholder="Sem categoria" />
-              </SelectTrigger>
-              <SelectContent className="glass border-border/60">
-                <SelectItem value="none">Sem categoria</SelectItem>
-                {categoryGroups.map(group => (
-                  <SelectGroup key={group.id}>
-                    <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
-                      {group.name}
-                    </SelectLabel>
-                    {(group.children || []).map(cat => (
-                      <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {!isTransfer && (
+            <div className="grid gap-2">
+              <Label htmlFor="category">Categoria de Orçamento</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger className="bg-background/50 border-border/60">
+                  <SelectValue placeholder="Sem categoria" />
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  <SelectItem value="none">Sem categoria</SelectItem>
+                  {categoryGroups.map(group => (
+                    <SelectGroup key={group.id}>
+                      <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
+                        {group.name}
+                      </SelectLabel>
+                      {(group.children || []).map(cat => (
+                        <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {!isEdit && (
             <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">

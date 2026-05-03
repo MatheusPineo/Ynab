@@ -40,6 +40,7 @@ export interface Goal {
   name: string;
   target_amount: number;
   current_amount: number;
-  deadline: string;
+  currency: Currency;
+  deadline: string | null;
   emoji: string;
 }

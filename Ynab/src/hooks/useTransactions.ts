@@ -74,10 +74,36 @@ export const useTransactions = () => {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      // Podemos recarregar as contas aqui usando import para garantir atualização do saldo
       toast.success(data.message || "Arquivo importado com sucesso!");
     },
   });
 
-  return { transactions, isLoading, addTransaction, deleteTransaction, importFile };
+  const transferTransaction = useMutation({
+    mutationFn: async (data: { 
+      from_account: string; 
+      to_account: string; 
+      amount: number; 
+      to_amount: number; 
+      description: string; 
+      date: string 
+    }) => {
+      const response = await authenticatedFetch("/transactions/transfer/", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Erro ao realizar transferência");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      const store = useAccountStore.getState();
+      store.fetchAccounts();
+      toast.success("Transferência realizada com sucesso!");
+    },
+  });
+
+  return { transactions, isLoading, addTransaction, updateTransaction, deleteTransaction, importFile, transferTransaction };
 };

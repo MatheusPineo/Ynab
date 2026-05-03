@@ -1,10 +1,11 @@
-import { Search, Bell, Plus } from "lucide-react";
+import { Bell, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "@/components/ui/mode-toggle";
 import { AddTransactionModal } from "./AddTransactionModal";
 import { useAuthStore } from "@/store/useAuthStore";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { GlobalSearch } from "./GlobalSearch";
 
 export const Topbar = () => {
   const { user } = useAuthStore();
@@ -24,15 +25,8 @@ export const Topbar = () => {
 
 
       <div className="flex items-center gap-3">
-        <div className="hidden md:flex items-center gap-2 rounded-full glass px-4 py-2 w-72">
-          <Search className="h-4 w-4 text-muted-foreground" />
-          <input
-            placeholder="Buscar transações, contas..."
-            className="bg-transparent text-sm placeholder:text-muted-foreground outline-none flex-1"
-          />
-          <kbd className="hidden lg:inline-flex h-5 items-center rounded border border-border px-1.5 text-[10px] text-muted-foreground">
-            ⌘K
-          </kbd>
+        <div className="hidden md:block">
+          <GlobalSearch />
         </div>
 
         <ModeToggle />

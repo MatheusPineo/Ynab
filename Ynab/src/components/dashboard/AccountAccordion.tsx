@@ -65,25 +65,28 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 10 : 1,
-  };
-
-  const RowContent = (
+  };  const RowContent = (
     <div 
       ref={setNodeRef} 
       style={style}
-      className={cn("rounded-xl transition-shadow", isMaster && "border border-border/60 overflow-hidden shadow-soft", isDragging && "shadow-elevated")}
+      className={cn(
+        "transition-all duration-300 ease-in-out",
+        !isMaster && "mx-3 mb-2 w-[calc(100%-24px)]", // Reduz largura de tudo que não for raiz
+        hasChildren && "border border-border/60 rounded-xl overflow-hidden bg-background/20 shadow-soft", // Estilo pasta (para quem tem filhos)
+        isDragging && "shadow-elevated z-10"
+      )}
     >
       <button
         type="button"
         onClick={() => hasChildren ? setOpen((o) => !o) : navigate(`/account/${node.id}`)}
         className={cn(
-          "group flex w-full items-center gap-2 px-3 py-3 text-left transition-colors duration-200",
+          "group flex w-full items-center gap-2 text-left transition-colors duration-200",
           bgFor(depth),
+          hasChildren ? "px-4 py-4 border-b border-border/40" : "px-3 py-3 rounded-xl border border-border/50 shadow-sm", // Papel vs Topo de Pasta
           hasChildren && "hover:bg-muted/60 cursor-pointer",
           !hasChildren && "hover:bg-muted/40 cursor-pointer",
-          isMaster && "px-4 py-4",
         )}
-        style={{ paddingLeft: `${12 + depth * 16}px` }}
+        style={{ paddingLeft: `${12 + depth * 8}px` }} // Reduzi o incremento de indentação para caber no visual reduzido
       >
         {/* Drag handle */}
         <span
@@ -127,7 +130,7 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
           <span
             className={cn(
               "shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold tabular",
-              isMaster
+              isMaster || hasChildren
                 ? "gradient-primary text-primary-foreground shadow-glow"
                 : "bg-secondary/15 text-secondary border border-secondary/20",
             )}
@@ -160,7 +163,7 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
           {formatMoney(total, currency)}
         </span>
 
-        {/* Account Actions (inclui add subaccount, edit, delete) */}
+        {/* Account Actions */}
         <div onClick={(e) => e.stopPropagation()}>
           <AccountActions account={node} />
         </div>
@@ -175,7 +178,7 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
           )}
         >
           <div className="overflow-hidden">
-            <div className={cn("flex flex-col gap-px")}>
+            <div className={cn("flex flex-col pt-3 pb-1")}>
               {node.children!.map((child) => (
                 <AccountRow
                   key={child.id}
