@@ -37,6 +37,7 @@ interface AccountState {
   goals: Goal[];
   currentMonth: number;
   currentYear: number;
+  pendingIcons: Record<string, Blob>;
   
   // Period Actions
   setCurrentPeriod: (month: number, year: number) => void;
@@ -47,6 +48,7 @@ interface AccountState {
   updateNode: (id: string, updates: Partial<AccountNode>) => Promise<void>;
   deleteNode: (id: string) => Promise<void>;
   setTree: (newTree: AccountNode[]) => void;
+  setPendingIcon: (id: string, blob: Blob | null) => void;
   
   // Transactions Actions
   fetchTransactions: () => Promise<void>;
@@ -73,6 +75,7 @@ interface AccountState {
   copyBudgetFromPreviousMonth: () => Promise<void>;
   
   // Helpers
+  getAccount: (id: string) => AccountNode | undefined;
   getAccountName: (id: string) => string;
   getCategoryName: (id: string) => string;
   totalsByCurrency: (tree: AccountNode[]) => Record<Currency, number>;
@@ -87,8 +90,21 @@ export const useAccountStore = create<AccountState>()(
       transactions: [],
       categoryGroups: [],
       goals: initialGoals,
+      pendingIcons: {},
       currentMonth: now.getMonth() + 1,
       currentYear: now.getFullYear(),
+
+      setPendingIcon: (id, blob) => {
+        set((state) => {
+          const newPending = { ...state.pendingIcons };
+          if (blob) {
+            newPending[id] = blob;
+          } else {
+            delete newPending[id];
+          }
+          return { pendingIcons: newPending };
+        });
+      },
 
       setCurrentPeriod: (month, year) => {
         set({ currentMonth: month, currentYear: year });
@@ -136,15 +152,16 @@ export const useAccountStore = create<AccountState>()(
         try {
           const response = await authenticatedFetch(`/accounts/${id}/`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
             body: JSON.stringify(updates),
           });
 
           if (!response.ok) throw new Error("Falha ao atualizar conta");
           
           await get().fetchAccounts();
+          toast.success("Conta atualizada com sucesso!");
         } catch (error: any) {
           toast.error(error.message);
+          throw error; // Re-throw para o componente saber que falhou
         }
       },
 
@@ -410,23 +427,30 @@ export const useAccountStore = create<AccountState>()(
       },
 
       // --- HELPERS ---
-      getAccountName: (id) => {
-        const findAccount = (nodes: AccountNode[]): string | undefined => {
+      getAccount: (id) => {
+        const idStr = String(id);
+        const findAccount = (nodes: AccountNode[]): AccountNode | undefined => {
           for (const node of nodes) {
-            if (node.id === id) return node.name;
+            if (String(node.id) === idStr) return node;
             if (node.children) {
-              const name = findAccount(node.children);
-              if (name) return name;
+              const found = findAccount(node.children);
+              if (found) return found;
             }
           }
         };
-        return findAccount(get().tree) || "Conta";
+        return findAccount(get().tree);
+      },
+
+      getAccountName: (id) => {
+        const acc = get().getAccount(id);
+        return acc ? acc.name : "Conta";
       },
 
       getCategoryName: (id) => {
+        const idStr = String(id);
         const findCategory = (nodes: CategoryNode[]): string | undefined => {
           for (const node of nodes) {
-            if (node.id === id) return node.name;
+            if (String(node.id) === idStr) return node.name;
             if (node.children) {
               const name = findCategory(node.children);
               if (name) return name;
@@ -440,9 +464,8 @@ export const useAccountStore = create<AccountState>()(
         const totals: Record<Currency, number> = { EUR: 0, BRL: 0, USD: 0 };
         const walk = (node: AccountNode, inherited: Currency) => {
           const cur = node.currency ?? inherited;
-          if (typeof node.balance === "number") {
-            totals[cur] += node.balance;
-          }
+          const balance = Number(node.balance) || 0;
+          totals[cur] += balance;
           node.children?.forEach((c) => walk(c, cur));
         };
         tree.forEach((root) => walk(root, root.currency ?? "EUR"));

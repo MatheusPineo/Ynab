@@ -19,6 +19,7 @@ export interface AccountNode {
   name: string;
   currency?: Currency;
   balance?: number;
+  icon_url?: string;
   parent?: string | null;
   children?: AccountNode[];
 }

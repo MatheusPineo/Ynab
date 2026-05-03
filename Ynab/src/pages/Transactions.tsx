@@ -155,7 +155,16 @@ const Transactions = () => {
                     "text-right font-semibold tabular",
                     !t.is_income ? "text-rose-400" : "text-emerald-400"
                   )}>
-                    {t.is_income ? "+" : "-"}{formatMoney(Math.abs(t.amount), "EUR")}
+                    {(() => {
+                      const acc = useAccountStore.getState().getAccount(t.account);
+                      const currency = acc?.currency || "EUR";
+                      return (
+                        <>
+                          {t.is_income ? "+" : "-"}
+                          {formatMoney(Math.abs(t.amount), currency)}
+                        </>
+                      );
+                    })()}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

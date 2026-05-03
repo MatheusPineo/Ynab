@@ -10,6 +10,7 @@ from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserPro
 from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer, UserSerializer
 
 from datetime import datetime
+
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .social_auth import verify_google_token, get_or_create_google_user, verify_google_access_token
@@ -110,6 +111,9 @@ class AccountViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def perform_update(self, serializer):
+        serializer.save()
+
     @action(detail=False, methods=['get'])
     def tree(self, request):
         accounts = self.get_queryset()
@@ -123,8 +127,9 @@ class AccountViewSet(viewsets.ModelViewSet):
                         'id': str(account.id),
                         'name': account.name,
                         'account_type': account.account_type,
-                        'balance': str(account.balance),
+                        'balance': float(account.balance),
                         'currency': account.currency,
+                        'icon_url': account.icon_url,
                         'parent': str(account.parent_id) if account.parent_id else None,
                     }
                     if children:
@@ -516,6 +521,8 @@ from django.contrib.auth.models import User
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer, UserSerializer
 
+from datetime import datetime
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (permissions.AllowAny,)
@@ -646,3 +653,24 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({"message": "Senha alterada com sucesso!"})
+
+class IconUploadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        file = request.FILES.get('file')
+        if not file:
+            return Response({'error': 'Nenhum arquivo enviado.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Cria a pasta de ícones se não existir
+        import os
+        icon_path = os.path.join(settings.MEDIA_ROOT, 'icons')
+        if not os.path.exists(icon_path):
+            os.makedirs(icon_path)
+            
+        # Salva o arquivo
+        from django.core.files.storage import default_storage
+        filename = default_storage.save(f'icons/{file.name}', file)
+        file_url = request.build_absolute_uri(settings.MEDIA_URL + filename)
+        
+        return Response({'url': file_url})

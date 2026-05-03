@@ -75,6 +75,10 @@
 }
 
 @layer base {
+  html, body {
+    @apply h-full overflow-hidden;
+  }
+
   * {
     @apply border-border;
   }
@@ -86,6 +90,28 @@
       radial-gradient(ellipse 80% 50% at 50% -10%, hsl(158 70% 30% / 0.12), transparent),
       radial-gradient(ellipse 60% 40% at 100% 30%, hsl(268 70% 40% / 0.1), transparent);
     background-attachment: fixed;
+  }
+
+  /* Custom Scrollbar — Elegant & Minimal */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.5);
   }
 
   /* Numeric tabular */

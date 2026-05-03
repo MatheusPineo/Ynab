@@ -1,0 +1,88 @@
+
+--- ACCOUNT UPDATE 2026-05-03 19:20:45.118138 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:20:56.094604 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:27:51.203248 ---
+Data received: {'name': 'Nubank Test', 'balance': Decimal('1000.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:28:28.603538 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('1000.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:31:07.489593 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:31:21.417139 ---
+Data received: {'name': 'Crunchyroll | R$200', 'balance': Decimal('250.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:31:31.552711 ---
+Data received: {'name': 'Crunchyroll | R$200', 'balance': Decimal('250.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:36:12.430352 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('1000.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:37:58.911683 ---
+Data received: {'icon_url': 'http://localhost:8002/media/icons/test_icon.png'}
+Instance saved. icon_url is now: http://localhost:8002/media/icons/test_icon.png
+
+--- ACCOUNT UPDATE 2026-05-03 19:39:23.935139 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:39:34.965033 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:39:48.216014 ---
+Data received: {'name': 'Crunchyroll | R$200', 'balance': Decimal('250.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:40:03.090957 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:43:51.411726 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:44:04.674491 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:45:44.081985 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('1000.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:49:26.560479 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:49:45.266177 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:52:33.256992 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('1000.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:55:47.799540 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': None}
+Instance saved. icon_url is now: None
+
+--- ACCOUNT UPDATE 2026-05-03 19:59:18.970617 ---
+Data received: {'name': 'Nubank', 'balance': Decimal('0.00'), 'icon_url': 'http://localhost:8002/media/icons/icon.png'}
+Instance saved. icon_url is now: http://localhost:8002/media/icons/icon.png
+
+--- ACCOUNT UPDATE 2026-05-03 20:00:59.722332 ---
+Data received: {'name': 'Crunchyroll | R$200', 'balance': Decimal('250.00'), 'icon_url': 'http://localhost:8002/media/icons/icon_x8B1kjX.png'}
+Instance saved. icon_url is now: http://localhost:8002/media/icons/icon_x8B1kjX.png

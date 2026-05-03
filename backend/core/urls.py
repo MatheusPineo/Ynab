@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, 
     MonthlyBudgetViewSet, ping, UpdateProfileView, ChangePasswordView,
-    TwoFactorSetupView, TwoFactorVerifyView, TwoFactorDisableView, TwoFactorLoginView
+    TwoFactorSetupView, TwoFactorVerifyView, TwoFactorDisableView, TwoFactorLoginView,
+    IconUploadView
 )
 
 # O Router do DRF cria automaticamente as rotas GET, POST, PUT, DELETE
@@ -15,6 +16,7 @@ router.register(r'goals', GoalViewSet, basename='goal')
 router.register(r'monthly-budgets', MonthlyBudgetViewSet, basename='monthly-budget')
 
 urlpatterns = [
+    path('icons/upload/', IconUploadView.as_view(), name='account-upload-icon'),
     path('', include(router.urls)),
     path('ping/', ping, name='ping'),
     path('auth/profile/update/', UpdateProfileView.as_view(), name='profile-update'),

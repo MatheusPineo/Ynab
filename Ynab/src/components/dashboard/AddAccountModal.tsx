@@ -69,10 +69,10 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
           <div className="grid gap-2">
             <Label htmlFor="currency">Moeda</Label>
             <Select name="currency" defaultValue={parentAccount.currency || "EUR"}>
-              <SelectTrigger className="bg-background/50">
+              <SelectTrigger className="bg-background/50 border-border/60 rounded-xl">
                 <SelectValue placeholder="Selecione a moeda" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="glass border-border/60">
                 <SelectItem value="EUR">Euro (€)</SelectItem>
                 <SelectItem value="BRL">Real (R$)</SelectItem>
                 <SelectItem value="USD">Dólar ($)</SelectItem>

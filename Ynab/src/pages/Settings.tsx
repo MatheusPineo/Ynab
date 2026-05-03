@@ -20,6 +20,13 @@ import {
   Download,
   LogOut
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
@@ -523,23 +530,29 @@ const Settings = () => {
                 <div className="grid gap-6 max-w-md">
                    <div className="space-y-3">
                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Idioma do Sistema</Label>
-                      <select className="flex h-11 w-full rounded-xl border border-border/60 bg-background/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all">
-                        <option>Português (Brasil)</option>
-                        <option>Português (Portugal)</option>
-                        <option>English (US)</option>
-                      </select>
+                      <Select defaultValue="pt-BR">
+                        <SelectTrigger className="bg-background/50 border-border/60 rounded-xl h-11">
+                          <SelectValue placeholder="Selecione o idioma" />
+                        </SelectTrigger>
+                        <SelectContent className="glass border-border/60">
+                          <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
+                          <SelectItem value="pt-PT">Português (Portugal)</SelectItem>
+                          <SelectItem value="en-US">English (US)</SelectItem>
+                        </SelectContent>
+                      </Select>
                    </div>
                     <div className="space-y-3">
                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Moeda Principal de Exibição</Label>
-                       <select 
-                         value={baseCurrency}
-                         onChange={(e) => setBaseCurrency(e.target.value as any)}
-                         className="flex h-11 w-full rounded-xl border border-border/60 bg-background/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                       >
-                         <option value="EUR">€ EUR — Euro</option>
-                         <option value="BRL">R$ BRL — Real</option>
-                         <option value="USD">$ USD — Dólar</option>
-                       </select>
+                       <Select value={baseCurrency} onValueChange={(val) => setBaseCurrency(val as any)}>
+                         <SelectTrigger className="bg-background/50 border-border/60 rounded-xl h-11">
+                           <SelectValue placeholder="Selecione a moeda" />
+                         </SelectTrigger>
+                         <SelectContent className="glass border-border/60">
+                           <SelectItem value="EUR">€ EUR — Euro</SelectItem>
+                           <SelectItem value="BRL">R$ BRL — Real</SelectItem>
+                           <SelectItem value="USD">$ USD — Dólar</SelectItem>
+                         </SelectContent>
+                       </Select>
                     </div>
 
 

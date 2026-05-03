@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authenticatedFetch } from "@/lib/api";
+import { useAccountStore } from "@/store/useAccountStore";
 import { Transaction } from "@/types";
 import { toast } from "sonner";
 
@@ -24,7 +25,27 @@ export const useTransactions = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      const store = useAccountStore.getState();
+      store.fetchAccounts();
+      store.fetchCategoryGroups();
       toast.success("Transação adicionada!");
+    },
+  });
+
+  const updateTransaction = useMutation({
+    mutationFn: async ({ id, updates }: { id: string, updates: Partial<Transaction> }) => {
+      const response = await authenticatedFetch(`/transactions/${id}/`, {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      const store = useAccountStore.getState();
+      store.fetchAccounts();
+      store.fetchCategoryGroups();
+      toast.success("Transação atualizada!");
     },
   });
 
@@ -36,6 +57,9 @@ export const useTransactions = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      const store = useAccountStore.getState();
+      store.fetchAccounts();
+      store.fetchCategoryGroups();
       toast.success("Transação excluída!");
     },
   });

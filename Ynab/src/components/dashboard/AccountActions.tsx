@@ -8,7 +8,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash, Plus } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Plus, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +23,8 @@ import { useAccountStore } from "@/store/useAccountStore";
 import { AccountNode } from "@/types";
 import { toast } from "sonner";
 import { AddAccountModal } from "./AddAccountModal";
+import { IconPicker } from "./IconPicker";
+import { authenticatedFetch } from "@/lib/api";
 
 interface AccountActionsProps {
   account: AccountNode;
@@ -31,12 +34,29 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedName, setEditedName] = useState(account.name);
   const [editedBalance, setEditedBalance] = useState(account.balance);
+  const [editedIcon, setEditedIcon] = useState(account.icon_url);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isCropping, setIsCropping] = useState(false);
   const { updateNode, deleteNode } = useAccountStore();
+  const navigate = useNavigate();
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateNode(account.id, { name: editedName, balance: editedBalance });
-    setIsEditDialogOpen(false);
+    setIsSaving(true);
+    
+    try {
+      await updateNode(account.id, { 
+        name: editedName, 
+        balance: editedBalance,
+        icon_url: editedIcon 
+      });
+      
+      setIsEditDialogOpen(false);
+    } catch (error: any) {
+      toast.error("Erro ao salvar: " + (error.message || "Erro desconhecido"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDelete = async () => {
@@ -57,6 +77,10 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Ações</DropdownMenuLabel>
+          <DropdownMenuItem onSelect={() => navigate(`/account/${account.id}`)}>
+            <Eye className="mr-2 h-4 w-4" />
+            Ver Detalhes
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
             <Edit className="mr-2 h-4 w-4" />
             Editar
@@ -102,8 +126,24 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                 className="bg-background/50"
               />
             </div>
+            <div className="grid gap-2">
+              <Label>Ícone da Conta</Label>
+              <IconPicker 
+                currentIconUrl={editedIcon} 
+                onCroppingStateChange={setIsCropping}
+                onIconUploaded={(url) => {
+                  setEditedIcon(url);
+                }} 
+              />
+            </div>
             <DialogFooter>
-              <Button type="submit" className="w-full gradient-primary">Salvar Alterações</Button>
+              <Button 
+                type="submit" 
+                className="w-full gradient-primary" 
+                disabled={isSaving || isCropping}
+              >
+                {isSaving ? "Salvando..." : isCropping ? "Finalize o recorte primeiro" : "Salvar Alterações"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

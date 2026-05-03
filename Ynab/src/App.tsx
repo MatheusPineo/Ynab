@@ -12,6 +12,7 @@ import Budget from "./pages/Budget.tsx";
 import Goals from "./pages/Goals.tsx";
 import Insights from "./pages/Insights.tsx";
 import Settings from "./pages/Settings.tsx";
+import AccountDetails from "./pages/AccountDetails.tsx";
 import Auth from "./pages/Auth.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="goals" element={<Goals />} />
               <Route path="insights" element={<Insights />} />
               <Route path="settings" element={<Settings />} />
+              <Route path="account/:id" element={<AccountDetails />} />
             </Route>
 
             <Route path="*" element={<NotFound />} />

@@ -20,7 +20,7 @@ export const useCurrencyStore = create<CurrencyState>()(
         USD: 1.08,
       },
       lastUpdated: null,
-      baseCurrency: "EUR",
+      baseCurrency: (typeof window !== "undefined" && localStorage.getItem("baseCurrency") as Currency) || "EUR",
       isLoading: false,
 
 
@@ -51,11 +51,15 @@ export const useCurrencyStore = create<CurrencyState>()(
       convert: (amount, from, to) => {
         const { rates } = get();
         // Convert to EUR first (base)
-        const inEur = amount / rates[from];
+        const inEur = amount / (rates[from] || 1);
         // Convert from EUR to target
-        return inEur * rates[to];
+        return inEur * (rates[to] || 1);
       },
-      setBaseCurrency: (cur: Currency) => set({ baseCurrency: cur }),
+      setBaseCurrency: (cur: Currency) => {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("baseCurrency", cur);
+        }
+        set({ baseCurrency: cur });
+      },
     })
 );
-

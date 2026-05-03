@@ -12,6 +12,13 @@ import { Label } from "@/components/ui/label";
 import { Upload, FileUp } from "lucide-react";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useTransactions } from "@/hooks/useTransactions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
 
 export const ImportModal = ({ children }: { children?: React.ReactNode }) => {
@@ -92,19 +99,18 @@ export const ImportModal = ({ children }: { children?: React.ReactNode }) => {
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="account">Conta de Destino</Label>
-            <select 
-              id="account" 
-              name="account" 
-              required 
-              value={accountId}
-              onChange={(e) => setAccountId(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-            >
-              <option value="" disabled>Selecione uma conta</option>
-              {leafAccounts.map(acc => (
-                <option key={acc.id} value={acc.id}>{acc.name} ({acc.currency || 'EUR'})</option>
-              ))}
-            </select>
+            <Select value={accountId} onValueChange={setAccountId} required>
+              <SelectTrigger className="bg-background/50 border-border/60 rounded-xl">
+                <SelectValue placeholder="Selecione uma conta" />
+              </SelectTrigger>
+              <SelectContent className="glass border-border/60">
+                {leafAccounts.map(acc => (
+                  <SelectItem key={acc.id} value={String(acc.id)}>
+                    {acc.name} ({acc.currency || 'EUR'})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-2">

@@ -6,6 +6,7 @@ import {
 } from "@/types";
 import { CURRENCY_SYMBOL, formatMoney } from "@/lib/currency-utils";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 import { AccountActions } from "./AccountActions"; // Importa o novo componente
 import {
   DndContext,
@@ -45,6 +46,7 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
   const [open, setOpen] = useState(depth === 0);
   const currency = nodeCurrency(node, parentCurrency);
   const hasChildren = !!node.children?.length;
+  const navigate = useNavigate();
 
   const total = sumNode(node);
   const isMaster = depth === 0;
@@ -73,7 +75,7 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
     >
       <button
         type="button"
-        onClick={() => hasChildren && setOpen((o) => !o)}
+        onClick={() => hasChildren ? setOpen((o) => !o) : navigate(`/account/${node.id}`)}
         className={cn(
           "group flex w-full items-center gap-2 px-3 py-3 text-left transition-colors duration-200",
           bgFor(depth),
@@ -108,18 +110,32 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
           <ChevronRight className="h-4 w-4" />
         </span>
 
-        {/* Currency badge */}
-        <span
-          className={cn(
-            "shrink-0 inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1.5 text-[10px] font-bold tabular",
-            isMaster
-              ? "gradient-primary text-primary-foreground"
-              : "bg-secondary/15 text-secondary",
-          )}
-          title={currency}
-        >
-          {CURRENCY_SYMBOL[currency]}
-        </span>
+        {/* Icon or Currency badge */}
+        {node.icon_url ? (
+          <div className="shrink-0 h-8 w-8 rounded-full overflow-hidden border border-border/40 shadow-sm bg-background/50 flex items-center justify-center">
+            <img 
+              src={node.icon_url} 
+              alt="" 
+              className="h-full w-full object-cover" 
+              onError={(e) => {
+                console.error("❌ Erro ao carregar imagem:", node.icon_url);
+                (e.target as any).style.display = 'none';
+              }}
+            />
+          </div>
+        ) : (
+          <span
+            className={cn(
+              "shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold tabular",
+              isMaster
+                ? "gradient-primary text-primary-foreground shadow-glow"
+                : "bg-secondary/15 text-secondary border border-secondary/20",
+            )}
+            title={currency}
+          >
+            {CURRENCY_SYMBOL[currency]}
+          </span>
+        )}
 
         {/* Name */}
         <span
@@ -231,9 +247,9 @@ export const AccountAccordion = ({ tree }: Props) => {
 };
 
 function sumNode(node: AccountNode): number {
-  if (typeof node.balance === "number") return node.balance;
-  if (!node.children) return 0;
-  return node.children.reduce((acc, c) => acc + sumNode(c), 0);
+  const balance = Number(node.balance) || 0;
+  if (!node.children || node.children.length === 0) return balance;
+  return node.children.reduce((acc, c) => acc + sumNode(c), balance);
 }
 
 function nodeCurrency(node: AccountNode, parentCurrency?: Currency): Currency {
