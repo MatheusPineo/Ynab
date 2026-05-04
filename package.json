@@ -2,9 +2,10 @@
   "name": "root",
   "private": true,
   "scripts": {
+    "postinstall": "cd Ynab && bun install",
     "dev": "cd Ynab && bun run dev",
-    "build": "cd Ynab && bun run build",
-    "build:dev": "cd Ynab && bun run build:dev",
+    "build": "cd Ynab && bun install && bun run build",
+    "build:dev": "cd Ynab && bun install && bun run build:dev",
     "preview": "cd Ynab && bun run preview",
     "lint": "cd Ynab && bun run lint"
   },
