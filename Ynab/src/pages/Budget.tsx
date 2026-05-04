@@ -49,6 +49,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { DistributionModal } from "@/components/dashboard/DistributionModal";
 
 // --- Month Selector Component ---
 
@@ -229,7 +230,19 @@ const Budget = () => {
 
   useEffect(() => {
     fetchCategoryGroups();
+    useAccountStore.getState().fetchTransactions();
   }, [fetchCategoryGroups]);
+
+  const currentIncomes = useMemo(() => {
+    const { transactions, currentMonth, currentYear } = useAccountStore.getState();
+    return transactions.filter(t => {
+      const tDate = new Date(t.date);
+      return t.is_income && 
+             (tDate.getMonth() + 1) === currentMonth && 
+             tDate.getFullYear() === currentYear &&
+             !t.transfer_group; // Apenas receitas que não fazem parte de uma transferência/distribuição já feita
+    });
+  }, [useAccountStore.getState().transactions, currentMonth, currentYear]);
 
   const totalCash = useMemo(() => {
     const { convert } = useCurrencyStore.getState();
@@ -310,53 +323,47 @@ const Budget = () => {
             
             <div className="flex flex-col gap-3 max-w-xs text-center sm:text-right">
               <p className="text-sm text-muted-foreground">Patrimônio disponível neste mês.</p>
-              <div className="flex gap-2">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
-                      Automático ✨
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="glass border-border/60">
-                    <DropdownMenuLabel>Regras de Orçamento</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => autoAssign('spent_last_month')} className="cursor-pointer">
-                      Usar gastos do mês passado
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => autoAssign('assigned_last_month')} className="cursor-pointer">
-                      Repetir orçamento passado
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => autoAssign('clear')} className="cursor-pointer text-rose-500 focus:text-rose-500">
-                      Limpar todo o orçamento
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" className="rounded-xl border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary gap-2">
-                      <FolderPlus className="h-4 w-4" /> Novo Grupo
-                    </Button>
-                  </DialogTrigger>                <DialogContent className="glass border-border/60">
-                  <DialogHeader>
-                    <DialogTitle>Criar Novo Grupo de Orçamento</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleAddGroup} className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="groupName">Nome do Grupo</Label>
-                      <Input id="groupName" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="Ex: Lazer..." className="bg-background/50" />
-                    </div>
-                    <DialogFooter>
-                      <Button type="submit" className="gradient-primary w-full">Criar Grupo</Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+
+        {/* New Income Section */}
+        {currentIncomes.length > 0 && (
+          <div className="mt-8 pt-8 border-t border-primary/10">
+            <h3 className="text-xs uppercase tracking-widest text-primary font-bold mb-4">Receitas Recebidas (Aguardando Distribuição)</h3>
+            <div className="grid gap-3">
+              {currentIncomes.map(income => (
+                <div key={income.id} className="flex items-center justify-between bg-background/40 rounded-2xl p-4 border border-primary/10 hover:border-primary/30 transition-all group">
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <Plus className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-foreground">{income.description || "Receita"}</div>
+                      <div className="text-xs text-muted-foreground">Recebido em: {useAccountStore.getState().getAccountName(income.account)}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="text-xl font-black text-primary">
+                      {formatMoney(income.amount, "EUR")}
+                    </div>
+                    <DistributionModal 
+                      initialSourceAccount={String(income.account)} 
+                      initialAmount={String(income.amount)}
+                      sourceTransactionId={income.id}
+                      trigger={
+                        <Button size="sm" className="gradient-primary rounded-xl px-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                          Distribuir
+                        </Button>
+                      }
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={categoryGroups.map(g => g.id)} strategy={verticalListSortingStrategy}>

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile
+from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile, DistributionTemplate, DistributionTemplateItem
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
@@ -128,4 +128,37 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         data['user'] = UserSerializer(user).data
         return data
 
+class DistributionTemplateItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = DistributionTemplateItem
+        fields = ['id', 'account', 'percentage', 'fixed_amount']
 
+class DistributionTemplateSerializer(serializers.ModelSerializer):
+    items = DistributionTemplateItemSerializer(many=True)
+
+    class Meta:
+        model = DistributionTemplate
+        fields = ['id', 'name', 'created_at', 'items']
+        extra_kwargs = {
+            'user': {'read_only': True},
+        }
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items')
+        template = DistributionTemplate.objects.create(**validated_data)
+        for item_data in items_data:
+            DistributionTemplateItem.objects.create(template=template, **item_data)
+        return template
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop('items', None)
+        instance.name = validated_data.get('name', instance.name)
+        instance.save()
+
+        if items_data is not None:
+            # Simple approach: delete old items and recreate
+            instance.items.all().delete()
+            for item_data in items_data:
+                DistributionTemplateItem.objects.create(template=instance, **item_data)
+
+        return instance

@@ -96,3 +96,20 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Perfil de {self.user.username}"
+
+class DistributionTemplate(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='distribution_templates')
+    name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+class DistributionTemplateItem(models.Model):
+    template = models.ForeignKey(DistributionTemplate, on_delete=models.CASCADE, related_name='items')
+    account = models.ForeignKey(Account, on_delete=models.CASCADE)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    fixed_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.account.name} - {self.percentage}% or {self.fixed_amount}"

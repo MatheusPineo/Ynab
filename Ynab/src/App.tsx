@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/dashboard/Layout";
 import { useAuthStore } from "@/store/useAuthStore";
 import Dashboard from "./pages/Dashboard.tsx";
+import Accounts from "./pages/Accounts.tsx";
 import Transactions from "./pages/Transactions.tsx";
 import Budget from "./pages/Budget.tsx";
 import Goals from "./pages/Goals.tsx";
@@ -37,6 +38,7 @@ const App = () => (
             <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route index element={<Navigate to="/dashboard" replace />} />
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="accounts" element={<Accounts />} />
               <Route path="transactions" element={<Transactions />} />
               <Route path="budget" element={<Budget />} />
               <Route path="goals" element={<Goals />} />

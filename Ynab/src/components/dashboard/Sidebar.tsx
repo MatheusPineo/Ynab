@@ -27,7 +27,7 @@ import { toast } from "sonner";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
-  { icon: Wallet, label: "Contas", to: "/dashboard" },
+  { icon: Wallet, label: "Contas", to: "/accounts" },
   { icon: ArrowLeftRight, label: "Transações", to: "/transactions" },
   { icon: PieChart, label: "Orçamento", to: "/budget" },
   { icon: Target, label: "Metas", to: "/goals" },

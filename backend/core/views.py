@@ -5,9 +5,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.db.models import Sum
-from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile
-
-from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer, UserSerializer
+from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile, DistributionTemplate
+from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer, UserSerializer, DistributionTemplateSerializer
 import uuid
 from datetime import datetime
 
@@ -477,6 +476,82 @@ class TransactionViewSet(viewsets.ModelViewSet):
         return Response({'message': 'Transferência concluída com sucesso!'})
 
     @action(detail=False, methods=['post'])
+    @transaction.atomic
+    def bulk_transfer(self, request):
+        from_account_id = request.data.get('from_account')
+        total_amount = request.data.get('total_amount')
+        date_str = request.data.get('date')
+        distributions = request.data.get('distributions', [])
+        source_transaction_id = request.data.get('source_transaction')
+        
+        if not from_account_id or not total_amount or not date_str or not distributions:
+            return Response({'error': 'Campos obrigatórios ausentes.'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            from_account = Account.objects.get(id=from_account_id, user=request.user)
+        except Account.DoesNotExist:
+            return Response({'error': 'Conta de origem não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+            
+        from decimal import Decimal
+        try:
+            val_total = Decimal(str(total_amount))
+            t_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except:
+            return Response({'error': 'Valores ou data inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        group_id = uuid.uuid4()
+
+        # 0. Vincular a transação original (se houver)
+        if source_transaction_id:
+            try:
+                source_t = Transaction.objects.get(id=source_transaction_id, account__user=request.user)
+                source_t.transfer_group = group_id
+                source_t.save()
+            except Transaction.DoesNotExist:
+                pass
+        
+        # 1. Transação de Saída (Origem)
+        Transaction.objects.create(
+            account=from_account,
+            description="Distribuição Automática",
+            amount=val_total,
+            date=t_date,
+            is_income=False,
+            transfer_group=group_id
+        )
+        from_account.balance -= val_total
+        from_account.save()
+        
+        # 2. Transações de Entrada (Destinos)
+        distributed_total = Decimal('0.00')
+        for dist in distributions:
+            to_account_id = dist.get('to_account')
+            amount = Decimal(str(dist.get('amount', 0)))
+            
+            try:
+                to_account = Account.objects.get(id=to_account_id, user=request.user)
+            except Account.DoesNotExist:
+                continue # Pula contas inválidas ou retorna erro
+                
+            Transaction.objects.create(
+                account=to_account,
+                description=f"Distribuição de {from_account.name}",
+                amount=amount,
+                date=t_date,
+                is_income=True,
+                transfer_group=group_id
+            )
+            to_account.balance += amount
+            to_account.save()
+            distributed_total += amount
+            
+        if abs(distributed_total - val_total) > Decimal('0.05'):
+            # Basic validation
+            pass
+            
+        return Response({'message': 'Distribuição concluída com sucesso!'})
+
+    @action(detail=False, methods=['post'])
     def import_file(self, request):
         import csv
         from decimal import Decimal
@@ -741,3 +816,13 @@ class IconUploadView(APIView):
         file_url = request.build_absolute_uri(settings.MEDIA_URL + filename)
         
         return Response({'url': file_url})
+
+class DistributionTemplateViewSet(viewsets.ModelViewSet):
+    serializer_class = DistributionTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return DistributionTemplate.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)

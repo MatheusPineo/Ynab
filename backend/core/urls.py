@@ -4,7 +4,7 @@ from .views import (
     AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, 
     MonthlyBudgetViewSet, ping, UpdateProfileView, ChangePasswordView,
     TwoFactorSetupView, TwoFactorVerifyView, TwoFactorDisableView, TwoFactorLoginView,
-    IconUploadView
+    IconUploadView, DistributionTemplateViewSet
 )
 
 # O Router do DRF cria automaticamente as rotas GET, POST, PUT, DELETE
@@ -14,6 +14,7 @@ router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'transactions', TransactionViewSet, basename='transaction')
 router.register(r'goals', GoalViewSet, basename='goal')
 router.register(r'monthly-budgets', MonthlyBudgetViewSet, basename='monthly-budget')
+router.register(r'distribution-templates', DistributionTemplateViewSet, basename='distribution-template')
 
 urlpatterns = [
     path('icons/upload/', IconUploadView.as_view(), name='account-upload-icon'),

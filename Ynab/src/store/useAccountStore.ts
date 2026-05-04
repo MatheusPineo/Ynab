@@ -8,6 +8,20 @@ import {
 } from "@/types";
 import { toast } from "sonner";
 
+export interface DistributionTemplateItem {
+  id?: string;
+  account: string;
+  percentage?: number;
+  fixed_amount?: number;
+}
+
+export interface DistributionTemplate {
+  id?: string;
+  name: string;
+  created_at?: string;
+  items: DistributionTemplateItem[];
+}
+
 export interface CategoryNode {
   id: string;
   name: string;
@@ -38,6 +52,12 @@ interface AccountState {
   currentMonth: number;
   currentYear: number;
   pendingIcons: Record<string, Blob>;
+  distributionTemplates: DistributionTemplate[];
+  
+  // Distribution Actions
+  fetchDistributionTemplates: () => Promise<void>;
+  saveDistributionTemplate: (template: DistributionTemplate) => Promise<void>;
+  executeBulkTransfer: (payload: { from_account: string, total_amount: number, date: string, distributions: {to_account: string, amount: number}[], source_transaction?: string }) => Promise<void>;
   
   // Period Actions
   setCurrentPeriod: (month: number, year: number) => void;
@@ -91,6 +111,7 @@ export const useAccountStore = create<AccountState>()(
       categoryGroups: [],
       goals: initialGoals,
       pendingIcons: {},
+      distributionTemplates: [],
       currentMonth: now.getMonth() + 1,
       currentYear: now.getFullYear(),
 
@@ -423,6 +444,56 @@ export const useAccountStore = create<AccountState>()(
           toast.success("Orçamento copiado com sucesso!");
         } catch (error: any) {
           toast.error("Erro ao copiar orçamento: " + error.message);
+        }
+      },
+
+      // --- DISTRIBUTIONS ---
+      fetchDistributionTemplates: async () => {
+        try {
+          const response = await authenticatedFetch("/distribution-templates/");
+          if (!response.ok) throw new Error("Falha ao buscar modelos");
+          const data = await response.json();
+          set({ distributionTemplates: data });
+        } catch (error) {
+          console.error("Erro ao buscar modelos de distribuição:", error);
+        }
+      },
+
+      saveDistributionTemplate: async (template) => {
+        try {
+          const method = template.id ? "PUT" : "POST";
+          const url = template.id ? `/distribution-templates/${template.id}/` : "/distribution-templates/";
+          
+          const response = await authenticatedFetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(template),
+          });
+          
+          if (!response.ok) throw new Error("Falha ao salvar modelo");
+          await get().fetchDistributionTemplates();
+          toast.success("Modelo salvo com sucesso!");
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      executeBulkTransfer: async (payload) => {
+        try {
+          const response = await authenticatedFetch("/transactions/bulk_transfer/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) throw new Error("Falha ao executar distribuição");
+          
+          // Atualizar saldos e transações
+          await get().fetchAccounts();
+          await get().fetchTransactions();
+          toast.success("Distribuição concluída!");
+        } catch (error: any) {
+          toast.error(error.message);
+          throw error;
         }
       },
 
