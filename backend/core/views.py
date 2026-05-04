@@ -100,6 +100,86 @@ class TwoFactorLoginView(APIView):
             return Response({"error": "Usuário não encontrado."}, status=status.HTTP_404_NOT_FOUND)
 
 
+def sync_recurring_transactions(user, upto_date=None):
+    from datetime import date, timedelta
+    import calendar
+    from .models import Transaction
+    
+    def add_months(sourcedate, months):
+        month = sourcedate.month - 1 + months
+        year = sourcedate.year + month // 12
+        month = month % 12 + 1
+        day = min(sourcedate.day, calendar.monthrange(year,month)[1])
+        return date(year, month, day)
+
+    today = date.today()
+    if upto_date is None:
+        upto_date = today
+
+    # 1. Aplicar transações futuras que agora são atuais/passadas E estão marcadas como realizadas
+    pending_current = Transaction.objects.filter(
+        account__user=user,
+        status='realized',
+        is_applied_to_balance=False,
+        date__lte=today
+    )
+    for t in pending_current:
+        acc = t.account
+        if t.is_income: acc.balance += t.amount
+        else: acc.balance -= t.amount
+        acc.save()
+        t.is_applied_to_balance = True
+        t.save()
+
+    # 2. Criar novas instâncias de templates recorrentes
+    recurring = Transaction.objects.filter(
+        account__user=user, 
+        is_recurring=True, 
+        next_recurrence_date__lte=upto_date
+    )
+
+    for template in recurring:
+        while template.next_recurrence_date and template.next_recurrence_date <= upto_date:
+            new_date = template.next_recurrence_date
+            
+            exists = Transaction.objects.filter(
+                account=template.account,
+                description=template.description,
+                amount=template.amount,
+                date=new_date
+            ).exists()
+            
+            if not exists:
+                applied = (new_date <= today)
+                new_t = Transaction.objects.create(
+                    account=template.account,
+                    category=template.category,
+                    amount=template.amount,
+                    description=template.description,
+                    date=new_date,
+                    is_income=template.is_income,
+                    is_recurring=False,
+                    is_applied_to_balance=applied
+                )
+                
+                if applied:
+                    acc = new_t.account
+                    if new_t.is_income: acc.balance += new_t.amount
+                    else: acc.balance -= new_t.amount
+                    acc.save()
+            
+            if template.recurrence_interval == 'daily':
+                template.next_recurrence_date += timedelta(days=1)
+            elif template.recurrence_interval == 'weekly':
+                template.next_recurrence_date += timedelta(days=7)
+            elif template.recurrence_interval == 'monthly':
+                template.next_recurrence_date = add_months(template.next_recurrence_date, 1)
+            elif template.recurrence_interval == 'yearly':
+                template.next_recurrence_date = add_months(template.next_recurrence_date, 12)
+            else:
+                break
+        template.save()
+
 class AccountViewSet(viewsets.ModelViewSet):
     serializer_class = AccountSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -155,6 +235,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
         now = datetime.now()
         month = int(request.query_params.get('month', now.month))
         year = int(request.query_params.get('year', now.year))
+        
+        # Sincroniza recorrentes até o fim do mês solicitado
+        import calendar
+        from datetime import date
+        last_day = calendar.monthrange(year, month)[1]
+        sync_recurring_transactions(self.request.user, upto_date=date(year, month, last_day))
         
         categories = self.get_queryset()
         
@@ -278,59 +364,29 @@ class TransactionViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        self.sync_recurring_transactions()
-        return Transaction.objects.filter(account__user=self.request.user).order_by('-date', '-created_at')
-
-    def sync_recurring_transactions(self):
-        from datetime import date, timedelta
-        import calendar
+        month = self.request.query_params.get('month')
+        year = self.request.query_params.get('year')
         
-        def add_months(sourcedate, months):
-            month = sourcedate.month - 1 + months
-            year = sourcedate.year + month // 12
-            month = month % 12 + 1
-            day = min(sourcedate.day, calendar.monthrange(year,month)[1])
-            return date(year, month, day)
-
-        today = date.today()
-        recurring = Transaction.objects.filter(
-            account__user=self.request.user, 
-            is_recurring=True, 
-            next_recurrence_date__lte=today
-        )
-
-        for template in recurring:
-            while template.next_recurrence_date and template.next_recurrence_date <= today:
-                new_t = Transaction.objects.create(
-                    account=template.account,
-                    category=template.category,
-                    amount=template.amount,
-                    description=template.description,
-                    date=template.next_recurrence_date,
-                    is_income=template.is_income,
-                    is_recurring=False
-                )
-                
-                # Update account balance
-                acc = new_t.account
-                if new_t.is_income:
-                    acc.balance += new_t.amount
-                else:
-                    acc.balance -= new_t.amount
-                acc.save()
-                
-                # Advance date
-                if template.recurrence_interval == 'daily':
-                    template.next_recurrence_date += timedelta(days=1)
-                elif template.recurrence_interval == 'weekly':
-                    template.next_recurrence_date += timedelta(days=7)
-                elif template.recurrence_interval == 'monthly':
-                    template.next_recurrence_date = add_months(template.next_recurrence_date, 1)
-                elif template.recurrence_interval == 'yearly':
-                    template.next_recurrence_date = add_months(template.next_recurrence_date, 12)
-                else:
-                    break
-            template.save()
+        if month and year:
+            import calendar
+            from datetime import date
+            try:
+                month_int = int(month)
+                year_int = int(year)
+                last_day = calendar.monthrange(year_int, month_int)[1]
+                sync_recurring_transactions(self.request.user, upto_date=date(year_int, month_int, last_day))
+            except (ValueError, TypeError):
+                sync_recurring_transactions(self.request.user)
+        else:
+            sync_recurring_transactions(self.request.user)
+            
+        qs = Transaction.objects.filter(account__user=self.request.user)
+        if month and year:
+            try:
+                qs = qs.filter(date__month=int(month), date__year=int(year))
+            except (ValueError, TypeError):
+                pass
+        return qs.order_by('-date', '-created_at')
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -357,12 +413,16 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 instance.next_recurrence_date = add_months(instance.date, 12)
             instance.save()
             
-        account = instance.account
-        if instance.is_income:
-            account.balance += instance.amount
-        else:
-            account.balance -= instance.amount
-        account.save()
+        from datetime import date
+        if instance.status == 'realized' and instance.date <= date.today():
+            account = instance.account
+            if instance.is_income:
+                account.balance += instance.amount
+            else:
+                account.balance -= instance.amount
+            account.save()
+            instance.is_applied_to_balance = True
+            instance.save()
 
     @transaction.atomic
     def perform_update(self, serializer):
@@ -370,55 +430,55 @@ class TransactionViewSet(viewsets.ModelViewSet):
         old_amount = old_instance.amount
         old_is_income = old_instance.is_income
         old_account = old_instance.account
+        old_applied = old_instance.is_applied_to_balance
 
         new_instance = serializer.save()
-        
-        if old_account != new_instance.account:
+        from datetime import date
+        today = date.today()
+
+        # Reverter antigo se aplicado
+        if old_applied:
             if old_is_income:
                 old_account.balance -= old_amount
             else:
                 old_account.balance += old_amount
             old_account.save()
-            
-            if new_instance.is_income:
-                new_instance.account.balance += new_instance.amount
-            else:
-                new_instance.account.balance -= new_instance.amount
-            new_instance.account.save()
-        else:
+        
+        # Aplicar novo se for atual/passado e realizado
+        if new_instance.status == 'realized' and new_instance.date <= today:
             account = new_instance.account
-            if old_is_income:
-                account.balance -= old_amount
-            else:
-                account.balance += old_amount
-            
             if new_instance.is_income:
                 account.balance += new_instance.amount
             else:
                 account.balance -= new_instance.amount
             account.save()
+            new_instance.is_applied_to_balance = True
+        else:
+            new_instance.is_applied_to_balance = False
+        new_instance.save()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        if instance.transfer_group:
-            # Encontra todas as transações do grupo para exclusão coordenada
-            group_transactions = Transaction.objects.filter(transfer_group=instance.transfer_group)
-            for t in group_transactions:
-                account = t.account
-                if t.is_income:
-                    account.balance -= t.amount
-                else:
-                    account.balance += t.amount
-                account.save()
-            group_transactions.delete()
-        else:
+        if instance.is_applied_to_balance:
             account = instance.account
             if instance.is_income:
                 account.balance -= instance.amount
             else:
                 account.balance += instance.amount
             account.save()
-            instance.delete()
+        
+        if instance.transfer_group:
+            # Encontra todas as transações do grupo para exclusão coordenada
+            group_transactions = Transaction.objects.filter(transfer_group=instance.transfer_group).exclude(id=instance.id)
+            for t in group_transactions:
+                if t.is_applied_to_balance:
+                    acc = t.account
+                    if t.is_income: acc.balance -= t.amount
+                    else: acc.balance += t.amount
+                    acc.save()
+            group_transactions.delete()
+        
+        instance.delete()
 
     @action(detail=False, methods=['post'])
     @transaction.atomic
@@ -448,6 +508,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
         t_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         group_id = uuid.uuid4()
+        from datetime import date as dt_date
+        applied = (t_date <= dt_date.today())
         
         # 1. Transação de Saída (Origem)
         Transaction.objects.create(
@@ -456,10 +518,13 @@ class TransactionViewSet(viewsets.ModelViewSet):
             amount=val_amount,
             date=t_date,
             is_income=False,
-            transfer_group=group_id
+            transfer_group=group_id,
+            status='realized',
+            is_applied_to_balance=applied
         )
-        from_account.balance -= val_amount
-        from_account.save()
+        if applied:
+            from_account.balance -= val_amount
+            from_account.save()
         
         # 2. Transação de Entrada (Destino)
         Transaction.objects.create(
@@ -468,10 +533,13 @@ class TransactionViewSet(viewsets.ModelViewSet):
             amount=val_to_amount,
             date=t_date,
             is_income=True,
-            transfer_group=group_id
+            transfer_group=group_id,
+            status='realized',
+            is_applied_to_balance=applied
         )
-        to_account.balance += val_to_amount
-        to_account.save()
+        if applied:
+            to_account.balance += val_to_amount
+            to_account.save()
         
         return Response({'message': 'Transferência concluída com sucesso!'})
 
@@ -500,6 +568,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Valores ou data inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
 
         group_id = uuid.uuid4()
+        from datetime import date as dt_date
+        applied = (t_date <= dt_date.today())
 
         # 0. Vincular a transação original (se houver)
         if source_transaction_id:
@@ -517,10 +587,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
             amount=val_total,
             date=t_date,
             is_income=False,
-            transfer_group=group_id
+            transfer_group=group_id,
+            is_applied_to_balance=applied
         )
-        from_account.balance -= val_total
-        from_account.save()
+        if applied:
+            from_account.balance -= val_total
+            from_account.save()
         
         # 2. Transações de Entrada (Destinos)
         distributed_total = Decimal('0.00')
@@ -539,10 +611,12 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 amount=amount,
                 date=t_date,
                 is_income=True,
-                transfer_group=group_id
+                transfer_group=group_id,
+                is_applied_to_balance=applied
             )
-            to_account.balance += amount
-            to_account.save()
+            if applied:
+                to_account.balance += amount
+                to_account.save()
             distributed_total += amount
             
         if abs(distributed_total - val_total) > Decimal('0.05'):
@@ -595,17 +669,23 @@ class TransactionViewSet(viewsets.ModelViewSet):
                             except ValueError:
                                 continue
                         
+                        from datetime import date as dt_date
+                        applied = (t_date <= dt_date.today())
+                        
                         Transaction.objects.create(
                             account=account,
                             description=desc[:255],
                             amount=abs(amount),
                             date=t_date,
-                            is_income=is_income
+                            is_income=is_income,
+                            status='realized',
+                            is_applied_to_balance=applied
                         )
-                        if is_income:
-                            account.balance += abs(amount)
-                        else:
-                            account.balance -= abs(amount)
+                        if applied:
+                            if is_income:
+                                account.balance += abs(amount)
+                            else:
+                                account.balance -= abs(amount)
                         imported_count += 1
                     except Exception:
                         pass
@@ -626,17 +706,23 @@ class TransactionViewSet(viewsets.ModelViewSet):
                             is_income = amount > 0
                             t_date = st.date.date()
                             
+                            from datetime import date as dt_date
+                            applied = (t_date <= dt_date.today())
+                            
                             Transaction.objects.create(
                                 account=account,
                                 description=str(desc)[:255],
                                 amount=abs(amount),
                                 date=t_date,
-                                is_income=is_income
+                                is_income=is_income,
+                                status='realized',
+                                is_applied_to_balance=applied
                             )
-                            if is_income:
-                                account.balance += abs(amount)
-                            else:
-                                account.balance -= abs(amount)
+                            if applied:
+                                if is_income:
+                                    account.balance += abs(amount)
+                                else:
+                                    account.balance -= abs(amount)
                             imported_count += 1
                     account.save()
             except ImportError:

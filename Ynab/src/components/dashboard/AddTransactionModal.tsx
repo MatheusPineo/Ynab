@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock } from "lucide-react";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useTransactions } from "@/hooks/useTransactions";
 import { type Transaction } from "@/types";
@@ -38,7 +38,9 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   // Estados controlados para os seletores novos
   const [type, setType] = useState<string>(transaction ? (transaction.is_income ? "income" : "expense") : "expense");
   const [accountId, setAccountId] = useState<string>(transaction?.account ? String(transaction.account) : (initialAccountId || ""));
+  const [useCategory, setUseCategory] = useState(transaction?.category ? true : false);
   const [categoryId, setCategoryId] = useState<string>(transaction?.category ? String(transaction.category) : "none");
+  const [status, setStatus] = useState<string>(transaction?.status || "realized");
   const [recurrenceInterval, setRecurrenceInterval] = useState<string>(transaction?.recurrence_interval || "monthly");
   const [toAccountId, setToAccountId] = useState<string>("");
   const [toAmount, setToAmount] = useState<string>("");
@@ -50,7 +52,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
 
   const getLeafAccounts = (nodes: any[]): any[] => {
     let leaves: any[] = [];
-    if (!nodes) return leaves;
+    if (!nodes || !Array.isArray(nodes)) return leaves;
     
     nodes.forEach(node => {
       const hasChildren = node.children && Array.isArray(node.children) && node.children.length > 0;
@@ -83,7 +85,8 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       amount: amountValue,
       is_income: is_income,
       date: formData.get("date") as string || new Date().toISOString().split('T')[0],
-      category: categoryId === "none" ? null : categoryId,
+      category: (isTransfer || !useCategory || categoryId === "none") ? null : categoryId,
+      status: status,
       is_recurring: isRecurring,
       recurrence_interval: isRecurring ? recurrenceInterval : undefined,
     };
@@ -158,9 +161,26 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent className="glass border-border/60">
-                  <SelectItem value="expense">Despesa (-)</SelectItem>
-                  <SelectItem value="income">Receita (+)</SelectItem>
-                  {!isEdit && <SelectItem value="transfer">Transferência 🔄</SelectItem>}
+                  <SelectItem value="expense">
+                    <div className="flex items-center gap-2">
+                      <TrendingDown className="h-4 w-4 text-rose-500" />
+                      <span>Despesa</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="income">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-emerald-500" />
+                      <span>Receita</span>
+                    </div>
+                  </SelectItem>
+                  {!isEdit && (
+                    <SelectItem value="transfer">
+                      <div className="flex items-center gap-2">
+                        <ArrowLeftRight className="h-4 w-4 text-blue-500" />
+                        <span>Transferência</span>
+                      </div>
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -190,15 +210,40 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             </div>
           )}
 
-          <div className="grid gap-2">
-            <Label htmlFor="date">Data</Label>
-            <Input 
-              id="date" 
-              name="date" 
-              type="date" 
-              defaultValue={transaction ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
-              className="bg-background/50" 
-            />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger className="bg-background/50 border-border/60">
+                  <SelectValue placeholder="Selecione o status" />
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  <SelectItem value="realized">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                      <span>Efetivada</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="pending">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-amber-500" />
+                      <span>Pendente</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="date">Data</Label>
+              <Input 
+                id="date" 
+                name="date" 
+                type="date" 
+                defaultValue={transaction ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]}
+                className="bg-background/50" 
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -234,28 +279,43 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           </div>
 
           {!isTransfer && (
-            <div className="grid gap-2">
-              <Label htmlFor="category">Categoria de Orçamento</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger className="bg-background/50 border-border/60">
-                  <SelectValue placeholder="Sem categoria" />
-                </SelectTrigger>
-                <SelectContent className="glass border-border/60">
-                  <SelectItem value="none">Sem categoria</SelectItem>
-                  {categoryGroups.map(group => (
-                    <SelectGroup key={group.id}>
-                      <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
-                        {group.name}
-                      </SelectLabel>
-                      {(group.children || []).map(cat => (
-                        <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
-                          {cat.name}
-                        </SelectItem>
+            <div className="flex flex-col gap-4 p-4 rounded-lg border border-border/50 bg-background/30">
+              <div className="flex items-center space-x-2">
+                <input 
+                  type="checkbox" 
+                  id="use_category" 
+                  checked={useCategory}
+                  onChange={(e) => setUseCategory(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                />
+                <Label htmlFor="use_category" className="font-medium cursor-pointer">Vincular a uma categoria?</Label>
+              </div>
+
+              {useCategory && (
+                <div className="grid gap-2 animate-in slide-in-from-top-2">
+                  <Label htmlFor="category">Categoria de Orçamento</Label>
+                  <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger className="bg-background/50 border-border/60">
+                      <SelectValue placeholder="Sem categoria" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border/60">
+                      <SelectItem value="none">Sem categoria</SelectItem>
+                      {categoryGroups.map(group => (
+                        <SelectGroup key={group.id}>
+                          <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
+                            {group.name}
+                          </SelectLabel>
+                          {(group.children || []).map(cat => (
+                            <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
           )}
 

@@ -131,6 +131,7 @@ export const useAccountStore = create<AccountState>()(
       setCurrentPeriod: (month, year) => {
         set({ currentMonth: month, currentYear: year });
         get().fetchCategoryGroups();
+        get().fetchTransactions();
       },
 
       // --- ACCOUNTS ---
@@ -139,9 +140,10 @@ export const useAccountStore = create<AccountState>()(
           const response = await authenticatedFetch("/accounts/tree/");
           if (!response.ok) throw new Error("Falha ao buscar contas");
           const data = await response.json();
-          set({ tree: data });
+          set({ tree: Array.isArray(data) ? data : [] });
         } catch (error) {
           console.error("Erro ao buscar contas:", error);
+          set({ tree: [] });
         }
       },
 
@@ -206,12 +208,14 @@ export const useAccountStore = create<AccountState>()(
       // --- TRANSACTIONS ---
       fetchTransactions: async () => {
         try {
-          const response = await authenticatedFetch("/transactions/");
+          const { currentMonth, currentYear } = get();
+          const response = await authenticatedFetch(`/transactions/?month=${currentMonth}&year=${currentYear}`);
           if (!response.ok) throw new Error("Falha ao buscar transações");
           const data = await response.json();
-          set({ transactions: data });
+          set({ transactions: Array.isArray(data) ? data : [] });
         } catch (error) {
           console.error("Erro ao buscar transações:", error);
+          set({ transactions: [] });
         }
       },
 
@@ -573,11 +577,14 @@ export const useAccountStore = create<AccountState>()(
       },
 
       getHistory: () => {
-        const { transactions } = get();
-        if (!transactions.length) return [];
+        const transactions = get().transactions || [];
+        if (!transactions || !transactions.length) return [];
 
         // Ordenar transações por data
-        const sorted = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const sorted = [...transactions].sort((a, b) => {
+          if (!a.date || !b.date) return 0;
+          return new Date(a.date).getTime() - new Date(b.date).getTime();
+        });
         
         let currentBalance = 0; // Simplified
         const history: { date: string; balance: number }[] = [];

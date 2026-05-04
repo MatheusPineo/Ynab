@@ -246,10 +246,14 @@ const Budget = () => {
   }, [fetchCategoryGroups, fetchTransactions, fetchAccounts]);
 
   const currentIncomes = useMemo(() => {
-    return transactions.filter(t => {
-      return t.is_income && !t.transfer_group;
+    const txs = Array.isArray(transactions) ? transactions : [];
+    return txs.filter(t => {
+      if (!t.date) return false;
+      const [year, month] = t.date.split('-').map(Number);
+      const isCorrectPeriod = month === currentMonth && year === currentYear;
+      return t.is_income && !t.transfer_group && isCorrectPeriod;
     });
-  }, [transactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   const distributedIncomes = useMemo(() => {
     // 1. Filtrar transações que são receitas e têm transfer_group (já processadas)

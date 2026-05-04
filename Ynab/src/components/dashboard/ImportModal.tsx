@@ -31,8 +31,9 @@ export const ImportModal = ({ children }: { children?: React.ReactNode }) => {
 
   const getLeafAccounts = (nodes: any[]): any[] => {
     let leaves: any[] = [];
+    if (!nodes || !Array.isArray(nodes)) return leaves;
     nodes.forEach(node => {
-      if (node.children && node.children.length > 0) {
+      if (node.children && Array.isArray(node.children) && node.children.length > 0) {
         leaves = [...leaves, ...getLeafAccounts(node.children)];
       } else {
         leaves.push(node);

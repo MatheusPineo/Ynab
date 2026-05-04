@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
+import { ChevronLeft, Search, Filter, MoreHorizontal, Edit2, Trash2, CheckCircle2, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -41,10 +41,12 @@ const AccountDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getAccount, fetchAccounts, getCategoryName } = useAccountStore();
-  const { transactions, isLoading, deleteTransaction } = useTransactions();
-  const [search, setSearch] = useState("");
+  
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [search, setSearch] = useState("");
+
+  const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -74,13 +76,16 @@ const AccountDetails = () => {
   const currency = account.currency || "EUR";
 
   const accountTransactions = useMemo(() => {
-    return transactions.filter(t => String(t.account) === id);
+    const txs = Array.isArray(transactions) ? transactions : [];
+    return txs.filter(t => String(t.account) === id);
   }, [transactions, id]);
 
   const filteredTransactions = useMemo(() => {
     return accountTransactions.filter((t) => {
-      const date = new Date(t.date);
-      const matchesMonth = date.getMonth() === selectedMonth && date.getFullYear() === selectedYear;
+      if (!t.date) return false;
+      // Usar split em vez de new Date para evitar problemas de fuso horário (timezone shift)
+      const [year, month] = t.date.split('-').map(Number);
+      const matchesMonth = (month - 1) === selectedMonth && year === selectedYear;
       const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
       return matchesMonth && matchesSearch;
     });
@@ -90,25 +95,52 @@ const AccountDetails = () => {
   const stats = useMemo(() => {
     let income = 0;
     let expense = 0;
+    let pendingAmount = 0;
 
     accountTransactions.forEach(t => {
-      const date = new Date(t.date);
-      if (date.getMonth() === selectedMonth && date.getFullYear() === selectedYear) {
+      if (!t.date) return;
+      const [year, month] = t.date.split('-').map(Number);
+      
+      // Estatísticas do mês selecionado
+      if ((month - 1) === selectedMonth && year === selectedYear) {
         if (t.is_income) {
           income += Number(t.amount);
         } else {
           expense += Math.abs(Number(t.amount));
         }
       }
+
+      // Cálculo de pendentes (total da conta, não apenas do mês)
+      if (t.status === "pending") {
+        if (t.is_income) {
+          pendingAmount += Number(t.amount);
+        } else {
+          pendingAmount -= Math.abs(Number(t.amount));
+        }
+      }
     });
 
-    return { income, expense, net: income - expense };
-  }, [accountTransactions, selectedMonth, selectedYear]);
+    return { 
+      income, 
+      expense, 
+      net: income - expense,
+      pendingAmount,
+      projectedBalance: (account?.balance || 0) + pendingAmount
+    };
+  }, [accountTransactions, selectedMonth, selectedYear, account?.balance]);
 
   const handleDelete = async (tId: string) => {
     if (window.confirm("Tem certeza que deseja excluir esta transação?")) {
       await deleteTransaction.mutateAsync(tId);
     }
+  };
+
+  const handleStatusToggle = async (t: any) => {
+    const newStatus = t.status === "realized" ? "pending" : "realized";
+    await updateTransaction.mutateAsync({ 
+      id: t.id, 
+      updates: { status: newStatus } 
+    });
   };
 
   return (
@@ -133,10 +165,23 @@ const AccountDetails = () => {
                 {account.name}
               </h1>
             </div>
-            <p className="text-sm text-muted-foreground flex items-center gap-2">
-              Saldo Atual: <span className="font-semibold text-foreground">{formatMoney(account.balance, currency)}</span>
-            </p>
           </div>
+        </div>
+
+        <div className="flex flex-col sm:items-end">
+          <p className="text-3xl font-bold tracking-tight text-foreground">
+            {formatMoney(account.balance, currency)}
+          </p>
+          {stats.pendingAmount !== 0 && (
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px] py-0">
+                Previsto: {formatMoney(stats.projectedBalance, currency)}
+              </Badge>
+              <span className="text-[10px] text-muted-foreground">
+                ({stats.pendingAmount > 0 ? "+" : ""}{formatMoney(stats.pendingAmount, currency)} pendente)
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -228,9 +273,9 @@ const AccountDetails = () => {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border/60">
-                <TableHead className="w-[120px]">Data</TableHead>
+                 <TableHead className="w-[120px]">Data</TableHead>
                 <TableHead>Descrição</TableHead>
-                <TableHead>Categoria</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead className="w-[70px]"></TableHead>
               </TableRow>
@@ -256,9 +301,29 @@ const AccountDetails = () => {
                     </TableCell>
                     <TableCell className="font-medium">{t.description}</TableCell>
                     <TableCell>
-                      <span className="text-xs text-muted-foreground">
-                        {getCategoryName(t.category || "")}
-                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleStatusToggle(t)}
+                        className={cn(
+                          "h-8 px-2 rounded-lg transition-all",
+                          t.status === "realized" 
+                            ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
+                            : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                        )}
+                      >
+                        {t.status === "realized" ? (
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span className="text-xs font-medium">Efetivada</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-xs font-medium">Pendente</span>
+                          </div>
+                        )}
+                      </Button>
                     </TableCell>
                     <TableCell className={cn(
                       "text-right font-semibold tabular",

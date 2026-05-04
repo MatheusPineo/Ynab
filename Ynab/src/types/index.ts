@@ -1,3 +1,4 @@
+export type TransactionStatus = "realized" | "pending";
 export type Currency = "EUR" | "BRL" | "USD";
 
 export interface Transaction {
@@ -8,6 +9,7 @@ export interface Transaction {
   date: string;
   is_income: boolean;
   category?: string; // ID da categoria
+  status: TransactionStatus;
   is_recurring?: boolean;
   recurrence_interval?: "daily" | "weekly" | "monthly" | "yearly";
   next_recurrence_date?: string;

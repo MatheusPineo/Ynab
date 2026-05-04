@@ -4,13 +4,16 @@ import { useAccountStore } from "@/store/useAccountStore";
 import { Transaction } from "@/types";
 import { toast } from "sonner";
 
-export const useTransactions = () => {
+export const useTransactions = (month?: number, year?: number) => {
   const queryClient = useQueryClient();
 
   const { data: transactions = [], isLoading } = useQuery<Transaction[]>({
-    queryKey: ["transactions"],
+    queryKey: ["transactions", month, year],
     queryFn: async () => {
-      const response = await authenticatedFetch("/transactions/");
+      const url = month && year 
+        ? `/transactions/?month=${month}&year=${year}` 
+        : "/transactions/";
+      const response = await authenticatedFetch(url);
       return response.json();
     },
   });
