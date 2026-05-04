@@ -45,11 +45,11 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
       fetchDistributionTemplates();
       setSourceAccount(initialSourceAccount || "");
       setTotalAmount(initialAmount || "");
-      if (rows.length === 0) {
-        setRows([{ account: "", percentage: 0, fixed_amount: 0 }]);
-      }
+      setRows([{ account: "", percentage: 0, fixed_amount: 0 }]);
+      setTemplateName("");
+      setSelectedTemplate("none");
     }
-  }, [open, initialSourceAccount, initialAmount]);
+  }, [open, initialSourceAccount, initialAmount, fetchDistributionTemplates]);
 
   // Flatten accounts for dropdown
   const accountsFlat = useMemo(() => {
@@ -64,26 +64,34 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
     return list;
   }, [tree]);
 
+  const accSource = accountsFlat.find(a => String(a.id) === sourceAccount);
   const parsedTotal = parseFloat(totalAmount) || 0;
 
   // Recalculate values based on inputs
   const handleRowChange = (index: number, field: keyof DistributionTemplateItem, value: string) => {
     const newRows = [...rows];
-    const row = newRows[index];
+    const row = { ...newRows[index] }; // Clone row to be safe
 
     if (field === "account") {
       row.account = value;
     } else if (field === "percentage") {
-      const p = parseFloat(value) || 0;
-      row.percentage = p;
-      row.fixed_amount = parsedTotal > 0 ? (parsedTotal * (p / 100)) : 0;
+      const p = value === "" ? 0 : parseFloat(value);
+      row.percentage = isNaN(p) ? 0 : p;
+      row.fixed_amount = parsedTotal > 0 ? (parsedTotal * (row.percentage / 100)) : 0;
     } else if (field === "fixed_amount") {
-      const amt = parseFloat(value) || 0;
-      row.fixed_amount = amt;
-      row.percentage = parsedTotal > 0 ? (amt / parsedTotal) * 100 : 0;
+      const amt = value === "" ? 0 : parseFloat(value);
+      row.fixed_amount = isNaN(amt) ? 0 : amt;
+      row.percentage = parsedTotal > 0 ? (row.fixed_amount / parsedTotal) * 100 : 0;
     }
     
+    newRows[index] = row;
     setRows(newRows);
+  };
+
+  const allocateRemaining = (index: number) => {
+    const allocatedOthers = rows.reduce((acc, r, i) => i === index ? acc : acc + (r.fixed_amount || 0), 0);
+    const remaining = Math.max(0, parsedTotal - allocatedOthers);
+    handleRowChange(index, "fixed_amount", remaining.toString());
   };
 
   // If total amount changes, recalculate fixed amounts based on percentages
@@ -129,27 +137,34 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
 
   const handleSaveTemplate = async () => {
     if (!templateName.trim()) return;
+    const validRows = rows.filter(r => r.account);
+    if (validRows.length === 0) {
+      toast.error("Adicione pelo menos um destino com conta selecionada.");
+      return;
+    }
     await saveDistributionTemplate({
       id: selectedTemplate !== "none" ? selectedTemplate : undefined,
       name: templateName,
-      items: rows.map(r => ({
-        account: r.account,
-        percentage: r.percentage || undefined,
-        fixed_amount: r.fixed_amount || undefined
+      items: validRows.map(r => ({
+        account: Number(r.account),
+        percentage: typeof r.percentage === 'number' ? Number(r.percentage.toFixed(2)) : null,
+        fixed_amount: typeof r.fixed_amount === 'number' ? Number(r.fixed_amount.toFixed(2)) : null
       }))
     });
   };
 
   const handleExecute = async () => {
-    if (!isComplete) return;
+    const validRows = rows.filter(r => r.account);
+    if (validRows.length === 0) return;
+
     try {
       await executeBulkTransfer({
         from_account: sourceAccount,
         total_amount: parsedTotal,
         date: new Date().toISOString().split('T')[0],
-        distributions: rows.map(r => ({
+        distributions: validRows.map(r => ({
           to_account: r.account,
-          amount: r.fixed_amount || 0
+          amount: Number((r.fixed_amount || 0).toFixed(2))
         })).filter(r => r.amount > 0 && r.to_account),
         source_transaction: sourceTransactionId
       });
@@ -217,7 +232,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
             </div>
           </div>
 
-          <div className="space-y-3 max-h-[30vh] overflow-y-auto pr-2">
+          <div className="space-y-3 max-h-[35vh] overflow-y-auto pr-2 py-2">
             {rows.map((row, idx) => (
               <div key={idx} className="flex items-end gap-2">
                 <div className="flex-1 space-y-1">
@@ -237,23 +252,36 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
                   <Label className="text-xs text-muted-foreground">%</Label>
                   <Input 
                     type="number" 
+                    step="0.01"
                     className="h-9 bg-background/50" 
-                    value={row.percentage ? row.percentage.toFixed(2) : ""} 
+                    value={row.percentage || ""} 
                     onChange={(e) => handleRowChange(idx, "percentage", e.target.value)}
                   />
                 </div>
                 <div className="w-32 space-y-1">
-                  <Label className="text-xs text-muted-foreground">Valor (R$)</Label>
+                  <Label className="text-xs text-muted-foreground">Valor ({accSource?.currency || "R$"})</Label>
                   <Input 
                     type="number" 
+                    step="0.01"
                     className="h-9 bg-background/50" 
-                    value={row.fixed_amount ? row.fixed_amount.toFixed(2) : ""} 
+                    value={row.fixed_amount || ""} 
                     onChange={(e) => handleRowChange(idx, "fixed_amount", e.target.value)}
                   />
                 </div>
-                <Button variant="ghost" size="icon" className="h-9 w-9 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 shrink-0" onClick={() => removeRow(idx)}>
-                  <Trash className="h-4 w-4" />
-                </Button>
+                <div className="flex flex-col gap-1">
+                  <Button variant="ghost" size="icon" className="h-9 w-9 text-rose-500 hover:text-rose-400 hover:bg-rose-500/10 shrink-0" onClick={() => removeRow(idx)}>
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-9 text-primary hover:text-primary hover:bg-primary/10 shrink-0 p-0" 
+                    title="Alocar restante"
+                    onClick={() => allocateRemaining(idx)}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -267,13 +295,13 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
             <div className="flex justify-between items-center text-sm">
               <span className="text-muted-foreground">Alocado:</span>
               <span className={`font-bold ${isComplete ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {formatMoney(totalAllocated, "EUR")} ({totalPercentage.toFixed(1)}%)
+                {formatMoney(totalAllocated, (accSource?.currency || "BRL") as any)} ({totalPercentage.toFixed(1)}%)
               </span>
             </div>
             <div className="flex justify-between items-center text-sm mt-1">
               <span className="text-muted-foreground">Restante:</span>
               <span className="font-bold">
-                {formatMoney(Math.max(0, parsedTotal - totalAllocated), "EUR")}
+                {formatMoney(Math.max(0, parsedTotal - totalAllocated), (accSource?.currency || "BRL") as any)}
               </span>
             </div>
           </div>

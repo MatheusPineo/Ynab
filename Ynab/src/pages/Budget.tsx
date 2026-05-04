@@ -213,16 +213,27 @@ const SortableItem = ({ id, children, isGroup }: SortableItemProps) => {
 };
 
 const Budget = () => {
-  const { 
-    categoryGroups, 
-    tree, 
-    fetchCategoryGroups, 
-    assignMoney, 
+  const {
+    categoryGroups,
+    tree,
+    fetchCategoryGroups,
+    assignMoney,
     autoAssign,
-    addCategoryGroup, 
-    addCategory, 
-    setCategoryGroups 
+    addCategoryGroup,
+    addCategory,
+    setCategoryGroups,
+    transactions,
+    currentMonth,
+    currentYear,
+    fetchTransactions,
+    fetchAccounts,
+    getAccount,
+    getAccountName,
+    keepInAccount,
+    totalsByCurrency
   } = useAccountStore();
+  
+  const { convert } = useCurrencyStore();
   
   const [newGroupName, setNewGroupName] = useState("");
   const [newCatName, setNewCatName] = useState("");
@@ -230,32 +241,53 @@ const Budget = () => {
 
   useEffect(() => {
     fetchCategoryGroups();
-    useAccountStore.getState().fetchTransactions();
-  }, [fetchCategoryGroups]);
+    fetchTransactions();
+    fetchAccounts();
+  }, [fetchCategoryGroups, fetchTransactions, fetchAccounts]);
 
   const currentIncomes = useMemo(() => {
-    const { transactions, currentMonth, currentYear } = useAccountStore.getState();
     return transactions.filter(t => {
-      const tDate = new Date(t.date);
-      return t.is_income && 
-             (tDate.getMonth() + 1) === currentMonth && 
-             tDate.getFullYear() === currentYear &&
-             !t.transfer_group; // Apenas receitas que não fazem parte de uma transferência/distribuição já feita
+      return t.is_income && !t.transfer_group;
     });
-  }, [useAccountStore.getState().transactions, currentMonth, currentYear]);
+  }, [transactions]);
 
-  const totalCash = useMemo(() => {
-    const { convert } = useCurrencyStore.getState();
-    const totalsByCur = useAccountStore.getState().totalsByCurrency(tree);
-    
-    return (Object.entries(totalsByCur) as [Currency, number][]).reduce(
-      (acc, [cur, amount]) => {
-        return acc + convert(amount, cur, "EUR");
-      },
-      0
+  const distributedIncomes = useMemo(() => {
+    // 1. Filtrar transações que são receitas e têm transfer_group (já processadas)
+    // Excluindo as que são fruto de distribuição (para não duplicar na lista de origens)
+    const incomes = transactions.filter(t => 
+      t.is_income && 
+      t.transfer_group && 
+      !t.description.includes("Recebido de Distribuição")
     );
-  }, [tree]);
-  
+    
+    return incomes.map(income => {
+      const acc = getAccount(income.account);
+      const currency = acc?.currency || "EUR";
+
+      // 2. Encontrar as transações de destino que compartilham o mesmo grupo
+      const destinations = transactions.filter(t => 
+        t.transfer_group === income.transfer_group && 
+        t.is_income && 
+        t.id !== income.id
+      );
+      
+      const isKept = destinations.length === 0;
+
+      return {
+        ...income,
+        currency,
+        isKept,
+        details: isKept 
+          ? [{ account: income.account, amount: income.amount, name: `Mantido em: ${acc?.name || "Conta"}` }]
+          : destinations.map(d => ({
+            account: d.account,
+            amount: d.amount,
+            name: getAccountName(d.account)
+          }))
+      };
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [transactions, getAccount, getAccountName]);
+
   const totalAssigned = useMemo(() => {
     const calculateTotal = (nodes: CategoryNode[]): number => {
       return nodes.reduce((acc, node) => {
@@ -266,8 +298,6 @@ const Budget = () => {
     };
     return calculateTotal(categoryGroups);
   }, [categoryGroups]);
-
-  const readyToAssign = totalCash - totalAssigned;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -306,69 +336,118 @@ const Budget = () => {
       <section className="relative overflow-hidden rounded-3xl bg-primary/10 border border-primary/20 p-8 shadow-soft">
         <div className="relative flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex flex-col items-center sm:items-start gap-2">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-primary font-bold">
-              <Wallet className="h-4 w-4" />
-              Pronto para Alocar
-            </div>
-            <h1 className={cn(
-              "text-5xl font-black tabular tracking-tight transition-colors",
-              readyToAssign >= 0 ? "text-primary" : "text-rose-500"
-            )}>
-              {formatMoney(readyToAssign, "EUR")}
+            <h1 className="text-3xl font-black tracking-tight text-foreground">
+              Orçamento Mensal
             </h1>
           </div>
 
           <div className="flex flex-col items-center sm:items-end gap-4">
             <MonthSelector />
-            
-            <div className="flex flex-col gap-3 max-w-xs text-center sm:text-right">
-              <p className="text-sm text-muted-foreground">Patrimônio disponível neste mês.</p>
-            </div>
           </div>
         </div>
 
         {/* New Income Section */}
         {currentIncomes.length > 0 && (
-          <div className="mt-8 pt-8 border-t border-primary/10">
-            <h3 className="text-xs uppercase tracking-widest text-primary font-bold mb-4">Receitas Recebidas (Aguardando Distribuição)</h3>
+          <div className="mt-8 pt-8 border-t border-primary/10 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xs uppercase tracking-widest text-primary font-bold">Receitas Recebidas (Aguardando Distribuição)</h3>
+              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">{currentIncomes.length} pendentes</span>
+            </div>
             <div className="grid gap-3">
-              {currentIncomes.map(income => (
-                <div key={income.id} className="flex items-center justify-between bg-background/40 rounded-2xl p-4 border border-primary/10 hover:border-primary/30 transition-all group">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Plus className="h-5 w-5" />
+              {currentIncomes.map(income => {
+                const acc = getAccount(income.account);
+                const currency = acc?.currency || "EUR";
+                return (
+                  <div key={income.id} className="flex items-center justify-between bg-background/40 rounded-2xl p-4 border border-primary/10 hover:border-primary/30 transition-all group">
+                    <div className="flex items-center gap-4">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                        <Plus className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="font-bold text-foreground">{income.description || "Receita"}</div>
+                        <div className="text-xs text-muted-foreground">Recebido em: {acc?.name || "Conta"} • {income.date}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-bold text-foreground">{income.description || "Receita"}</div>
-                      <div className="text-xs text-muted-foreground">Recebido em: {useAccountStore.getState().getAccountName(income.account)}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-xl font-black text-primary">
-                      {formatMoney(income.amount, "EUR")}
-                    </div>
-                    <DistributionModal 
-                      initialSourceAccount={String(income.account)} 
-                      initialAmount={String(income.amount)}
-                      sourceTransactionId={income.id}
-                      trigger={
-                        <Button size="sm" className="gradient-primary rounded-xl px-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                          Distribuir
+                    <div className="flex items-center gap-6">
+                      <div className="text-xl font-black text-primary">
+                        {formatMoney(income.amount, currency as any)}
+                      </div>
+                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="rounded-xl border-primary/20 hover:bg-primary/10 text-xs"
+                          onClick={() => keepInAccount(income.id)}
+                        >
+                          Manter na Conta
                         </Button>
-                      }
-                    />
+                        <DistributionModal 
+                          initialSourceAccount={String(income.account)} 
+                          initialAmount={String(income.amount)}
+                          sourceTransactionId={income.id}
+                          trigger={
+                            <Button size="sm" className="gradient-primary rounded-xl px-6">
+                              Distribuir
+                            </Button>
+                          }
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
       </section>
 
+      {/* Distributed Incomes Section - Separated Container */}
+      {distributedIncomes.length > 0 && (
+        <section className="rounded-3xl bg-card/40 border border-border/60 p-6 shadow-sm transition-all duration-300">
+          <h3 className="text-xs uppercase tracking-widest text-primary font-bold mb-6">Histórico de Receitas Processadas</h3>
+          <div className="rounded-2xl border border-border/40 bg-background/20 overflow-hidden">
+            <Table>
+              <TableHeader className="bg-muted/20">
+                <TableRow className="hover:bg-transparent border-border/40">
+                  <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Origem / Data</TableHead>
+                  <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Valor Total</TableHead>
+                  <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Destino</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {distributedIncomes.map(income => (
+                  <TableRow key={income.id} className="border-border/40 hover:bg-primary/5 transition-colors">
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-sm text-foreground">{income.description || "Receita"}</span>
+                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">{income.date}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-black text-sm text-primary">
+                      {formatMoney(income.amount, income.currency as any)}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-2">
+                        {income.details.map((d, i) => (
+                          <div key={i} className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1">
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase">{d.name}:</span>
+                            <span className="text-xs font-black text-primary">{formatMoney(d.amount, income.currency as any)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </section>
+      )}
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={categoryGroups.map(g => g.id)} strategy={verticalListSortingStrategy}>
+        <SortableContext items={categoryGroups.filter(g => g.name.trim().toUpperCase() !== "TESTE").map(g => g.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col">
-            {categoryGroups.map((group) => (
+            {categoryGroups.filter(g => g.name.trim().toUpperCase() !== "TESTE").map((group) => (
               <SortableItem key={group.id} id={group.id} isGroup>
                 <div className="flex flex-col gap-3">
                   <div className="flex items-center justify-between px-2">

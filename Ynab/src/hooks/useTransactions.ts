@@ -28,6 +28,7 @@ export const useTransactions = () => {
       const store = useAccountStore.getState();
       store.fetchAccounts();
       store.fetchCategoryGroups();
+      store.fetchTransactions();
       toast.success("Transação adicionada!");
     },
   });
@@ -45,6 +46,7 @@ export const useTransactions = () => {
       const store = useAccountStore.getState();
       store.fetchAccounts();
       store.fetchCategoryGroups();
+      store.fetchTransactions();
       toast.success("Transação atualizada!");
     },
   });
@@ -60,6 +62,7 @@ export const useTransactions = () => {
       const store = useAccountStore.getState();
       store.fetchAccounts();
       store.fetchCategoryGroups();
+      store.fetchTransactions();
       toast.success("Transação excluída!");
     },
   });
@@ -101,6 +104,7 @@ export const useTransactions = () => {
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
       const store = useAccountStore.getState();
       store.fetchAccounts();
+      store.fetchTransactions();
       toast.success("Transferência realizada com sucesso!");
     },
   });

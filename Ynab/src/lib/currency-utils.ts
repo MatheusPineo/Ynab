@@ -12,10 +12,11 @@ export const CURRENCY_LOCALE: Record<Currency, string> = {
   USD: "en-US",
 };
 
-export function formatMoney(amount: number, currency: Currency): string {
+export function formatMoney(amount: number | string, currency: Currency): string {
+  const numericAmount = typeof amount === "string" ? parseFloat(amount) : amount;
   return new Intl.NumberFormat(CURRENCY_LOCALE[currency], {
     style: "currency",
     currency,
     maximumFractionDigits: 2,
-  }).format(amount);
+  }).format(numericAmount || 0);
 }

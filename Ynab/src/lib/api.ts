@@ -48,7 +48,8 @@ export async function authenticatedFetch(endpoint: string, options: RequestInit 
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || errorData.error || `Erro ${response.status}`);
+      const errorMessage = errorData.detail || errorData.error || (typeof errorData === 'object' ? JSON.stringify(errorData) : null) || `Erro ${response.status}`;
+      throw new Error(errorMessage);
     }
 
     return response;

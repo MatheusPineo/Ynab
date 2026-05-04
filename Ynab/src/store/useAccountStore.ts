@@ -58,6 +58,7 @@ interface AccountState {
   fetchDistributionTemplates: () => Promise<void>;
   saveDistributionTemplate: (template: DistributionTemplate) => Promise<void>;
   executeBulkTransfer: (payload: { from_account: string, total_amount: number, date: string, distributions: {to_account: string, amount: number}[], source_transaction?: string }) => Promise<void>;
+  keepInAccount: (transactionId: string) => Promise<void>;
   
   // Period Actions
   setCurrentPeriod: (month: number, year: number) => void;
@@ -478,6 +479,19 @@ export const useAccountStore = create<AccountState>()(
         }
       },
 
+      deleteDistributionTemplate: async (id) => {
+        try {
+          const response = await authenticatedFetch(`/distribution-templates/${id}/`, {
+            method: "DELETE",
+          });
+          if (!response.ok) throw new Error("Falha ao excluir modelo");
+          await get().fetchDistributionTemplates();
+          toast.success("Modelo excluído com sucesso!");
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
       executeBulkTransfer: async (payload) => {
         try {
           const response = await authenticatedFetch("/transactions/bulk_transfer/", {
@@ -494,6 +508,21 @@ export const useAccountStore = create<AccountState>()(
         } catch (error: any) {
           toast.error(error.message);
           throw error;
+        }
+      },
+
+      keepInAccount: async (transactionId) => {
+        try {
+          const response = await authenticatedFetch(`/transactions/${transactionId}/`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ transfer_group: crypto.randomUUID() }),
+          });
+          if (!response.ok) throw new Error("Falha ao atualizar transação");
+          await get().fetchTransactions();
+          toast.success("Receita mantida na conta original.");
+        } catch (error: any) {
+          toast.error(error.message);
         }
       },
 

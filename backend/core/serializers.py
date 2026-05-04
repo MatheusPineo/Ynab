@@ -132,9 +132,13 @@ class DistributionTemplateItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = DistributionTemplateItem
         fields = ['id', 'account', 'percentage', 'fixed_amount']
+        extra_kwargs = {
+            'percentage': {'required': False, 'allow_null': True},
+            'fixed_amount': {'required': False, 'allow_null': True},
+        }
 
 class DistributionTemplateSerializer(serializers.ModelSerializer):
-    items = DistributionTemplateItemSerializer(many=True)
+    items = DistributionTemplateItemSerializer(many=True, required=False, allow_empty=True)
 
     class Meta:
         model = DistributionTemplate
@@ -144,7 +148,7 @@ class DistributionTemplateSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        items_data = validated_data.pop('items')
+        items_data = validated_data.pop('items', [])
         template = DistributionTemplate.objects.create(**validated_data)
         for item_data in items_data:
             DistributionTemplateItem.objects.create(template=template, **item_data)
