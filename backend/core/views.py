@@ -796,8 +796,14 @@ class UpdateProfileView(APIView):
 
 
 def ping(request):
-    """Endpoint público e leve para manter o servidor acordado via Cron-job."""
-    return HttpResponse("ok", content_type="text/plain", status=200)
+    """Endpoint público leve que realiza uma consulta rápida no banco para manter o Supabase ativo."""
+    from django.db import connection
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+        return HttpResponse("ok", content_type="text/plain", status=200)
+    except Exception as e:
+        return HttpResponse(f"error: {str(e)}", content_type="text/plain", status=500)
 
 class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
