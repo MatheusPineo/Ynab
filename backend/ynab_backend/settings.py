@@ -69,6 +69,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://localhost:8080",
     "http://localhost:8081",
+    "http://localhost",
+    "https://localhost",
 ]
 
 ROOT_URLCONF = 'ynab_backend.urls'

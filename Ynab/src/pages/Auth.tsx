@@ -7,6 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Sparkles, ArrowRight, Loader2 } from "lucide-react";
 import { GoogleLogin, useGoogleLogin } from "@react-oauth/google";
+import { Capacitor } from "@capacitor/core";
+import { GoogleAuth } from "@codetrix-studio/capacitor-google-auth";
 import { toast } from "sonner";
 import { 
   InputOTP, 
@@ -43,6 +45,38 @@ const Auth = () => {
       setIsLoading(false);
     },
   });
+
+  const onGoogleLoginClick = async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        setIsLoading(true);
+        
+        // Inicializa o plugin de forma explícita com o Client ID para garantir que ele não quebre no Android
+        GoogleAuth.initialize({
+          clientId: '285793186636-n535672dqu974h5hisrced9rdmp4idmm.apps.googleusercontent.com',
+          scopes: ['profile', 'email'],
+          grantOfflineAccess: true,
+        });
+
+        const result = await GoogleAuth.signIn();
+        const idToken = result.authentication.idToken || result.idToken;
+        if (!idToken) throw new Error("Não foi possível obter o ID Token do Google.");
+        
+        await googleLogin(idToken);
+        toast.success("Login com Google realizado!");
+        navigate("/dashboard");
+      } catch (error: any) {
+        if (error?.message !== "user_cancelled") {
+          console.error("Erro no Google Auth Nativo:", error);
+          toast.error(error.message || "Falha na autenticação com o Google.");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      handleGoogleLogin();
+    }
+  };
 
   // If already logged in, go to dashboard
   if (isAuthenticated) {
@@ -218,10 +252,7 @@ const Auth = () => {
                 <div className="w-full flex justify-center pt-2">
                   <Button 
                     type="button"
-                    onClick={() => {
-                      setIsLoading(true);
-                      handleGoogleLogin();
-                    }}
+                    onClick={onGoogleLoginClick}
                     className="w-full h-12 rounded-full gradient-primary hover:shadow-glow transition-all gap-3 font-bold text-primary-foreground group"
                   >
                     <div className="bg-white p-1 rounded-full">
