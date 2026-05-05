@@ -335,17 +335,17 @@ const Budget = () => {
   };
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-6 sm:gap-8">
       {/* Budget Header */}
-      <section className="relative overflow-hidden rounded-3xl bg-primary/10 border border-primary/20 p-8 shadow-soft">
-        <div className="relative flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="flex flex-col items-center sm:items-start gap-2">
-            <h1 className="text-3xl font-black tracking-tight text-foreground">
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-primary/10 border border-primary/20 p-4 sm:p-8 shadow-soft">
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex flex-col gap-1 sm:gap-2">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Orçamento Mensal
             </h1>
           </div>
 
-          <div className="flex flex-col items-center sm:items-end gap-4">
+          <div className="flex flex-col items-start sm:items-end gap-4">
             <MonthSelector />
           </div>
         </div>
@@ -362,9 +362,9 @@ const Budget = () => {
                 const acc = getAccount(income.account);
                 const currency = acc?.currency || "EUR";
                 return (
-                  <div key={income.id} className="flex items-center justify-between bg-background/40 rounded-2xl p-4 border border-primary/10 hover:border-primary/30 transition-all group">
+                  <div key={income.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background/40 rounded-2xl p-4 border border-primary/10 hover:border-primary/30 transition-all group">
                     <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
                         <Plus className="h-5 w-5" />
                       </div>
                       <div>
@@ -372,25 +372,25 @@ const Budget = () => {
                         <div className="text-xs text-muted-foreground">Recebido em: {acc?.name || "Conta"} • {income.date}</div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center justify-between sm:justify-end gap-4">
                       <div className="text-xl font-black text-primary">
                         {formatMoney(income.amount, currency as any)}
                       </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center gap-2">
                         <Button 
                           variant="outline" 
                           size="sm" 
                           className="rounded-xl border-primary/20 hover:bg-primary/10 text-xs"
                           onClick={() => keepInAccount(income.id)}
                         >
-                          Manter na Conta
+                          Manter
                         </Button>
                         <DistributionModal 
                           initialSourceAccount={String(income.account)} 
                           initialAmount={String(income.amount)}
                           sourceTransactionId={income.id}
                           trigger={
-                            <Button size="sm" className="gradient-primary rounded-xl px-6">
+                            <Button size="sm" className="gradient-primary rounded-xl px-4">
                               Distribuir
                             </Button>
                           }
@@ -493,10 +493,10 @@ const Budget = () => {
                         <TableRow className="hover:bg-transparent border-border/40">
                           <TableHead className="w-[40px]"></TableHead>
                           <TableHead className="w-1/2">Categoria</TableHead>
-                          <TableHead className="text-right">Reservado</TableHead>
-                          <TableHead className="text-right">Gasto</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">Reservado</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell">Gasto</TableHead>
                           <TableHead className="text-right">Disponível</TableHead>
-                          <TableHead className="w-[50px]"></TableHead>
+                          <TableHead className="w-[50px] hidden sm:table-cell"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -552,10 +552,10 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
       <TableCell>
         <div className="flex flex-col gap-1.5">
           <span className="font-semibold text-foreground/90">{cat.name}</span>
-          <Progress value={percentSpent} className="h-1 w-32" />
+          <Progress value={percentSpent} className="h-1 w-24 sm:w-32" />
         </div>
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right hidden sm:table-cell">
         <Input
           type="number"
           value={cat.assigned_amount}
@@ -563,7 +563,7 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
           className="w-24 ml-auto h-8 text-right bg-background/50 border-border/40 focus:border-primary/50"
         />
       </TableCell>
-      <TableCell className="text-right text-muted-foreground font-medium italic">
+      <TableCell className="text-right text-muted-foreground font-medium italic hidden sm:table-cell">
         {formatMoney(cat.spent_amount || 0, "EUR")}
       </TableCell>
       <TableCell className={cn(
@@ -572,7 +572,7 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
       )}>
         {formatMoney(available, "EUR")}
       </TableCell>
-      <TableCell>
+      <TableCell className="hidden sm:table-cell">
         <CategoryActions category={cat} />
       </TableCell>
     </TableRow>

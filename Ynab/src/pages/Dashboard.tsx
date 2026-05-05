@@ -184,35 +184,37 @@ const Dashboard = () => {
   const monthName = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
 
   return (
-    <div className="flex flex-col gap-6 pb-10 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 sm:gap-6 pb-10 animate-in fade-in duration-500">
 
       {/* ── HEADER ─────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="h-4 w-4 text-primary" />
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-medium text-primary uppercase tracking-widest">
               Visão Geral
             </span>
           </div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground capitalize">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground capitalize">
             {monthName}
           </h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
+          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
             Acompanhe a saúde financeira do seu portfólio.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button asChild variant="outline" className="glass border-border/60 rounded-xl">
+          <Button asChild variant="outline" className="glass border-border/60 rounded-xl text-sm h-9">
             <Link to="/transactions" className="flex items-center gap-2">
-              Ver Transações <ChevronRight className="h-4 w-4" />
+              <span className="hidden sm:inline">Ver Transações</span>
+              <span className="sm:hidden">Transações</span>
+              <ChevronRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
       </div>
 
       {/* ── HERO STATS ROW ─────────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
 
         {/* Patrimônio */}
         <div className="lg:col-span-1 relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card/60 to-card/30 backdrop-blur-sm p-5 shadow-soft group hover:shadow-glow hover:border-primary/40 transition-all duration-300">
@@ -292,7 +294,7 @@ const Dashboard = () => {
       </div>
 
       {/* ── MAIN GRID ─────────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
 
         {/* Gráfico de Evolução */}
         <div className="lg:col-span-2 rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm p-5 shadow-soft">
@@ -308,7 +310,7 @@ const Dashboard = () => {
               </div>
             )}
           </div>
-          <div className="h-[240px]">
+          <div className="h-[200px] sm:h-[240px]">
             {historyData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={historyData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -416,7 +418,7 @@ const Dashboard = () => {
       {/* ── PENDING TRANSACTIONS CARD ─────────────────────── */}
       {pendingTransactionsData.list.length > 0 && (
         <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-card/60 to-card/30 backdrop-blur-sm p-5 shadow-soft animate-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Clock className="h-4 w-4 text-amber-500" />
@@ -426,7 +428,7 @@ const Dashboard = () => {
                 Planejadas para o mês de {monthName.toLowerCase()}
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <div className="text-right">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">A Receber</p>
                 <p className="text-sm font-bold text-emerald-500">
@@ -442,7 +444,7 @@ const Dashboard = () => {
               </div>
               <div className="h-8 w-px bg-border/60" />
               <div className="text-right">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Balanço Previsto</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Previsto</p>
                 <p className={cn(
                   "text-sm font-bold",
                   pendingTransactionsData.balance >= 0 ? "text-amber-500" : "text-rose-500"
@@ -454,7 +456,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
             {pendingTransactionsData.list.slice(0, 6).map((t) => (
               <div key={t.id} className="flex items-center justify-between p-3 rounded-xl bg-background/40 border border-border/40 hover:border-amber-500/30 transition-all group">
                 <div className="flex items-center gap-3 overflow-hidden">
@@ -505,7 +507,7 @@ const Dashboard = () => {
       )}
 
       {/* ── BOTTOM GRID ───────────────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
 
         {/* Transações Recentes */}
         <div className="lg:col-span-2 rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm p-5 shadow-soft">

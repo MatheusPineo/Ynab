@@ -332,7 +332,7 @@ const Settings = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-500">
       <input 
         type="file" 
         ref={fileInputRef} 
@@ -341,31 +341,38 @@ const Settings = () => {
         className="hidden" 
       />
       
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-          <SettingsIcon className="h-8 w-8 text-primary" />
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+          <SettingsIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           Configurações
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Gerencie suas preferências de conta, segurança e sincronização de dados.
         </p>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="bg-muted/20 border border-border/60 p-1 mb-8 rounded-xl">
-          <TabsTrigger value="profile" className="gap-2 rounded-lg data-[state=active]:bg-background">
-            <User className="h-4 w-4" /> Perfil
-          </TabsTrigger>
-          <TabsTrigger value="appearance" className="gap-2 rounded-lg data-[state=active]:bg-background">
-            <Globe className="h-4 w-4" /> Preferências
-          </TabsTrigger>
-          <TabsTrigger value="data" className="gap-2 rounded-lg data-[state=active]:bg-background">
-            <Database className="h-4 w-4" /> Dados
-          </TabsTrigger>
-          <TabsTrigger value="templates" className="gap-2 rounded-lg data-[state=active]:bg-background" onClick={() => { fetchDistributionTemplates(); fetchAccounts(); }}>
-            <LayoutGrid className="h-4 w-4" /> Modelos
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-1">
+          <TabsList className="bg-muted/20 border border-border/60 p-1 mb-6 sm:mb-8 rounded-xl flex-nowrap w-max sm:w-full min-w-full">
+            <TabsTrigger value="profile" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
+              <User className="h-4 w-4 shrink-0" />
+              <span className="hidden xs:inline">Perfil</span>
+              <span className="xs:hidden">Perfil</span>
+            </TabsTrigger>
+            <TabsTrigger value="appearance" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
+              <Globe className="h-4 w-4 shrink-0" />
+              <span>Preferências</span>
+            </TabsTrigger>
+            <TabsTrigger value="data" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
+              <Database className="h-4 w-4 shrink-0" />
+              <span>Dados</span>
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm" onClick={() => { fetchDistributionTemplates(); fetchAccounts(); }}>
+              <LayoutGrid className="h-4 w-4 shrink-0" />
+              <span>Modelos</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Profile Tab */}
         <TabsContent value="profile" className="space-y-6">

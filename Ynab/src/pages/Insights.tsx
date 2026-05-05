@@ -108,13 +108,13 @@ const Insights = () => {
   const totalExpense = monthlyCashFlow.reduce((acc, curr) => acc + curr.Despesas, 0);
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-          <Activity className="h-8 w-8 text-primary" />
+    <div className="flex flex-col gap-4 sm:gap-6">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+          <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
           Inteligência Financeira
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           Análise profunda dos seus dados financeiros para melhores decisões.
         </p>
       </div>
@@ -159,7 +159,7 @@ const Insights = () => {
             <CardDescription>Comparativo entre o que entra e o que sai</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[350px] w-full">
+            <div className="h-[260px] sm:h-[350px] w-full">
               {monthlyCashFlow.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyCashFlow} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
@@ -191,7 +191,7 @@ const Insights = () => {
             <CardDescription>Crescimento do seu saldo global ao longo do tempo</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
+            <div className="h-[220px] sm:h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={historyData}>
                   <defs>
@@ -222,7 +222,7 @@ const Insights = () => {
             <CardDescription>Descubra em quais dias você costuma gastar mais</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
+            <div className="h-[220px] sm:h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="70%" data={spendingHabits}>
                   <PolarGrid stroke="#333" />
@@ -245,7 +245,7 @@ const Insights = () => {
             <CardDescription>Onde seu dinheiro está indo este mês</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full">
+            <div className="h-[220px] sm:h-[300px] w-full">
               {expensesByCategory.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
@@ -284,7 +284,7 @@ const Insights = () => {
             <CardDescription>Como está o progresso dos seus top 5 objetivos</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] w-full relative">
+            <div className="h-[220px] sm:h-[300px] w-full relative">
               {goalsProgress.length > 0 ? (
                  <ResponsiveContainer width="100%" height="100%">
                  <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="100%" barSize={15} data={goalsProgress}>

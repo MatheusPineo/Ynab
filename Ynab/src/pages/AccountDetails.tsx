@@ -5,7 +5,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { formatMoney, CURRENCY_SYMBOL } from "@/lib/currency-utils";
 import { TableSkeleton } from "@/components/dashboard/TableSkeleton";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { Receipt, ArrowLeft, TrendingUp, TrendingDown, Wallet } from "lucide-react";
+import { Receipt, ArrowLeft, TrendingUp, TrendingDown, Wallet, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -17,7 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, Search, Filter, MoreHorizontal, Edit2, Trash2, CheckCircle2, Clock } from "lucide-react";
+import { Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -36,6 +36,9 @@ import {
 } from "@/components/ui/select";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
 import { ImportModal } from "@/components/dashboard/ImportModal";
+
+// Badge precisa ser importado para referência em BadgeVariant de AccountDetails
+import { Badge } from "@/components/ui/badge";
 
 const AccountDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -61,7 +64,6 @@ const AccountDetails = () => {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  // If account not found (or still loading from store)
   if (!account) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground mt-20">
@@ -83,7 +85,6 @@ const AccountDetails = () => {
   const filteredTransactions = useMemo(() => {
     return accountTransactions.filter((t) => {
       if (!t.date) return false;
-      // Usar split em vez de new Date para evitar problemas de fuso horário (timezone shift)
       const [year, month] = t.date.split('-').map(Number);
       const matchesMonth = (month - 1) === selectedMonth && year === selectedYear;
       const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
@@ -91,7 +92,6 @@ const AccountDetails = () => {
     });
   }, [accountTransactions, selectedMonth, selectedYear, search]);
 
-  // Calculate Macro Stats for selected month
   const stats = useMemo(() => {
     let income = 0;
     let expense = 0;
@@ -101,7 +101,6 @@ const AccountDetails = () => {
       if (!t.date) return;
       const [year, month] = t.date.split('-').map(Number);
       
-      // Estatísticas do mês selecionado
       if ((month - 1) === selectedMonth && year === selectedYear) {
         if (t.is_income) {
           income += Number(t.amount);
@@ -110,7 +109,6 @@ const AccountDetails = () => {
         }
       }
 
-      // Cálculo de pendentes (total da conta, não apenas do mês)
       if (t.status === "pending") {
         if (t.is_income) {
           pendingAmount += Number(t.amount);
@@ -144,116 +142,117 @@ const AccountDetails = () => {
   };
 
   return (
-    <div className="flex flex-col gap-6 pb-12 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 sm:gap-6 pb-12 animate-in fade-in duration-500">
       
-      {/* Header and Filter Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2">
               {account.icon_url ? (
-                <img src={account.icon_url} alt="" className="h-6 w-6 rounded-full object-cover shadow-sm" />
+                <img src={account.icon_url} alt="" className="h-6 w-6 rounded-full object-cover shadow-sm shrink-0" />
               ) : (
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] text-primary font-bold">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] text-primary font-bold shrink-0">
                   {CURRENCY_SYMBOL[currency]}
                 </span>
               )}
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
                 {account.name}
               </h1>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col sm:items-end">
-          <p className="text-3xl font-bold tracking-tight text-foreground">
+        <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 pl-14 sm:pl-0">
+          <p className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
             {formatMoney(account.balance, currency)}
           </p>
           {stats.pendingAmount !== 0 && (
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-1">
               <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px] py-0">
-                Previsto: {formatMoney(stats.projectedBalance, currency)}
+                Prev: {formatMoney(stats.projectedBalance, currency)}
               </Badge>
-              <span className="text-[10px] text-muted-foreground">
-                ({stats.pendingAmount > 0 ? "+" : ""}{formatMoney(stats.pendingAmount, currency)} pendente)
-              </span>
             </div>
           )}
         </div>
-
-        <div className="flex items-center gap-3">
-          <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
-            <SelectTrigger className="w-[135px] glass border-border/40 rounded-xl h-10 shadow-soft focus:ring-0">
-              <SelectValue placeholder="Mês" />
-            </SelectTrigger>
-            <SelectContent className="glass border-border/60">
-              {months.map((m, i) => (
-                <SelectItem key={m} value={String(i)}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
-            <SelectTrigger className="w-[95px] glass border-border/40 rounded-xl h-10 shadow-soft focus:ring-0">
-              <SelectValue placeholder="Ano" />
-            </SelectTrigger>
-            <SelectContent className="glass border-border/60">
-              {years.map(y => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
       </div>
 
-      {/* Macro Vision (Stats) */}
-      <div className="flex flex-row gap-4 w-full">
-        <Card className="flex-1 rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft min-w-0">
-          <CardContent className="p-6 flex flex-col gap-1">
-            <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-500" />
-              Entradas no Mês
+      {/* Period Filters */}
+      <div className="flex flex-wrap items-center gap-2 pl-0">
+        <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+          <SelectTrigger className="w-[130px] sm:w-[135px] glass border-border/40 rounded-xl h-10 shadow-soft focus:ring-0">
+            <SelectValue placeholder="Mês" />
+          </SelectTrigger>
+          <SelectContent className="glass border-border/60">
+            {months.map((m, i) => (
+              <SelectItem key={m} value={String(i)}>{m}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+          <SelectTrigger className="w-[90px] sm:w-[95px] glass border-border/40 rounded-xl h-10 shadow-soft focus:ring-0">
+            <SelectValue placeholder="Ano" />
+          </SelectTrigger>
+          <SelectContent className="glass border-border/60">
+            {years.map(y => (
+              <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Macro Stats */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        <Card className="rounded-2xl sm:rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft">
+          <CardContent className="p-3 sm:p-6 flex flex-col gap-1">
+            <p className="text-[11px] sm:text-sm font-medium text-muted-foreground flex items-center gap-1 sm:gap-2">
+              <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 text-emerald-500 shrink-0" />
+              <span className="hidden sm:inline">Entradas no Mês</span>
+              <span className="sm:hidden">Entradas</span>
             </p>
-            <p className="text-2xl font-bold text-emerald-500">
+            <p className="text-base sm:text-2xl font-bold text-emerald-500 tabular-nums">
               +{formatMoney(stats.income, currency)}
             </p>
           </CardContent>
         </Card>
         
-        <Card className="flex-1 rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft min-w-0">
-          <CardContent className="p-6 flex flex-col gap-1">
-            <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-rose-500" />
-              Saídas no Mês
+        <Card className="rounded-2xl sm:rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft">
+          <CardContent className="p-3 sm:p-6 flex flex-col gap-1">
+            <p className="text-[11px] sm:text-sm font-medium text-muted-foreground flex items-center gap-1 sm:gap-2">
+              <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 text-rose-500 shrink-0" />
+              <span className="hidden sm:inline">Saídas no Mês</span>
+              <span className="sm:hidden">Saídas</span>
             </p>
-            <p className="text-2xl font-bold text-rose-500">
+            <p className="text-base sm:text-2xl font-bold text-rose-500 tabular-nums">
               -{formatMoney(stats.expense, currency)}
             </p>
           </CardContent>
         </Card>
 
-        <Card className="flex-1 rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft min-w-0">
-          <CardContent className="p-6 flex flex-col gap-1">
-            <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-primary" />
-              Balanço do Mês
+        <Card className="rounded-2xl sm:rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft">
+          <CardContent className="p-3 sm:p-6 flex flex-col gap-1">
+            <p className="text-[11px] sm:text-sm font-medium text-muted-foreground flex items-center gap-1 sm:gap-2">
+              <Wallet className="h-3 w-3 sm:h-4 sm:w-4 text-primary shrink-0" />
+              <span className="hidden sm:inline">Balanço do Mês</span>
+              <span className="sm:hidden">Balanço</span>
             </p>
-            <p className={cn("text-2xl font-bold", stats.net >= 0 ? "text-emerald-500" : "text-rose-500")}>
+            <p className={cn("text-base sm:text-2xl font-bold tabular-nums", stats.net >= 0 ? "text-emerald-500" : "text-rose-500")}>
               {stats.net > 0 ? "+" : ""}{formatMoney(Math.abs(stats.net), currency)}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Micro Vision (Transactions Table) */}
-      <div className="flex flex-col gap-4 mt-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <h2 className="text-lg font-semibold tracking-tight w-full sm:w-auto">Transações da Conta</h2>
+      {/* Transactions Section */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <h2 className="text-base sm:text-lg font-semibold tracking-tight">Transações da Conta</h2>
           
-          <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="flex items-center gap-2">
             <div className="relative flex-1 sm:w-64">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -269,11 +268,96 @@ const AccountDetails = () => {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
+        {/* Mobile: Card List */}
+        <div className="sm:hidden flex flex-col gap-2">
+          {isLoading ? (
+            <div className="flex flex-col gap-2">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-20 rounded-2xl bg-muted/20 animate-pulse" />
+              ))}
+            </div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground border border-dashed border-border/60 rounded-2xl">
+              <Receipt className="h-8 w-8 opacity-20" />
+              <p className="text-sm">Nenhuma movimentação encontrada.</p>
+            </div>
+          ) : (
+            filteredTransactions.map((t) => (
+              <div
+                key={t.id}
+                className="flex items-center justify-between p-3 rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm transition-all"
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className={cn(
+                    "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                    t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
+                  )}>
+                    {t.is_income
+                      ? <TrendingUp className="h-4 w-4 text-emerald-500" />
+                      : <TrendingDown className="h-4 w-4 text-rose-500" />
+                    }
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">{t.description}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground">
+                        {new Date(t.date).toLocaleDateString('pt-PT')}
+                      </p>
+                      <span className={cn(
+                        "text-[10px] px-1 py-0.5 rounded-full",
+                        t.status === "realized" ? "text-emerald-500 bg-emerald-500/10" : "text-amber-500 bg-amber-500/10"
+                      )}>
+                        {t.status === "realized" ? "Efetivada" : "Pendente"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0 ml-2">
+                  <p className={cn(
+                    "text-sm font-bold tabular-nums",
+                    t.is_income ? "text-emerald-400" : "text-rose-400"
+                  )}>
+                    {t.is_income ? "+" : "-"}{formatMoney(Math.abs(t.amount), currency)}
+                  </p>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="glass border-border/60">
+                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem className="cursor-pointer" onClick={() => handleStatusToggle(t)}>
+                        {t.status === "realized"
+                          ? <><Clock className="mr-2 h-4 w-4" />Marcar Pendente</>
+                          : <><CheckCircle2 className="mr-2 h-4 w-4" />Efetivar</>
+                        }
+                      </DropdownMenuItem>
+                      <AddTransactionModal transaction={t}>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                          <Edit2 className="mr-2 h-4 w-4" />
+                          Editar
+                        </DropdownMenuItem>
+                      </AddTransactionModal>
+                      <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDelete(t.id)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Excluir
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Desktop: Table */}
+        <div className="hidden sm:block rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow className="hover:bg-transparent border-border/60">
-                 <TableHead className="w-[120px]">Data</TableHead>
+                <TableHead className="w-[120px]">Data</TableHead>
                 <TableHead>Descrição</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
