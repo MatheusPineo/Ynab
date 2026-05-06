@@ -129,7 +129,13 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
             attrs['username'] = user.username
         
         data = super().validate(attrs)
-        data['user'] = UserSerializer(user).data
+        
+        # Fallback de segurança: se a nossa autenticação local retornou None por alguma diferença de backend,
+        # mas o SimpleJWT autenticou com sucesso (self.user), usamos o usuário autenticado por ele.
+        user_obj = user or getattr(self, 'user', None)
+        if user_obj:
+            data['user'] = UserSerializer(user_obj).data
+            
         return data
 
 class DistributionTemplateItemSerializer(serializers.ModelSerializer):
