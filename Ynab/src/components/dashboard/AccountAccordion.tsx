@@ -65,13 +65,15 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
     transition,
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 10 : 1,
-  };  const RowContent = (
+  };
+
+  const RowContent = (
     <div 
       ref={setNodeRef} 
       style={style}
       className={cn(
         "transition-all duration-300 ease-in-out",
-        !isMaster && "mx-3 mb-2 w-[calc(100%-24px)]", // Reduz largura de tudo que não for raiz
+        !isMaster && "mx-1 sm:mx-3 mb-2 w-[calc(100%-8px)] sm:w-[calc(100%-24px)]", // Reduz largura de tudo que não for raiz
         hasChildren && "border border-border/60 rounded-xl overflow-hidden bg-background/20 shadow-soft", // Estilo pasta (para quem tem filhos)
         isDragging && "shadow-elevated z-10"
       )}
@@ -80,38 +82,41 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
         type="button"
         onClick={() => hasChildren ? setOpen((o) => !o) : navigate(`/account/${node.id}`)}
         className={cn(
-          "group flex w-full items-center gap-2 text-left transition-colors duration-200",
+          "group flex w-full items-center gap-1.5 sm:gap-2 text-left transition-colors duration-200",
           bgFor(depth),
-          hasChildren ? "px-4 py-4 border-b border-border/40" : "px-3 py-3 rounded-xl border border-border/50 shadow-sm", // Papel vs Topo de Pasta
+          hasChildren ? "px-3 sm:px-4 py-3 sm:py-4 border-b border-border/40" : "px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl border border-border/50 shadow-sm", // Papel vs Topo de Pasta
           hasChildren && "hover:bg-muted/60 cursor-pointer",
           !hasChildren && "hover:bg-muted/40 cursor-pointer",
+          "[--pad-base:6px] [--pad-indent:4px] sm:[--pad-base:12px] sm:[--pad-indent:8px]"
         )}
-        style={{ paddingLeft: `${12 + depth * 8}px` }} // Reduzi o incremento de indentação para caber no visual reduzido
+        style={{ paddingLeft: `calc(var(--pad-base) + ${depth} * var(--pad-indent))` }}
       >
         {/* Drag handle */}
-        <span
-          {...attributes}
-          {...listeners}
-          className={cn(
-            "text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors shrink-0 p-1 -ml-1",
-            isMaster ? "cursor-grab active:cursor-grabbing" : "opacity-0 pointer-events-none"
-          )}
-          title={isMaster ? "Arraste para reordenar" : ""}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-4 w-4" />
-        </span>
+        {isMaster && (
+          <span
+            {...attributes}
+            {...listeners}
+            className="text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors shrink-0 p-1 -ml-1 cursor-grab active:cursor-grabbing"
+            title="Arraste para reordenar"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-4 w-4" />
+          </span>
+        )}
 
         {/* Chevron */}
-        <span
-          className={cn(
-            "shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-transform duration-300 ease-out",
-            hasChildren ? "opacity-100" : "opacity-0",
-            open && "rotate-90 text-primary",
-          )}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </span>
+        {hasChildren ? (
+          <span
+            className={cn(
+              "shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-transform duration-300 ease-out",
+              open && "rotate-90 text-primary",
+            )}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </span>
+        ) : (
+          <div className="w-1.5 sm:w-2 shrink-0" />
+        )}
 
         {/* Icon or Currency badge */}
         {node.icon_url ? (

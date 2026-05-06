@@ -58,6 +58,10 @@ export const useAuthStore = create<AuthState>()(
           return { twoFactorRequired: true, userId: data.user_id };
         }
 
+        if (!data.user) {
+          throw new Error("Resposta inválida do servidor: objeto de usuário ausente.");
+        }
+
         set({
           accessToken: data.access,
           refreshToken: data.refresh,
@@ -100,6 +104,10 @@ export const useAuthStore = create<AuthState>()(
         }
 
         const data = await response.json();
+        if (!data.user) {
+          throw new Error("Resposta inválida do servidor: objeto de usuário ausente.");
+        }
+
         set({
           accessToken: data.access,
           refreshToken: data.refresh,
@@ -141,6 +149,10 @@ export const useAuthStore = create<AuthState>()(
         if (!response.ok) throw new Error("Falha no login com Google");
 
         const data = await response.json();
+        if (!data.user) {
+          throw new Error("Resposta inválida do servidor: objeto de usuário ausente.");
+        }
+
         set({
           accessToken: data.access,
           refreshToken: data.refresh,

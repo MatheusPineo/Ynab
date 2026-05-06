@@ -36,11 +36,19 @@ export const useGoals = () => {
         method: "PATCH",
         body: JSON.stringify(updates),
       });
-      if (!response.ok) throw new Error("Erro ao atualizar meta");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = Object.values(errorData).flat().join(" ") || "Erro ao atualizar meta";
+        throw new Error(errorMessage);
+      }
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["goals"] });
     },
+    onError: (error: any) => {
+      toast.error(`Erro ao atualizar: ${error.message}`);
+    }
   });
 
   const deleteGoal = useMutation({

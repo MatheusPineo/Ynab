@@ -91,6 +91,10 @@ class UserSerializer(serializers.ModelSerializer):
             password=password,
             first_name=name
         )
+        
+        # Garante a criação automática do perfil de usuário associado
+        UserProfile.objects.get_or_create(user=user)
+        
         return user
 
 class MyTokenObtainPairSerializer(TokenObtainPairSerializer):

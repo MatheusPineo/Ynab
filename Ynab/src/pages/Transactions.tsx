@@ -90,11 +90,11 @@ const Transactions = () => {
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col items-center text-center sm:items-start sm:text-left gap-1">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
           Transações
         </h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground leading-relaxed">
           Histórico detalhado de todas as suas movimentações financeiras.
         </p>
       </div>

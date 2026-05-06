@@ -43,8 +43,8 @@ const GoalModal = ({ goal, open, setOpen }: { goal?: Goal; open: boolean; setOpe
     
     const data = {
       name: formData.get("name") as string,
-      target_amount: parseFloat(formData.get("target") as string),
-      current_amount: parseFloat(formData.get("current") as string) || 0,
+      target_amount: Number(parseFloat(formData.get("target") as string).toFixed(2)),
+      current_amount: Number((parseFloat(formData.get("current") as string) || 0).toFixed(2)),
       deadline: hasDeadline ? (formData.get("deadline") as string) : null,
       emoji: emoji,
       currency: currency,
@@ -149,13 +149,13 @@ const Goals = () => {
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <Target className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+      <div className="flex flex-col items-center text-center sm:text-left sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col items-center sm:items-start gap-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+            <Target className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
             Metas e Objetivos
           </h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             Planeje seus grandes sonhos e acompanhe o progresso de cada economia.
           </p>
         </div>
@@ -181,7 +181,7 @@ const Goals = () => {
           </div>
         ) : (
           goals.map((goal) => (
-            <GoalCard key={goal.id} goal={goal} onUpdate={(id, updates) => updateGoal.mutate({ id, updates })} onDelete={(id) => deleteGoal.mutate(id)} />
+            <GoalCard key={goal.id} goal={goal} onUpdate={(id, updates) => updateGoal.mutateAsync({ id, updates })} onDelete={(id) => deleteGoal.mutate(id)} />
           ))
         )}
       </div>
@@ -194,21 +194,31 @@ const GoalCard = ({ goal, onUpdate, onDelete }: { goal: Goal, onUpdate: any, onD
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
 
-  const percent = Math.min(Math.round((goal.current_amount / goal.target_amount) * 100), 100);
-  const remaining = goal.target_amount - goal.current_amount;
+  const currentAmt = Number(goal.current_amount) || 0;
+  const targetAmt = Number(goal.target_amount) || 0;
+  const percent = Math.min(Math.round((currentAmt / targetAmt) * 100), 100);
+  const remaining = targetAmt - currentAmt;
   const isCompleted = percent >= 100;
   const currency = goal.currency || "EUR";
 
-  const handleDeposit = () => {
+  const handleDeposit = async () => {
+    console.log("💰 handleDeposit chamado com depositAmount:", depositAmount);
     const val = parseFloat(depositAmount);
     if (isNaN(val) || val <= 0) {
       toast.error("Insira um valor válido");
       return;
     }
-    onUpdate(goal.id, { current_amount: goal.current_amount + val });
-    setDepositAmount("");
-    setIsDepositOpen(false);
-    toast.success(`Saldo adicionado! +${formatMoney(val, currency)}`);
+    try {
+      console.log(`🚀 Chamando onUpdate para o ID: ${goal.id} com valor de adição: ${val}`);
+      await onUpdate(goal.id, { current_amount: Number((currentAmt + val).toFixed(2)) });
+      console.log("✅ onUpdate concluído com sucesso!");
+      setDepositAmount("");
+      setIsDepositOpen(false);
+      toast.success(`Saldo adicionado! +${formatMoney(val, currency)}`);
+    } catch (err: any) {
+      console.error("❌ Erro ao depositar saldo na meta:", err);
+      toast.error(`Falha ao depositar saldo: ${err.message || err}`);
+    }
   };
 
   return (

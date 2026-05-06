@@ -36,8 +36,8 @@ export const BottomNav = () => {
   const navigate = useNavigate();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-sidebar-border bg-sidebar/95 backdrop-blur-xl safe-area-pb">
-      <div className="flex items-center justify-around px-2 pt-2 pb-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-sidebar-border bg-sidebar/95 backdrop-blur-xl">
+      <div className="flex items-center justify-around px-2 pt-2 pb-[calc(8px+env(safe-area-inset-bottom,0px))]">
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
           return (

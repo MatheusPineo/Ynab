@@ -338,14 +338,14 @@ const Budget = () => {
     <div className="flex flex-col gap-6 sm:gap-8">
       {/* Budget Header */}
       <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-primary/10 border border-primary/20 p-4 sm:p-8 shadow-soft">
-        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="relative flex flex-col items-center text-center sm:text-left sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex flex-col gap-1 sm:gap-2">
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
               Orçamento Mensal
             </h1>
           </div>
 
-          <div className="flex flex-col items-start sm:items-end gap-4">
+          <div className="flex flex-col items-center sm:items-end gap-4">
             <MonthSelector />
           </div>
         </div>
@@ -353,9 +353,13 @@ const Budget = () => {
         {/* New Income Section */}
         {currentIncomes.length > 0 && (
           <div className="mt-8 pt-8 border-t border-primary/10 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs uppercase tracking-widest text-primary font-bold">Receitas Recebidas (Aguardando Distribuição)</h3>
-              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">{currentIncomes.length} pendentes</span>
+            <div className="flex flex-col items-center text-center sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <h3 className="text-[11px] sm:text-xs uppercase tracking-wider text-primary font-bold">
+                Receitas Recebidas <span className="opacity-70 font-normal">(Aguardando Distribuição)</span>
+              </h3>
+              <span className="text-[10px] bg-primary/20 text-primary px-2.5 py-1 rounded-full font-bold shrink-0">
+                {currentIncomes.length} {currentIncomes.length === 1 ? "pendente" : "pendentes"}
+              </span>
             </div>
             <div className="grid gap-3">
               {currentIncomes.map(income => {
@@ -407,9 +411,40 @@ const Budget = () => {
 
       {/* Distributed Incomes Section - Separated Container */}
       {distributedIncomes.length > 0 && (
-        <section className="rounded-3xl bg-card/40 border border-border/60 p-6 shadow-sm transition-all duration-300">
-          <h3 className="text-xs uppercase tracking-widest text-primary font-bold mb-6">Histórico de Receitas Processadas</h3>
-          <div className="rounded-2xl border border-border/40 bg-background/20 overflow-hidden">
+        <section className="rounded-3xl bg-card/40 border border-border/60 p-4 sm:p-6 shadow-sm transition-all duration-300">
+          <h3 className="text-xs uppercase tracking-widest text-primary font-bold mb-4 sm:mb-6 text-center sm:text-left">Histórico de Receitas Processadas</h3>
+          
+          {/* Layout Mobile (Lista de Cards) */}
+          <div className="block sm:hidden space-y-3">
+            {distributedIncomes.map(income => (
+              <div key={income.id} className="bg-background/25 border border-border/40 rounded-2xl p-4 space-y-3 hover:border-primary/20 transition-all">
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm text-foreground">{income.description || "Receita"}</span>
+                    <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider mt-0.5">{income.date}</span>
+                  </div>
+                  <span className="font-black text-sm text-primary shrink-0">
+                    {formatMoney(income.amount, income.currency as any)}
+                  </span>
+                </div>
+                
+                <div className="pt-2.5 border-t border-border/20">
+                  <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-2">Destino</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {income.details.map((d, i) => (
+                      <div key={i} className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1 text-[10px]">
+                        <span className="font-bold text-muted-foreground/80 uppercase text-[8px]">{d.name}:</span>
+                        <span className="font-black text-primary">{formatMoney(d.amount, income.currency as any)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Layout Desktop (Tabela) */}
+          <div className="hidden sm:block rounded-2xl border border-border/40 bg-background/20 overflow-hidden">
             <Table>
               <TableHeader className="bg-muted/20">
                 <TableRow className="hover:bg-transparent border-border/40">

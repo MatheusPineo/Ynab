@@ -30,18 +30,20 @@ const Accounts = () => {
       <NetWorthHeader base={baseCurrency} onBaseChange={setBaseCurrency} customTotal={total} />
 
       {/* Section header */}
-      <div className="flex items-baseline justify-between mt-2">
-        <div>
-          <h2 className="text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
+      <div className="flex items-center justify-between gap-4 mt-2">
+        <div className="flex-1 min-w-0">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
             Minhas contas
             {isLoading && <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-relaxed">
             Toque numa conta para expandir. Use o <span className="text-primary">+</span> para criar sub-contas.
           </p>
         </div>
         {/* Botão para adicionar nova conta raiz */}
-        <AddRootAccountModal />
+        <div className="shrink-0">
+          <AddRootAccountModal />
+        </div>
       </div>
 
       <AccountAccordion tree={tree} />
