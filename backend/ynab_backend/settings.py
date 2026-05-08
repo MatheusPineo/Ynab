@@ -75,6 +75,7 @@ else:
         "http://localhost",
         "https://localhost",
         "capacitor://localhost",
+        "https://ynab-five.vercel.app",
     ]
 
 ROOT_URLCONF = 'ynab_backend.urls'
