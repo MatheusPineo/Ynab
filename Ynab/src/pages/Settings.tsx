@@ -53,6 +53,21 @@ const Settings = () => {
   const [name, setName] = useState(user?.name || "");
   const [bio, setBio] = useState(user?.bio || "Organizando o futuro...");
 
+  const [isBiometricEnabled, setIsBiometricEnabled] = useState(() => {
+    return localStorage.getItem("vault_biometric_enabled") === "true";
+  });
+
+  const handleToggleBiometrics = () => {
+    const newValue = !isBiometricEnabled;
+    setIsBiometricEnabled(newValue);
+    localStorage.setItem("vault_biometric_enabled", String(newValue));
+    if (newValue) {
+      toast.success("Desbloqueio por biometria ativado com sucesso!");
+    } else {
+      toast.info("Desbloqueio por biometria desativado.");
+    }
+  };
+
   const [isSaving, setIsSaving] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
@@ -341,14 +356,23 @@ const Settings = () => {
         className="hidden" 
       />
       
-      <div className="flex flex-col gap-1">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-          <SettingsIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
-          Configurações
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Gerencie suas preferências de conta, segurança e sincronização de dados.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
+            <SettingsIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+            Configurações
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Gerencie suas preferências de conta, segurança e sincronização de dados.
+          </p>
+        </div>
+        <Button 
+          variant="destructive" 
+          onClick={handleLogout} 
+          className="sm:self-center self-start h-10 px-5 rounded-xl font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 hover:border-rose-500/30 gap-2 shadow-sm"
+        >
+          <LogOut className="h-4 w-4" /> Encerrar Sessão
+        </Button>
       </div>
 
       <Tabs defaultValue="profile" className="w-full">
@@ -479,6 +503,19 @@ const Settings = () => {
                     className="rounded-xl px-4 h-9"
                   >
                     {isSettingUp2FA ? "Carregando..." : user?.twoFactorEnabled ? "Desativar" : "Ativar"}
+                  </Button>
+               </div>
+               <div className="flex items-center justify-between p-5 rounded-2xl bg-muted/20 border border-border/40">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold">Desbloqueio por Biometria</p>
+                    <p className="text-xs text-muted-foreground">Use a digital ou reconhecimento facial do aparelho para acessar o app</p>
+                  </div>
+                  <Button 
+                    variant={isBiometricEnabled ? "destructive" : "outline"}
+                    onClick={handleToggleBiometrics}
+                    className="rounded-xl px-4 h-9 font-bold"
+                  >
+                    {isBiometricEnabled ? "Desativar" : "Ativar"}
                   </Button>
                </div>
             </CardContent>

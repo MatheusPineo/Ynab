@@ -115,44 +115,28 @@ export const Sidebar = () => {
           {!collapsed && <span>Configurações</span>}
         </NavLink>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className={cn(
-              "mt-3 flex w-full items-center gap-3 rounded-xl bg-sidebar-accent/50 p-2.5 hover:bg-sidebar-accent transition-colors",
-              collapsed && "justify-center"
-            )}>
-              <Avatar className="h-8 w-8 rounded-full border border-primary/20 shrink-0">
-                <AvatarImage src={user?.avatar} />
-                <AvatarFallback className="gradient-primary text-[10px] text-white">
-                  {user?.name?.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              
-              {!collapsed && (
-                <div className="min-w-0 flex-1 text-left leading-tight">
-                  <div className="text-xs font-semibold text-sidebar-accent-foreground truncate">
-                    {user?.name}
-                  </div>
-                  <div className="text-[10px] text-muted-foreground truncate">
-                    {user?.email}
-                  </div>
-                </div>
-              )}
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 glass border-border/60">
-            <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/settings")}>
-              <UserIcon className="mr-2 h-4 w-4" />
-              Perfil
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Encerrar Sessão
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className={cn(
+          "mt-3 flex w-full items-center gap-3 rounded-xl bg-sidebar-accent/50 p-2.5",
+          collapsed && "justify-center"
+        )}>
+          <Avatar className="h-8 w-8 rounded-full border border-primary/20 shrink-0">
+            <AvatarImage src={user?.avatar} />
+            <AvatarFallback className="gradient-primary text-[10px] text-white">
+              {user?.name?.substring(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          
+          {!collapsed && (
+            <div className="min-w-0 flex-1 text-left leading-tight">
+              <div className="text-xs font-semibold text-sidebar-accent-foreground truncate">
+                {user?.name}
+              </div>
+              <div className="text-[10px] text-muted-foreground truncate">
+                {user?.email}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Collapse toggle */}
