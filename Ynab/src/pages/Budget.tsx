@@ -78,20 +78,20 @@ const MonthSelector = () => {
   };
 
   return (
-    <div className="flex items-center gap-4 bg-muted/20 px-4 py-2 rounded-2xl border border-border/40 shadow-sm">
-      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handlePrev} data-testid="prev-month">
-        <ChevronLeft className="h-4 w-4" />
+    <div className="flex items-center gap-2 sm:gap-4 bg-muted/20 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border border-border/40 shadow-sm">
+      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full" onClick={handlePrev} data-testid="prev-month">
+        <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </Button>
-      <div className="flex flex-col items-center min-w-[120px]">
-        <span className="text-sm font-bold text-foreground leading-none">
+      <div className="flex flex-col items-center min-w-[100px] sm:min-w-[120px]">
+        <span className="text-xs sm:text-sm font-bold text-foreground leading-none">
           {monthNames[currentMonth - 1]}
         </span>
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-black mt-1">
+        <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground font-black mt-0.5 sm:mt-1">
           {currentYear}
         </span>
       </div>
-      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleNext} data-testid="next-month">
-        <ChevronRight className="h-4 w-4" />
+      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full" onClick={handleNext} data-testid="next-month">
+        <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </Button>
     </div>
   );
@@ -337,54 +337,54 @@ const Budget = () => {
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       {/* Budget Header */}
-      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-primary/10 border border-primary/20 p-4 sm:p-8 shadow-soft">
-        <div className="relative flex flex-col items-center text-center sm:text-left sm:flex-row sm:items-center justify-between gap-4">
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-primary/10 border border-primary/20 p-3.5 sm:p-8 shadow-soft">
+        <div className="relative flex flex-col items-center text-center sm:text-left sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex flex-col gap-1 sm:gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-foreground">
+            <h1 className="text-xl sm:text-3xl font-black tracking-tight text-foreground">
               Orçamento Mensal
             </h1>
           </div>
 
-          <div className="flex flex-col items-center sm:items-end gap-4">
+          <div className="flex flex-col items-center sm:items-end gap-3">
             <MonthSelector />
           </div>
         </div>
 
         {/* New Income Section */}
         {currentIncomes.length > 0 && (
-          <div className="mt-8 pt-8 border-t border-primary/10 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex flex-col items-center text-center sm:flex-row sm:items-center justify-between gap-2 mb-4">
-              <h3 className="text-[11px] sm:text-xs uppercase tracking-wider text-primary font-bold">
+          <div className="mt-6 pt-6 border-t border-primary/10 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex flex-col items-center text-center sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <h3 className="text-[10px] sm:text-xs uppercase tracking-wider text-primary font-bold">
                 Receitas Recebidas <span className="opacity-70 font-normal">(Aguardando Distribuição)</span>
               </h3>
-              <span className="text-[10px] bg-primary/20 text-primary px-2.5 py-1 rounded-full font-bold shrink-0">
+              <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-bold shrink-0">
                 {currentIncomes.length} {currentIncomes.length === 1 ? "pendente" : "pendentes"}
               </span>
             </div>
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               {currentIncomes.map(income => {
                 const acc = getAccount(income.account);
                 const currency = acc?.currency || "EUR";
                 return (
-                  <div key={income.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-background/40 rounded-2xl p-4 border border-primary/10 hover:border-primary/30 transition-all group">
-                    <div className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
-                        <Plus className="h-5 w-5" />
+                  <div key={income.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-background/40 rounded-xl p-2.5 border border-primary/10 hover:border-primary/30 transition-all group">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
+                        <Plus className="h-4 w-4" />
                       </div>
                       <div>
-                        <div className="font-bold text-foreground">{income.description || "Receita"}</div>
-                        <div className="text-xs text-muted-foreground">Recebido em: {acc?.name || "Conta"} • {income.date}</div>
+                        <div className="font-bold text-sm text-foreground">{income.description || "Receita"}</div>
+                        <div className="text-[10px] sm:text-xs text-muted-foreground">Recebido em: {acc?.name || "Conta"} • {income.date}</div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-4">
-                      <div className="text-xl font-black text-primary">
+                    <div className="flex items-center justify-between sm:justify-end gap-3 mt-1 sm:mt-0">
+                      <div className="text-base sm:text-xl font-black text-primary">
                         {formatMoney(income.amount, currency as any)}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="rounded-xl border-primary/20 hover:bg-primary/10 text-xs"
+                          className="rounded-lg border-primary/20 hover:bg-primary/10 h-7 text-[10px] sm:text-xs px-2.5"
                           onClick={() => keepInAccount(income.id)}
                         >
                           Manter
@@ -394,7 +394,7 @@ const Budget = () => {
                           initialAmount={String(income.amount)}
                           sourceTransactionId={income.id}
                           trigger={
-                            <Button size="sm" className="gradient-primary rounded-xl px-4">
+                            <Button size="sm" className="gradient-primary rounded-lg h-7 text-[10px] sm:text-xs px-3">
                               Distribuir
                             </Button>
                           }
@@ -411,29 +411,29 @@ const Budget = () => {
 
       {/* Distributed Incomes Section - Separated Container */}
       {distributedIncomes.length > 0 && (
-        <section className="rounded-3xl bg-card/40 border border-border/60 p-4 sm:p-6 shadow-sm transition-all duration-300">
-          <h3 className="text-xs uppercase tracking-widest text-primary font-bold mb-4 sm:mb-6 text-center sm:text-left">Histórico de Receitas Processadas</h3>
+        <section className="rounded-2xl sm:rounded-3xl bg-card/40 border border-border/60 p-3 sm:p-6 shadow-sm transition-all duration-300">
+          <h3 className="text-[10px] sm:text-xs uppercase tracking-widest text-primary font-bold mb-3 sm:mb-6 text-center sm:text-left">Histórico de Receitas Processadas</h3>
           
           {/* Layout Mobile (Lista de Cards) */}
-          <div className="block sm:hidden space-y-3">
+          <div className="block sm:hidden space-y-2">
             {distributedIncomes.map(income => (
-              <div key={income.id} className="bg-background/25 border border-border/40 rounded-2xl p-4 space-y-3 hover:border-primary/20 transition-all">
+              <div key={income.id} className="bg-background/25 border border-border/40 rounded-xl p-2.5 space-y-2 hover:border-primary/20 transition-all">
                 <div className="flex justify-between items-start gap-2">
                   <div className="flex flex-col">
-                    <span className="font-bold text-sm text-foreground">{income.description || "Receita"}</span>
-                    <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider mt-0.5">{income.date}</span>
+                    <span className="font-bold text-xs sm:text-sm text-foreground">{income.description || "Receita"}</span>
+                    <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider mt-0.5">{income.date}</span>
                   </div>
-                  <span className="font-black text-sm text-primary shrink-0">
+                  <span className="font-black text-xs sm:text-sm text-primary shrink-0">
                     {formatMoney(income.amount, income.currency as any)}
                   </span>
                 </div>
                 
-                <div className="pt-2.5 border-t border-border/20">
-                  <div className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-2">Destino</div>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="pt-2 border-t border-border/20">
+                  <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-1.5">Destino</div>
+                  <div className="flex flex-wrap gap-1">
                     {income.details.map((d, i) => (
-                      <div key={i} className="flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-lg px-2.5 py-1 text-[10px]">
-                        <span className="font-bold text-muted-foreground/80 uppercase text-[8px]">{d.name}:</span>
+                      <div key={i} className="flex items-center gap-1 bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5 text-[9px]">
+                        <span className="font-bold text-muted-foreground/80 uppercase text-[7px]">{d.name}:</span>
                         <span className="font-black text-primary">{formatMoney(d.amount, income.currency as any)}</span>
                       </div>
                     ))}
@@ -526,18 +526,18 @@ const Budget = () => {
                     <Table>
                       <TableHeader className="bg-muted/30">
                         <TableRow className="hover:bg-transparent border-border/40">
-                          <TableHead className="w-[40px]"></TableHead>
-                          <TableHead className="w-1/2">Categoria</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">Reservado</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell">Gasto</TableHead>
-                          <TableHead className="text-right">Disponível</TableHead>
-                          <TableHead className="w-[50px] hidden sm:table-cell"></TableHead>
+                          <TableHead className="w-[40px] p-2 sm:p-4 h-auto"></TableHead>
+                          <TableHead className="w-1/2 p-2 sm:p-4 h-auto text-xs sm:text-sm">Categoria</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">Reservado</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">Gasto</TableHead>
+                          <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">Disponível</TableHead>
+                          <TableHead className="w-[50px] hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         <SortableContext items={(group.children || []).map(c => c.id)} strategy={verticalListSortingStrategy}>
                           {(!group.children || group.children.length === 0) ? (
-                            <TableRow><TableCell colSpan={6} className="h-20 text-center text-muted-foreground italic text-xs">Vazio.</TableCell></TableRow>
+                            <TableRow><TableCell colSpan={6} className="h-16 text-center text-muted-foreground italic text-xs">Vazio.</TableCell></TableRow>
                           ) : (
                             group.children.map((cat) => (
                               <SortableCategoryRow key={cat.id} cat={cat} assignMoney={assignMoney} />
@@ -579,18 +579,18 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
 
   return (
     <TableRow ref={setNodeRef} style={style} className="border-border/40 hover:bg-muted/20 transition-colors">
-      <TableCell className="w-[40px]">
+      <TableCell className="w-[40px] p-2 sm:p-4">
         <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground/20 hover:text-primary/40 transition-colors">
           <GripVertical className="h-3.5 w-3.5" />
         </div>
       </TableCell>
-      <TableCell>
-        <div className="flex flex-col gap-1.5">
-          <span className="font-semibold text-foreground/90">{cat.name}</span>
-          <Progress value={percentSpent} className="h-1 w-24 sm:w-32" />
+      <TableCell className="p-2 sm:p-4">
+        <div className="flex flex-col gap-1 sm:gap-1.5">
+          <span className="font-semibold text-xs sm:text-sm text-foreground/90">{cat.name}</span>
+          <Progress value={percentSpent} className="h-0.5 sm:h-1 w-16 sm:w-32" />
         </div>
       </TableCell>
-      <TableCell className="text-right hidden sm:table-cell">
+      <TableCell className="text-right hidden sm:table-cell p-2 sm:p-4">
         <Input
           type="number"
           value={cat.assigned_amount}
@@ -598,16 +598,16 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
           className="w-24 ml-auto h-8 text-right bg-background/50 border-border/40 focus:border-primary/50"
         />
       </TableCell>
-      <TableCell className="text-right text-muted-foreground font-medium italic hidden sm:table-cell">
+      <TableCell className="text-right text-muted-foreground font-medium italic hidden sm:table-cell p-2 sm:p-4">
         {formatMoney(cat.spent_amount || 0, "EUR")}
       </TableCell>
       <TableCell className={cn(
-        "text-right font-bold tabular",
+        "text-right font-bold tabular text-xs sm:text-sm p-2 sm:p-4",
         available > 0 ? "text-emerald-400" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
       )}>
         {formatMoney(available, "EUR")}
       </TableCell>
-      <TableCell className="hidden sm:table-cell">
+      <TableCell className="hidden sm:table-cell p-2 sm:p-4">
         <CategoryActions category={cat} />
       </TableCell>
     </TableRow>
