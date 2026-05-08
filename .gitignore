@@ -24,5 +24,7 @@ test-results/
 # Debug logs
 backend/backend_debug.txt
 
+brain/
+
 .vercel
 .env*.local

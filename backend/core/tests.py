@@ -46,7 +46,8 @@ class FinanceAppTests(TestCase):
             is_income=False,
             is_recurring=True,
             recurrence_interval='monthly',
-            next_recurrence_date=yesterday # Deveria ter disparado ontem
+            next_recurrence_date=yesterday, # Deveria ter disparado ontem
+            is_applied_to_balance=True # O original já foi aplicado
         )
         
         # Guarda o balanço original (1000)

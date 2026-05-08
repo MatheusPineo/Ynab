@@ -146,7 +146,8 @@ def sync_recurring_transactions(user, upto_date=None):
                 account=template.account,
                 description=template.description,
                 amount=template.amount,
-                date=new_date
+                date=new_date,
+                is_recurring=False
             ).exists()
             
             if not exists:
