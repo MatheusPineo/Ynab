@@ -44,7 +44,9 @@ export const Topbar = () => {
           <span className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-primary animate-pulse-glow" />
         </Button>
 
-        <AddTransactionModal />
+        <div className="hidden sm:block">
+          <AddTransactionModal />
+        </div>
       </div>
     </header>
   );

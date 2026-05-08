@@ -1,6 +1,8 @@
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { BottomNav } from "./BottomNav";
+import { AddTransactionModal } from "./AddTransactionModal";
+import { Plus } from "lucide-react";
 import { Outlet } from "react-router-dom";
 
 export const Layout = () => {
@@ -19,6 +21,15 @@ export const Layout = () => {
             <Outlet />
           </div>
         </main>
+      </div>
+
+      {/* Botão flutuante "+" para celular (FAB) */}
+      <div className="fixed bottom-20 right-4 sm:hidden z-50">
+        <AddTransactionModal>
+          <button className="h-14 w-14 rounded-full gradient-primary text-primary-foreground shadow-glow flex items-center justify-center hover:scale-105 active:scale-95 transition-all">
+            <Plus className="h-6 w-6" strokeWidth={3} />
+          </button>
+        </AddTransactionModal>
       </div>
 
       {/* Bottom navigation: only visible on mobile */}
