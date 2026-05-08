@@ -367,11 +367,11 @@ const Settings = () => {
           </p>
         </div>
         <Button 
-          variant="destructive" 
+          variant="ghost" 
           onClick={handleLogout} 
-          className="sm:self-center self-start h-10 px-5 rounded-xl font-bold bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 border border-rose-500/20 hover:border-rose-500/30 gap-2 shadow-sm"
+          className="h-8 sm:h-10 px-3 sm:px-4 text-xs sm:text-sm rounded-xl font-medium sm:font-bold text-muted-foreground hover:text-rose-400 hover:bg-rose-500/10 gap-1.5 self-start sm:self-center"
         >
-          <LogOut className="h-4 w-4" /> Encerrar Sessão
+          <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Encerrar Sessão
         </Button>
       </div>
 
