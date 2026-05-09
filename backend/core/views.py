@@ -211,6 +211,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                         'currency': account.currency,
                         'icon_url': account.icon_url,
                         'parent': str(account.parent_id) if account.parent_id else None,
+                        'ceiling': float(account.ceiling) if account.ceiling is not None else None,
                     }
                     if children:
                         acc_dict['children'] = children
