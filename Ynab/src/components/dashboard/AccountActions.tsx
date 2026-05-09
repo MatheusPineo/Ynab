@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +40,15 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [isCropping, setIsCropping] = useState(false);
   const { updateNode, deleteNode } = useAccountStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isEditDialogOpen) {
+      setEditedName(account.name);
+      setEditedBalance(account.balance);
+      setEditedIcon(account.icon_url);
+      setEditedCeiling(account.ceiling ?? null);
+    }
+  }, [isEditDialogOpen, account]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();

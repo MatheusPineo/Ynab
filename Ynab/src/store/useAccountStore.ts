@@ -155,6 +155,7 @@ export const useAccountStore = create<AccountState>()(
             account_type: partialNode.account_type || "checking",
             parent: parentId !== "root" ? parentId : null,
             currency: partialNode.currency || "EUR",
+            ceiling: partialNode.ceiling ?? null,
           };
 
           const response = await authenticatedFetch("/accounts/", {
