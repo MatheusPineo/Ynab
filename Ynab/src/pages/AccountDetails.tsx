@@ -5,7 +5,7 @@ import { useTransactions } from "@/hooks/useTransactions";
 import { formatMoney, CURRENCY_SYMBOL } from "@/lib/currency-utils";
 import { TableSkeleton } from "@/components/dashboard/TableSkeleton";
 import { EmptyState } from "@/components/dashboard/EmptyState";
-import { Receipt, ArrowLeft, TrendingUp, TrendingDown, Wallet, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
+import { Receipt, ArrowLeft, TrendingUp, TrendingDown, Wallet, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, Gauge } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -151,7 +151,7 @@ const AccountDetails = () => {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex flex-col min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {account.icon_url ? (
                 <img src={account.icon_url} alt="" className="h-6 w-6 rounded-full object-cover shadow-sm shrink-0" />
               ) : (
@@ -162,6 +162,38 @@ const AccountDetails = () => {
               <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground truncate">
                 {account.name}
               </h1>
+
+              {/* Indicator for ceiling/limit (Expanded Version) */}
+              {account.ceiling && Number(account.ceiling) > 0 && (() => {
+                const totalBalance = Number(account.balance) || 0;
+                const ceilVal = Math.round(Number(account.ceiling));
+                const pct = Math.round((totalBalance / Number(account.ceiling)) * 100);
+                
+                let colorClasses = "";
+                if (pct >= 100) {
+                  colorClasses = "gradient-mixed text-zinc-950 font-black border-transparent shadow-md";
+                } else if (pct >= 80) {
+                  colorClasses = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+                } else if (pct >= 40) {
+                  colorClasses = "bg-amber-500/15 text-amber-400 border-amber-500/25";
+                } else {
+                  colorClasses = "bg-rose-500/15 text-rose-400 border-rose-500/25";
+                }
+                
+                return (
+                  <div className={cn(
+                    "flex items-center gap-1.5 ml-2.5 px-3 py-1 rounded-xl text-[10px] sm:text-xs font-black select-none shrink-0 transition-all border shadow-sm",
+                    colorClasses
+                  )}>
+                    <Gauge className={cn("h-3.5 w-3.5 shrink-0", pct >= 100 ? "text-zinc-950" : "")} />
+                    <span>
+                      {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
+                      {" / "}
+                      {pct}%
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
