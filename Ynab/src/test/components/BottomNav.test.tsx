@@ -1,8 +1,27 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { BottomNav } from '../../components/dashboard/BottomNav';
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string, defaultValue?: string) => {
+      const keys: Record<string, string> = {
+        'navigation.dashboard': 'Dashboard',
+        'navigation.transactions': 'Transações',
+        'navigation.accounts': 'Contas',
+        'navigation.budget': 'Orçamento',
+        'navigation.more': defaultValue || 'Mais'
+      };
+      return keys[key] || key;
+    },
+    i18n: {
+      changeLanguage: vi.fn(),
+      language: 'pt-BR'
+    }
+  }),
+}));
 
 // Mock matchMedia
 window.matchMedia = window.matchMedia || function() {

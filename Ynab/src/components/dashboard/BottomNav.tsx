@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   Wallet,
@@ -22,29 +23,32 @@ import { useNavigate } from "react-router-dom";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 const primaryNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard", description: "Visão geral do patrimônio." },
-  { icon: Wallet, label: "Contas", to: "/accounts", description: "Saldos e limites." },
-  { icon: ArrowLeftRight, label: "Transações", to: "/transactions", description: "Entradas e saídas." },
-  { icon: PieChart, label: "Orçamento", to: "/budget", description: "Distribuição de renda." },
+  { icon: LayoutDashboard, key: "dashboard", to: "/dashboard" },
+  { icon: Wallet, key: "accounts", to: "/accounts" },
+  { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
+  { icon: PieChart, key: "budget", to: "/budget" },
 ];
 
 const moreNavItems = [
-  { icon: Handshake, label: "Dívidas", to: "/debts", description: "Gerencie devedores e suas dívidas." },
-  { icon: Target, label: "Metas", to: "/goals", description: "Objetivos financeiros." },
-  { icon: Sparkles, label: "Insights", to: "/insights", description: "Relatórios de hábitos." },
-  { icon: SettingsIcon, label: "Config.", to: "/settings", description: "Ajustes e perfil." },
+  { icon: Handshake, key: "debts", to: "/debts" },
+  { icon: Target, key: "goals", to: "/goals" },
+  { icon: Sparkles, key: "insights", to: "/insights" },
+  { icon: SettingsIcon, key: "settings", to: "/settings" },
 ];
 
 export const BottomNav = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-sidebar-border bg-sidebar/95 backdrop-blur-xl">
       <div className="flex items-center justify-around px-2 pt-2 pb-[calc(8px+env(safe-area-inset-bottom,0px))]">
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
+          const label = t(`navigation.${item.key}`);
+          const description = t(`nav_descriptions.${item.key}`);
           return (
-            <HelpTooltip key={item.label} content={item.description} side="top">
+            <HelpTooltip key={item.key} content={description} side="top">
               <NavLink
                 to={item.to}
                 className={({ isActive }) =>
@@ -68,7 +72,7 @@ export const BottomNav = () => {
                     >
                       <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.5 : 2} />
                     </span>
-                    <span className="truncate w-full text-center">{item.label}</span>
+                    <span className="truncate w-full text-center">{label}</span>
                   </>
                 )}
               </NavLink>
@@ -83,7 +87,7 @@ export const BottomNav = () => {
               <span className="flex h-8 w-8 items-center justify-center rounded-xl">
                 <MoreHorizontal className="h-[18px] w-[18px]" strokeWidth={2} />
               </span>
-              <span>Mais</span>
+              <span>{t("navigation.more", "Mais")}</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
@@ -94,15 +98,17 @@ export const BottomNav = () => {
           >
             {moreNavItems.map((item) => {
               const Icon = item.icon;
+              const label = t(`navigation.${item.key}`);
+              const description = t(`nav_descriptions.${item.key}`);
               return (
                 <DropdownMenuItem
-                  key={item.label}
+                  key={item.key}
                   className="cursor-pointer gap-3 py-3"
                   onClick={() => navigate(item.to)}
                 >
                   <Icon className="h-4 w-4 text-primary" strokeWidth={2} />
-                  <span className="font-medium flex-1">{item.label}</span>
-                  <HelpTooltip content={item.description} side="left" />
+                  <span className="font-medium flex-1">{label}</span>
+                  <HelpTooltip content={description} side="left" />
                 </DropdownMenuItem>
               );
             })}

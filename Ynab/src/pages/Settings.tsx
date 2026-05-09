@@ -4,6 +4,7 @@ import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { formatMoney } from "@/lib/currency-utils";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ const Settings = () => {
   const { user, logout, accessToken } = useAuthStore();
   const { baseCurrency, setBaseCurrency } = useCurrencyStore();
   const { isPrivateMode, showDecimals, togglePrivateMode, toggleDecimals } = useSettingsStore();
+  const { t, i18n } = useTranslation();
 
   const [name, setName] = useState(user?.name || "");
   const [bio, setBio] = useState(user?.bio || "Organizando o futuro...");
@@ -642,30 +644,40 @@ const Settings = () => {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-primary" /> Regional e Preferências
+                    <Globe className="h-5 w-5 text-primary" /> {t("settings.regional_preferences")}
                   </h3>
-                  <p className="text-sm text-muted-foreground">Defina como o Vault deve se comportar visualmente.</p>
+                  <p className="text-sm text-muted-foreground">{t("nav_descriptions.settings")}</p>
                 </div>
 
                 <div className="grid gap-6 max-w-md">
                    <div className="space-y-3">
-                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Idioma do Sistema</Label>
-                      <Select defaultValue="pt-BR">
+                      <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.system_language")}</Label>
+                      <Select value={i18n.language} onValueChange={(val) => i18n.changeLanguage(val)}>
                         <SelectTrigger className="bg-background/50 border-border/60 rounded-xl h-11">
-                          <SelectValue placeholder="Selecione o idioma" />
+                          <SelectValue placeholder={t("settings.select_language")} />
                         </SelectTrigger>
                         <SelectContent className="glass border-border/60">
                           <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
                           <SelectItem value="pt-PT">Português (Portugal)</SelectItem>
-                          <SelectItem value="en-US">English (US)</SelectItem>
+                          <SelectItem value="en">English (US)</SelectItem>
+                          <SelectItem value="es">Español</SelectItem>
+                          <SelectItem value="de">Deutsch</SelectItem>
+                          <SelectItem value="fr">Français</SelectItem>
+                          <SelectItem value="it">Italiano</SelectItem>
+                          <SelectItem value="nl">Nederlands</SelectItem>
+                          <SelectItem value="pl">Polski</SelectItem>
+                          <SelectItem value="zh">简体中文</SelectItem>
+                          <SelectItem value="ar">العربية (RTL)</SelectItem>
+                          <SelectItem value="ja">日本語</SelectItem>
+                          <SelectItem value="hi">हिन्दी</SelectItem>
                         </SelectContent>
                       </Select>
                    </div>
                     <div className="space-y-3">
-                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Moeda Principal de Exibição</Label>
+                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.main_currency")}</Label>
                        <Select value={baseCurrency} onValueChange={(val) => setBaseCurrency(val as any)}>
                          <SelectTrigger className="bg-background/50 border-border/60 rounded-xl h-11">
-                           <SelectValue placeholder="Selecione a moeda" />
+                           <SelectValue placeholder={t("settings.select_currency")} />
                          </SelectTrigger>
                          <SelectContent className="glass border-border/60">
                            <SelectItem value="EUR">€ EUR — Euro</SelectItem>
@@ -676,35 +688,35 @@ const Settings = () => {
                     </div>
 
                     <div className="space-y-3">
-                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Exibição de Valores</Label>
+                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.value_display")}</Label>
                        <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
                           <div className="space-y-1">
-                            <p className="text-sm font-bold">Mostrar Centavos</p>
-                            <p className="text-xs text-muted-foreground">Exibir valores com frações decimais (ex: ,00)</p>
+                            <p className="text-sm font-bold">{t("settings.show_cents")}</p>
+                            <p className="text-xs text-muted-foreground">{t("settings.show_cents_desc")}</p>
                           </div>
                           <Button 
                             variant={showDecimals ? "outline" : "destructive"}
                             onClick={toggleDecimals}
                             className="rounded-xl px-4 h-9 font-bold"
                           >
-                            {showDecimals ? "Ativo" : "Inativo"}
+                            {showDecimals ? t("settings.cents_active") : t("settings.cents_inactive")}
                           </Button>
                        </div>
                     </div>
 
                     <div className="space-y-3">
-                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Privacidade do Painel</Label>
+                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.panel_privacy")}</Label>
                        <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
                           <div className="space-y-1">
-                            <p className="text-sm font-bold">Modo Ocultar Saldos</p>
-                            <p className="text-xs text-muted-foreground">Esconde saldos e quantias por privacidade</p>
+                            <p className="text-sm font-bold">{t("settings.hide_balances")}</p>
+                            <p className="text-xs text-muted-foreground">{t("settings.hide_balances_desc")}</p>
                           </div>
                           <Button 
                             variant={isPrivateMode ? "destructive" : "outline"}
                             onClick={togglePrivateMode}
                             className="rounded-xl px-4 h-9 font-bold animate-pulse-subtle"
                           >
-                            {isPrivateMode ? "Ocultado" : "Visível"}
+                            {isPrivateMode ? t("settings.balances_hidden") : t("settings.balances_visible")}
                           </Button>
                        </div>
                     </div>

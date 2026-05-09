@@ -1,0 +1,68 @@
+{
+  "navigation": {
+    "dashboard": "Kokpit",
+    "accounts": "Konta",
+    "transactions": "Transakcje",
+    "budget": "Budżet",
+    "debts": "Długi",
+    "goals": "Cele",
+    "insights": "Analizy",
+    "settings": "Ustawienia"
+  },
+  "nav_descriptions": {
+    "dashboard": "Przegląd Twojego majątku netto i przepływów pieniężnych.",
+    "accounts": "Zarządzaj swoimi kontami bankowymi, kartami i limitami.",
+    "transactions": "Rejestruj i śledź swoje dochody i wydatki.",
+    "budget": "Rozdzielaj swoje dochody i planuj miesięczne wydatki.",
+    "debts": "Kontroluj, kto jest Ci winien pieniądze i co jesteś winien innym.",
+    "goals": "Twórz średnio- i długoterminowe cele finansowe.",
+    "insights": "Inteligentne raporty o Twoich nawykach wydatkowych.",
+    "settings": "Ustawienia konta, profil i szablony dystrybucji dochodów.",
+    "collapse_expand": "Zwiń pasek boczny",
+    "collapse_collapsed": "Rozwiń pasek boczny"
+  },
+  "settings": {
+    "regional_preferences": "Preferencje Regionalne",
+    "system_language": "Język Systemu",
+    "select_language": "Wybierz język",
+    "main_currency": "Główna Waluta Wyświetlania",
+    "select_currency": "Wybierz walutę",
+    "value_display": "Wyświetlanie Wartości",
+    "show_cents": "Pokaż Grosze",
+    "show_cents_desc": "Wyświetlaj wartości z ułamkami dziesiętnymi (np. ,00)",
+    "cents_active": "Aktywne",
+    "cents_inactive": "Nieaktywne",
+    "panel_privacy": "Prywatność Panelu",
+    "hide_balances": "Ukryj Salda",
+    "hide_balances_desc": "Ukrywa salda i kwoty w celu zachowania prywatności",
+    "balances_hidden": "Ukryte",
+    "balances_visible": "Widoczne",
+    "save_changes": "Zapisz Zmiany",
+    "saving": "Zapisywanie..."
+  },
+  "dashboard": {
+    "net_worth": "Majątek Netto",
+    "net_worth_desc": "Suma wszystkiego, co posiadasz, pomniejszona o to, co jesteś winien.",
+    "income": "Przychody (Miesiąc)",
+    "income_desc": "Wszystkie pieniądze, które wpłynęły na Twoje konta w bieżącym miesiącu.",
+    "expense": "Wydatki (Miesiąc)",
+    "expense_desc": "Wszystkie pieniądze, które wypłynęły z Twoich kont w bieżącym miesiącu.",
+    "balance": "Bilans Miesięczny",
+    "balance_desc": "Ilość pieniędzy pozostała po odjęciu wydatków od przychodów.",
+    "savings_rate": "Stopa Oszczędności",
+    "flow_evolution": "Ewolucja Przepływu",
+    "flow_evolution_desc": "Wykres porównawczy pokazujący przebieg przychodów i wydatków dzień po dniu w tym miesiącu.",
+    "top_categories": "Główne Kategorie",
+    "top_categories_desc": "Kategorie, w których wydałeś najwięcej pieniędzy w tym miesiącu.",
+    "pending_transactions": "Transakcje Oczekujące",
+    "pending_transactions_desc": "Przyszłe wpisy, które nie zostały jeszcze oznaczone jako rozliczone na koncie."
+  },
+  "debts": {
+    "title": "Długi",
+    "desc": "Proste zarządzanie należnościami (ludzie, którzy są Ci winni pieniądze) i zobowiązaniami (Twoje własne długi).",
+    "me_devem": "Są mi winni",
+    "me_devem_desc": "Pieniądze, które pożyczyłeś. Po spłacie stają się Przychodem.",
+    "minhas_dividas": "Moje Długi",
+    "minhas_dividas_desc": "Pieniądze, które pożyczyłeś od innych. Po spłacie stają się Wydatkiem."
+  }
+}

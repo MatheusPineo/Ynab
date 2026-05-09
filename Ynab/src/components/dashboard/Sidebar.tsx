@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, useNavigate, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import {
   LayoutDashboard,
   Wallet,
@@ -28,19 +29,20 @@ import { toast } from "sonner";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard", description: "Visão geral do seu patrimônio e fluxo de caixa." },
-  { icon: Wallet, label: "Contas", to: "/accounts", description: "Gerencie suas contas bancárias, cartões e limites." },
-  { icon: ArrowLeftRight, label: "Transações", to: "/transactions", description: "Registre e acompanhe suas entradas e saídas de dinheiro." },
-  { icon: PieChart, label: "Orçamento", to: "/budget", description: "Distribua sua renda e planeje seus gastos do mês." },
-  { icon: Handshake, label: "Dívidas", to: "/debts", description: "Controle quem te deve dinheiro e o que você deve a terceiros." },
-  { icon: Target, label: "Metas", to: "/goals", description: "Crie objetivos financeiros de médio e longo prazo." },
-  { icon: Sparkles, label: "Insights", to: "/insights", description: "Relatórios inteligentes sobre seus hábitos financeiros." },
+  { icon: LayoutDashboard, key: "dashboard", to: "/dashboard" },
+  { icon: Wallet, key: "accounts", to: "/accounts" },
+  { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
+  { icon: PieChart, key: "budget", to: "/budget" },
+  { icon: Handshake, key: "debts", to: "/debts" },
+  { icon: Target, key: "goals", to: "/goals" },
+  { icon: Sparkles, key: "insights", to: "/insights" },
 ];
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     logout();
@@ -76,8 +78,10 @@ export const Sidebar = () => {
       <nav className="flex-1 px-3 py-6 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const label = t(`navigation.${item.key}`);
+          const description = t(`nav_descriptions.${item.key}`);
           return (
-            <HelpTooltip key={item.label} content={item.description} side="right">
+            <HelpTooltip key={item.key} content={description} side="right">
               <NavLink
                 to={item.to}
                 className={({ isActive }) =>
@@ -95,7 +99,7 @@ export const Sidebar = () => {
                       <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full gradient-primary" />
                     )}
                     <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-                    {!collapsed && <span className="truncate">{item.label}</span>}
+                    {!collapsed && <span className="truncate">{label}</span>}
                   </>
                 )}
               </NavLink>
@@ -106,7 +110,7 @@ export const Sidebar = () => {
 
       {/* Footer / User Profile */}
       <div className="p-3 border-t border-sidebar-border space-y-1">
-        <HelpTooltip content="Ajustes da conta, perfil e modelo de distribuição de renda." side="right">
+        <HelpTooltip content={t("nav_descriptions.settings")} side="right">
           <NavLink
             to="/settings"
             className={({ isActive }) => cn(
@@ -117,7 +121,7 @@ export const Sidebar = () => {
             )}
           >
             <SettingsIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-            {!collapsed && <span>Configurações</span>}
+            {!collapsed && <span>{t("navigation.settings")}</span>}
           </NavLink>
         </HelpTooltip>
 
@@ -146,7 +150,7 @@ export const Sidebar = () => {
       </div>
 
       {/* Collapse toggle */}
-      <HelpTooltip content={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"} side="right">
+      <HelpTooltip content={collapsed ? t("nav_descriptions.collapse_collapsed") : t("nav_descriptions.collapse_expand")} side="right">
         <button
           onClick={() => setCollapsed((c) => !c)}
           className="absolute -right-3 top-20 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-soft"
