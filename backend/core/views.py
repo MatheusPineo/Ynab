@@ -301,6 +301,125 @@ class AccountViewSet(viewsets.ModelViewSet):
 
         return Response({"message": f"Saldo negativo coberto com sucesso. Total: {total_covered}"})
 
+    @action(detail=True, methods=['post'])
+    def distribute_excess(self, request, pk=None):
+        from decimal import Decimal, ROUND_DOWN
+        from datetime import date
+
+        account = self.get_object()
+
+        if account.ceiling is None:
+            return Response({"error": "Esta conta não possui um teto definido."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if account.balance <= account.ceiling:
+            return Response({"error": "Esta conta não está acima do seu teto."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not account.parent_id:
+            return Response({"error": "Esta ação está disponível apenas para subcontas."}, status=status.HTTP_400_BAD_REQUEST)
+
+        excess = account.balance - account.ceiling
+
+        # Find siblings that have a ceiling defined and are below it
+        siblings = list(Account.objects.filter(
+            parent_id=account.parent_id,
+            currency=account.currency,
+        ).exclude(id=account.id).exclude(ceiling__isnull=True).order_by('created_at'))
+
+        # Filter to only those that still have space below their ceiling
+        eligible = [s for s in siblings if s.balance < s.ceiling]
+
+        transfer_group_uuid = uuid.uuid4()
+        today = date.today()
+        remaining = excess
+
+        deposits = {}  # {account_id: Decimal}
+
+        # Distribute equally among eligible, capped at each account's remaining space
+        while eligible and remaining > Decimal('0.00'):
+            per_account = (remaining / len(eligible)).quantize(Decimal('0.01'), rounding=ROUND_DOWN)
+            new_eligible = []
+            for s in eligible:
+                space = s.ceiling - s.balance
+                take = min(per_account, space)
+                take = min(take, remaining)
+                if take <= 0:
+                    continue
+                deposits[s.id] = deposits.get(s.id, Decimal('0.00')) + take
+                remaining -= take
+                # If this account is now full, remove from eligible next round
+                projected = s.balance + deposits[s.id]
+                if projected < s.ceiling:
+                    new_eligible.append(s)
+            if not new_eligible or per_account == 0:
+                break
+            eligible = new_eligible
+
+        RESERVE_NAME = "✦ Reserva de Excedente"
+
+        with transaction.atomic():
+            # Deposit into eligible siblings
+            for s in siblings:
+                amount = deposits.get(s.id, Decimal('0.00'))
+                if amount <= 0:
+                    continue
+                Transaction.objects.create(
+                    account=s,
+                    amount=amount,
+                    description=f"Excedente recebido da conta {account.name}",
+                    date=today,
+                    is_income=True,
+                    is_applied_to_balance=True,
+                    transfer_group=transfer_group_uuid
+                )
+                s.balance += amount
+                s.save()
+
+            # If there's still a remainder, send to the reserve account
+            if remaining > Decimal('0.00'):
+                reserve = Account.objects.filter(
+                    parent_id=account.parent_id,
+                    currency=account.currency,
+                    name=RESERVE_NAME,
+                    user=request.user
+                ).first()
+
+                if not reserve:
+                    reserve = Account.objects.create(
+                        user=request.user,
+                        name=RESERVE_NAME,
+                        parent_id=account.parent_id,
+                        currency=account.currency,
+                        account_type='savings',
+                        balance=Decimal('0.00'),
+                    )
+
+                Transaction.objects.create(
+                    account=reserve,
+                    amount=remaining,
+                    description=f"Excedente recebido da conta {account.name}",
+                    date=today,
+                    is_income=True,
+                    is_applied_to_balance=True,
+                    transfer_group=transfer_group_uuid
+                )
+                reserve.balance += remaining
+                reserve.save()
+
+            # Deduct total excess from source account
+            Transaction.objects.create(
+                account=account,
+                amount=excess,
+                description="Distribuição do excedente para subcontas",
+                date=today,
+                is_income=False,
+                is_applied_to_balance=True,
+                transfer_group=transfer_group_uuid
+            )
+            account.balance -= excess
+            account.save()
+
+        return Response({"message": f"Excedente de {excess} distribuído com sucesso."})
+
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]

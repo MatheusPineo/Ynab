@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash, Plus, Eye, LifeBuoy } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Plus, Eye, LifeBuoy, ArrowRightFromLine } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -38,7 +38,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [editedCeiling, setEditedCeiling] = useState<number | null>(account.ceiling ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
-  const { updateNode, deleteNode, coverOverspending } = useAccountStore();
+  const { updateNode, deleteNode, coverOverspending, distributeExcess } = useAccountStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -87,6 +87,18 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
     }
   };
 
+  const handleDistributeExcess = async () => {
+    const excess = Number(account.balance) - Number(account.ceiling);
+    const formatted = excess.toLocaleString('pt-BR', { style: 'currency', currency: account.currency || 'BRL' });
+    if (window.confirm(`Deseja distribuir o excedente de ${formatted} da conta "${account.name}" entre as outras subcontas do mesmo banco que ainda não atingiram o teto?`)) {
+      try {
+        await distributeExcess(account.id);
+      } catch (e) {
+        // Error already handled by toast in store
+      }
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -114,6 +126,12 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
             <DropdownMenuItem onSelect={handleCoverOverspending} className="text-emerald-500 focus:text-emerald-600 focus:bg-emerald-500/10">
               <LifeBuoy className="mr-2 h-4 w-4" />
               Cobrir Saldo Negativo
+            </DropdownMenuItem>
+          )}
+          {account.ceiling != null && Number(account.balance) > Number(account.ceiling) && account.parent != null && (
+            <DropdownMenuItem onSelect={handleDistributeExcess} className="text-amber-500 focus:text-amber-600 focus:bg-amber-500/10">
+              <ArrowRightFromLine className="mr-2 h-4 w-4" />
+              Distribuir Excedente
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

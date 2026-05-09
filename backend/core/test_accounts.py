@@ -151,6 +151,60 @@ class AccountsAndCategoriesTests(TestCase):
         # Ensure diff currency not affected
         self.assertEqual(float(sub_diff.balance), 100.00)
 
+    def test_distribute_excess(self):
+        from decimal import Decimal
+        parent = Account.objects.create(user=self.user, name='Bank XYZ', currency='BRL')
+
+        # Source account: has ceiling=10, balance=22 (excess=12)
+        source = Account.objects.create(user=self.user, name='source', parent=parent, currency='BRL', balance=22.00, ceiling=10.00)
+        # Eligible: has ceiling=20, balance=12 (space=8)
+        eligible1 = Account.objects.create(user=self.user, name='eligible1', parent=parent, currency='BRL', balance=12.00, ceiling=20.00)
+        # At ceiling: should be skipped
+        at_ceiling = Account.objects.create(user=self.user, name='at_ceiling', parent=parent, currency='BRL', balance=30.00, ceiling=30.00)
+        # No ceiling: should be skipped
+        no_ceiling = Account.objects.create(user=self.user, name='no_ceiling', parent=parent, currency='BRL', balance=5.00)
+        # Different currency: should be skipped
+        diff_currency = Account.objects.create(user=self.user, name='diff_curr', parent=parent, currency='EUR', balance=0.00, ceiling=50.00)
+
+        response = self.client.post(reverse('account-distribute-excess', args=[source.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        source.refresh_from_db()
+        eligible1.refresh_from_db()
+        at_ceiling.refresh_from_db()
+        no_ceiling.refresh_from_db()
+        diff_currency.refresh_from_db()
+
+        # source should be at ceiling (22 - 12 = 10)
+        self.assertEqual(float(source.balance), 10.00)
+
+        # eligible1 can receive up to 8 (space to ceiling). excess=12, only 1 eligible. takes min(12,8)=8. remaining=4.
+        self.assertEqual(float(eligible1.balance), 20.00)
+
+        # accounts at ceiling, no ceiling, diff currency must not change
+        self.assertEqual(float(at_ceiling.balance), 30.00)
+        self.assertEqual(float(no_ceiling.balance), 5.00)
+        self.assertEqual(float(diff_currency.balance), 0.00)
+
+        # The remaining 4 goes to the reserve account that should have been created
+        reserve = Account.objects.filter(parent=parent, name='✦ Reserva de Excedente', currency='BRL').first()
+        self.assertIsNotNone(reserve)
+        self.assertEqual(float(reserve.balance), 4.00)
+
+    def test_distribute_excess_no_ceiling(self):
+        """Should return error if account has no ceiling."""
+        parent = Account.objects.create(user=self.user, name='Bank', currency='BRL')
+        acct = Account.objects.create(user=self.user, name='no_ceil', parent=parent, currency='BRL', balance=50.00)
+        response = self.client.post(reverse('account-distribute-excess', args=[acct.id]))
+        self.assertEqual(response.status_code, 400)
+
+    def test_distribute_excess_not_over_ceiling(self):
+        """Should return error if account is not above ceiling."""
+        parent = Account.objects.create(user=self.user, name='Bank', currency='BRL')
+        acct = Account.objects.create(user=self.user, name='fine', parent=parent, currency='BRL', balance=5.00, ceiling=10.00)
+        response = self.client.post(reverse('account-distribute-excess', args=[acct.id]))
+        self.assertEqual(response.status_code, 400)
+
     def test_category_crud(self):
         # Create
         response = self.client.post(reverse('category-list'), {
