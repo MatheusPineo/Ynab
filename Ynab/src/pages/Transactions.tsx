@@ -38,6 +38,7 @@ import { ImportModal } from "@/components/dashboard/ImportModal";
 import { useQueryClient } from "@tanstack/react-query";
 import { PullToRefresh } from "@/components/dashboard/PullToRefresh";
 import { SwipeableTransactionCard } from "@/components/dashboard/SwipeableTransactionCard";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 const Transactions = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -105,8 +106,9 @@ const Transactions = () => {
   return (
     <div className="flex flex-col gap-4 sm:gap-6">
       <div className="flex flex-col items-center text-center sm:items-start sm:text-left gap-1">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
           Transações
+          <HelpTooltip content="Visualize, busque e filtre todas as entradas e saídas de dinheiro do seu sistema." side="right" />
         </h1>
         <p className="text-sm text-muted-foreground leading-relaxed">
           Histórico detalhado de todas as suas movimentações financeiras.

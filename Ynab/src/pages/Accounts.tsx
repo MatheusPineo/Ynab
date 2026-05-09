@@ -4,6 +4,7 @@ import { AccountAccordion } from "@/components/dashboard/AccountAccordion";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore, type Currency } from "@/store/useCurrencyStore";
 import { AddRootAccountModal } from "@/components/dashboard/AddRootAccountModal";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 const Accounts = () => {
   const { tree, fetchAccounts } = useAccountStore();
@@ -34,6 +35,7 @@ const Accounts = () => {
         <div className="flex-1 min-w-0">
           <h2 className="text-base sm:text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
             Minhas contas
+            <HelpTooltip content="Visualize e gerencie todos os seus locais de armazenamento de dinheiro (bancos, carteiras, cartões)." side="right" />
             {isLoading && <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
           </h2>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-relaxed">

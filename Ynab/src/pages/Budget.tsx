@@ -50,6 +50,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DistributionModal } from "@/components/dashboard/DistributionModal";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 // --- Month Selector Component ---
 
@@ -528,9 +529,24 @@ const Budget = () => {
                         <TableRow className="hover:bg-transparent border-border/40">
                           <TableHead className="w-[40px] p-2 sm:p-4 h-auto"></TableHead>
                           <TableHead className="w-1/2 p-2 sm:p-4 h-auto text-xs sm:text-sm">Categoria</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">Reservado</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">Gasto</TableHead>
-                          <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">Disponível</TableHead>
+                          <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                            <div className="flex items-center justify-end gap-1">
+                              Reservado
+                              <HelpTooltip content="O valor que você planejou gastar nesta categoria." side="top" />
+                            </div>
+                          </TableHead>
+                          <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                            <div className="flex items-center justify-end gap-1">
+                              Gasto
+                              <HelpTooltip content="O quanto já foi de fato gasto." side="top" />
+                            </div>
+                          </TableHead>
+                          <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                            <div className="flex items-center justify-end gap-1">
+                              Disponível
+                              <HelpTooltip content="Quanto ainda resta para você gastar nesta categoria." side="top" />
+                            </div>
+                          </TableHead>
                           <TableHead className="w-[50px] hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm"></TableHead>
                         </TableRow>
                       </TableHeader>

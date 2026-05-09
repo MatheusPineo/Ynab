@@ -19,19 +19,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 const primaryNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
-  { icon: Wallet, label: "Contas", to: "/accounts" },
-  { icon: ArrowLeftRight, label: "Transações", to: "/transactions" },
-  { icon: PieChart, label: "Orçamento", to: "/budget" },
+  { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard", description: "Visão geral do patrimônio." },
+  { icon: Wallet, label: "Contas", to: "/accounts", description: "Saldos e limites." },
+  { icon: ArrowLeftRight, label: "Transações", to: "/transactions", description: "Entradas e saídas." },
+  { icon: PieChart, label: "Orçamento", to: "/budget", description: "Distribuição de renda." },
 ];
 
 const moreNavItems = [
-  { icon: Handshake, label: "Dívidas", to: "/debts" },
-  { icon: Target, label: "Metas", to: "/goals" },
-  { icon: Sparkles, label: "Insights", to: "/insights" },
-  { icon: SettingsIcon, label: "Config.", to: "/settings" },
+  { icon: Handshake, label: "Dívidas", to: "/debts", description: "Gerencie devedores e suas dívidas." },
+  { icon: Target, label: "Metas", to: "/goals", description: "Objetivos financeiros." },
+  { icon: Sparkles, label: "Insights", to: "/insights", description: "Relatórios de hábitos." },
+  { icon: SettingsIcon, label: "Config.", to: "/settings", description: "Ajustes e perfil." },
 ];
 
 export const BottomNav = () => {
@@ -43,34 +44,35 @@ export const BottomNav = () => {
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
           return (
-            <NavLink
-              key={item.label}
-              to={item.to}
-              className={({ isActive }) =>
-                cn(
-                  "relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 min-w-0 flex-1",
-                  isActive
-                    ? "text-primary"
-                    : "text-sidebar-foreground/60 hover:text-sidebar-foreground"
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <span
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-xl transition-all duration-200",
-                      isActive
-                        ? "gradient-primary shadow-glow text-primary-foreground"
-                        : "text-inherit"
-                    )}
-                  >
-                    <Icon className="h-[18px] w-[18px]" strokeWidth={2} />
-                  </span>
-                  <span className="truncate">{item.label}</span>
-                </>
-              )}
-            </NavLink>
+            <HelpTooltip key={item.label} content={item.description} side="top">
+              <NavLink
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    "relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl text-[10px] font-semibold transition-all duration-200 min-w-0 flex-1",
+                    isActive
+                      ? "text-primary scale-105"
+                      : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:scale-105",
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-xl transition-colors duration-200",
+                        isActive
+                          ? "bg-primary/10 shadow-soft"
+                          : "bg-transparent",
+                      )}
+                    >
+                      <Icon className="h-[18px] w-[18px]" strokeWidth={isActive ? 2.5 : 2} />
+                    </span>
+                    <span className="truncate w-full text-center">{item.label}</span>
+                  </>
+                )}
+              </NavLink>
+            </HelpTooltip>
           );
         })}
 
@@ -99,7 +101,8 @@ export const BottomNav = () => {
                   onClick={() => navigate(item.to)}
                 >
                   <Icon className="h-4 w-4 text-primary" strokeWidth={2} />
-                  <span className="font-medium">{item.label}</span>
+                  <span className="font-medium flex-1">{item.label}</span>
+                  <HelpTooltip content={item.description} side="left" />
                 </DropdownMenuItem>
               );
             })}

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { useAccountStore } from "@/store/useAccountStore";
 import { AccountNode } from "@/types";
 import { toast } from "sonner";
@@ -125,13 +126,15 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
           {Number(account.balance) < 0 && account.parent != null && (
             <DropdownMenuItem onSelect={handleCoverOverspending} className="text-emerald-500 focus:text-emerald-600 focus:bg-emerald-500/10">
               <LifeBuoy className="mr-2 h-4 w-4" />
-              Cobrir Saldo Negativo
+              <span className="flex-1">Cobrir Saldo Negativo</span>
+              <HelpTooltip content="Retira valores iguais das outras subcontas para zerar esta conta devedora." side="right" />
             </DropdownMenuItem>
           )}
           {account.ceiling != null && Number(account.balance) > Number(account.ceiling) && account.parent != null && (
             <DropdownMenuItem onSelect={handleDistributeExcess} className="text-amber-500 focus:text-amber-600 focus:bg-amber-500/10">
               <ArrowRightFromLine className="mr-2 h-4 w-4" />
-              Distribuir Excedente
+              <span className="flex-1">Distribuir Excedente</span>
+              <HelpTooltip content="Retira o valor que passou do teto e distribui entre as contas irmãs." side="right" />
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />

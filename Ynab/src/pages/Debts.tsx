@@ -16,6 +16,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AccountNode } from "@/types";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 // Helper component for Debt Card
 const DebtCard = ({ debt, onAddPayment }: { debt: Debt; onAddPayment: (d: Debt) => void }) => {
@@ -242,7 +243,10 @@ export const Debts = () => {
             <Handshake className="h-5 w-5" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">Dívidas</h1>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2">
+              Dívidas
+              <HelpTooltip content="Um controle simples de contas a receber (pessoas que te devem) e contas a pagar (dívidas suas)." side="right" />
+            </h1>
             <p className="text-sm text-muted-foreground">Gerencie quem te deve e o que você deve.</p>
           </div>
         </div>
@@ -257,10 +261,16 @@ export const Debts = () => {
           <Tabs defaultValue="me_devem" className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-2 mb-8 bg-sidebar/50 p-1 rounded-xl shadow-inner">
               <TabsTrigger value="me_devem" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                Me Devem ({meDevem.length})
+                <span className="flex items-center gap-2">
+                  Me Devem ({meDevem.length})
+                  <HelpTooltip content="Dinheiro que você emprestou ou contas que têm a receber. Quando pagas, viram Receita." side="top" />
+                </span>
               </TabsTrigger>
               <TabsTrigger value="minhas_dividas" className="rounded-lg data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                Minhas Dívidas ({minhasDividas.length})
+                <span className="flex items-center gap-2">
+                  Minhas Dívidas ({minhasDividas.length})
+                  <HelpTooltip content="Dinheiro que você pegou emprestado. Quando pagas, viram Despesa." side="top" />
+                </span>
               </TabsTrigger>
             </TabsList>
 

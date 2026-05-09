@@ -25,15 +25,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 
 const navItems = [
-  { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
-  { icon: Wallet, label: "Contas", to: "/accounts" },
-  { icon: ArrowLeftRight, label: "Transações", to: "/transactions" },
-  { icon: PieChart, label: "Orçamento", to: "/budget" },
-  { icon: Handshake, label: "Dívidas", to: "/debts" },
-  { icon: Target, label: "Metas", to: "/goals" },
-  { icon: Sparkles, label: "Insights", to: "/insights" },
+  { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard", description: "Visão geral do seu patrimônio e fluxo de caixa." },
+  { icon: Wallet, label: "Contas", to: "/accounts", description: "Gerencie suas contas bancárias, cartões e limites." },
+  { icon: ArrowLeftRight, label: "Transações", to: "/transactions", description: "Registre e acompanhe suas entradas e saídas de dinheiro." },
+  { icon: PieChart, label: "Orçamento", to: "/budget", description: "Distribua sua renda e planeje seus gastos do mês." },
+  { icon: Handshake, label: "Dívidas", to: "/debts", description: "Controle quem te deve dinheiro e o que você deve a terceiros." },
+  { icon: Target, label: "Metas", to: "/goals", description: "Crie objetivos financeiros de médio e longo prazo." },
+  { icon: Sparkles, label: "Insights", to: "/insights", description: "Relatórios inteligentes sobre seus hábitos financeiros." },
 ];
 
 export const Sidebar = () => {
@@ -76,46 +77,49 @@ export const Sidebar = () => {
         {navItems.map((item) => {
           const Icon = item.icon;
           return (
-            <NavLink
-              key={item.label}
-              to={item.to}
-              className={({ isActive }) =>
-                cn(
-                  "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-                  isActive
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full gradient-primary" />
-                  )}
-                  <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </>
-              )}
-            </NavLink>
+            <HelpTooltip key={item.label} content={item.description} side="right">
+              <NavLink
+                to={item.to}
+                className={({ isActive }) =>
+                  cn(
+                    "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    isActive
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full gradient-primary" />
+                    )}
+                    <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                    {!collapsed && <span className="truncate">{item.label}</span>}
+                  </>
+                )}
+              </NavLink>
+            </HelpTooltip>
           );
         })}
       </nav>
 
       {/* Footer / User Profile */}
       <div className="p-3 border-t border-sidebar-border space-y-1">
-        <NavLink
-          to="/settings"
-          className={({ isActive }) => cn(
-            "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-            isActive 
-              ? "bg-sidebar-accent text-sidebar-accent-foreground" 
-              : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
-          )}
-        >
-          <SettingsIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-          {!collapsed && <span>Configurações</span>}
-        </NavLink>
+        <HelpTooltip content="Ajustes da conta, perfil e modelo de distribuição de renda." side="right">
+          <NavLink
+            to="/settings"
+            className={({ isActive }) => cn(
+              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+              isActive 
+                ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+            )}
+          >
+            <SettingsIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+            {!collapsed && <span>Configurações</span>}
+          </NavLink>
+        </HelpTooltip>
 
         <div className={cn(
           "mt-3 flex w-full items-center gap-3 rounded-xl bg-sidebar-accent/50 p-2.5",
@@ -142,18 +146,20 @@ export const Sidebar = () => {
       </div>
 
       {/* Collapse toggle */}
-      <button
-        onClick={() => setCollapsed((c) => !c)}
-        className="absolute -right-3 top-20 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-soft"
-        aria-label="Toggle sidebar"
-      >
-        <ChevronLeft
-          className={cn(
-            "h-3.5 w-3.5 transition-transform duration-300",
-            collapsed && "rotate-180",
-          )}
-        />
-      </button>
+      <HelpTooltip content={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"} side="right">
+        <button
+          onClick={() => setCollapsed((c) => !c)}
+          className="absolute -right-3 top-20 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-border bg-sidebar text-muted-foreground hover:text-foreground hover:border-primary/40 transition-all shadow-soft"
+          aria-label="Toggle sidebar"
+        >
+          <ChevronLeft
+            className={cn(
+              "h-3.5 w-3.5 transition-transform duration-300",
+              collapsed && "rotate-180",
+            )}
+          />
+        </button>
+      </HelpTooltip>
     </aside>
   );
 };

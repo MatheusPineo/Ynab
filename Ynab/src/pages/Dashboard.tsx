@@ -13,6 +13,7 @@ import {
   Target,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HelpTooltip } from "@/components/ui/help-tooltip";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import {
@@ -233,7 +234,8 @@ const Dashboard = () => {
             <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
               <Wallet className="h-3.5 w-3.5 text-primary" />
             </div>
-            Patrimônio Total
+            <span>Patrimônio Total</span>
+            <HelpTooltip content="O somatório de tudo o que você possui (saldo positivo) menos o que você deve." side="right" />
           </div>
           <p className={cn(
             "text-2xl font-bold leading-none",
@@ -251,7 +253,8 @@ const Dashboard = () => {
             <div className="h-6 w-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
               <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
             </div>
-            Receitas do Mês
+            <span>Receitas (Mês)</span>
+            <HelpTooltip content="Todo o dinheiro que entrou nas suas contas durante o mês atual." side="right" />
           </div>
           <p className="text-2xl font-bold text-emerald-400 leading-none">
             {formatMoney(monthlyStats.income, baseCurrency)}
@@ -269,7 +272,8 @@ const Dashboard = () => {
             <div className="h-6 w-6 rounded-full bg-rose-500/20 flex items-center justify-center">
               <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
             </div>
-            Despesas do Mês
+            <span>Despesas (Mês)</span>
+            <HelpTooltip content="Todo o dinheiro que saiu das suas contas durante o mês atual." side="right" />
           </div>
           <p className="text-2xl font-bold text-rose-400 leading-none">
             {formatMoney(monthlyStats.expense, baseCurrency)}
@@ -286,7 +290,8 @@ const Dashboard = () => {
             <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
               <ArrowUpRight className="h-3.5 w-3.5 text-primary" />
             </div>
-            Balanço do Mês
+            <span>Balanço do Mês</span>
+            <HelpTooltip content="O quanto de dinheiro sobrou após subtrair suas despesas das suas receitas." side="right" />
           </div>
           <p className={cn("text-2xl font-bold leading-none", monthlyStats.savings >= 0 ? "text-primary" : "text-rose-400")}>
             {monthlyStats.savings >= 0 ? "+" : ""}{formatMoney(monthlyStats.savings, baseCurrency)}
@@ -312,9 +317,12 @@ const Dashboard = () => {
         {/* Gráfico de Evolução */}
         <div className="lg:col-span-2 rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm p-5 shadow-soft">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Evolução do Fluxo</h2>
-              <p className="text-xs text-muted-foreground">Movimentações acumuladas no período</p>
+            <div className="flex items-center gap-2">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Evolução do Fluxo</h2>
+                <p className="text-xs text-muted-foreground">Movimentações acumuladas no período</p>
+              </div>
+              <HelpTooltip content="Gráfico comparativo de como as receitas e despesas se comportaram dia após dia neste mês." side="right" />
             </div>
             {monthlyStats.pendingCount > 0 && (
               <div className="flex items-center gap-1.5 text-xs text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
@@ -381,9 +389,12 @@ const Dashboard = () => {
         {/* Gastos por Categoria */}
         <div className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm p-5 shadow-soft flex flex-col">
           <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">Top Categorias</h2>
-              <p className="text-xs text-muted-foreground">Maiores gastos do mês</p>
+            <div className="flex items-center gap-2">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">Top Categorias</h2>
+                <p className="text-xs text-muted-foreground">Maiores gastos do mês</p>
+              </div>
+              <HelpTooltip content="As categorias onde você gastou a maior parte do seu dinheiro neste mês." side="right" />
             </div>
             <Button variant="ghost" size="sm" asChild className="text-xs h-7 px-2 text-primary hover:text-primary">
               <Link to="/budget">Ver tudo</Link>
@@ -432,16 +443,19 @@ const Dashboard = () => {
       {pendingTransactionsData.list.length > 0 && (
         <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-card/60 to-card/30 backdrop-blur-sm p-5 shadow-soft animate-in slide-in-from-bottom-4 duration-500">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Clock className="h-4 w-4 text-amber-500" />
-                <h2 className="text-sm font-semibold text-foreground">Transações Pendentes</h2>
+            <div className="flex items-center gap-2">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-4 w-4 text-amber-500" />
+                  <h2 className="text-sm font-semibold text-foreground">Transações Pendentes</h2>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Planejadas para o mês de {monthName.toLowerCase()}
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Planejadas para o mês de {monthName.toLowerCase()}
-              </p>
+              <HelpTooltip content="Lançamentos futuros que ainda não foram marcados como efetivados na conta." side="right" />
             </div>
-            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap mt-2 sm:mt-0">
               <div className="text-right">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">A Receber</p>
                 <p className="text-sm font-bold text-emerald-500">
