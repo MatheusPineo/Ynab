@@ -3,8 +3,10 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
-import { formatMoney } from "@/lib/currency-utils";
+import { formatMoney, getCurrencySymbol } from "@/lib/currency-utils";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -25,7 +27,10 @@ import {
   LayoutGrid,
   FileEdit,
   Trash,
-  Plus
+  Plus,
+  Check,
+  ChevronsUpDown,
+  Search
 } from "lucide-react";
 import {
   Select,
@@ -50,9 +55,38 @@ import { QRCodeSVG } from "qrcode.react";
 
 const Settings = () => {
   const { user, logout, accessToken } = useAuthStore();
-  const { baseCurrency, setBaseCurrency } = useCurrencyStore();
+  const { rates, baseCurrency, setBaseCurrency } = useCurrencyStore();
   const { isPrivateMode, showDecimals, togglePrivateMode, toggleDecimals } = useSettingsStore();
   const { t, i18n } = useTranslation();
+
+  const [currencySearch, setCurrencySearch] = useState("");
+  const [openCurrencyPopover, setOpenCurrencyPopover] = useState(false);
+
+  const currencyKeys = useMemo(() => {
+    return Object.keys(rates).sort();
+  }, [rates]);
+
+  const currencyNames = useMemo(() => {
+    try {
+      return new Intl.DisplayNames([i18n.language], { type: "currency" });
+    } catch {
+      return new Intl.DisplayNames(["pt-BR"], { type: "currency" });
+    }
+  }, [i18n.language]);
+
+  const filteredCurrencies = useMemo(() => {
+    const query = currencySearch.toLowerCase().trim();
+    return currencyKeys.map(code => {
+      let name = code;
+      try {
+        name = currencyNames.of(code) || code;
+      } catch {}
+      const symbol = getCurrencySymbol(code);
+      return { code, name, symbol };
+    }).filter(item => {
+      return item.code.toLowerCase().includes(query) || item.name.toLowerCase().includes(query);
+    });
+  }, [currencyKeys, currencyNames, currencySearch]);
 
   const [name, setName] = useState(user?.name || "");
   const [bio, setBio] = useState(user?.bio || "Organizando o futuro...");
@@ -673,18 +707,70 @@ const Settings = () => {
                         </SelectContent>
                       </Select>
                    </div>
-                    <div className="space-y-3">
+                    <div className="space-y-3 relative">
                        <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.main_currency")}</Label>
-                       <Select value={baseCurrency} onValueChange={(val) => setBaseCurrency(val as any)}>
-                         <SelectTrigger className="bg-background/50 border-border/60 rounded-xl h-11">
-                           <SelectValue placeholder={t("settings.select_currency")} />
-                         </SelectTrigger>
-                         <SelectContent className="glass border-border/60">
-                           <SelectItem value="EUR">€ EUR — Euro</SelectItem>
-                           <SelectItem value="BRL">R$ BRL — Real</SelectItem>
-                           <SelectItem value="USD">$ USD — Dólar</SelectItem>
-                         </SelectContent>
-                       </Select>
+                       <Popover open={openCurrencyPopover} onOpenChange={setOpenCurrencyPopover}>
+                         <PopoverTrigger asChild>
+                           <Button
+                             variant="outline"
+                             role="combobox"
+                             aria-expanded={openCurrencyPopover}
+                             className="w-full bg-background/50 border-border/60 rounded-xl h-11 justify-between text-left font-normal hover:bg-background/80"
+                           >
+                             <span className="truncate flex items-center gap-2">
+                               <span className="font-bold text-primary shrink-0 min-w-[28px]">{getCurrencySymbol(baseCurrency)}</span>
+                               <span className="text-muted-foreground shrink-0">{baseCurrency}</span>
+                               <span className="truncate text-foreground">— {currencyNames.of(baseCurrency) || baseCurrency}</span>
+                             </span>
+                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                           </Button>
+                         </PopoverTrigger>
+                         <PopoverContent className="glass border-border/60 p-0 w-[350px] rounded-2xl overflow-hidden shadow-glow" align="start">
+                           <div className="flex items-center border-b border-border/40 px-3 bg-muted/20">
+                             <Search className="h-4 w-4 text-muted-foreground shrink-0 mr-2" />
+                             <input
+                               type="text"
+                               className="flex h-11 w-full bg-transparent py-3 text-sm outline-none placeholder:text-muted-foreground"
+                               placeholder={t("settings.select_currency")}
+                               value={currencySearch}
+                               onChange={(e) => setCurrencySearch(e.target.value)}
+                             />
+                           </div>
+                           <div className="max-h-[280px] overflow-y-auto scrollbar-thin p-1 space-y-0.5">
+                             {filteredCurrencies.length === 0 ? (
+                               <p className="text-xs text-center py-6 text-muted-foreground">Nenhuma moeda encontrada.</p>
+                             ) : (
+                               filteredCurrencies.map((item) => (
+                                 <button
+                                   key={item.code}
+                                   type="button"
+                                   onClick={() => {
+                                     setBaseCurrency(item.code);
+                                     setOpenCurrencyPopover(false);
+                                     setCurrencySearch("");
+                                     toast.success(`Moeda de exibição alterada para ${item.code}!`);
+                                   }}
+                                   className={cn(
+                                     "flex w-full items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all text-left",
+                                     baseCurrency === item.code 
+                                       ? "bg-primary/20 text-foreground font-bold" 
+                                       : "hover:bg-muted/40 text-muted-foreground hover:text-foreground"
+                                   )}
+                                 >
+                                   <span className="flex items-center gap-2.5 min-w-0 flex-1">
+                                     <span className="font-bold text-primary shrink-0 w-8 text-center bg-background/40 rounded-md py-0.5 border border-border/30">{item.symbol}</span>
+                                     <span className="font-semibold text-foreground shrink-0">{item.code}</span>
+                                     <span className="truncate text-xs opacity-80">— {item.name}</span>
+                                   </span>
+                                   {baseCurrency === item.code && (
+                                     <Check className="h-4 w-4 text-primary shrink-0 ml-2" />
+                                   )}
+                                 </button>
+                               ))
+                             )}
+                           </div>
+                         </PopoverContent>
+                       </Popover>
                     </div>
 
                     <div className="space-y-3">

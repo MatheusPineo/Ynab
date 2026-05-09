@@ -1,5 +1,5 @@
 export type TransactionStatus = "realized" | "pending";
-export type Currency = "EUR" | "BRL" | "USD";
+export type Currency = string;
 
 export interface Transaction {
   id: string;
