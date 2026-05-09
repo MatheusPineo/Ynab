@@ -19,6 +19,7 @@ import {
   Play,
   Monitor,
   Smartphone,
+  ChevronDown,
 } from "lucide-react";
 
 const features = [
@@ -64,8 +65,8 @@ const faqs = [
     a: "Usamos criptografia de nível bancário, autenticação de sessão segura e nunca vendemos seus dados.",
   },
   {
-    q: "O Vault Finance OS funciona fora do Brasil?",
-    a: "Sim. Suportamos mais de 160 moedas e 12 idiomas — você pode usar de qualquer lugar do mundo.",
+    q: "O Vault Finance OS funciona em qualquer país?",
+    a: "Sim. O sistema foi desenvolvido para ser totalmente global, suportando nativamente mais de 160 moedas e traduzido para 12 idiomas, pronto para uso de qualquer parte do mundo.",
   },
   {
     q: "Existe uma versão gratuita de verdade?",
@@ -222,21 +223,53 @@ export default function Landing() {
           {/* Platform availability badges */}
           <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
             <a href="#" className="group inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-zinc-200 backdrop-blur-xl transition-all hover:scale-[1.04] hover:border-emerald-500/30 hover:bg-white/10">
-              <Apple className="h-4 w-4 text-zinc-100" />
+              <svg className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.22.67-2.94 1.5-.62.71-1.16 1.85-1.01 2.96 1.11.09 2.27-.58 2.96-1.4z" fill="url(#apple-grad-hero)" />
+                <defs>
+                  <linearGradient id="apple-grad-hero" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#059669" />
+                  </linearGradient>
+                </defs>
+              </svg>
               <span className="flex flex-col leading-tight text-left">
                 <span className="text-[10px] text-zinc-500">Baixe na</span>
                 <span>App Store</span>
               </span>
             </a>
             <a href="#" className="group inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-zinc-200 backdrop-blur-xl transition-all hover:scale-[1.04] hover:border-emerald-500/30 hover:bg-white/10">
-              <Play className="h-4 w-4 text-zinc-100" />
+              <svg className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 20.5V3.5C3 2.5 3.8 2 4.5 2.4L18.5 11.4C19.2 11.8 19.2 12.2 18.5 12.6L4.5 21.6C3.8 22 3 21.5 3 20.5Z" fill="url(#play-grad-hero)" />
+                <defs>
+                  <linearGradient id="play-grad-hero" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10b981" />
+                    <stop offset="100%" stopColor="#047857" />
+                  </linearGradient>
+                </defs>
+              </svg>
               <span className="flex flex-col leading-tight text-left">
                 <span className="text-[10px] text-zinc-500">Disponível no</span>
                 <span>Google Play</span>
               </span>
             </a>
             <a href="#" className="group inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-zinc-200 backdrop-blur-xl transition-all hover:scale-[1.04] hover:border-emerald-500/30 hover:bg-white/10">
-              <Monitor className="h-4 w-4 text-zinc-100" />
+              <svg className="h-5 w-5 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="3" width="20" height="18" rx="3" stroke="url(#web-grad-hero)" strokeWidth="2" />
+                <line x1="2" y1="8" x2="22" y2="8" stroke="url(#web-grad-hero)" strokeWidth="2" />
+                <circle cx="5" cy="5.5" r="1.2" fill="#34d399" />
+                <circle cx="9" cy="5.5" r="1.2" fill="#10b981" />
+                <circle cx="13" cy="5.5" r="1.2" fill="#059669" />
+                <circle cx="12" cy="15" r="3.5" stroke="url(#web-grad-hero)" strokeWidth="1.5" />
+                <path d="M12 11.5C11.3 12.5 11 13.7 11 15C11 16.3 11.3 17.5 12 18.5" stroke="url(#web-grad-hero)" strokeWidth="1" />
+                <path d="M12 11.5C12.7 12.5 13 13.7 13 15C13 16.3 12.7 17.5 12 18.5" stroke="url(#web-grad-hero)" strokeWidth="1" />
+                <line x1="8.5" y1="15" x2="15.5" y2="15" stroke="url(#web-grad-hero)" strokeWidth="1" />
+                <defs>
+                  <linearGradient id="web-grad-hero" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#047857" />
+                  </linearGradient>
+                </defs>
+              </svg>
               <span className="flex flex-col leading-tight text-left">
                 <span className="text-[10px] text-zinc-500">Acesse o</span>
                 <span>Web App</span>
@@ -366,19 +399,51 @@ export default function Landing() {
             Disponível e sincronizado em tempo real para todos os seus dispositivos.
           </p>
           <div className="mt-6 flex items-center justify-center gap-10 sm:gap-16">
-            <div className="flex flex-col items-center gap-2 text-zinc-400 transition-colors hover:text-emerald-400">
-              <Apple className="h-7 w-7" />
-              <span className="text-[11px] uppercase tracking-wider">iOS</span>
+            <div className="flex flex-col items-center gap-2 text-zinc-400 transition-all hover:scale-105">
+              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 4.17c.66-.81 1.11-1.93.99-3.06-1 .04-2.22.67-2.94 1.5-.62.71-1.16 1.85-1.01 2.96 1.11.09 2.27-.58 2.96-1.4z" fill="url(#apple-grad-banner)" />
+                <defs>
+                  <linearGradient id="apple-grad-banner" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#059669" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">iOS</span>
             </div>
             <div className="h-10 w-px bg-white/10" />
-            <div className="flex flex-col items-center gap-2 text-zinc-400 transition-colors hover:text-emerald-400">
-              <Smartphone className="h-7 w-7" />
-              <span className="text-[11px] uppercase tracking-wider">Android</span>
+            <div className="flex flex-col items-center gap-2 text-zinc-400 transition-all hover:scale-105">
+              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M6 18c0 .55-.45 1-1 1s-1-.45-1-1v-5c0-.55.45-1 1-1s1 .45 1 1v5zm14-5v5c0 .55-.45 1-1 1s-1-.45-1-1v-5c0-.55.45-1 1-1s1 .45 1 1zm-3-3.04v7.54c0 1.38-1.12 2.5-2.5 2.5H9.5C8.12 20 7 18.88 7 17.5V9.96c0-1.38 1.12-2.5 2.5-2.5h5C15.88 7.46 17 8.58 17 9.96zm-1.88-4.4a.5.5 0 0 1-.09.7l-1.4 1c-.17.12-.41.08-.53-.1a.5.5 0 0 1 .1-.7l1.4-1a.5.5 0 0 1 .52.1zm-6.24 1.7l-1.4-1a.5.5 0 0 1 .1-.7c.2-.14.47-.07.61.13l1.4 1c.14.2.07.47-.13.61a.5.5 0 0 1-.58-.04zM9 11c0-.55.45-1 1-1s1 .45 1 1-.45 1-1 1-1-.45-1-1zm5 0c0-.55.45-1 1-1s1 .45 1 1-.45 1-1 1-1-.45-1-1z" fill="url(#android-grad-banner)" />
+                <defs>
+                  <linearGradient id="android-grad-banner" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#059669" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">Android</span>
             </div>
             <div className="h-10 w-px bg-white/10" />
-            <div className="flex flex-col items-center gap-2 text-zinc-400 transition-colors hover:text-emerald-400">
-              <Monitor className="h-7 w-7" />
-              <span className="text-[11px] uppercase tracking-wider">Web</span>
+            <div className="flex flex-col items-center gap-2 text-zinc-400 transition-all hover:scale-105">
+              <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="2" y="3" width="20" height="18" rx="3" stroke="url(#web-grad-banner)" strokeWidth="2" />
+                <line x1="2" y1="8" x2="22" y2="8" stroke="url(#web-grad-banner)" strokeWidth="2" />
+                <circle cx="5" cy="5.5" r="1.2" fill="#34d399" />
+                <circle cx="9" cy="5.5" r="1.2" fill="#10b981" />
+                <circle cx="13" cy="5.5" r="1.2" fill="#059669" />
+                <circle cx="12" cy="15" r="3.5" stroke="url(#web-grad-banner)" strokeWidth="1.5" />
+                <path d="M12 11.5C11.3 12.5 11 13.7 11 15C11 16.3 11.3 17.5 12 18.5" stroke="url(#web-grad-banner)" strokeWidth="1" />
+                <path d="M12 11.5C12.7 12.5 13 13.7 13 15C13 16.3 12.7 17.5 12 18.5" stroke="url(#web-grad-banner)" strokeWidth="1" />
+                <line x1="8.5" y1="15" x2="15.5" y2="15" stroke="url(#web-grad-banner)" strokeWidth="1" />
+                <defs>
+                  <linearGradient id="web-grad-banner" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#34d399" />
+                    <stop offset="100%" stopColor="#047857" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-emerald-400">Web</span>
             </div>
           </div>
         </div>
@@ -552,8 +617,8 @@ export default function Landing() {
               >
                 <div className="flex items-center justify-between gap-4">
                   <span className="font-medium text-white">{f.q}</span>
-                  <span className={`grid h-6 w-6 place-items-center rounded-full border border-white/10 text-emerald-400 transition-transform ${openFaq === i ? "rotate-45" : ""}`}>
-                    +
+                  <span className="grid h-6 w-6 place-items-center rounded-full border border-white/10 text-emerald-400">
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${openFaq === i ? "rotate-180" : ""}`} />
                   </span>
                 </div>
                 {openFaq === i && (
