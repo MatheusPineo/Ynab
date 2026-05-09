@@ -16,6 +16,7 @@ import Settings from "./pages/Settings.tsx";
 import AccountDetails from "./pages/AccountDetails.tsx";
 import Debts from "./pages/Debts.tsx";
 import Auth from "./pages/Auth.tsx";
+import Landing from "./pages/Landing.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -34,10 +35,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
-            
-            <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
+
+            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="accounts" element={<Accounts />} />
               <Route path="transactions" element={<Transactions />} />
