@@ -68,6 +68,7 @@ interface AccountState {
   addNode: (parentId: string, node: Partial<AccountNode>) => Promise<void>;
   updateNode: (id: string, updates: Partial<AccountNode>) => Promise<void>;
   deleteNode: (id: string) => Promise<void>;
+  coverOverspending: (accountId: string) => Promise<void>;
   setTree: (newTree: AccountNode[]) => void;
   setPendingIcon: (id: string, blob: Blob | null) => void;
   
@@ -201,6 +202,26 @@ export const useAccountStore = create<AccountState>()(
           await get().fetchAccounts();
         } catch (error: any) {
           toast.error(error.message);
+        }
+      },
+
+      coverOverspending: async (accountId) => {
+        try {
+          const response = await authenticatedFetch(`/accounts/${accountId}/cover_overspending/`, {
+            method: "POST",
+          });
+
+          if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || "Falha ao cobrir saldo negativo");
+          }
+          
+          await get().fetchAccounts();
+          await get().fetchTransactions();
+          toast.success("Saldo negativo coberto com sucesso!");
+        } catch (error: any) {
+          toast.error(error.message);
+          throw error;
         }
       },
 

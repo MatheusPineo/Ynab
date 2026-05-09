@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash, Plus, Eye } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Plus, Eye, LifeBuoy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -38,7 +38,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [editedCeiling, setEditedCeiling] = useState<number | null>(account.ceiling ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
-  const { updateNode, deleteNode } = useAccountStore();
+  const { updateNode, deleteNode, coverOverspending } = useAccountStore();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -77,6 +77,16 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
     }
   };
 
+  const handleCoverOverspending = async () => {
+    if (window.confirm(`Deseja cobrir o saldo negativo de ${account.name} retirando valores iguais das outras subcontas com a mesma moeda?`)) {
+      try {
+        await coverOverspending(account.id);
+      } catch (e) {
+        // Error already handled by toast in store
+      }
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -100,6 +110,12 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
             <Trash className="mr-2 h-4 w-4" />
             Deletar
           </DropdownMenuItem>
+          {Number(account.balance) < 0 && account.parent != null && (
+            <DropdownMenuItem onSelect={handleCoverOverspending} className="text-emerald-500 focus:text-emerald-600 focus:bg-emerald-500/10">
+              <LifeBuoy className="mr-2 h-4 w-4" />
+              Cobrir Saldo Negativo
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSeparator />
           <AddAccountModal parentAccount={account}>
             <DropdownMenuItem onSelect={(e) => e.preventDefault()}> {/* Prevent DropdownMenu closing */}

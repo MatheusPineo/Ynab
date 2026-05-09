@@ -221,6 +221,68 @@ class AccountViewSet(viewsets.ModelViewSet):
         final_tree = build_tree(accounts)
         return Response(final_tree)
 
+    @action(detail=True, methods=['post'])
+    def cover_overspending(self, request, pk=None):
+        account = self.get_object()
+        
+        if account.balance >= 0:
+            return Response({"error": "A conta não possui saldo negativo."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not account.parent_id:
+            return Response({"error": "Esta ação está disponível apenas para subcontas."}, status=status.HTTP_400_BAD_REQUEST)
+
+        siblings = Account.objects.filter(
+            parent_id=account.parent_id, 
+            currency=account.currency
+        ).exclude(id=account.id)
+        
+        if not siblings.exists():
+            return Response({"error": "Não há outras subcontas com a mesma moeda para cobrir o saldo."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from decimal import Decimal
+        total_deficit = abs(account.balance)
+        num_siblings = siblings.count()
+        
+        amount_per_sibling = round(total_deficit / num_siblings, 2)
+        total_calculated = amount_per_sibling * num_siblings
+        difference = total_deficit - total_calculated
+        
+        transfer_group_uuid = uuid.uuid4()
+        from datetime import date
+        today = date.today()
+
+        with transaction.atomic():
+            for i, sibling in enumerate(siblings):
+                amount_to_deduct = amount_per_sibling
+                if i == num_siblings - 1:
+                    amount_to_deduct += difference
+
+                Transaction.objects.create(
+                    account=sibling,
+                    amount=amount_to_deduct,
+                    description=f"Cobertura de saldo da conta {account.name}",
+                    date=today,
+                    is_income=False,
+                    is_applied_to_balance=True,
+                    transfer_group=transfer_group_uuid
+                )
+                sibling.balance -= amount_to_deduct
+                sibling.save()
+            
+            Transaction.objects.create(
+                account=account,
+                amount=total_deficit,
+                description="Cobertura recebida das subcontas",
+                date=today,
+                is_income=True,
+                is_applied_to_balance=True,
+                transfer_group=transfer_group_uuid
+            )
+            account.balance = Decimal('0.00')
+            account.save()
+
+        return Response({"message": "Saldo negativo coberto com sucesso."})
+
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
     permission_classes = [permissions.IsAuthenticated]

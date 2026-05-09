@@ -99,6 +99,44 @@ class AccountsAndCategoriesTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0) # Shouldn't see other user's accounts
 
+    def test_cover_overspending(self):
+        # Create a parent bank account
+        parent = Account.objects.create(user=self.user, name='Bank ABC', currency='BRL')
+        
+        # Create subaccounts
+        sub1 = Account.objects.create(user=self.user, name='a1', parent=parent, currency='BRL', balance=10.00)
+        sub2 = Account.objects.create(user=self.user, name='b2', parent=parent, currency='BRL', balance=-6.44)
+        sub3 = Account.objects.create(user=self.user, name='c3', parent=parent, currency='BRL', balance=20.00)
+        sub4 = Account.objects.create(user=self.user, name='d4', parent=parent, currency='BRL', balance=30.00)
+        sub5 = Account.objects.create(user=self.user, name='e5', parent=parent, currency='BRL', balance=40.00)
+        
+        # Another account in a different currency or without parent shouldn't be affected
+        sub_diff = Account.objects.create(user=self.user, name='x1', parent=parent, currency='EUR', balance=100.00)
+
+        # Call the endpoint for the negative account
+        response = self.client.post(reverse('account-cover-overspending', args=[sub2.id]))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Refresh from db
+        sub1.refresh_from_db()
+        sub2.refresh_from_db()
+        sub3.refresh_from_db()
+        sub4.refresh_from_db()
+        sub5.refresh_from_db()
+        sub_diff.refresh_from_db()
+        
+        # sub2 should be zeroed
+        self.assertEqual(float(sub2.balance), 0.00)
+        
+        # 6.44 / 4 = 1.61
+        self.assertEqual(float(sub1.balance), 10.00 - 1.61)
+        self.assertEqual(float(sub3.balance), 20.00 - 1.61)
+        self.assertEqual(float(sub4.balance), 30.00 - 1.61)
+        self.assertEqual(float(sub5.balance), 40.00 - 1.61)
+        
+        # Ensure diff currency not affected
+        self.assertEqual(float(sub_diff.balance), 100.00)
+
     def test_category_crud(self):
         # Create
         response = self.client.post(reverse('category-list'), {
