@@ -8,6 +8,7 @@ import {
   Sparkles,
   MoreHorizontal,
   Settings as SettingsIcon,
+  Handshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -27,6 +28,7 @@ const primaryNavItems = [
 ];
 
 const moreNavItems = [
+  { icon: Handshake, label: "Dívidas", to: "/debts" },
   { icon: Target, label: "Metas", to: "/goals" },
   { icon: Sparkles, label: "Insights", to: "/insights" },
   { icon: SettingsIcon, label: "Config.", to: "/settings" },

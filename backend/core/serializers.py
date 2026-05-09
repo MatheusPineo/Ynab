@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile, DistributionTemplate, DistributionTemplateItem
+from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile, DistributionTemplate, DistributionTemplateItem, Debt, DebtPayment
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
@@ -176,3 +176,42 @@ class DistributionTemplateSerializer(serializers.ModelSerializer):
                 DistributionTemplateItem.objects.create(template=instance, **item_data)
 
         return instance
+
+class DebtPaymentSerializer(serializers.ModelSerializer):
+    account_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DebtPayment
+        fields = ['id', 'debt', 'amount', 'date', 'account', 'account_name', 'transaction', 'created_at']
+        extra_kwargs = {
+            'transaction': {'read_only': True},
+            'debt': {'required': False},
+        }
+
+    def get_account_name(self, obj):
+        if obj.account:
+            return obj.account.name
+        return None
+
+class DebtSerializer(serializers.ModelSerializer):
+    amount_paid = serializers.SerializerMethodField()
+    amount_remaining = serializers.SerializerMethodField()
+    payments = DebtPaymentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Debt
+        fields = ['id', 'user', 'counterparty_name', 'original_amount', 'currency', 'is_mine', 'notes', 'created_at', 'amount_paid', 'amount_remaining', 'payments']
+        extra_kwargs = {
+            'user': {'read_only': True},
+        }
+
+    def get_amount_paid(self, obj):
+        from decimal import Decimal
+        total = sum(p.amount for p in obj.payments.all())
+        return float(total)
+
+    def get_amount_remaining(self, obj):
+        from decimal import Decimal
+        total_paid = sum(p.amount for p in obj.payments.all())
+        remaining = obj.original_amount - total_paid
+        return float(max(remaining, Decimal('0.00')))

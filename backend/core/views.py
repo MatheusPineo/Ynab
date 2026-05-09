@@ -5,8 +5,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from django.db import transaction
 from django.db.models import Sum
-from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile, DistributionTemplate
-from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer, UserSerializer, DistributionTemplateSerializer
+from .models import Account, Category, Transaction, Goal, MonthlyBudget, UserProfile, DistributionTemplate, Debt, DebtPayment
+from .serializers import AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, MonthlyBudgetSerializer, UserSerializer, DistributionTemplateSerializer, DebtSerializer, DebtPaymentSerializer
 import uuid
 from datetime import datetime
 
@@ -1119,3 +1119,71 @@ class DistributionTemplateViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class DebtViewSet(viewsets.ModelViewSet):
+    serializer_class = DebtSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Debt.objects.filter(user=self.request.user).prefetch_related('payments__account').order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class DebtPaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = DebtPaymentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return DebtPayment.objects.filter(debt__user=self.request.user).select_related('debt', 'account').order_by('-date')
+
+    def perform_create(self, serializer):
+        from decimal import Decimal
+        from datetime import date as date_type
+
+        debt_id = self.request.data.get('debt')
+        amount = Decimal(str(self.request.data.get('amount', '0')))
+        account_id = self.request.data.get('account')
+        pay_date = self.request.data.get('date') or date_type.today().isoformat()
+
+        debt = Debt.objects.get(id=debt_id, user=self.request.user)
+        account = Account.objects.get(id=account_id) if account_id else None
+
+        # Create the linked transaction
+        txn = None
+        if account:
+            if debt.is_mine:
+                description = f"Pagamento de dívida para {debt.counterparty_name}"
+                is_income = False
+            else:
+                description = f"Pagamento de dívida de {debt.counterparty_name}"
+                is_income = True
+
+            txn = Transaction.objects.create(
+                account=account,
+                amount=amount,
+                description=description,
+                date=pay_date,
+                is_income=is_income,
+                is_applied_to_balance=True,
+            )
+
+            if is_income:
+                account.balance += amount
+            else:
+                account.balance -= amount
+            account.save()
+
+        serializer.save(debt=debt, transaction=txn, account=account)
+
+    def destroy(self, request, *args, **kwargs):
+        payment = self.get_object()
+        # Reverse the transaction effect on account balance
+        if payment.transaction and payment.account:
+            if payment.debt.is_mine:
+                payment.account.balance += payment.amount  # reversed expense
+            else:
+                payment.account.balance -= payment.amount  # reversed income
+            payment.account.save()
+            payment.transaction.delete()
+        return super().destroy(request, *args, **kwargs)

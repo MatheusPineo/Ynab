@@ -10,7 +10,8 @@ import {
   Sparkles,
   ChevronLeft,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Handshake
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/useAuthStore";
@@ -30,6 +31,7 @@ const navItems = [
   { icon: Wallet, label: "Contas", to: "/accounts" },
   { icon: ArrowLeftRight, label: "Transações", to: "/transactions" },
   { icon: PieChart, label: "Orçamento", to: "/budget" },
+  { icon: Handshake, label: "Dívidas", to: "/debts" },
   { icon: Target, label: "Metas", to: "/goals" },
   { icon: Sparkles, label: "Insights", to: "/insights" },
 ];
