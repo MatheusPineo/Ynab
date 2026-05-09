@@ -156,21 +156,35 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
         </span>
 
         {/* Indicator for ceiling/limit */}
-        {node.ceiling && Number(node.ceiling) > 0 && (
-          <div className={cn(
-            "flex items-center gap-1.5 ml-2 px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold select-none shrink-0 transition-colors border",
-            (total / Number(node.ceiling)) >= 0.9
-              ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
-              : "bg-amber-500/10 text-amber-500 border-amber-500/20"
-          )}>
-            <Gauge className="h-3 w-3 shrink-0" />
-            <span>
-              {Number(node.ceiling).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-              {" / "}
-              {((total / Number(node.ceiling)) * 100).toFixed(2).replace('.', ',')}%
-            </span>
-          </div>
-        )}
+        {node.ceiling && Number(node.ceiling) > 0 && (() => {
+          const ceilVal = Math.round(Number(node.ceiling));
+          const pct = Math.round((total / Number(node.ceiling)) * 100);
+          
+          let colorClasses = "";
+          if (pct >= 100) {
+            colorClasses = "gradient-mixed text-white border-transparent shadow-sm";
+          } else if (pct >= 80) {
+            colorClasses = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
+          } else if (pct >= 40) {
+            colorClasses = "bg-amber-500/15 text-amber-400 border-amber-500/25";
+          } else {
+            colorClasses = "bg-rose-500/15 text-rose-400 border-rose-500/25";
+          }
+          
+          return (
+            <div className={cn(
+              "flex items-center gap-1.5 ml-2 px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold select-none shrink-0 transition-all border",
+              colorClasses
+            )}>
+              <Gauge className={cn("h-3 w-3 shrink-0", pct >= 100 ? "text-white" : "")} />
+              <span>
+                {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
+                {"/"}
+                {pct}%
+              </span>
+            </div>
+          );
+        })()}
 
         {/* Teto + variação */}
         <span className="flex-1" />
