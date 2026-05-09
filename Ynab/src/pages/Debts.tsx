@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, CreditCard, ChevronDown, ChevronUp, CheckCircle2, History, Trash, Handshake } from "lucide-react";
-import { formatCurrency } from "@/lib/currency-utils";
+import { formatMoney } from "@/lib/currency-utils";
 import { useDebtStore, Debt, DebtPayment } from "@/store/useDebtStore";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
@@ -69,13 +69,13 @@ const DebtCard = ({ debt, onAddPayment }: { debt: Debt; onAddPayment: (d: Debt) 
           <div className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">Valor Original</span>
             <div className="font-semibold text-foreground">
-              {formatCurrency(debt.original_amount, debt.currency)}
+              {formatMoney(debt.original_amount, debt.currency)}
             </div>
           </div>
           <div className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">Restante</span>
             <div className={cn("font-bold", isPaid ? "text-emerald-500" : "text-amber-500")}>
-              {formatCurrency(debt.amount_remaining, debt.currency)}
+              {formatMoney(debt.amount_remaining, debt.currency)}
             </div>
           </div>
         </div>
@@ -119,7 +119,7 @@ const DebtCard = ({ debt, onAddPayment }: { debt: Debt; onAddPayment: (d: Debt) 
               {debt.payments.map((p) => (
                 <div key={p.id} className="flex items-center justify-between group">
                   <div className="flex flex-col">
-                    <span className="font-medium text-foreground">{formatCurrency(p.amount, debt.currency)}</span>
+                    <span className="font-medium text-foreground">{formatMoney(p.amount, debt.currency)}</span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(p.date).toLocaleDateString('pt-BR')} • {p.account_name || 'Sem conta'}
                     </span>
