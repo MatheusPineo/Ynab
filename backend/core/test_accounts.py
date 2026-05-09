@@ -104,11 +104,13 @@ class AccountsAndCategoriesTests(TestCase):
         parent = Account.objects.create(user=self.user, name='Bank ABC', currency='BRL')
         
         # Create subaccounts
-        sub1 = Account.objects.create(user=self.user, name='a1', parent=parent, currency='BRL', balance=10.00)
-        sub2 = Account.objects.create(user=self.user, name='b2', parent=parent, currency='BRL', balance=-6.44)
+        sub1 = Account.objects.create(user=self.user, name='a1', parent=parent, currency='BRL', balance=1.00)  # Low balance
+        sub2 = Account.objects.create(user=self.user, name='b2', parent=parent, currency='BRL', balance=-6.44) # Target
         sub3 = Account.objects.create(user=self.user, name='c3', parent=parent, currency='BRL', balance=20.00)
         sub4 = Account.objects.create(user=self.user, name='d4', parent=parent, currency='BRL', balance=30.00)
         sub5 = Account.objects.create(user=self.user, name='e5', parent=parent, currency='BRL', balance=40.00)
+        sub6 = Account.objects.create(user=self.user, name='f6', parent=parent, currency='BRL', balance=0.00)  # Zero balance
+        sub7 = Account.objects.create(user=self.user, name='g7', parent=parent, currency='BRL', balance=-5.00) # Negative balance
         
         # Another account in a different currency or without parent shouldn't be affected
         sub_diff = Account.objects.create(user=self.user, name='x1', parent=parent, currency='EUR', balance=100.00)
@@ -123,16 +125,28 @@ class AccountsAndCategoriesTests(TestCase):
         sub3.refresh_from_db()
         sub4.refresh_from_db()
         sub5.refresh_from_db()
+        sub6.refresh_from_db()
+        sub7.refresh_from_db()
         sub_diff.refresh_from_db()
         
         # sub2 should be zeroed
         self.assertEqual(float(sub2.balance), 0.00)
         
-        # 6.44 / 4 = 1.61
-        self.assertEqual(float(sub1.balance), 10.00 - 1.61)
-        self.assertEqual(float(sub3.balance), 20.00 - 1.61)
-        self.assertEqual(float(sub4.balance), 30.00 - 1.61)
-        self.assertEqual(float(sub5.balance), 40.00 - 1.61)
+        # sub6 and sub7 should NOT be touched
+        self.assertEqual(float(sub6.balance), 0.00)
+        self.assertEqual(float(sub7.balance), -5.00)
+        
+        # Deficit = 6.44. 
+        # Active sibs: sub1(1.00), sub3(20), sub4(30), sub5(40) (N=4)
+        # i=0 (sub1): fair=6.44/4=1.61. max taken=1.00. rem=5.44. sub1 becomes 0.00.
+        # i=1 (sub3): fair=5.44/3=1.81. taken=1.81. rem=3.63. sub3 becomes 20.00 - 1.81 = 18.19.
+        # i=2 (sub4): fair=3.63/2=1.82. taken=1.82. rem=1.81. sub4 becomes 30.00 - 1.82 = 28.18.
+        # i=3 (sub5): last account takes rem=1.81. sub5 becomes 40.00 - 1.81 = 38.19.
+        
+        self.assertEqual(float(sub1.balance), 0.00)
+        self.assertEqual(float(sub3.balance), 18.19)
+        self.assertEqual(float(sub4.balance), 28.18)
+        self.assertEqual(float(sub5.balance), 38.19)
         
         # Ensure diff currency not affected
         self.assertEqual(float(sub_diff.balance), 100.00)

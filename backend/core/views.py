@@ -233,32 +233,48 @@ class AccountViewSet(viewsets.ModelViewSet):
 
         siblings = Account.objects.filter(
             parent_id=account.parent_id, 
-            currency=account.currency
-        ).exclude(id=account.id)
+            currency=account.currency,
+            balance__gt=0
+        ).exclude(id=account.id).order_by('balance')
         
         if not siblings.exists():
-            return Response({"error": "Não há outras subcontas com a mesma moeda para cobrir o saldo."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Não há subcontas com saldo positivo para cobrir o déficit."}, status=status.HTTP_400_BAD_REQUEST)
 
         from decimal import Decimal
         total_deficit = abs(account.balance)
-        num_siblings = siblings.count()
+        sibs = list(siblings)
         
-        amount_per_sibling = round(total_deficit / num_siblings, 2)
-        total_calculated = amount_per_sibling * num_siblings
-        difference = total_deficit - total_calculated
+        remaining_deficit = total_deficit
+        deductions = {s.id: Decimal('0.00') for s in sibs}
         
+        for i, s in enumerate(sibs):
+            remaining_accounts = len(sibs) - i
+            if remaining_accounts == 0 or remaining_deficit <= 0:
+                break
+                
+            fair_share = round(remaining_deficit / remaining_accounts, 2)
+            actual_deduction = min(Decimal(str(fair_share)), s.balance)
+            
+            if i == len(sibs) - 1 and s.balance >= remaining_deficit:
+                actual_deduction = remaining_deficit
+                
+            deductions[s.id] = actual_deduction
+            remaining_deficit -= actual_deduction
+            
         transfer_group_uuid = uuid.uuid4()
         from datetime import date
         today = date.today()
+        
+        total_covered = Decimal('0.00')
 
         with transaction.atomic():
-            for i, sibling in enumerate(siblings):
-                amount_to_deduct = amount_per_sibling
-                if i == num_siblings - 1:
-                    amount_to_deduct += difference
-
+            for s in sibs:
+                amount_to_deduct = deductions[s.id]
+                if amount_to_deduct <= 0:
+                    continue
+                    
                 Transaction.objects.create(
-                    account=sibling,
+                    account=s,
                     amount=amount_to_deduct,
                     description=f"Cobertura de saldo da conta {account.name}",
                     date=today,
@@ -266,22 +282,24 @@ class AccountViewSet(viewsets.ModelViewSet):
                     is_applied_to_balance=True,
                     transfer_group=transfer_group_uuid
                 )
-                sibling.balance -= amount_to_deduct
-                sibling.save()
+                s.balance -= amount_to_deduct
+                s.save()
+                total_covered += amount_to_deduct
             
-            Transaction.objects.create(
-                account=account,
-                amount=total_deficit,
-                description="Cobertura recebida das subcontas",
-                date=today,
-                is_income=True,
-                is_applied_to_balance=True,
-                transfer_group=transfer_group_uuid
-            )
-            account.balance = Decimal('0.00')
-            account.save()
+            if total_covered > 0:
+                Transaction.objects.create(
+                    account=account,
+                    amount=total_covered,
+                    description="Cobertura recebida das subcontas",
+                    date=today,
+                    is_income=True,
+                    is_applied_to_balance=True,
+                    transfer_group=transfer_group_uuid
+                )
+                account.balance += total_covered
+                account.save()
 
-        return Response({"message": "Saldo negativo coberto com sucesso."})
+        return Response({"message": f"Saldo negativo coberto com sucesso. Total: {total_covered}"})
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
