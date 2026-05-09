@@ -53,11 +53,15 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
 
   // Flatten accounts for dropdown
   const accountsFlat = useMemo(() => {
-    const list: AccountNode[] = [];
-    const walk = (nodes: AccountNode[]) => {
+    const list: (AccountNode & { displayName?: string })[] = [];
+    const walk = (nodes: AccountNode[], depth = 0) => {
       nodes.forEach(n => {
-        list.push(n);
-        if (n.children) walk(n.children);
+        const indent = "\u00A0\u00A0".repeat(depth);
+        list.push({
+          ...n,
+          displayName: `${indent}${depth > 0 ? "↳ " : ""}${n.name}`
+        });
+        if (n.children) walk(n.children, depth + 1);
       });
     };
     walk(tree);
@@ -200,7 +204,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
                 <SelectContent className="glass border-border/60">
                   {accountsFlat.map(a => (
                     <SelectItem key={a.id} value={String(a.id)} className="text-xs sm:text-sm">
-                      {a.name} ({formatMoney(a.balance, a.currency)})
+                      <span className="whitespace-pre">{a.displayName || a.name}</span> ({formatMoney(a.balance, a.currency)})
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -257,7 +261,9 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
                       </SelectTrigger>
                       <SelectContent className="glass border-border/60">
                         {accountsFlat.filter(a => String(a.id) !== sourceAccount).map(a => (
-                          <SelectItem key={a.id} value={String(a.id)} className="text-xs">{a.name}</SelectItem>
+                          <SelectItem key={a.id} value={String(a.id)} className="text-xs">
+                            <span className="whitespace-pre">{a.displayName || a.name}</span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -335,7 +341,9 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
                       </SelectTrigger>
                       <SelectContent className="glass border-border/60">
                         {accountsFlat.filter(a => String(a.id) !== sourceAccount).map(a => (
-                          <SelectItem key={a.id} value={String(a.id)} className="text-xs">{a.name}</SelectItem>
+                          <SelectItem key={a.id} value={String(a.id)} className="text-xs">
+                            <span className="whitespace-pre">{a.displayName || a.name}</span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

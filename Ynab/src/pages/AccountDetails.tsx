@@ -167,7 +167,10 @@ const AccountDetails = () => {
         </div>
 
         <div className="flex items-center justify-between sm:flex-col sm:items-end gap-2 pl-14 sm:pl-0">
-          <p className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          <p className={cn(
+            "text-2xl sm:text-3xl font-bold tracking-tight",
+            Number(account.balance) < 0 ? "text-rose-500" : "text-foreground"
+          )}>
             {formatMoney(account.balance, currency)}
           </p>
           {stats.pendingAmount !== 0 && (

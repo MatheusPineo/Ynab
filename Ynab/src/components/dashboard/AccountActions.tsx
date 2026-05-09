@@ -35,6 +35,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [editedName, setEditedName] = useState(account.name);
   const [editedBalance, setEditedBalance] = useState(account.balance);
   const [editedIcon, setEditedIcon] = useState(account.icon_url);
+  const [editedCeiling, setEditedCeiling] = useState<number | null>(account.ceiling ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
   const { updateNode, deleteNode } = useAccountStore();
@@ -48,7 +49,8 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
       await updateNode(account.id, { 
         name: editedName, 
         balance: editedBalance,
-        icon_url: editedIcon 
+        icon_url: editedIcon,
+        ceiling: editedCeiling
       });
       
       setIsEditDialogOpen(false);
@@ -123,6 +125,18 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                 step="0.01"
                 value={editedBalance}
                 onChange={(e) => setEditedBalance(parseFloat(e.target.value) || 0)}
+                className="bg-background/50"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="ceiling">Teto (Limite Opcional)</Label>
+              <Input
+                id="ceiling"
+                type="number"
+                step="0.01"
+                value={editedCeiling ?? ""}
+                onChange={(e) => setEditedCeiling(e.target.value !== "" ? parseFloat(e.target.value) : null)}
+                placeholder="Ex: 1000.00"
                 className="bg-background/50"
               />
             </div>

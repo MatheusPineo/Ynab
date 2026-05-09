@@ -4,8 +4,11 @@ import { BottomNav } from "./BottomNav";
 import { AddTransactionModal } from "./AddTransactionModal";
 import { Plus } from "lucide-react";
 import { Outlet } from "react-router-dom";
+import { useSwipeNavigation } from "@/hooks/useSwipeNavigation";
 
 export const Layout = () => {
+  useSwipeNavigation();
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Sidebar: only visible on md+ */}

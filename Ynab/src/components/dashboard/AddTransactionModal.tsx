@@ -50,25 +50,27 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   
   const isEdit = !!transaction;
 
-  const getLeafAccounts = (nodes: any[]): any[] => {
-    let leaves: any[] = [];
-    if (!nodes || !Array.isArray(nodes)) return leaves;
+  const getAllAccounts = (nodes: any[], depth = 0): any[] => {
+    let list: any[] = [];
+    if (!nodes || !Array.isArray(nodes)) return list;
     
     nodes.forEach(node => {
-      const hasChildren = node.children && Array.isArray(node.children) && node.children.length > 0;
-      if (hasChildren) {
-        leaves = [...leaves, ...getLeafAccounts(node.children)];
-      } else {
-        leaves.push(node);
+      const indent = "\u00A0\u00A0".repeat(depth);
+      list.push({
+        ...node,
+        displayName: `${indent}${depth > 0 ? "↳ " : ""}${node.name}`
+      });
+      if (node.children && Array.isArray(node.children) && node.children.length > 0) {
+        list = [...list, ...getAllAccounts(node.children, depth + 1)];
       }
     });
-    return leaves;
+    return list;
   };
   
-  const leafAccounts = getLeafAccounts(tree);
+  const allAccounts = getAllAccounts(tree);
 
-  const fromAccount = leafAccounts.find(a => String(a.id) === accountId);
-  const toAccount = leafAccounts.find(a => String(a.id) === toAccountId);
+  const fromAccount = allAccounts.find(a => String(a.id) === accountId);
+  const toAccount = allAccounts.find(a => String(a.id) === toAccountId);
   const isTransfer = type === "transfer";
   const showLiquidValue = isTransfer && fromAccount && toAccount && fromAccount.currency !== toAccount.currency;
 
@@ -254,8 +256,10 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent className="glass border-border/60">
-                  {leafAccounts.map(acc => (
-                    <SelectItem key={acc.id} value={String(acc.id)}>{acc.name} ({acc.currency})</SelectItem>
+                  {allAccounts.map(acc => (
+                    <SelectItem key={acc.id} value={String(acc.id)}>
+                      <span className="whitespace-pre">{acc.displayName || acc.name}</span> ({acc.currency})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -269,8 +273,10 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="glass border-border/60">
-                    {leafAccounts.filter(acc => String(acc.id) !== accountId).map(acc => (
-                      <SelectItem key={acc.id} value={String(acc.id)}>{acc.name} ({acc.currency})</SelectItem>
+                    {allAccounts.filter(acc => String(acc.id) !== accountId).map(acc => (
+                      <SelectItem key={acc.id} value={String(acc.id)}>
+                        <span className="whitespace-pre">{acc.displayName || acc.name}</span> ({acc.currency})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

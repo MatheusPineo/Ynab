@@ -24,6 +24,7 @@ export interface AccountNode {
   icon_url?: string;
   parent?: string | null;
   children?: AccountNode[];
+  ceiling?: number | null;
 }
 
 export interface CategoryNode {

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Plus, GripVertical } from "lucide-react";
+import { ChevronRight, Plus, GripVertical, Gauge } from "lucide-react";
 import {
   type AccountNode,
   type Currency,
@@ -155,6 +155,23 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
           {node.name}
         </span>
 
+        {/* Indicator for ceiling/limit */}
+        {node.ceiling && Number(node.ceiling) > 0 && (
+          <div className={cn(
+            "flex items-center gap-1.5 ml-2 px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold select-none shrink-0 transition-colors border",
+            (total / Number(node.ceiling)) >= 0.9
+              ? "bg-rose-500/10 text-rose-500 border-rose-500/20"
+              : "bg-amber-500/10 text-amber-500 border-amber-500/20"
+          )}>
+            <Gauge className="h-3 w-3 shrink-0" />
+            <span>
+              {Number(node.ceiling).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              {" / "}
+              {((total / Number(node.ceiling)) * 100).toFixed(2).replace('.', ',')}%
+            </span>
+          </div>
+        )}
+
         {/* Teto + variação */}
         <span className="flex-1" />
 
@@ -162,7 +179,8 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
         <span
           className={cn(
             "shrink-0 tabular tracking-tight mr-2",
-            isMaster ? "text-base font-bold text-foreground" : "text-sm font-medium text-foreground/85",
+            isMaster ? "text-base font-bold" : "text-sm font-medium",
+            total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85")
           )}
         >
           {formatMoney(total, currency)}

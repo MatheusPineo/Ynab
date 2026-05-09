@@ -29,6 +29,7 @@ import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
 import { AddTransactionModal } from "@/components/dashboard/AddTransactionModal";
 import { cn } from "@/lib/utils";
+import { PullToRefresh } from "@/components/dashboard/PullToRefresh";
 
 const COLORS = [
   "#8b5cf6",
@@ -75,6 +76,14 @@ const Dashboard = () => {
     fetchRates();
     fetchGoals();
   }, [fetchAccounts, fetchRates, fetchGoals]);
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      fetchAccounts(),
+      fetchRates(),
+      fetchGoals(),
+    ]);
+  };
 
   const historyData = useMemo(() => getHistory(), [getHistory, transactions]);
 
@@ -184,7 +193,8 @@ const Dashboard = () => {
   const monthName = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-6 pb-10 animate-in fade-in duration-500">
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="flex flex-col gap-4 sm:gap-6 pb-10 animate-in fade-in duration-500">
 
       {/* ── HEADER ─────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -225,7 +235,10 @@ const Dashboard = () => {
             </div>
             Patrimônio Total
           </div>
-          <p className="text-2xl font-bold text-foreground leading-none">
+          <p className={cn(
+            "text-2xl font-bold leading-none",
+            netWorth < 0 ? "text-rose-500" : "text-foreground"
+          )}>
             {formatMoney(netWorth, baseCurrency)}
           </p>
           <p className="text-xs text-muted-foreground mt-2">Em {baseCurrency}</p>
@@ -648,7 +661,8 @@ const Dashboard = () => {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </PullToRefresh>
   );
 };
 

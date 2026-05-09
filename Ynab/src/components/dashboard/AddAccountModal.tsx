@@ -30,12 +30,15 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
     const formData = new FormData(e.currentTarget);
     
     const balance = parseFloat(formData.get("balance") as string) || 0;
+    const ceilingInput = formData.get("ceiling") as string;
+    const ceiling = ceilingInput ? parseFloat(ceilingInput) : null;
 
     addNode(parentAccount.id, {
       name: formData.get("name") as string,
       balance: balance,
       base: balance, // Default target to same as initial balance
       currency: formData.get("currency") as any,
+      ceiling: ceiling,
     });
 
     toast.success(`Sub-conta criada em "${parentAccount.name}"`);
@@ -64,6 +67,11 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
           <div className="grid gap-2">
             <Label htmlFor="balance">Saldo Inicial</Label>
             <Input id="balance" name="balance" type="number" step="0.01" placeholder="0.00" className="bg-background/50" />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="ceiling">Teto (Limite Opcional)</Label>
+            <Input id="ceiling" name="ceiling" type="number" step="0.01" placeholder="Ex: 1000.00" className="bg-background/50" />
           </div>
 
           <div className="grid gap-2">

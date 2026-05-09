@@ -14,6 +14,7 @@ class Account(models.Model):
     account_type = models.CharField(max_length=20, choices=ACCOUNT_TYPES, default='checking')
     currency = models.CharField(max_length=3, default='EUR')
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    ceiling = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     icon_url = models.URLField(max_length=500, null=True, blank=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     created_at = models.DateTimeField(auto_now_add=True)
