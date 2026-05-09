@@ -2,6 +2,7 @@ import { useState, useRef, useMemo } from "react";
 import { useAuthStore } from "@/store/useAuthStore";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
+import { useSettingsStore } from "@/store/useSettingsStore";
 import { formatMoney } from "@/lib/currency-utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -49,6 +50,7 @@ import { QRCodeSVG } from "qrcode.react";
 const Settings = () => {
   const { user, logout, accessToken } = useAuthStore();
   const { baseCurrency, setBaseCurrency } = useCurrencyStore();
+  const { isPrivateMode, showDecimals, togglePrivateMode, toggleDecimals } = useSettingsStore();
 
   const [name, setName] = useState(user?.name || "");
   const [bio, setBio] = useState(user?.bio || "Organizando o futuro...");
@@ -640,7 +642,7 @@ const Settings = () => {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Globe className="h-5 w-5 text-primary" /> Regional e Moeda
+                    <Globe className="h-5 w-5 text-primary" /> Regional e Preferências
                   </h3>
                   <p className="text-sm text-muted-foreground">Defina como o Vault deve se comportar visualmente.</p>
                 </div>
@@ -673,7 +675,39 @@ const Settings = () => {
                        </Select>
                     </div>
 
+                    <div className="space-y-3">
+                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Exibição de Valores</Label>
+                       <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
+                          <div className="space-y-1">
+                            <p className="text-sm font-bold">Mostrar Centavos</p>
+                            <p className="text-xs text-muted-foreground">Exibir valores com frações decimais (ex: ,00)</p>
+                          </div>
+                          <Button 
+                            variant={showDecimals ? "outline" : "destructive"}
+                            onClick={toggleDecimals}
+                            className="rounded-xl px-4 h-9 font-bold"
+                          >
+                            {showDecimals ? "Ativo" : "Inativo"}
+                          </Button>
+                       </div>
+                    </div>
 
+                    <div className="space-y-3">
+                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Privacidade do Painel</Label>
+                       <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40">
+                          <div className="space-y-1">
+                            <p className="text-sm font-bold">Modo Ocultar Saldos</p>
+                            <p className="text-xs text-muted-foreground">Esconde saldos e quantias por privacidade</p>
+                          </div>
+                          <Button 
+                            variant={isPrivateMode ? "destructive" : "outline"}
+                            onClick={togglePrivateMode}
+                            className="rounded-xl px-4 h-9 font-bold animate-pulse-subtle"
+                          >
+                            {isPrivateMode ? "Ocultado" : "Visível"}
+                          </Button>
+                       </div>
+                    </div>
                 </div>
               </div>
            </Card>
