@@ -53,6 +53,44 @@ class AccountsAndCategoriesTests(TestCase):
         self.assertEqual(len(response.data[0]['children']), 1)
         self.assertEqual(response.data[0]['children'][0]['name'], 'Child Account')
 
+    def test_account_ceiling(self):
+        # Create an account with a ceiling
+        response = self.client.post(reverse('account-list'), {
+            'name': 'Main Savings',
+            'account_type': 'savings',
+            'currency': 'BRL',
+            'balance': '1000.00',
+            'ceiling': '5000.00'
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        account_id = response.data['id']
+        self.assertEqual(float(response.data['ceiling']), 5000.00)
+
+        # Update (PATCH) the ceiling to 5.00
+        response = self.client.patch(reverse('account-detail', args=[account_id]), {
+            'ceiling': '5.00'
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(float(response.data['ceiling']), 5.00)
+
+        # Retrieve through the custom account tree action
+        response = self.client.get(reverse('account-tree'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]['ceiling'], 5.00)
+
+        # Clear the ceiling (set to null)
+        response = self.client.patch(reverse('account-detail', args=[account_id]), {
+            'ceiling': None
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data['ceiling'])
+
+        # Check tree again to ensure it's null
+        response = self.client.get(reverse('account-tree'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIsNone(response.data[0]['ceiling'])
+
     def test_data_isolation(self):
         other_user = User.objects.create_user(username='other', password='password')
         Account.objects.create(user=other_user, name='Other User Account')

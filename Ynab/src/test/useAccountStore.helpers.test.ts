@@ -120,4 +120,23 @@ describe('useAccountStore helpers', () => {
     expect(history[1]).toEqual({ date: '2026-05-02', balance: 800 });
     expect(history[2]).toEqual({ date: '2026-05-03', balance: 750 });
   });
+
+  it('should support and keep ceiling properties in accounts', () => {
+    const accountWithCeiling: AccountNode = {
+      id: '9',
+      name: 'Credit Card Limit',
+      balance: -100,
+      currency: 'BRL',
+      ceiling: 5000,
+    };
+    useAccountStore.setState({
+      tree: [...mockTree, accountWithCeiling]
+    });
+
+    const { getAccount } = useAccountStore.getState();
+    const account = getAccount('9');
+    expect(account).toBeDefined();
+    expect(account?.ceiling).toBe(5000);
+    expect(account?.balance).toBe(-100);
+  });
 });
