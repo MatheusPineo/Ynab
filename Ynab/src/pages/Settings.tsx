@@ -929,15 +929,7 @@ const Settings = () => {
 
 
 
-              <div className="pt-6 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-xs text-muted-foreground flex items-center gap-2 font-medium">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Sincronizado com o banco de dados oficial
-                </div>
-                <Button variant="ghost" onClick={handleLogout} className="text-rose-400 hover:text-rose-400 hover:bg-rose-400/10 gap-2 rounded-xl">
-                  <LogOut className="h-4 w-4" /> Encerrar Sessão
-                </Button>
-              </div>
+
             </div>
           </Card>
         </TabsContent>
