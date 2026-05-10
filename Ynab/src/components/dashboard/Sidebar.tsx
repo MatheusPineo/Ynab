@@ -53,7 +53,7 @@ export const Sidebar = () => {
   return (
     <aside
       className={cn(
-        "relative flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-out",
+        "relative flex flex-col border-r border-sidebar-border bg-sidebar transition-all duration-300 ease-out shrink-0",
         collapsed ? "w-[72px]" : "w-[240px]",
       )}
     >
@@ -86,7 +86,7 @@ export const Sidebar = () => {
                 to={item.to}
                 className={({ isActive }) =>
                   cn(
-                    "group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                    "group relative flex flex-row items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
                     isActive
                       ? "bg-sidebar-accent text-sidebar-accent-foreground"
                       : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground",
@@ -114,14 +114,21 @@ export const Sidebar = () => {
           <NavLink
             to="/settings"
             className={({ isActive }) => cn(
-              "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
+              "group relative flex flex-row items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
               isActive 
                 ? "bg-sidebar-accent text-sidebar-accent-foreground" 
                 : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
             )}
           >
-            <SettingsIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
-            {!collapsed && <span>{t("navigation.settings")}</span>}
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full gradient-primary" />
+                )}
+                <SettingsIcon className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                {!collapsed && <span className="truncate">{t("navigation.settings")}</span>}
+              </>
+            )}
           </NavLink>
         </HelpTooltip>
 

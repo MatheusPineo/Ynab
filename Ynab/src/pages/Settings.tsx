@@ -396,8 +396,8 @@ const Settings = () => {
       
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-3">
-            <SettingsIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex flex-row items-center gap-3">
+            <SettingsIcon className="h-6 w-6 sm:h-8 sm:w-8 text-primary shrink-0" />
             Configurações
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -686,14 +686,37 @@ const Settings = () => {
                 <div className="grid gap-6 max-w-md">
                    <div className="space-y-3">
                       <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t("settings.system_language")}</Label>
-                      <Select value={i18n.language} onValueChange={(val) => i18n.changeLanguage(val)}>
+                      <Select 
+                        value={i18n.language} 
+                        onValueChange={async (val) => {
+                          i18n.changeLanguage(val);
+                          localStorage.setItem("vault_lang_explicit", "true");
+                          try {
+                            const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
+                            const response = await fetch(`${baseUrl}/auth/profile/update/`, {
+                              method: "POST",
+                              headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": "Bearer " + accessToken
+                              },
+                              body: JSON.stringify({ language: val })
+                            });
+                            if (response.ok) {
+                              useAuthStore.setState((state) => ({
+                                user: state.user ? { ...state.user, language: val } : null
+                              }));
+                            }
+                          } catch (err) {
+                            console.error("Erro ao sincronizar idioma no banco:", err);
+                          }
+                        }}
+                      >
                         <SelectTrigger className="bg-background/50 border-border/60 rounded-xl h-11">
                           <SelectValue placeholder={t("settings.select_language")} />
                         </SelectTrigger>
                         <SelectContent className="glass border-border/60">
-                          <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
-                          <SelectItem value="pt-PT">Português (Portugal)</SelectItem>
-                          <SelectItem value="en">English (US)</SelectItem>
+                          <SelectItem value="pt-BR">Português</SelectItem>
+                          <SelectItem value="en">English</SelectItem>
                           <SelectItem value="es">Español</SelectItem>
                           <SelectItem value="de">Deutsch</SelectItem>
                           <SelectItem value="fr">Français</SelectItem>
@@ -701,7 +724,7 @@ const Settings = () => {
                           <SelectItem value="nl">Nederlands</SelectItem>
                           <SelectItem value="pl">Polski</SelectItem>
                           <SelectItem value="zh">简体中文</SelectItem>
-                          <SelectItem value="ar">العربية (RTL)</SelectItem>
+                          <SelectItem value="ar">العربية</SelectItem>
                           <SelectItem value="ja">日本語</SelectItem>
                           <SelectItem value="hi">हिन्दी</SelectItem>
                         </SelectContent>

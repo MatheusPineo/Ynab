@@ -13,7 +13,7 @@ export const Topbar = () => {
   const firstName = user?.name ? user.name.split(" ")[0] : "Usuário";
 
   return (
-    <header className="flex items-center justify-between gap-2 sm:gap-4 px-4 sm:px-8 pt-[calc(12px+env(safe-area-inset-top,0px))] pb-3 sm:py-5 border-b border-border/60 shrink-0">
+    <header className="flex h-16 items-center justify-between gap-2 sm:gap-4 px-4 sm:px-8 border-b border-border/60 shrink-0">
       <div className="min-w-0 flex-1">
         <div className="hidden sm:block text-xs uppercase tracking-[0.15em] text-muted-foreground mb-1 capitalize">
           {currentMonth}

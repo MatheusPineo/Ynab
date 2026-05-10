@@ -45,12 +45,8 @@ Este projeto utiliza uma arquitetura moderna para garantir rapidez na manipulaç
    bun dev  # ou npm run dev
    ```
 
-## 📈 Próximos Passos (Roadmap)
-- [ ] Implementação de CRUD de Transações reais.
-- [ ] Tela de Orçamento (Budgeting) por categorias.
-- [ ] Integração com Backend (Supabase) para sincronização na nuvem.
-- [ ] Gráficos de evolução de patrimônio com Recharts.
+
 
 ---
 
-Desenvolvido com foco em precisão e design. Este é um software de código aberto focado em controle financeiro rigoroso.
+Desenvolvido com foco em precisão e design. Este é um software focado em controle financeiro rigoroso.

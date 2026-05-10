@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     # Apps de terceiros
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
 
     # Meus apps
     'core',
@@ -153,6 +154,7 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
@@ -160,5 +162,14 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Vault Finance OS API',
+    'DESCRIPTION': 'Documentação definitiva e interativa da API do Vault Finance OS - SaaS Financeiro de Alta Performance.',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+}
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+

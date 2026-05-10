@@ -12,7 +12,7 @@ export const Layout = () => {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
       {/* Sidebar: only visible on md+ */}
-      <div className="hidden md:flex">
+      <div className="hidden md:flex shrink-0">
         <Sidebar />
       </div>
 

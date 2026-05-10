@@ -17,11 +17,34 @@ import pyotp
 import qrcode
 import io
 import base64
+from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, inline_serializer
+from rest_framework import serializers
 
 class TwoFactorSetupView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Inicia a configuração da Autenticação de Dois Fatores (2FA)",
+        description="Gera uma chave secreta baseada em tempo (TOTP) para o usuário autenticado e retorna a URI para pareamento com aplicativos autenticadores.",
+        responses={
+            200: inline_serializer(
+                name="TwoFactorSetupResponse",
+                fields={
+                    "secret": serializers.CharField(help_text="O segredo compartilhado em Base32."),
+                    "provisioning_uri": serializers.CharField(help_text="A URI de provisionamento TOTP para o autenticador.")
+                }
+            ),
+            400: inline_serializer(
+                name="TwoFactorSetupError",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
     def get(self, request):
+        """
+        Retorna as credenciais para inicializar a ativação de 2FA.
+        Caso o segredo em Base32 ainda não exista no perfil do usuário, um segredo novo e aleatório será criado.
+        """
         user = request.user
         profile, created = UserProfile.objects.get_or_create(user=user)
         
@@ -45,7 +68,30 @@ class TwoFactorSetupView(APIView):
 class TwoFactorVerifyView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Verifica o código OTP e ativa o 2FA",
+        description="Recebe um código de 6 dígitos gerado pelo aplicativo autenticador do usuário para confirmar a posse da chave de segurança e ativa o 2FA no perfil.",
+        request=inline_serializer(
+            name="TwoFactorVerifyRequest",
+            fields={
+                "code": serializers.CharField(max_length=6, min_length=6, help_text="Código de verificação temporário TOTP de 6 dígitos.")
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name="TwoFactorVerifySuccess",
+                fields={"message": serializers.CharField()}
+            ),
+            400: inline_serializer(
+                name="TwoFactorVerifyError",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
     def post(self, request):
+        """
+        Confirma e ativa a proteção por dois fatores no perfil do usuário caso o código enviado seja legítimo.
+        """
         user = request.user
         profile = user.profile
         code = request.data.get("code")
@@ -64,7 +110,20 @@ class TwoFactorVerifyView(APIView):
 class TwoFactorDisableView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Desativa o 2FA",
+        description="Desativa a proteção por dois fatores e limpa as credenciais de autenticação TOTP registradas no perfil.",
+        responses={
+            200: inline_serializer(
+                name="TwoFactorDisableResponse",
+                fields={"message": serializers.CharField()}
+            )
+        }
+    )
     def post(self, request):
+        """
+        Remove a obrigatoriedade de 2FA e redefine as credenciais secretas do usuário.
+        """
         user = request.user
         profile = user.profile
         profile.two_factor_enabled = False
@@ -75,7 +134,39 @@ class TwoFactorDisableView(APIView):
 class TwoFactorLoginView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        summary="Conclui o Login com autenticação 2FA",
+        description="Endpoint público utilizado na segunda etapa de login por usuários que possuem 2FA ativado no perfil. Retorna os tokens JWT.",
+        request=inline_serializer(
+            name="TwoFactorLoginRequest",
+            fields={
+                "user_id": serializers.IntegerField(help_text="ID do usuário."),
+                "code": serializers.CharField(max_length=6, min_length=6, help_text="Token numérico TOTP de 6 dígitos gerado pelo Authenticator.")
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name="TwoFactorLoginSuccess",
+                fields={
+                    "access": serializers.CharField(help_text="Token JWT de acesso de curta duração."),
+                    "refresh": serializers.CharField(help_text="Token JWT de renovação de longa duração."),
+                    "user": UserSerializer()
+                }
+            ),
+            400: inline_serializer(
+                name="TwoFactorLoginError",
+                fields={"error": serializers.CharField()}
+            ),
+            404: inline_serializer(
+                name="TwoFactorLoginNotFoundError",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
     def post(self, request):
+        """
+        Verifica o token numérico do usuário em segunda camada e emite as chaves JWT definitivas para autenticação.
+        """
         user_id = request.data.get("user_id")
         code = request.data.get("code")
         
@@ -97,7 +188,8 @@ class TwoFactorLoginView(APIView):
             else:
                 return Response({"error": "Código 2FA inválido."}, status=status.HTTP_400_BAD_REQUEST)
         except User.DoesNotExist:
-            return Response({"error": "Usuário não encontrado."}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Usuário não encontrado."}, status=status.HTTP_444_NOT_FOUND if False else status.HTTP_404_NOT_FOUND)
+
 
 
 def sync_recurring_transactions(user, upto_date=None):
@@ -194,8 +286,16 @@ class AccountViewSet(viewsets.ModelViewSet):
     def perform_update(self, serializer):
         serializer.save()
 
+    @extend_schema(
+        summary="Retorna a árvore hierárquica de contas do usuário",
+        description="Agrupa recursivamente as contas do usuário logado em nós de Contas Mestre e Subcontas, otimizando o carregamento da interface.",
+        responses={200: AccountSerializer(many=True)}
+    )
     @action(detail=False, methods=['get'])
     def tree(self, request):
+        """
+        Retorna uma árvore aninhada de contas e subcontas do usuário ativo.
+        """
         accounts = self.get_queryset()
         
         def build_tree(account_list, parent_id=None):
@@ -221,8 +321,25 @@ class AccountViewSet(viewsets.ModelViewSet):
         final_tree = build_tree(accounts)
         return Response(final_tree)
 
+    @extend_schema(
+        summary="Cobre saldo negativo de uma subconta usando saldos de subcontas irmãs",
+        description="Identifica déficit em uma subconta e distribui a cobertura proporcionalmente (fair share) entre subcontas irmãs com saldo positivo da mesma moeda.",
+        responses={
+            200: inline_serializer(
+                name="CoverOverspendingSuccessResponse",
+                fields={"message": serializers.CharField()}
+            ),
+            400: inline_serializer(
+                name="CoverOverspendingErrorResponse",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
     @action(detail=True, methods=['post'])
     def cover_overspending(self, request, pk=None):
+        """
+        Verifica saldo negativo da subconta informada e executa transferências compensatórias de subcontas irmãs.
+        """
         account = self.get_object()
         
         if account.balance >= 0:
@@ -301,8 +418,25 @@ class AccountViewSet(viewsets.ModelViewSet):
 
         return Response({"message": f"Saldo negativo coberto com sucesso. Total: {total_covered}"})
 
+    @extend_schema(
+        summary="Distribui o excedente de saldo de uma subconta acima do teto estipulado",
+        description="Se o saldo da subconta ultrapassar seu teto (ceiling), o excedente é distribuído proporcionalmente para as subcontas irmãs que estão abaixo de seus próprios tetos. Se ainda sobrar excedente, o saldo é depositado na conta Reserva de Excedente.",
+        responses={
+            200: inline_serializer(
+                name="DistributeExcessSuccessResponse",
+                fields={"message": serializers.CharField()}
+            ),
+            400: inline_serializer(
+                name="DistributeExcessErrorResponse",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
     @action(detail=True, methods=['post'])
     def distribute_excess(self, request, pk=None):
+        """
+        Executa o algoritmo de distribuição automática de recursos excedentes (overflow) em subcontas.
+        """
         from decimal import Decimal, ROUND_DOWN
         from datetime import date
 
@@ -324,6 +458,7 @@ class AccountViewSet(viewsets.ModelViewSet):
             parent_id=account.parent_id,
             currency=account.currency,
         ).exclude(id=account.id).exclude(ceiling__isnull=True).order_by('created_at'))
+
 
         # Filter to only those that still have space below their ceiling
         eligible = [s for s in siblings if s.balance < s.ceiling]
@@ -430,8 +565,20 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    @extend_schema(
+        summary="Retorna a árvore de categorias com orçamentos e despesas",
+        description="Retorna a árvore aninhada de categorias do usuário ativo para o período informado (mês/ano), contendo os valores orçados e os gastos realizados.",
+        parameters=[
+            OpenApiParameter("month", OpenApiTypes.INT, description="Mês de referência (1-12). Padrão: mês atual.", required=False),
+            OpenApiParameter("year", OpenApiTypes.INT, description="Ano de referência. Padrão: ano atual.", required=False),
+        ],
+        responses={200: CategorySerializer(many=True)}
+    )
     @action(detail=False, methods=['get'])
     def tree(self, request):
+        """
+        Retorna a estrutura em árvore de categorias e subcategorias com dados orçamentários do período.
+        """
         # Pega mês e ano da query string ou usa o atual
         now = datetime.now()
         month = int(request.query_params.get('month', now.month))
@@ -482,8 +629,33 @@ class CategoryViewSet(viewsets.ModelViewSet):
         final_tree = build_tree(categories)
         return Response(final_tree)
 
+    @extend_schema(
+        summary="Executa alocação automática de orçamento (Auto-assign)",
+        description="Aplica regras inteligentes para preenchimento de orçamentos mensais com base no mês anterior (valores gastos, valores orçados ou limpeza total).",
+        request=inline_serializer(
+            name="CategoryAutoAssignRequest",
+            fields={
+                "rule": serializers.ChoiceField(choices=["spent_last_month", "assigned_last_month", "clear"], help_text="Regra de preenchimento."),
+                "month": serializers.IntegerField(help_text="Mês alvo (1-12)."),
+                "year": serializers.IntegerField(help_text="Ano alvo.")
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name="CategoryAutoAssignSuccess",
+                fields={"message": serializers.CharField()}
+            ),
+            400: inline_serializer(
+                name="CategoryAutoAssignError",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
     @action(detail=False, methods=['post'])
     def auto_assign(self, request):
+        """
+        Aplica a regra selecionada para preenchimento em lote de orçamentos de categorias.
+        """
         rule = request.data.get('rule')
         month = int(request.data.get('month'))
         year = int(request.data.get('year'))
@@ -544,8 +716,25 @@ class MonthlyBudgetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return MonthlyBudget.objects.filter(category__user=self.request.user)
 
+    @extend_schema(
+        summary="Cria ou atualiza uma dotação orçamentária para uma categoria",
+        description="Define o valor alocado (envelope) para uma categoria de despesa em um mês e ano específicos.",
+        request=inline_serializer(
+            name="SetBudgetRequest",
+            fields={
+                "category": serializers.IntegerField(help_text="ID da Categoria."),
+                "month": serializers.IntegerField(help_text="Mês de dotação (1-12)."),
+                "year": serializers.IntegerField(help_text="Ano de dotação."),
+                "amount": serializers.DecimalField(max_digits=12, decimal_places=2, help_text="Montante alocado.")
+            }
+        ),
+        responses={200: MonthlyBudgetSerializer()}
+    )
     @action(detail=False, methods=['post'])
     def set_budget(self, request):
+        """
+        Garante a criação ou atualização de limites de dotação orçamentária mensal.
+        """
         category_id = request.data.get('category')
         month = request.data.get('month')
         year = request.data.get('year')
@@ -559,6 +748,7 @@ class MonthlyBudgetViewSet(viewsets.ModelViewSet):
         )
         
         return Response(MonthlyBudgetSerializer(budget).data)
+
 
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
@@ -681,9 +871,41 @@ class TransactionViewSet(viewsets.ModelViewSet):
         
         instance.delete()
 
+    @extend_schema(
+        summary="Transfere fundos entre duas contas",
+        description="Transfere um valor de uma conta de origem para uma conta de destino. Se as contas possuírem moedas diferentes, um valor convertido ('to_amount') pode ser especificado.",
+        request=inline_serializer(
+            name="TransferRequest",
+            fields={
+                "from_account": serializers.UUIDField(help_text="ID da conta de origem."),
+                "to_account": serializers.UUIDField(help_text="ID da conta de destino."),
+                "amount": serializers.DecimalField(max_digits=12, decimal_places=2, help_text="Valor retirado da conta de origem."),
+                "to_amount": serializers.DecimalField(max_digits=12, decimal_places=2, required=False, help_text="Valor depositado na conta de destino (se houver conversão)."),
+                "description": serializers.CharField(required=False, default="Transferência", help_text="Descrição curta da transferência."),
+                "date": serializers.DateField(help_text="Data da transação (YYYY-MM-DD).")
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name="TransferSuccessResponse",
+                fields={"message": serializers.CharField()}
+            ),
+            400: inline_serializer(
+                name="TransferErrorResponse",
+                fields={"error": serializers.CharField()}
+            ),
+            404: inline_serializer(
+                name="TransferNotFoundErrorResponse",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
     @action(detail=False, methods=['post'])
     @transaction.atomic
     def transfer(self, request):
+        """
+        Executa a transferência transacional em lote entre duas contas do usuário.
+        """
         from_account_id = request.data.get('from_account')
         to_account_id = request.data.get('to_account')
         amount = request.data.get('amount')
@@ -744,9 +966,47 @@ class TransactionViewSet(viewsets.ModelViewSet):
         
         return Response({'message': 'Transferência concluída com sucesso!'})
 
+    @extend_schema(
+        summary="Realiza uma distribuição em lote de fundos para subcontas (Bulk Transfer)",
+        description="Permite que um montante total seja debitado de uma conta de origem e distribuído proporcionalmente em depósitos de subcontas de destino coordenadas por um UUID de grupo.",
+        request=inline_serializer(
+            name="BulkTransferRequest",
+            fields={
+                "from_account": serializers.UUIDField(help_text="ID da conta de origem."),
+                "total_amount": serializers.DecimalField(max_digits=12, decimal_places=2, help_text="Valor total a ser debitado."),
+                "date": serializers.DateField(help_text="Data da distribuição (YYYY-MM-DD)."),
+                "distributions": inline_serializer(
+                    name="BulkTransferDistributionItem",
+                    many=True,
+                    fields={
+                        "to_account": serializers.UUIDField(help_text="ID da subconta de destino."),
+                        "amount": serializers.DecimalField(max_digits=12, decimal_places=2, help_text="Valor a ser depositado.")
+                    }
+                ),
+                "source_transaction": serializers.UUIDField(required=False, help_text="ID da transação de origem a ser vinculada ao grupo.")
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name="BulkTransferSuccessResponse",
+                fields={"message": serializers.CharField()}
+            ),
+            400: inline_serializer(
+                name="BulkTransferErrorResponse",
+                fields={"error": serializers.CharField()}
+            ),
+            404: inline_serializer(
+                name="BulkTransferNotFoundErrorResponse",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
     @action(detail=False, methods=['post'])
     @transaction.atomic
     def bulk_transfer(self, request):
+        """
+        Executa a distribuição automática do saldo de uma conta de origem para múltiplas subcontas.
+        """
         from_account_id = request.data.get('from_account')
         total_amount = request.data.get('total_amount')
         date_str = request.data.get('date')

@@ -20,4 +20,4 @@ google-auth==2.50.0
 requests==2.33.1
 pyotp==2.9.0
 qrcode==8.0
-
+drf-spectacular==0.29.0
