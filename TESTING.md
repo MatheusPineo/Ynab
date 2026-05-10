@@ -76,7 +76,32 @@ class TestAccountRecursion:
         assert parent_account.get_consolidated_balance() == Decimal('1500.00')
 ```
 
-### B. Execução e Relatórios de Cobertura (Backend)
+### B. Como testar uploads de mídias e arquivos (`test_icons.py`)
+
+Para testar endpoints de upload que lidam com arquivos em lote ou Multipart Form Data (como ícones de contas ou fotos de avatar), utilize a classe `SimpleUploadedFile` do Django para criar arquivos simulados na memória:
+
+```python
+from django.core.files.uploadedfile import SimpleUploadedFile
+from rest_framework import status
+
+def test_icon_upload_endpoint(self):
+    # Cria uma imagem fictícia de 1 pixel em memória para fins de teste
+    image_data = (
+        b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4'
+        b'\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+    )
+    fake_file = SimpleUploadedFile("test_icon.png", image_data, content_type="image/png")
+    
+    response = self.client.post(
+        '/api/icons/upload/',
+        {'file': fake_file},
+        format='multipart'
+    )
+    self.assertEqual(response.status_code, status.HTTP_200_OK)
+    self.assertIn('url', response.json())
+```
+
+### C. Execução e Relatórios de Cobertura (Backend)
 
 Para verificar quais partes do código Django não estão cobertas por testes, utilizamos o pacote `pytest-cov`.
 
