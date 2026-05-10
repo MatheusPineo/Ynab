@@ -284,8 +284,8 @@ class AccountViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         account = serializer.save(user=self.request.user)
         
-        # Se for uma subconta (tem conta pai) e possuir saldo positivo
-        if account.parent is not None and account.balance > 0:
+        # Se possuir saldo positivo
+        if account.balance > 0:
             from datetime import date
             Transaction.objects.create(
                 account=account,
@@ -304,8 +304,8 @@ class AccountViewSet(viewsets.ModelViewSet):
         
         account = serializer.save()
         
-        # Se for uma subconta (tem conta pai) e houver alteração no saldo
-        if account.parent is not None and account.balance != old_balance:
+        # Se houver alteração no saldo
+        if account.balance != old_balance:
             from datetime import date
             diff = account.balance - old_balance
             if diff > 0:

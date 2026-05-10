@@ -223,28 +223,26 @@ class AccountsAndCategoriesTests(TestCase):
         response = self.client.delete(reverse('category-detail', args=[cat_id]))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-    def test_automatic_income_on_subaccount_creation(self):
+    def test_automatic_income_on_account_creation(self):
         from .models import Transaction
-        parent = Account.objects.create(user=self.user, name='Parent Bank', currency='BRL')
         
-        # Cria uma subconta com saldo inicial de 1000.00
+        # Cria uma conta mestre (sem parent) com saldo inicial de 1000.00
         response = self.client.post(reverse('account-list'), {
-            'name': 'Sub Savings',
-            'account_type': 'savings',
+            'name': 'Main Checking',
+            'account_type': 'checking',
             'currency': 'BRL',
-            'balance': '1000.00',
-            'parent': parent.id
+            'balance': '1000.00'
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         
         account_id = response.data['id']
-        sub_acc = Account.objects.get(id=account_id)
+        acc = Account.objects.get(id=account_id)
         
         # Verifica se o saldo é 1000.00
-        self.assertEqual(float(sub_acc.balance), 1000.00)
+        self.assertEqual(float(acc.balance), 1000.00)
         
         # Verifica se foi criada uma transação de receita de saldo inicial vinculada
-        transactions = Transaction.objects.filter(account=sub_acc)
+        transactions = Transaction.objects.filter(account=acc)
         self.assertEqual(transactions.count(), 1)
         
         tx = transactions.first()
@@ -254,39 +252,38 @@ class AccountsAndCategoriesTests(TestCase):
         self.assertTrue(tx.is_applied_to_balance)
         self.assertIn("Saldo Inicial", tx.description)
 
-    def test_automatic_adjustment_on_subaccount_balance_update(self):
+    def test_automatic_adjustment_on_account_balance_update(self):
         from .models import Transaction
-        parent = Account.objects.create(user=self.user, name='Parent Bank', currency='BRL')
         
-        # Cria a subconta com saldo inicial 1000
-        sub = Account.objects.create(user=self.user, name='Sub', parent=parent, currency='BRL', balance=Decimal('1000.00'))
+        # Cria a conta mestre (sem parent) com saldo inicial 1000
+        acc = Account.objects.create(user=self.user, name='Main Checking', currency='BRL', balance=Decimal('1000.00'))
         
         # Atualiza o saldo para 1500.00 (Aumento)
-        response = self.client.patch(reverse('account-detail', args=[sub.id]), {
+        response = self.client.patch(reverse('account-detail', args=[acc.id]), {
             'balance': '1500.00'
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        sub.refresh_from_db()
-        self.assertEqual(float(sub.balance), 1500.00)
+        acc.refresh_from_db()
+        self.assertEqual(float(acc.balance), 1500.00)
         
         # Deve ter gerado um ajuste de aumento
-        tx_aumento = Transaction.objects.filter(account=sub, is_income=True).first()
+        tx_aumento = Transaction.objects.filter(account=acc, is_income=True).first()
         self.assertIsNotNone(tx_aumento)
         self.assertEqual(float(tx_aumento.amount), 500.00)
         self.assertIn("Ajuste de Saldo (Aumento)", tx_aumento.description)
         
         # Agora atualiza o saldo para 1200.00 (Redução)
-        response = self.client.patch(reverse('account-detail', args=[sub.id]), {
+        response = self.client.patch(reverse('account-detail', args=[acc.id]), {
             'balance': '1200.00'
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
-        sub.refresh_from_db()
-        self.assertEqual(float(sub.balance), 1200.00)
+        acc.refresh_from_db()
+        self.assertEqual(float(acc.balance), 1200.00)
         
         # Deve ter gerado um ajuste de redução (despesa)
-        tx_reducao = Transaction.objects.filter(account=sub, is_income=False).first()
+        tx_reducao = Transaction.objects.filter(account=acc, is_income=False).first()
         self.assertIsNotNone(tx_reducao)
         self.assertEqual(float(tx_reducao.amount), 300.00)
         self.assertIn("Ajuste de Saldo (Redução)", tx_reducao.description)
