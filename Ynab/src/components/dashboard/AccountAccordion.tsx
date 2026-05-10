@@ -358,52 +358,6 @@ export const AccountAccordion = ({ tree }: Props) => {
       onDragEnd={handleDragEnd}
     >
       <div className="flex flex-col gap-4">
-        {/* Área de Drop para nível raiz */}
-        <div 
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.currentTarget.classList.add("border-primary", "bg-primary/10", "scale-[1.01]");
-          }}
-          onDragLeave={(e) => {
-            e.currentTarget.classList.remove("border-primary", "bg-primary/10", "scale-[1.01]");
-          }}
-          onDrop={async (e) => {
-            e.preventDefault();
-            e.currentTarget.classList.remove("border-primary", "bg-primary/10", "scale-[1.01]");
-            const draggedIdStr = e.dataTransfer.getData("text/plain");
-            if (!draggedIdStr) return;
-            const draggedId = Number(draggedIdStr);
-            
-            const findNode = (nodes: AccountNode[], id: number): AccountNode | null => {
-              for (const n of nodes) {
-                if (n.id === id) return n;
-                if (n.children) {
-                  const found = findNode(n.children, id);
-                  if (found) return found;
-                }
-              }
-              return null;
-            };
-
-            const draggedNode = findNode(tree, draggedId);
-            if (draggedNode && draggedNode.parent === null) {
-              // Já é mestre
-              return;
-            }
-
-            try {
-              const { updateNode } = useAccountStore.getState();
-              await updateNode(draggedId, { parent: null });
-              toast.success(`Conta "${draggedNode?.name || ""}" transformada em Conta Mestre (Nível Superior).`);
-            } catch (err: any) {
-              toast.error("Erro ao mover conta para a raiz: " + (err.message || "Erro desconhecido"));
-            }
-          }}
-          className="border border-dashed border-border/60 hover:border-primary/50 bg-card/20 hover:bg-card/30 rounded-2xl py-3 px-4 text-center text-xs text-muted-foreground hover:text-primary transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group shadow-sm mb-2"
-        >
-          <Move className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
-          Arraste qualquer conta aqui para transformá-la em Conta Mestre (Nível Superior)
-        </div>
 
         <SortableContext items={tree.map(n => n.id)} strategy={verticalListSortingStrategy}>
           {tree.map((root) => (
