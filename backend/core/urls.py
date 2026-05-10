@@ -4,7 +4,8 @@ from .views import (
     AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, 
     MonthlyBudgetViewSet, ping, UpdateProfileView, ChangePasswordView,
     TwoFactorSetupView, TwoFactorVerifyView, TwoFactorDisableView, TwoFactorLoginView,
-    IconUploadView, DistributionTemplateViewSet, DebtViewSet, DebtPaymentViewSet
+    IconUploadView, DistributionTemplateViewSet, DebtViewSet, DebtPaymentViewSet,
+    ResetDataView
 )
 
 # O Router do DRF cria automaticamente as rotas GET, POST, PUT, DELETE
@@ -23,6 +24,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('ping/', ping, name='ping'),
     path('auth/profile/update/', UpdateProfileView.as_view(), name='profile-update'),
+    path('auth/profile/reset-data/', ResetDataView.as_view(), name='profile-reset-data'),
     path('auth/password/change/', ChangePasswordView.as_view(), name='password-change'),
     path('auth/2fa/setup/', TwoFactorSetupView.as_view(), name='2fa-setup'),
     path('auth/2fa/verify/', TwoFactorVerifyView.as_view(), name='2fa-verify'),

@@ -3,6 +3,7 @@ import { useAuthStore } from "@/store/useAuthStore";
 import { useAccountStore } from "@/store/useAccountStore";
 import { useCurrencyStore } from "@/store/useCurrencyStore";
 import { useSettingsStore } from "@/store/useSettingsStore";
+import { useDebtStore } from "@/store/useDebtStore";
 import { formatMoney, getCurrencySymbol } from "@/lib/currency-utils";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
@@ -111,6 +112,11 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  
+  // Reset states
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
   
   // 2FA states
   const [is2FAModalOpen, setIs2FAModalOpen] = useState(false);
@@ -326,8 +332,13 @@ const Settings = () => {
     saveDistributionTemplate,
     getAccountName,
     fetchAccounts,
+    fetchTransactions,
+    fetchCategoryGroups,
+    fetchGoals,
     tree 
   } = useAccountStore();
+
+  const { fetchDebts } = useDebtStore();
 
   const accountsFlat = useMemo(() => {
     const list: any[] = [];
@@ -377,6 +388,46 @@ const Settings = () => {
       }))
     });
     setIsEditingTemplate(false);
+  };
+
+  const handleResetData = async () => {
+    if (resetConfirmation !== "EXCLUIR") {
+      toast.error("Por favor, digite EXCLUIR para confirmar.");
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
+      const response = await fetch(`${baseUrl}/auth/profile/reset-data/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) throw new Error("Falha ao zerar dados");
+
+      toast.success("Todos os dados financeiros foram excluídos com sucesso!");
+      
+      // Atualiza todas as stores locais para refletir o banco vazio
+      await Promise.all([
+        fetchAccounts(),
+        fetchTransactions(),
+        fetchCategoryGroups(),
+        fetchGoals(),
+        fetchDistributionTemplates(),
+        fetchDebts()
+      ]);
+
+      setIsResetModalOpen(false);
+      setResetConfirmation("");
+    } catch (error: any) {
+      toast.error(error.message || "Falha ao zerar dados.");
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   const handleLogout = () => {
@@ -858,6 +909,22 @@ const Settings = () => {
                     Exportar JSON
                   </Button>
                 </div>
+
+                <div className="p-6 rounded-3xl bg-rose-500/5 border border-rose-500/10 hover:border-rose-500/20 transition-all space-y-4">
+                  <div className="h-10 w-10 rounded-2xl bg-rose-500/10 flex items-center justify-center">
+                    <Trash2 className="h-5 w-5 text-rose-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="font-bold text-rose-400">Zona de Perigo: Zerar Dados</p>
+                    <p className="text-xs text-muted-foreground text-pretty">Exclua permanentemente todas as suas transações, contas e categorias para começar do zero.</p>
+                  </div>
+                  <Button 
+                    onClick={() => setIsResetModalOpen(true)}
+                    className="w-full rounded-xl gap-2 h-10 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 hover:text-rose-400 border border-rose-500/20 font-bold transition-all animate-pulse-subtle"
+                  >
+                    <Trash2 className="h-4 w-4" /> Zerar Minha Conta
+                  </Button>
+                </div>
               </div>
 
 
@@ -1033,6 +1100,51 @@ const Settings = () => {
           </Dialog>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de Confirmação para Zerar Dados */}
+      <Dialog open={isResetModalOpen} onOpenChange={setIsResetModalOpen}>
+        <DialogContent className="rounded-3xl border-rose-500/20 bg-card/95 backdrop-blur-xl sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-bold text-rose-500 flex items-center gap-2">
+              <Trash2 className="h-6 w-6" /> Zerar Todos os Dados?
+            </DialogTitle>
+            <DialogDescription className="text-pretty text-sm">
+              Esta ação é irreversível. Todos os seus registros financeiros serão apagados de forma permanente de nossos servidores. Seu usuário e perfil continuarão ativos.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <p className="text-xs text-muted-foreground">
+              Para confirmar, digite a palavra <span className="font-black text-rose-500 tracking-wider">EXCLUIR</span> no campo abaixo:
+            </p>
+            <Input 
+              placeholder="EXCLUIR"
+              value={resetConfirmation}
+              onChange={(e) => setResetConfirmation(e.target.value)}
+              className="text-center font-bold tracking-widest text-lg h-11 bg-background/50 rounded-xl border-rose-500/20 focus:border-rose-500 focus:ring-rose-500"
+            />
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="ghost" 
+              onClick={() => { setIsResetModalOpen(false); setResetConfirmation(""); }}
+              className="rounded-xl"
+              disabled={isResetting}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleResetData}
+              disabled={isResetting || resetConfirmation !== "EXCLUIR"}
+              className="bg-rose-500 hover:bg-rose-600 text-white px-6 rounded-xl font-bold shadow-sm h-10 gap-1.5"
+            >
+              {isResetting ? "Excluindo..." : "Excluir Permanentemente"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="h-10" />
     </div>
   );

@@ -142,6 +142,11 @@ flowchart TD
     F -->|Não| M[Fim da Sincronização]
 ```
 
+### 4.1 Geração Automática de Ajustes de Saldo em Subcontas
+Para facilitar a reconciliação e o lançamento de saldos iniciais de envelopes/subcontas sem a necessidade de digitação manual de transações repetitivas, o backend (`AccountViewSet`) intercepta as operações de criação e atualização de saldos em subcontas (`parent is not None`).
+* **Na criação de uma subconta**: Se o saldo atual for maior que zero, é gerada automaticamente uma transação de receita com a descrição `'Saldo Inicial de [Nome]'` e valor equivalente, pré-aplicada ao saldo (`is_applied_to_balance=True`, `status='realized'`).
+* **Na atualização de uma subconta**: Se o saldo atual for alterado, o sistema calcula a diferença ($\Delta$) entre o saldo anterior e o novo saldo. Se $\Delta > 0$, cria-se um ajuste de receita automática no valor de $\Delta$. Se $\Delta < 0$, cria-se um ajuste de despesa automática no valor de $|\Delta|$. Ambas as transações são criadas com `is_applied_to_balance=True` e `status='realized'`.
+
 ---
 
 ## 5. Arquitetura de Segurança: Pipeline JWT + 2FA

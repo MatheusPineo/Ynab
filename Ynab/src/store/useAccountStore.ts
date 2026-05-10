@@ -169,6 +169,7 @@ export const useAccountStore = create<AccountState>()(
           if (!response.ok) throw new Error("Falha ao criar conta");
           
           await get().fetchAccounts();
+          await get().fetchTransactions();
           toast.success(`Conta "${partialNode.name}" criada!`);
         } catch (error: any) {
           toast.error(error.message);
@@ -185,6 +186,7 @@ export const useAccountStore = create<AccountState>()(
           if (!response.ok) throw new Error("Falha ao atualizar conta");
           
           await get().fetchAccounts();
+          await get().fetchTransactions();
           toast.success("Conta atualizada com sucesso!");
         } catch (error: any) {
           toast.error(error.message);
@@ -201,6 +203,7 @@ export const useAccountStore = create<AccountState>()(
           if (!response.ok) throw new Error("Falha ao excluir conta");
           
           await get().fetchAccounts();
+          await get().fetchTransactions();
         } catch (error: any) {
           toast.error(error.message);
         }

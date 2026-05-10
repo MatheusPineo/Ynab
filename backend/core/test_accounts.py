@@ -222,3 +222,96 @@ class AccountsAndCategoriesTests(TestCase):
         # Delete
         response = self.client.delete(reverse('category-detail', args=[cat_id]))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_automatic_income_on_subaccount_creation(self):
+        from .models import Transaction
+        parent = Account.objects.create(user=self.user, name='Parent Bank', currency='BRL')
+        
+        # Cria uma subconta com saldo inicial de 1000.00
+        response = self.client.post(reverse('account-list'), {
+            'name': 'Sub Savings',
+            'account_type': 'savings',
+            'currency': 'BRL',
+            'balance': '1000.00',
+            'parent': parent.id
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        account_id = response.data['id']
+        sub_acc = Account.objects.get(id=account_id)
+        
+        # Verifica se o saldo é 1000.00
+        self.assertEqual(float(sub_acc.balance), 1000.00)
+        
+        # Verifica se foi criada uma transação de receita de saldo inicial vinculada
+        transactions = Transaction.objects.filter(account=sub_acc)
+        self.assertEqual(transactions.count(), 1)
+        
+        tx = transactions.first()
+        self.assertEqual(float(tx.amount), 1000.00)
+        self.assertTrue(tx.is_income)
+        self.assertEqual(tx.status, 'realized')
+        self.assertTrue(tx.is_applied_to_balance)
+        self.assertIn("Saldo Inicial", tx.description)
+
+    def test_automatic_adjustment_on_subaccount_balance_update(self):
+        from .models import Transaction
+        parent = Account.objects.create(user=self.user, name='Parent Bank', currency='BRL')
+        
+        # Cria a subconta com saldo inicial 1000
+        sub = Account.objects.create(user=self.user, name='Sub', parent=parent, currency='BRL', balance=Decimal('1000.00'))
+        
+        # Atualiza o saldo para 1500.00 (Aumento)
+        response = self.client.patch(reverse('account-detail', args=[sub.id]), {
+            'balance': '1500.00'
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        sub.refresh_from_db()
+        self.assertEqual(float(sub.balance), 1500.00)
+        
+        # Deve ter gerado um ajuste de aumento
+        tx_aumento = Transaction.objects.filter(account=sub, is_income=True).first()
+        self.assertIsNotNone(tx_aumento)
+        self.assertEqual(float(tx_aumento.amount), 500.00)
+        self.assertIn("Ajuste de Saldo (Aumento)", tx_aumento.description)
+        
+        # Agora atualiza o saldo para 1200.00 (Redução)
+        response = self.client.patch(reverse('account-detail', args=[sub.id]), {
+            'balance': '1200.00'
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        sub.refresh_from_db()
+        self.assertEqual(float(sub.balance), 1200.00)
+        
+        # Deve ter gerado um ajuste de redução (despesa)
+        tx_reducao = Transaction.objects.filter(account=sub, is_income=False).first()
+        self.assertIsNotNone(tx_reducao)
+        self.assertEqual(float(tx_reducao.amount), 300.00)
+        self.assertIn("Ajuste de Saldo (Redução)", tx_reducao.description)
+
+    def test_profile_reset_data(self):
+        from .models import Transaction, Goal, Debt, Category
+        
+        # Popular banco com dados financeiros do usuário
+        acc = Account.objects.create(user=self.user, name='My Wallet', balance=500.00)
+        Category.objects.create(user=self.user, name='Shopping')
+        Transaction.objects.create(account=acc, amount=Decimal('50.00'), description='Coffee', is_income=False, date='2026-05-10')
+        Goal.objects.create(user=self.user, name='Car', target_amount=Decimal('10000.00'))
+        Debt.objects.create(user=self.user, counterparty_name='John', original_amount=Decimal('200.00'), is_mine=True)
+        
+        # Chamar endpoint de reset
+        response = self.client.post(reverse('profile-reset-data'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("excluídos com sucesso", response.data['message'])
+        
+        # Verificar se os dados financeiros do usuário foram deletados
+        self.assertEqual(Account.objects.filter(user=self.user).count(), 0)
+        self.assertEqual(Category.objects.filter(user=self.user).count(), 0)
+        self.assertEqual(Transaction.objects.filter(account__user=self.user).count(), 0)
+        self.assertEqual(Goal.objects.filter(user=self.user).count(), 0)
+        self.assertEqual(Debt.objects.filter(user=self.user).count(), 0)
+        
+        # Garantir que o usuário em si e seu perfil continuam existindo
+        self.assertTrue(User.objects.filter(id=self.user.id).exists())

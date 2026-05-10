@@ -280,11 +280,54 @@ class AccountViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Account.objects.filter(user=self.request.user).select_related('parent')
 
+    @transaction.atomic
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        account = serializer.save(user=self.request.user)
+        
+        # Se for uma subconta (tem conta pai) e possuir saldo positivo
+        if account.parent is not None and account.balance > 0:
+            from datetime import date
+            Transaction.objects.create(
+                account=account,
+                amount=account.balance,
+                description=f"Saldo Inicial de {account.name}",
+                date=date.today(),
+                is_income=True,
+                status='realized',
+                is_applied_to_balance=True
+            )
 
+    @transaction.atomic
     def perform_update(self, serializer):
-        serializer.save()
+        old_account = self.get_object()
+        old_balance = old_account.balance
+        
+        account = serializer.save()
+        
+        # Se for uma subconta (tem conta pai) e houver alteração no saldo
+        if account.parent is not None and account.balance != old_balance:
+            from datetime import date
+            diff = account.balance - old_balance
+            if diff > 0:
+                Transaction.objects.create(
+                    account=account,
+                    amount=diff,
+                    description=f"Ajuste de Saldo (Aumento) de {account.name}",
+                    date=date.today(),
+                    is_income=True,
+                    status='realized',
+                    is_applied_to_balance=True
+                )
+            else:
+                Transaction.objects.create(
+                    account=account,
+                    amount=abs(diff),
+                    description=f"Ajuste de Saldo (Redução) de {account.name}",
+                    date=date.today(),
+                    is_income=False,
+                    status='realized',
+                    is_applied_to_balance=True
+                )
 
     @extend_schema(
         summary="Retorna a árvore hierárquica de contas do usuário",
@@ -1447,3 +1490,40 @@ class DebtPaymentViewSet(viewsets.ModelViewSet):
             payment.account.save()
             payment.transaction.delete()
         return super().destroy(request, *args, **kwargs)
+
+class ResetDataView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Zera todos os dados financeiros do usuário logado",
+        description="Exclui de forma permanente todas as transações, contas, categorias, metas, dívidas e modelos de distribuição do usuário autenticado, mantendo apenas o seu cadastro e perfil de acesso.",
+        responses={
+            200: inline_serializer(
+                name="ResetDataSuccessResponse",
+                fields={"message": serializers.CharField()}
+            )
+        }
+    )
+    @transaction.atomic
+    def post(self, request):
+        user = request.user
+        
+        # 1. Deletar dívidas (e pagamentos associados por cascade)
+        Debt.objects.filter(user=user).delete()
+        
+        # 2. Deletar modelos de distribuição (e itens associados por cascade)
+        DistributionTemplate.objects.filter(user=user).delete()
+        
+        # 3. Deletar metas
+        Goal.objects.filter(user=user).delete()
+        
+        # 4. Deletar transações (transações vinculadas a contas do usuário)
+        Transaction.objects.filter(account__user=user).delete()
+        
+        # 5. Deletar contas do usuário
+        Account.objects.filter(user=user).delete()
+        
+        # 6. Deletar categorias (e orçamentos mensais associados por cascade)
+        Category.objects.filter(user=user).delete()
+        
+        return Response({"message": "Todos os seus dados financeiros foram excluídos com sucesso. Você pode recomeçar do zero agora!"}, status=status.HTTP_200_OK)
