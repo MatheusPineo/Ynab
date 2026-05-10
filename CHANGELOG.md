@@ -23,6 +23,11 @@ Esta versão foca em automação de reconciliação financeira para saldos inici
 ### Alterado
 * **Refatoração Visual Premium dos Badges de Teto de Contas:** Separação do indicador de limite/teto das contas em dois pills independentes, de cantos perfeitamente arredondados (`rounded-full`) e responsivos: o primeiro contendo o ícone de medidor (`Gauge`) acompanhado do valor do limite monetário, e o segundo exibindo a porcentagem consumida. O tamanho da fonte foi ampliado para `text-[13px]` para harmonizar elegantemente com a escala de tamanho do nome da conta, aprimorando significativamente o equilíbrio visual e a legibilidade das métricas de teto em telas desktop e mobile.
 
+### Corrigido
+* **Normalização de Ícones no Windows (Barras Invertidas):** Correção do bug que gerava caminhos com barras invertidas (`\`) ao salvar imagens através do `default_storage.save` no Windows, comprometendo as URLs absolutas dos ícones retornadas pelo endpoint `/api/icons/upload/`. Agora, todas as barras são normalizadas com `.replace('\\', '/')`, garantindo renderização instantânea do preview em qualquer SO.
+* **Serviço de Arquivos de Mídia em Produção (Django):** Inclusão de mapeamento de URLs dinâmicas para arquivos estáticos e de mídia na raiz `ynab_backend/urls.py` via `django.views.static.serve` quando `DEBUG=False`. Isso resolve em definitivo o erro `404 Not Found` no Render ao acessar imagens, avatares ou ícones enviados pelos usuários na plataforma online.
+* **Coleta de Testes de Ícones no Pytest:** Ajuste do nome do arquivo de testes de `tests_icon.py` para `test_icons.py` para estar em conformidade com as regras de nomenclatura do Pytest e ser incluído na suíte automatizada de testes, além de adicionar o caso `test_icon_upload_endpoint` simulando uploads Multipart.
+
 ---
 
 ## [1.2.0] — 2026-05-10
