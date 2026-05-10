@@ -1409,7 +1409,10 @@ class IconUploadView(APIView):
         # Salva o arquivo
         from django.core.files.storage import default_storage
         filename = default_storage.save(f'icons/{file.name}', file)
-        file_url = request.build_absolute_uri(settings.MEDIA_URL + filename)
+        
+        # Normaliza barras invertidas do Windows para barras normais de URL
+        filename_normalized = filename.replace('\\', '/')
+        file_url = request.build_absolute_uri(settings.MEDIA_URL + filename_normalized)
         
         return Response({'url': file_url})
 
