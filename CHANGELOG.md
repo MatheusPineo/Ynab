@@ -21,6 +21,9 @@ Esta versão foca em automação de reconciliação financeira para saldos inici
 * **Zona de Perigo com Dupla Confirmação nas Configurações:** Interface do usuário premium na aba "Dados" em `Settings.tsx` com uma seção visual estilizada de "Zona de Perigo" de alto impacto estético, integrada com um modal de dupla confirmação de segurança que exige do usuário digitar a palavra-chave "EXCLUIR" para prevenir ações destrutivas acidentais.
 * **Novos Casos de Teste Automatizados (Backend):** Inclusão de testes robustos no Pytest em `test_accounts.py` (`test_automatic_income_on_account_creation`, `test_automatic_adjustment_on_account_balance_update`, `test_account_circular_dependency_prevention` e `test_profile_reset_data`) para auditar todas as novas regras de negócio, prevenção de ciclos cíclicos e garantir 100% de estabilidade e integridade funcional.
 
+### Alterado
+* **Refatoração Visual Premium dos Badges de Teto de Contas:** Separação do indicador de limite/teto das contas em dois pills independentes, de cantos perfeitamente arredondados (`rounded-full`) e responsivos: o primeiro contendo o ícone de medidor (`Gauge`) acompanhado do valor do limite monetário, e o segundo exibindo a porcentagem consumida. O tamanho da fonte foi ampliado para `text-[13px]` para harmonizar elegantemente com a escala de tamanho do nome da conta, aprimorando significativamente o equilíbrio visual e a legibilidade das métricas de teto em telas desktop e mobile.
+
 ---
 
 ## [1.2.0] — 2026-05-10

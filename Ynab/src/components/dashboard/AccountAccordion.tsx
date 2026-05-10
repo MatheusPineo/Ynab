@@ -250,16 +250,25 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
           }
           
           return (
-            <div className={cn(
-              "flex items-center gap-1.5 ml-4 sm:ml-5 px-1.5 sm:px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-bold select-none shrink-0 transition-all border",
-              colorClasses
-            )}>
-              <Gauge className={cn("h-3 w-3 shrink-0", pct >= 100 ? "text-zinc-950" : "")} />
-              <span>
-                {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
-                {"/"}
-                {pct}%
-              </span>
+            <div className="flex items-center gap-1.5 ml-3 sm:ml-4 shrink-0 select-none">
+              {/* Pill 1: Medidor + Valor Limite */}
+              <div className={cn(
+                "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs sm:text-[13px] font-bold border transition-all shadow-sm",
+                colorClasses
+              )}>
+                <Gauge className={cn("h-3.5 w-3.5 shrink-0", pct >= 100 ? "text-zinc-950 animate-pulse" : "opacity-90")} />
+                <span>
+                  {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
+                </span>
+              </div>
+              
+              {/* Pill 2: Porcentagem */}
+              <div className={cn(
+                "px-2.5 py-1 rounded-full text-xs sm:text-[13px] font-bold border transition-all shadow-sm",
+                colorClasses
+              )}>
+                <span>{pct}%</span>
+              </div>
             </div>
           );
         })()}
