@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronRight, Plus, GripVertical, Gauge } from "lucide-react";
+import { ChevronRight, Plus, GripVertical, Gauge, Move } from "lucide-react";
+import { toast } from "sonner";
 import {
   type AccountNode,
   type Currency,
@@ -51,6 +52,8 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
   const total = sumNode(node);
   const isMaster = depth === 0;
 
+  const { updateNode, tree } = useAccountStore();
+
   const {
     attributes,
     listeners,
@@ -67,12 +70,87 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
     zIndex: isDragging ? 10 : 1,
   };
 
+  // HTML5 Drag & Drop Nativo para movimentação hierárquica
+  const handleDragStart = (e: React.DragEvent) => {
+    e.stopPropagation();
+    e.dataTransfer.setData("text/plain", node.id.toString());
+    e.dataTransfer.effectAllowed = "move";
+    e.currentTarget.classList.add("opacity-40");
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    e.stopPropagation();
+    e.currentTarget.classList.remove("opacity-40");
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    e.currentTarget.classList.add("border-primary", "bg-primary/5");
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
+    e.currentTarget.classList.remove("border-primary", "bg-primary/5");
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove("border-primary", "bg-primary/5");
+
+    const draggedIdStr = e.dataTransfer.getData("text/plain");
+    if (!draggedIdStr) return;
+
+    const draggedId = Number(draggedIdStr);
+    const targetId = node.id;
+
+    if (draggedId === targetId) return;
+
+    // Verificar se o targetId é descendente do draggedId (evitar loops)
+    const isDescendant = (parent: AccountNode, childId: number): boolean => {
+      if (!parent.children) return false;
+      return parent.children.some(child => child.id === childId || isDescendant(child, childId));
+    };
+
+    const findNode = (nodes: AccountNode[], id: number): AccountNode | null => {
+      for (const n of nodes) {
+        if (n.id === id) return n;
+        if (n.children) {
+          const found = findNode(n.children, id);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const draggedNode = findNode(tree, draggedId);
+    if (draggedNode && isDescendant(draggedNode, targetId)) {
+      toast.error("Não é possível mover uma conta para dentro de seus próprios descendentes.");
+      return;
+    }
+
+    try {
+      await updateNode(draggedId, { parent: targetId });
+      toast.success(`Conta "${draggedNode?.name || ""}" movida para dentro de "${node.name}" com sucesso!`);
+    } catch (err: any) {
+      toast.error("Erro ao mover conta: " + (err.message || "Erro desconhecido"));
+    }
+  };
+
   const RowContent = (
     <div 
       ref={setNodeRef} 
       style={style}
+      draggable={true}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
       className={cn(
-        "transition-all duration-300 ease-in-out",
+        "transition-all duration-300 ease-in-out border border-transparent rounded-xl",
         !isMaster && "mx-1 sm:mx-3 mb-2 w-[calc(100%-8px)] sm:w-[calc(100%-24px)]", // Reduz largura de tudo que não for raiz
         hasChildren && "border border-border/60 rounded-xl overflow-hidden bg-background/20 shadow-soft", // Estilo pasta (para quem tem filhos)
         isDragging && "shadow-elevated z-10"
@@ -271,6 +349,53 @@ export const AccountAccordion = ({ tree }: Props) => {
       onDragEnd={handleDragEnd}
     >
       <div className="flex flex-col gap-4">
+        {/* Área de Drop para nível raiz */}
+        <div 
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.currentTarget.classList.add("border-primary", "bg-primary/10", "scale-[1.01]");
+          }}
+          onDragLeave={(e) => {
+            e.currentTarget.classList.remove("border-primary", "bg-primary/10", "scale-[1.01]");
+          }}
+          onDrop={async (e) => {
+            e.preventDefault();
+            e.currentTarget.classList.remove("border-primary", "bg-primary/10", "scale-[1.01]");
+            const draggedIdStr = e.dataTransfer.getData("text/plain");
+            if (!draggedIdStr) return;
+            const draggedId = Number(draggedIdStr);
+            
+            const findNode = (nodes: AccountNode[], id: number): AccountNode | null => {
+              for (const n of nodes) {
+                if (n.id === id) return n;
+                if (n.children) {
+                  const found = findNode(n.children, id);
+                  if (found) return found;
+                }
+              }
+              return null;
+            };
+
+            const draggedNode = findNode(tree, draggedId);
+            if (draggedNode && draggedNode.parent === null) {
+              // Já é mestre
+              return;
+            }
+
+            try {
+              const { updateNode } = useAccountStore.getState();
+              await updateNode(draggedId, { parent: null });
+              toast.success(`Conta "${draggedNode?.name || ""}" transformada em Conta Mestre (Nível Superior).`);
+            } catch (err: any) {
+              toast.error("Erro ao mover conta para a raiz: " + (err.message || "Erro desconhecido"));
+            }
+          }}
+          className="border border-dashed border-border/60 hover:border-primary/50 bg-card/20 hover:bg-card/30 rounded-2xl py-3 px-4 text-center text-xs text-muted-foreground hover:text-primary transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer group shadow-sm mb-2"
+        >
+          <Move className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+          Arraste qualquer conta aqui para transformá-la em Conta Mestre (Nível Superior)
+        </div>
+
         <SortableContext items={tree.map(n => n.id)} strategy={verticalListSortingStrategy}>
           {tree.map((root) => (
             <AccountRow

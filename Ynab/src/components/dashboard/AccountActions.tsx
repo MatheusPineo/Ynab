@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,7 +8,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Trash, Plus, Eye, LifeBuoy, ArrowRightFromLine } from "lucide-react";
+import { MoreHorizontal, Edit, Trash, Plus, Eye, LifeBuoy, ArrowRightFromLine, Move } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   Dialog,
@@ -17,6 +17,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { HelpTooltip } from "@/components/ui/help-tooltip";
@@ -39,7 +46,41 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [editedCeiling, setEditedCeiling] = useState<number | null>(account.ceiling ?? null);
   const [isSaving, setIsSaving] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
-  const { updateNode, deleteNode, coverOverspending, distributeExcess } = useAccountStore();
+  
+  // Mover Conta (App & Web)
+  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [selectedParentId, setSelectedParentId] = useState<string>("root");
+  const { updateNode, deleteNode, coverOverspending, distributeExcess, tree } = useAccountStore();
+
+  useEffect(() => {
+    if (isMoveDialogOpen) {
+      setSelectedParentId(account.parent ? String(account.parent) : "root");
+    }
+  }, [isMoveDialogOpen, account]);
+
+  const eligibleParents = useMemo(() => {
+    const list: AccountNode[] = [];
+    
+    const isDescendantOrSelf = (parent: AccountNode, childId: number): boolean => {
+      if (parent.id === childId) return true;
+      if (!parent.children) return false;
+      return parent.children.some(child => isDescendantOrSelf(child, childId));
+    };
+
+    const walk = (nodes: AccountNode[]) => {
+      nodes.forEach(n => {
+        if (!isDescendantOrSelf(account, n.id)) {
+          list.push(n);
+        }
+        if (n.children) {
+          walk(n.children);
+        }
+      });
+    };
+
+    walk(tree);
+    return list;
+  }, [tree, account]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -119,6 +160,10 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
             <Edit className="mr-2 h-4 w-4" />
             Editar
           </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => setIsMoveDialogOpen(true)}>
+            <Move className="mr-2 h-4 w-4" />
+            Mover Conta
+          </DropdownMenuItem>
           <DropdownMenuItem onSelect={handleDelete} className="text-red-500">
             <Trash className="mr-2 h-4 w-4" />
             Deletar
@@ -194,7 +239,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                 onIconUploaded={(url) => {
                   setEditedIcon(url);
                 }} 
-              />
+                />
             </div>
             <DialogFooter>
               <Button 
@@ -206,6 +251,67 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Mover Conta (Mobile & Web Fallback) */}
+      <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] glass border-border/60">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 font-bold">
+              <Move className="h-5 w-5 text-primary" /> Mover Conta: {account.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="parent-select">Nova Conta Pai</Label>
+              <Select 
+                value={selectedParentId} 
+                onValueChange={setSelectedParentId}
+              >
+                <SelectTrigger id="parent-select" className="bg-background/50 border-border/60 rounded-xl h-11">
+                  <SelectValue placeholder="Selecione a conta pai" />
+                </SelectTrigger>
+                <SelectContent className="glass">
+                  <SelectItem value="root">Tornar Conta Mestre (Nível Superior / Sem Pai)</SelectItem>
+                  {eligibleParents.map(parent => (
+                    <SelectItem key={parent.id} value={String(parent.id)}>{parent.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">
+                O seletor filtra automaticamente e oculta a própria conta e todos os descendentes dela para prevenir recursão cíclica infinita.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button 
+              variant="ghost" 
+              onClick={() => setIsMoveDialogOpen(false)}
+              className="rounded-xl"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={async () => {
+                setIsSaving(true);
+                try {
+                  const newParent = selectedParentId === "root" ? null : Number(selectedParentId);
+                  await updateNode(account.id, { parent: newParent });
+                  toast.success(`Conta "${account.name}" movida com sucesso!`);
+                  setIsMoveDialogOpen(false);
+                } catch (error: any) {
+                  toast.error("Erro ao mover conta: " + (error.message || "Erro desconhecido"));
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+              disabled={isSaving}
+              className="gradient-primary px-6 rounded-xl font-bold shadow-glow h-10"
+            >
+              {isSaving ? "Movendo..." : "Confirmar Movimentação"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>

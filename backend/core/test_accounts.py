@@ -312,3 +312,38 @@ class AccountsAndCategoriesTests(TestCase):
         
         # Garantir que o usuário em si e seu perfil continuam existindo
         self.assertTrue(User.objects.filter(id=self.user.id).exists())
+
+    def test_account_circular_dependency_prevention(self):
+        root = Account.objects.create(user=self.user, name='Root Account')
+        child = Account.objects.create(user=self.user, name='Child Account', parent=root)
+        grandchild = Account.objects.create(user=self.user, name='Grandchild Account', parent=child)
+        
+        # 1. Tentar definir o pai de root como ele mesmo
+        response = self.client.patch(reverse('account-detail', args=[root.id]), {
+            'parent': root.id
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('parent', response.data)
+        
+        # 2. Tentar mover root para ser filho de child (descendente direto)
+        response = self.client.patch(reverse('account-detail', args=[root.id]), {
+            'parent': child.id
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('parent', response.data)
+        
+        # 3. Tentar mover root para ser filho de grandchild (descendente indireto)
+        response = self.client.patch(reverse('account-detail', args=[root.id]), {
+            'parent': grandchild.id
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn('parent', response.data)
+
+        # 4. Movimentação válida: mover grandchild para ser filho direto de root (subir de nível)
+        response = self.client.patch(reverse('account-detail', args=[grandchild.id]), {
+            'parent': root.id
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        grandchild.refresh_from_db()
+        self.assertEqual(grandchild.parent.id, root.id)
+

@@ -16,6 +16,21 @@ class AccountSerializer(serializers.ModelSerializer):
             'user': {'read_only': True},  # Preenchido automaticamente pela view
         }
 
+    def validate(self, attrs):
+        parent = attrs.get('parent')
+        if self.instance and parent:
+            if parent.id == self.instance.id:
+                raise serializers.ValidationError({"parent": "Uma conta não pode ser filha de si mesma."})
+            
+            # Verificar se o novo pai é um descendente da própria conta
+            current = parent
+            while current is not None:
+                if current.id == self.instance.id:
+                    raise serializers.ValidationError({"parent": "Uma conta não pode ser movida para dentro de um de seus próprios descendentes."})
+                current = current.parent
+                
+        return attrs
+
 class MonthlyBudgetSerializer(serializers.ModelSerializer):
     class Meta:
         model = MonthlyBudget
