@@ -3,28 +3,30 @@ import { useTranslation } from "react-i18next";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { Layout } from "@/components/dashboard/Layout";
-import { useAuthStore } from "@/store/useAuthStore";
-import Dashboard from "./pages/Dashboard.tsx";
-import Accounts from "./pages/Accounts.tsx";
-import Transactions from "./pages/Transactions.tsx";
-import Budget from "./pages/Budget.tsx";
-import Goals from "./pages/Goals.tsx";
-import Insights from "./pages/Insights.tsx";
-import Settings from "./pages/Settings.tsx";
-import AccountDetails from "./pages/AccountDetails.tsx";
-import Debts from "./pages/Debts.tsx";
-import Auth from "./pages/Auth.tsx";
-import Landing from "./pages/Landing.tsx";
-import NotFound from "./pages/NotFound.tsx";
-import TermsOfUse from "./pages/TermsOfUse.tsx";
-import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
-import CookiePolicy from "./pages/CookiePolicy.tsx";
-import CookieBanner from "@/components/ui/CookieBanner.tsx";
-import { useConsentTracker } from "@/hooks/useConsentTracker";
+import { Toaster as Sonner } from "@/shared/components/ui/sonner";
+import { Toaster } from "@/shared/components/ui/toaster";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
+import { Layout } from "@/shared/components/dashboard/Layout";
+import { useAuthStore } from "@/modules/auth/store/useAuthStore";
+import Dashboard from "@/modules/finance/pages/Dashboard";
+import Accounts from "@/modules/finance/pages/Accounts";
+import Transactions from "@/modules/finance/pages/Transactions";
+import Budget from "@/modules/finance/pages/Budget";
+import Goals from "@/modules/finance/pages/Goals";
+import Insights from "@/modules/finance/pages/Insights";
+import Settings from "@/modules/auth/pages/Settings";
+import AccountDetails from "@/modules/finance/pages/AccountDetails";
+import Debts from "@/modules/finance/pages/Debts";
+import Auth from "@/modules/auth/pages/Auth";
+import Landing from "@/modules/auth/pages/Landing";
+import NotFound from "@/modules/auth/pages/NotFound";
+import TermsOfUse from "@/modules/auth/pages/TermsOfUse";
+import PrivacyPolicy from "@/modules/auth/pages/PrivacyPolicy";
+import CookiePolicy from "@/modules/auth/pages/CookiePolicy";
+import CookieBanner from "@/modules/auth/components/CookieBanner";
+import { useConsentTracker } from "@/shared/hooks/useConsentTracker";
+import { FinanceDataTab, FinanceTemplatesTab } from "@/modules/finance/components/FinanceSettingsTab";
+import { Database, LayoutGrid } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -106,7 +108,35 @@ const App = () => {
                 <Route path="goals" element={<Goals />} />
                 <Route path="debts" element={<Debts />} />
                 <Route path="insights" element={<Insights />} />
-                <Route path="settings" element={<Settings />} />
+                <Route 
+                  path="settings" 
+                  element={
+                    <Settings 
+                      extraTabs={[
+                        {
+                          value: "data",
+                          trigger: (
+                            <>
+                              <Database className="h-4 w-4 shrink-0" />
+                              <span>Dados</span>
+                            </>
+                          ),
+                          content: <FinanceDataTab />
+                        },
+                        {
+                          value: "templates",
+                          trigger: (
+                            <>
+                              <LayoutGrid className="h-4 w-4 shrink-0" />
+                              <span>Modelos</span>
+                            </>
+                          ),
+                          content: <FinanceTemplatesTab />
+                        }
+                      ]} 
+                    />
+                  } 
+                />
                 <Route path="account/:id" element={<AccountDetails />} />
               </Route>
 

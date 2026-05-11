@@ -1,17 +1,17 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { NetWorthHeader } from '../../components/dashboard/NetWorthHeader';
+import { NetWorthHeader } from '@/modules/finance/components/NetWorthHeader';
 
 // Mock the stores
-vi.mock('../../store/useAccountStore', () => ({
+vi.mock('@/modules/finance/store/useAccountStore', () => ({
   useAccountStore: () => ({
     tree: [],
     totalsByCurrency: () => ({ EUR: 1500.50, BRL: 0, USD: 0 })
   })
 }));
 
-vi.mock('../../store/useCurrencyStore', () => ({
+vi.mock('@/modules/finance/store/useCurrencyStore', () => ({
   useCurrencyStore: () => ({
     baseCurrency: 'EUR',
     rates: { EUR: 1, BRL: 6.0, USD: 1.08 },

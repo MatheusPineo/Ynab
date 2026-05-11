@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useCurrencyStore } from '../store/useCurrencyStore';
+import { useCurrencyStore } from '@/modules/finance/store/useCurrencyStore';
 
 describe('useCurrencyStore', () => {
   beforeEach(() => {

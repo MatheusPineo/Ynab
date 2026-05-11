@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatMoney } from '../lib/currency-utils';
+import { formatMoney } from '@/shared/lib/currency-utils';
 
 describe('currency-utils', () => {
   it('should format EUR correctly', () => {

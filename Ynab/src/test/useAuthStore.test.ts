@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useAuthStore } from '../store/useAuthStore';
+import { useAuthStore } from '@/modules/auth/store/useAuthStore';
 
 describe('useAuthStore', () => {
   beforeEach(() => {
