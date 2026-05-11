@@ -2,7 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { BottomNav } from '../../components/dashboard/BottomNav';
+import { BottomNav } from '@/shared/components/dashboard/BottomNav';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

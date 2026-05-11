@@ -27,7 +27,7 @@ Os testes de herança recursiva de saldos devem garantir que transações criada
 import pytest
 from decimal import Decimal
 from datetime import date
-from core.models import Account, Transaction
+from finance.models import Account, Transaction
 
 @pytest.mark.django_db
 class TestAccountRecursion:
@@ -112,11 +112,11 @@ Para verificar quais partes do código Django não estão cobertas por testes, u
   ```
 * **Comando para gerar relatório de cobertura no terminal:**
   ```bash
-  pytest --cov=core
+  pytest --cov=core --cov=finance
   ```
 * **Comando para gerar relatório detalhado em HTML:**
   ```bash
-  pytest --cov=core --cov-report=html
+  pytest --cov=core --cov=finance --cov-report=html
   ```
   * *Uso:* Abra o arquivo `backend/htmlcov/index.html` em seu navegador para inspecionar visualmente quais linhas de código (views, serializadores, actions de transbordo) ainda precisam de testes.
 
@@ -218,6 +218,6 @@ Para mensurar e validar a cobertura do frontend com o Vitest:
 
 Toda vez que uma nova funcionalidade for desenvolvida, certifique-se de que a cobertura não sofreu regressões. Siga estes passos antes de abrir um PR:
 
-1. **Desenvolveu lógica de saldo no backend?** Escreva testes unitários cobrindo o `refresh_from_db()` no `core/test_accounts.py` ou `core/test_transactions.py`.
+1. **Desenvolveu lógica de saldo no backend?** Escreva testes unitários cobrindo o `refresh_from_db()` no `finance/test_accounts.py` ou `finance/test_transactions.py`.
 2. **Adicionou um seletor visual ou painel no React?** Crie um teste de renderização no diretório `src/test/components/` validando o comportamento de clique e visibilidade de strings de texto.
 3. **Validou os Mocks de Rede?** Verifique se nenhum teste depende de uma conexão real à internet ou banco de dados externo ativo.

@@ -6,6 +6,18 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.4.0] — 2026-05-11
+
+Esta versão representa um marco de engenharia focando em **Clean Architecture** e **Modularização de Alta Coesão**, separando de forma estrita e hermética a infraestrutura administrativa reutilizável do SaaS (**SaaS Boilerplate Starter Kit**) das lógicas e fluxos de negócios especializados de finanças e metodologia YNAB do **Vault Finance OS**.
+
+### Adicionado
+* **Isolamento de Infraestrutura SaaS (Boilerplate):** Encapsulamento completo de rotinas administrativas, JWT, perfil do usuário, autenticação segura multifator 2FA (TOTP) e políticas internacionais de dados (GDPR/LGPD) em módulos dedicados (`core` no Django e `src/modules/auth` no React).
+* **Módulo Especializado de Finanças (Domain Core):** Criação do módulo financeiro autocontido (`finance` no Django e `src/modules/finance` no React), responsável exclusivo por árvores de contas mestre e envelopes recursivos, algoritmos de teto/transbordo (*distribute_excess*), amortização de dívidas e metas.
+* **Estrutura Compartilhada de UI (Shared Componentry):** Unificação de componentes genéricos e primitives do Shadcn/ui sob o diretório `src/shared/`, otimizando a reusabilidade e blindando os módulos de negócios contra dependências acopladas.
+* **Garantia de Não-Regressão (Zero-Regression Pipeline):** Expansão e normalização da suíte de testes com 100% de sucesso em todas as verificações do backend (40 de 40 testes verdes no Pytest) e do frontend (27 de 27 testes verdes no Vitest).
+
+---
+
 ## [1.3.0] — 2026-05-10
 
 Esta versão foca em automação de reconciliação financeira para saldos iniciais de todas as contas (contas mestre e subcontas), na governança e privacidade dos dados do usuário com a funcionalidade de zerar dados, e na flexibilidade organizacional através da movimentação hierárquica dinâmica de contas e subcontas.

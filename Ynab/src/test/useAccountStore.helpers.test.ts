@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useAccountStore } from '../store/useAccountStore';
-import { AccountNode, CategoryNode, Transaction } from '../types';
+import { useAccountStore } from '@/modules/finance/store/useAccountStore';
+import { AccountNode, CategoryNode, Transaction } from '@/shared/types';
 
 describe('useAccountStore helpers', () => {
   const mockTree: AccountNode[] = [

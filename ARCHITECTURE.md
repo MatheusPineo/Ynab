@@ -209,3 +209,57 @@ A integridade dos dados financeiros e o isolamento de inquilinos (*tenant isolat
 Para garantir que a implementação corresponda ao nível exigido por instituições financeiras de alta auditoria, mantemos uma rotina ativa:
 * **Varredura Estática e Dinâmica (SAST/DAST):** Pipelines de deploy automatizados rodando scanners de dependências e analisadores de código estático para eliminar vulnerabilidades comuns da OWASP (como injeção SQL, quebras de autenticação e vazamento acidental de chaves de ambiente).
 * **Testes de Penetração Periódicos (Pentesting):** O sistema passa por simulações reais de invasão coordenadas por especialistas em cibersegurança e scripts automatizados, auditando robustez de rede, tratamento de CORS, cabeçalhos de segurança (HSTS, CSP) e a resiliência criptográfica da autenticação MFA/2FA.
+
+---
+
+## 6. Arquitetura Modular & Separação de Responsabilidades (SaaS Boilerplate vs. Lógica Financeira)
+
+Para extrair um **SaaS Boilerplate (Starter Kit)** reutilizável sem comprometer a integridade e estabilidade do **Vault Finance OS**, o ecossistema foi refatorado sob princípios de modularização estrita e desacoplamento de infraestrutura genérica e domínios de negócios.
+
+```mermaid
+graph TD
+    subgraph Ecossistema Modular
+        subgraph Infraestrutura SaaS (Boilerplate)
+            Auth[Sistemas de Autenticação / JWT]
+            Profiles[Gestão de Usuários / Perfil]
+            MFA[Segurança OTP / 2FA]
+            Legals[Termos de Uso / Privacidade]
+            Shared[Componentes Comuns / UI Base / Hooks]
+        end
+
+        subgraph Lógica de Negócios (Módulos de Domínio)
+            Ynab[Metodologia YNAB / Envelopes Base-Zero]
+            Accounts[Contas Hierárquicas Recursivas]
+            Transactions[Transações / Geração de Ajustes]
+            Convert[Conversor Cambial Multi-Moedas]
+            GoalsDebts[Gestão de Metas & Amortização de Dívidas]
+        end
+    end
+```
+
+### 📂 Estrutura de Diretórios do Frontend (`Ynab/src/`)
+A SPA adota uma estrutura baseada em módulos de recursos para encapsular dados, lógica e interfaces específicas:
+* **`src/modules/auth/` (Módulo Boilerplate SaaS):**
+  * `pages/` — Landing Page, Login, Cadastro, Confirmação de 2FA e Páginas Legais (Termos, Privacidade, Cookies).
+  * `components/` — Formulários de login, card de perfil, seletor de idioma regional e banner de cookies.
+  * `store/` — `useAuthStore` (gerenciamento do token JWT e dados do perfil logado).
+* **`src/modules/finance/` (Módulo de Negócio Financeiro):**
+  * `pages/` — Dashboard, Accounts (Minhas Contas), AccountDetails (Detalhes de Conta), Transactions (Transações), Budget (Orçamento/YNAB), Debts (Dívidas) e Goals (Metas).
+  * `components/` — Modais de lançamentos (`AddTransactionModal`), importadores de extratos (`ImportModal`), distribuição de limites (`DistributionModal`) e orquestração de teto (`NetWorthHeader`).
+  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore`, `useGoalStore`).
+* **`src/shared/` (Código Compartilhado Reutilizável):**
+  * `components/ui/` — Componentes primitivos do Shadcn/ui (inputs, buttons, cards, progress bars, etc.).
+  * `components/dashboard/` — Layout principal da aplicação (`Sidebar`, `Topbar`, `BottomNav`, `PullToRefresh`, `TableSkeleton`, `EmptyState`).
+  * `hooks/` — Hooks globais utilitários e de dados comuns (`useTransactions`).
+  * `lib/` — Utilitários de normalização, formatação de moedas (`currency-utils.py`) e estilos (`utils.ts`).
+
+### 🐍 Estrutura de Apps do Backend (`backend/`)
+O backend Django divide rigidamente a infraestrutura administrativa e de segurança do domínio de recursos orçamentários:
+* **`core/` (Boilerplate SaaS de Infraestrutura):**
+  * Gerenciamento de usuários (`User`, `Profile`), ciclo JWT (`SimpleJWT`) e autenticação multifator TOTP (`pyotp`).
+  * Envio de e-mails para ativação e recuperação de credenciais de acesso.
+  * Endpoints utilitários de termos de uso e reset de dados corporativos (`ProfileResetView`).
+* **`finance/` (Domínio de Negócio Financeiro):**
+  * Modelos matemáticos e lógicas de integridade (`Account`, `Transaction`, `CategoryGroup`, `Category`, `Debt`, `Goal`, `CurrencyRate`).
+  * Algoritmo de distribuição sistemática de excessos (*distribute_excess*) e automação de conciliação transacional.
+  * Proteção ativa anti-IDOR/BOLA via querysets escopados a `request.user`.

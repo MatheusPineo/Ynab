@@ -37,6 +37,7 @@ urlpatterns = [
     path('api/register', RegisterView.as_view()), # Fallback sem barra
     path('admin/', admin.site.urls),
     path('api/', include('core.urls')), # Conecta as rotas do app core no prefixo /api/
+    path('api/', include('finance.urls')), # Conecta as rotas do app finance no prefixo /api/
 ]
 
 if settings.DEBUG:
