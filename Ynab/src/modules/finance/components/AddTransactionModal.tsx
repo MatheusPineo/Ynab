@@ -74,6 +74,12 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [description, setDescription] = useState<string>(transaction?.description || "");
   const [amount, setAmount] = useState<string>(transaction ? String(Math.abs(transaction.amount)) : "");
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
+
+  // Resetar índice de sugestão ativa ao mudar o termo de busca
+  useEffect(() => {
+    setActiveSuggestionIndex(-1);
+  }, [description]);
 
   const { tree, categoryGroups } = useAccountStore();
   const { transactions = [], addTransaction, updateTransaction, transferTransaction } = useTransactions();
@@ -138,6 +144,22 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   };
 
   const suggestions = getSuggestions();
+
+  const handleSelectSuggestion = (sug: Transaction) => {
+    setDescription(sug.description);
+    setAmount(String(Math.abs(sug.amount)));
+    setType(sug.is_income ? "income" : "expense");
+    if (sug.account) setAccountId(String(sug.account));
+    if (sug.category) {
+      setUseCategory(true);
+      setCategoryId(String(sug.category));
+    } else {
+      setUseCategory(false);
+      setCategoryId("none");
+    }
+    setShowSuggestions(false);
+    setActiveSuggestionIndex(-1);
+  };
 
   const getAllAccounts = (nodes: any[], depth = 0): any[] => {
     let list: any[] = [];
@@ -238,6 +260,28 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                 setShowSuggestions(true);
               }}
               onFocus={() => setShowSuggestions(true)}
+              onKeyDown={(e) => {
+                if (!showSuggestions || suggestions.length === 0) return;
+                
+                if (e.key === "ArrowDown") {
+                  e.preventDefault();
+                  setActiveSuggestionIndex(prev => 
+                    prev < suggestions.length - 1 ? prev + 1 : 0
+                  );
+                } else if (e.key === "ArrowUp") {
+                  e.preventDefault();
+                  setActiveSuggestionIndex(prev => 
+                    prev > 0 ? prev - 1 : suggestions.length - 1
+                  );
+                } else if (e.key === "Enter") {
+                  if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
+                    e.preventDefault(); // Impede o submit do formulário
+                    handleSelectSuggestion(suggestions[activeSuggestionIndex]);
+                  }
+                } else if (e.key === "Escape") {
+                  setShowSuggestions(false);
+                }
+              }}
               placeholder="Ex: Mercado, Uber..." 
               required 
               className="bg-background/50" 
@@ -249,27 +293,18 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                 <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider opacity-60 select-none">
                   Sugestões do Histórico
                 </div>
-                {suggestions.map((sug) => {
+                {suggestions.map((sug, index) => {
                   const sAcc = allAccounts.find(a => String(a.id) === String(sug.account));
+                  const isHighlighted = index === activeSuggestionIndex;
                   return (
                     <button
                       key={sug.id}
                       type="button"
-                      onClick={() => {
-                        setDescription(sug.description);
-                        setAmount(String(Math.abs(sug.amount)));
-                        setType(sug.is_income ? "income" : "expense");
-                        if (sug.account) setAccountId(String(sug.account));
-                        if (sug.category) {
-                          setUseCategory(true);
-                          setCategoryId(String(sug.category));
-                        } else {
-                          setUseCategory(false);
-                          setCategoryId("none");
-                        }
-                        setShowSuggestions(false);
-                      }}
-                      className="w-full text-left px-3 py-2 hover:bg-primary/10 text-foreground transition-colors flex flex-col gap-1 cursor-pointer"
+                      onClick={() => handleSelectSuggestion(sug)}
+                      className={cn(
+                        "w-full text-left px-3 py-2 text-foreground transition-colors flex flex-col gap-1 cursor-pointer",
+                        isHighlighted ? "bg-primary/20" : "hover:bg-primary/10"
+                      )}
                     >
                       <div className="font-medium text-xs flex justify-between items-center w-full">
                         <span>{sug.description}</span>
@@ -433,6 +468,24 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                       }
                     }
                   }}
+                  onKeyDown={(e) => {
+                    const currentFilteredIndex = filteredFromAccounts.findIndex(acc => String(acc.id) === accountId);
+                    if (e.key === "ArrowDown") {
+                      if (filteredFromAccounts.length > 0) {
+                        e.preventDefault();
+                        const nextIdx = currentFilteredIndex < filteredFromAccounts.length - 1 ? currentFilteredIndex + 1 : 0;
+                        setAccountId(String(filteredFromAccounts[nextIdx].id));
+                      }
+                    } else if (e.key === "ArrowUp") {
+                      if (filteredFromAccounts.length > 0) {
+                        e.preventDefault();
+                        const prevIdx = currentFilteredIndex > 0 ? currentFilteredIndex - 1 : filteredFromAccounts.length - 1;
+                        setAccountId(String(filteredFromAccounts[prevIdx].id));
+                      }
+                    } else if (e.key === "Enter") {
+                      e.preventDefault(); // Impede o submit do formulário
+                    }
+                  }}
                   className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-xl focus-visible:ring-primary/50"
                 />
               )}
@@ -474,6 +527,24 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                         if (matched) {
                           setToAccountId(String(matched.id));
                         }
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      const currentToFilteredIndex = filteredToAccounts.findIndex(acc => String(acc.id) === toAccountId);
+                      if (e.key === "ArrowDown") {
+                        if (filteredToAccounts.length > 0) {
+                          e.preventDefault();
+                          const nextIdx = currentToFilteredIndex < filteredToAccounts.length - 1 ? currentToFilteredIndex + 1 : 0;
+                          setToAccountId(String(filteredToAccounts[nextIdx].id));
+                        }
+                      } else if (e.key === "ArrowUp") {
+                        if (filteredToAccounts.length > 0) {
+                          e.preventDefault();
+                          const prevIdx = currentToFilteredIndex > 0 ? currentToFilteredIndex - 1 : filteredToAccounts.length - 1;
+                          setToAccountId(String(filteredToAccounts[prevIdx].id));
+                        }
+                      } else if (e.key === "Enter") {
+                        e.preventDefault(); // Impede o submit do formulário
                       }
                     }}
                     className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-xl focus-visible:ring-primary/50"

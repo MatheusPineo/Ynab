@@ -6,6 +6,18 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.17.9] — 2026-05-12
+
+Esta versão realiza a **Implementação de Navegação e Seleção de Teclado Avançada** no Vault Finance OS. Focada em otimização de fluxo de trabalho para usuários avançados (power users) e acessibilidade de teclado, ela adiciona controles que permitem navegar por sugestões de histórico (descrições) e filtros de contas utilizando as setas do teclado (para cima e para baixo), além de confirmar seleções com a tecla Enter sem disparar o envio precoce do formulário.
+
+### Adicionado
+* **Navegação de Autocomplete por Teclado (AddTransactionModal.tsx):**
+  - **Interação por Setas:** Teclas `ArrowDown` e `ArrowUp` agora sobem e descem a seleção ativa nas sugestões de histórico de descrições e nos filtros de contas.
+  - **Destaque Visual Premium:** O item ativo selecionado pelo teclado ganha uma cor de fundo contrastante (`bg-primary/20`) no menu de sugestões para guiar visualmente o usuário.
+  - **Seleção Inteligente por Enter:** Pressionar `Enter` enquanto navega por uma sugestão ou filtro de conta confirma a seleção e preenche o formulário reativamente, impedindo o envio acidental ou a criação precoce da transação (`e.preventDefault()`).
+
+---
+
 ## [1.17.8] — 2026-05-12
 
 Esta versão realiza a **Implementação de Seleção Automática de Contas por Filtro Reativo** no Vault Finance OS. Focada em velocidade de digitação e atalhos cognitivos, ela atualiza o comportamento de busca de contas de origem e destino no modal de transações, de forma que ao digitar no campo de filtro, a conta correspondente mais próxima é selecionada e exibida no seletor imediatamente em tempo real.
