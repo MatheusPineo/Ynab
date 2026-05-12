@@ -21,6 +21,8 @@ Esta versão realiza a **Implementação de Relatórios Opcionais e Correção d
   - **Reports.tsx:** Correção dos erros fatais de JavaScript `"Search is not defined"` e `"CheckSquare is not defined"` ao selecionar a aba de Auditoria, decorrentes de importações em falta dos ícones `Search` e `CheckSquare` de `lucide-react`.
 * **Exibição Redundante Contábil:**
   - **Reports.tsx:** Correção da lógica de aninhamento de condicionais de renderização no JSX. O painel de "Conformidade & Contabilidade" (compliance) que funcionava como "else" padrão do primeiro ternário principal foi refatorado para ter seu próprio condicional estrito (`activeLevel === "compliance" ? (...) : null`). Isso impede que o painel de Contabilidade seja renderizado incorretamente por baixo de outras abas como "Eficiência", "Corporativo", "Risco" e "Integridade".
+* **Geração e Download de Relatório PDF Corrompido:**
+  - **Reports.tsx:** Resolução do bug em que o botão "Download PDF" baixava um arquivo de texto plano (`text/plain`) com extensão fictícia `.pdf`. Os leitores de PDF consideravam o arquivo corrompido e recusavam a abertura. Refatorado para disparar uma janela de impressão executiva limpa e monoespaçada que formata o relatório perfeitamente para papel e possibilita o salvamento em PDF real legítimo e íntegro pelo navegador, mantendo um fallback seguro e automático para `.txt` caso bloqueadores de pop-ups impeçam o fluxo.
 
 ---
 

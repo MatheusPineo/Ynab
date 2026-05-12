@@ -2751,11 +2751,6 @@ ${discText}
 ================================================================================`;
     }
 
-    const blob = new Blob([reportContent], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    
     let labelFile = "Iniciante";
     if (activeLevel === "intermediate") labelFile = "Intermediario";
     else if (activeLevel === "advanced") labelFile = "Avancado";
@@ -2766,11 +2761,68 @@ ${discText}
     else if (activeLevel === "business") labelFile = "Corporativo_B2B";
     else if (activeLevel === "integrity") labelFile = "Integridade_Tecnica";
 
-    link.download = `Relatorio_${labelFile}_Vault.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Criar janela de impressão formatada para gerar um PDF real legítimo
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Relatório Analítico (${labelFile}) - Vault Finance OS</title>
+            <meta charset="utf-8">
+            <style>
+              body {
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 13px;
+                line-height: 1.5;
+                color: #0f172a;
+                background-color: #ffffff;
+                padding: 40px;
+                margin: 0;
+              }
+              pre {
+                white-space: pre-wrap;
+                word-wrap: break-word;
+                font-family: inherit;
+              }
+              @media print {
+                body {
+                  padding: 0;
+                }
+                @page {
+                  margin: 1.5cm;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <pre>${reportContent.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
+            <script>
+              window.onload = function() {
+                setTimeout(function() {
+                  window.print();
+                  setTimeout(function() {
+                    window.close();
+                  }, 100);
+                }, 300);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+    } else {
+      // Fallback seguro caso pop-ups estejam bloqueados: baixa como um .txt limpo e impecável
+      const blob = new Blob([reportContent], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Relatorio_${labelFile}_Vault.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (
