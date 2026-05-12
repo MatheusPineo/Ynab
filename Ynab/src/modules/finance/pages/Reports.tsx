@@ -48,11 +48,14 @@ import {
   Briefcase,
   Fingerprint,
   GitBranch,
-  Globe2
+  Globe2,
+  Search,
+  CheckSquare
 } from "lucide-react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { useGoals } from "@/shared/hooks/useGoals";
+import { useFeatureStore } from "@/shared/store/useFeatureStore";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { toast } from "sonner";
@@ -71,6 +74,7 @@ const COLORS = [
 export default function Reports() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { features } = useFeatureStore();
 
   // Consumindo dados reais da store
   const { tree, transactions, categoryGroups, fetchAccounts, fetchTransactions, fetchCategoryGroups, getAccountName, getCategoryName } = useAccountStore();
@@ -81,6 +85,30 @@ export default function Reports() {
 
   // Estados locais para filtros e controle de abas de nivel
   const [activeLevel, setActiveLevel] = useState<"beginner" | "intermediate" | "advanced" | "compliance" | "performance" | "risk" | "audit" | "business" | "integrity">("beginner");
+
+  // Mapear abas de relatórios para as chaves de features correspondentes
+  const reportTabsConfig = useMemo(() => [
+    { value: "beginner", featureKey: "report_beginner" },
+    { value: "intermediate", featureKey: "report_intermediate" },
+    { value: "advanced", featureKey: "report_advanced" },
+    { value: "compliance", featureKey: "report_compliance" },
+    { value: "performance", featureKey: "report_performance" },
+    { value: "risk", featureKey: "report_risk" },
+    { value: "audit", featureKey: "report_audit" },
+    { value: "business", featureKey: "report_business" },
+    { value: "integrity", featureKey: "report_integrity" }
+  ] as const, []);
+
+  // Redireciona para a primeira aba ativa de relatórios se a atual for desabilitada
+  useEffect(() => {
+    const isCurrentActive = features[reportTabsConfig.find(t => t.value === activeLevel)?.featureKey as keyof typeof features] ?? true;
+    if (!isCurrentActive) {
+      const firstEnabled = reportTabsConfig.find(tab => features[tab.featureKey as keyof typeof features]);
+      if (firstEnabled) {
+        setActiveLevel(firstEnabled.value);
+      }
+    }
+  }, [features, activeLevel, reportTabsConfig]);
   const [selectedRegressionAccount, setSelectedRegressionAccount] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<"current" | "3months" | "6months" | "year">("current");
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
@@ -2785,87 +2813,105 @@ ${discText}
 
       {/* SELETOR DE NIVEL PILL TABS (Ocultado ao imprimir) */}
       <div className="flex p-1 bg-slate-950 border border-slate-900 rounded-2xl max-w-5xl overflow-x-auto no-print">
-        <button
-          type="button"
-          onClick={() => setActiveLevel("beginner")}
-          className={`flex-1 min-w-[75px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "beginner" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <Activity className="h-4 w-4" />
-          <span className="hidden sm:inline">Iniciante</span>
-          <span className="sm:hidden">Inic.</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLevel("intermediate")}
-          className={`flex-1 min-w-[95px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "intermediate" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <Layers className="h-4 w-4" />
-          <span className="hidden sm:inline">Intermediário</span>
-          <span className="sm:hidden">Interm.</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLevel("advanced")}
-          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "advanced" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <Coins className="h-4 w-4" />
-          <span className="hidden sm:inline">Avançado</span>
-          <span className="sm:hidden">Avanç.</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLevel("compliance")}
-          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "compliance" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <Scale className="h-4 w-4" />
-          <span className="hidden sm:inline">Contábil</span>
-          <span className="sm:hidden">Contáb.</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLevel("performance")}
-          className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "performance" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <Zap className="h-4 w-4" />
-          <span className="hidden sm:inline">Eficiência</span>
-          <span className="sm:hidden">Efic.</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLevel("risk")}
-          className={`flex-1 min-w-[70px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "risk" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <TrendingUp className="h-4 w-4" />
-          <span className="hidden sm:inline">Risco</span>
-          <span className="sm:hidden">Risco</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLevel("audit")}
-          className={`flex-1 min-w-[85px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "audit" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <ShieldCheck className="h-4 w-4" />
-          <span className="hidden sm:inline">Auditoria</span>
-          <span className="sm:hidden">Audit.</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLevel("business")}
-          className={`flex-1 min-w-[95px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "business" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <Building2 className="h-4 w-4" />
-          <span className="hidden sm:inline">Corporativo</span>
-          <span className="sm:hidden">B2B</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveLevel("integrity")}
-          className={`flex-1 min-w-[95px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "integrity" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
-        >
-          <Fingerprint className="h-4 w-4" />
-          <span className="hidden sm:inline">Integridade</span>
-          <span className="sm:hidden">Integ.</span>
-        </button>
+        {features.report_beginner !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("beginner")}
+            className={`flex-1 min-w-[75px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "beginner" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Iniciante</span>
+            <span className="sm:hidden">Inic.</span>
+          </button>
+        )}
+        {features.report_intermediate !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("intermediate")}
+            className={`flex-1 min-w-[95px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "intermediate" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <Layers className="h-4 w-4" />
+            <span className="hidden sm:inline">Intermediário</span>
+            <span className="sm:hidden">Interm.</span>
+          </button>
+        )}
+        {features.report_advanced !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("advanced")}
+            className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "advanced" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <Coins className="h-4 w-4" />
+            <span className="hidden sm:inline">Avançado</span>
+            <span className="sm:hidden">Avanç.</span>
+          </button>
+        )}
+        {features.report_compliance !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("compliance")}
+            className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "compliance" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <Scale className="h-4 w-4" />
+            <span className="hidden sm:inline">Contábil</span>
+            <span className="sm:hidden">Contáb.</span>
+          </button>
+        )}
+        {features.report_performance !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("performance")}
+            className={`flex-1 min-w-[80px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "performance" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <Zap className="h-4 w-4" />
+            <span className="hidden sm:inline">Eficiência</span>
+            <span className="sm:hidden">Efic.</span>
+          </button>
+        )}
+        {features.report_risk !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("risk")}
+            className={`flex-1 min-w-[70px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "risk" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Risco</span>
+            <span className="sm:hidden">Risco</span>
+          </button>
+        )}
+        {features.report_audit !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("audit")}
+            className={`flex-1 min-w-[85px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "audit" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <ShieldCheck className="h-4 w-4" />
+            <span className="hidden sm:inline">Auditoria</span>
+            <span className="sm:hidden">Audit.</span>
+          </button>
+        )}
+        {features.report_business !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("business")}
+            className={`flex-1 min-w-[95px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "business" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <Building2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Corporativo</span>
+            <span className="sm:hidden">B2B</span>
+          </button>
+        )}
+        {features.report_integrity !== false && (
+          <button
+            type="button"
+            onClick={() => setActiveLevel("integrity")}
+            className={`flex-1 min-w-[95px] flex items-center justify-center gap-2 py-2.5 rounded-xl text-[11px] sm:text-xs font-bold transition-all ${activeLevel === "integrity" ? "bg-emerald-500 text-zinc-950 shadow-[0_0_15px_rgba(16,185,129,0.3)]" : "text-slate-400 hover:text-slate-250 hover:bg-slate-900/50"}`}
+          >
+            <Fingerprint className="h-4 w-4" />
+            <span className="hidden sm:inline">Integridade</span>
+            <span className="sm:hidden">Integ.</span>
+          </button>
+        )}
       </div>
 
       {/* CABECALHO EXCLUSIVO PARA IMPRESSAO (Ocultado na UI web) */}
@@ -3722,7 +3768,7 @@ ${discText}
           </div>
 
         </div>
-      ) : (
+      ) : activeLevel === "compliance" ? (
         /* =====================================================================
            === ABA: CONFORMIDADE E CONTABILIDADE — RELATÓRIOS CONTÁBEIS ===
            ===================================================================== */
@@ -3934,7 +3980,7 @@ ${discText}
           </div>
 
         </div>
-      )}
+      ) : null}
 
       {/* =========================================================================== */}
       {/* === PERFORMANCE: PAINEL DE EFICIÊNCIA & PERFORMANCE (activeLevel === "performance") === */}

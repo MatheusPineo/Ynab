@@ -814,6 +814,15 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
                        goals: "Metas Financeiras",
                        insights: "Insights Inteligentes",
                        rule503020: "Regra 50-30-20",
+                       report_beginner: "Relatório: Iniciante (\"Onde estou agora?\")",
+                       report_intermediate: "Relatório: Intermediário (\"Estou progredindo?\")",
+                       report_advanced: "Relatório: Avançado (\"Como otimizar meu capital?\")",
+                       report_compliance: "Relatório: Contábil & Fiscal (DRE / Balancete)",
+                       report_performance: "Relatório: Eficiência & Performance",
+                       report_risk: "Relatório: Estatística & Risco",
+                       report_audit: "Relatório: Auditoria & OFX",
+                       report_business: "Relatório: Corporativo (B2B & Startups)",
+                       report_integrity: "Relatório: Integridade de Dados & Hashes",
                      };
 
                      const featureDescriptions: Record<keyof EnabledFeatures, string> = {
@@ -824,6 +833,16 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
                        debts: "Gerenciamento de devedores, credores, acréscimos e abatimento de empréstimos com histórico de auditoria.",
                        goals: "Criação de objetivos de poupança inteligente e acompanhamento percentual com prazos e emojis customizáveis.",
                        insights: "Relatórios de desempenho e analítica avançada sobre o comportamento e distribuição de seus recursos.",
+                       rule503020: "Painel integrado de planejamento orçamentário e divisão percentual de renda baseada no modelo 50-30-20.",
+                       report_beginner: "Análise atômica de Patrimônio Líquido, fluxo diário de caixa, status de envelopes e distribuição de despesas.",
+                       report_intermediate: "Acompanhamento de metas de longo prazo, custos fixos recorrentes, histórico de categorias e balanço orçado vs. realizado.",
+                       report_advanced: "Módulo avançado contendo TreeMap recursivo, simulação de projeções de fluxo (Forecasting) e eficiência cambial de portfólio.",
+                       report_compliance: "Balancete de Verificação (Trial Balance), Demonstrativo de Resultados (DRE) e análise cambial Realized vs. Unrealized.",
+                       report_performance: "Indicadores de sobrevivência financeira (Survival Metrics), taxa de poupança marginal e análise de variância de orçamento.",
+                       report_risk: "Estudo de tendência linear de contas, mapa de calor cronológico de vazamentos e simulação estocástica de Monte Carlo.",
+                       report_audit: "Trilha completa de auditoria de logs de operadores e duto reativo de reconciliação bancária contra arquivos OFX.",
+                       report_business: "Relatório financeiro para startups, contendo OPEX vs. CAPEX, Burn Rate mensal, Runway projetado e centros de custos.",
+                       report_integrity: "Análise de integridade de hashes de transações, conciliação consolidada multi-entidade e análise de discrepância OFX por conta.",
                      };
 
                      const label = featureNames[key] || key;

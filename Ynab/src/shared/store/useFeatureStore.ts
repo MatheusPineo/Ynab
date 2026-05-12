@@ -10,6 +10,17 @@ export interface EnabledFeatures {
   goals: boolean;
   insights: boolean;
   rule503020: boolean;
+  
+  // Relatórios Opcionais (v1.17.3)
+  report_beginner: boolean;
+  report_intermediate: boolean;
+  report_advanced: boolean;
+  report_compliance: boolean;
+  report_performance: boolean;
+  report_risk: boolean;
+  report_audit: boolean;
+  report_business: boolean;
+  report_integrity: boolean;
 }
 
 interface FeatureState {
@@ -27,6 +38,17 @@ const defaultFeatures: EnabledFeatures = {
   goals: true,
   insights: true,
   rule503020: true,
+  
+  // Relatórios Opcionais (v1.17.3)
+  report_beginner: true,
+  report_intermediate: true,
+  report_advanced: true,
+  report_compliance: true,
+  report_performance: true,
+  report_risk: true,
+  report_audit: true,
+  report_business: true,
+  report_integrity: true,
 };
 
 export const useFeatureStore = create<FeatureState>()(
