@@ -6,6 +6,19 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.18.0] — 2026-05-12
+
+Esta versão introduz o **Seletor de Contas Unificado (Combobox Premium)** no Vault Finance OS. Unindo a caixa de seleção com o campo de pesquisa e digitação em uma única janela integrada e harmônica, o sistema agora se comporta como um Combobox de altíssimo nível UX/UI, idêntico aos melhores softwares SaaS globais (como Linear e Vercel).
+
+### Adicionado
+* **Combobox de Contas Unificado (AddTransactionModal.tsx):**
+  - **Interface Unificada:** O seletor de contas foi completamente unificado! Ao invés de uma barra de filtro externa redundante, o usuário clica em um único botão seletor estilizado que abre o dropdown integrado.
+  - **Digitação e Listagem Integradas:** O input de pesquisa `🔍 Filtrar conta...` agora fica posicionado no topo do próprio dropdown, unindo a busca e a listagem das contas em uma mesma janela flutuante com suporte a rolagem elegante.
+  - **Sincronização Reativa Esteticamente Perfeita:** Ao selecionar uma conta, o popup se fecha instantaneamente e a caixa do seletor exibe o nome e a moeda correspondente com marcadores premium.
+  - **Micro-interações Inteligentes de Teclado:** O primeiro resultado correspondente à pesquisa é focado por padrão (índice 0). O usuário pode alternar entre os resultados com `ArrowDown`/`ArrowUp` e pressionar `Enter` para selecionar, sem qualquer atrito ou desvio de foco.
+
+---
+
 ## [1.17.10] — 2026-05-12
 
 Esta versão realiza a **Correção e Otimização do Autocomplete de Contas** no Vault Finance OS. Ela substitui a dependência do dropdown nativo do Radix UI (que impedia o recebimento das setas do teclado devido ao roubo de foco) por um popover customizado e reativo que flutua diretamente sob o campo de busca de contas (origem e destino).
