@@ -249,19 +249,26 @@ const Budget = () => {
   const currentIncomes = useMemo(() => {
     const txs = Array.isArray(transactions) ? transactions : [];
     return txs.filter(t => {
-      if (!t.date) return false;
-      const [year, month] = t.date.split('-').map(Number);
+      if (!t || !t.date || typeof t.date !== "string") return false;
+      const parts = t.date.split('-');
+      if (parts.length < 2) return false;
+      const year = Number(parts[0]);
+      const month = Number(parts[1]);
       const isCorrectPeriod = month === currentMonth && year === currentYear;
       return t.is_income && !t.transfer_group && isCorrectPeriod;
     });
   }, [transactions, currentMonth, currentYear]);
 
   const distributedIncomes = useMemo(() => {
+    const txs = Array.isArray(transactions) ? transactions : [];
+    
     // 1. Filtrar transações que são receitas e têm transfer_group (já processadas)
     // Excluindo as que são fruto de distribuição (para não duplicar na lista de origens)
-    const incomes = transactions.filter(t => 
+    const incomes = txs.filter(t => 
+      t &&
       t.is_income && 
       t.transfer_group && 
+      typeof t.description === "string" &&
       !t.description.includes("Recebido de Distribuição")
     );
     
@@ -270,7 +277,8 @@ const Budget = () => {
       const currency = acc?.currency || "EUR";
 
       // 2. Encontrar as transações de destino que compartilham o mesmo grupo
-      const destinations = transactions.filter(t => 
+      const destinations = txs.filter(t => 
+        t &&
         t.transfer_group === income.transfer_group && 
         t.is_income && 
         t.id !== income.id
@@ -290,18 +298,34 @@ const Budget = () => {
             name: getAccountName(d.account)
           }))
       };
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }).sort((a, b) => {
+      if (!a.date || !b.date || typeof a.date !== "string" || typeof b.date !== "string") return 0;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
   }, [transactions, getAccount, getAccountName]);
 
   const totalAssigned = useMemo(() => {
     const calculateTotal = (nodes: CategoryNode[]): number => {
-      return nodes.reduce((acc, node) => {
+      const safeNodes = Array.isArray(nodes) ? nodes : [];
+      return safeNodes.reduce((acc, node) => {
+        if (!node) return acc;
         let sum = acc + (node.assigned_amount || 0);
-        if (node.children) sum += calculateTotal(node.children);
+        if (Array.isArray(node.children)) sum += calculateTotal(node.children);
         return sum;
       }, 0);
     };
     return calculateTotal(categoryGroups);
+  }, [categoryGroups]);
+
+  const activeGroups = useMemo(() => {
+    const raw = (Array.isArray(categoryGroups) ? categoryGroups : [])
+      .filter(g => g && g.id && (typeof g.id === "string" || typeof g.id === "number") && typeof g.name === "string" && g.name.trim().toUpperCase() !== "TESTE");
+    const seen = new Set();
+    return raw.filter(g => {
+      if (seen.has(g.id)) return false;
+      seen.add(g.id);
+      return true;
+    });
   }, [categoryGroups]);
 
   const sensors = useSensors(
@@ -313,11 +337,12 @@ const Budget = () => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
-    const isActiveGroup = categoryGroups.some(g => g.id === active.id);
+    const groups = Array.isArray(categoryGroups) ? categoryGroups : [];
+    const isActiveGroup = groups.some(g => g && g.id === active.id);
     if (isActiveGroup) {
-      const oldIndex = categoryGroups.findIndex(g => g.id === active.id);
-      const newIndex = categoryGroups.findIndex(g => g.id === over.id);
-      setCategoryGroups(arrayMove(categoryGroups, oldIndex, newIndex));
+      const oldIndex = groups.findIndex(g => g && g.id === active.id);
+      const newIndex = groups.findIndex(g => g && g.id === over.id);
+      setCategoryGroups(arrayMove(groups, oldIndex, newIndex));
     }
   };
 
@@ -347,7 +372,17 @@ const Budget = () => {
           </div>
 
           <div className="flex flex-col items-center sm:items-end gap-3">
-            <MonthSelector />
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsGroupDialogOpen(true)}
+                className="border-primary/20 hover:bg-primary/10 rounded-xl h-8 sm:h-10 text-[10px] sm:text-xs gap-1 sm:gap-1.5 font-bold"
+              >
+                <FolderPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Novo Grupo
+              </Button>
+              <MonthSelector />
+            </div>
           </div>
         </div>
 
@@ -484,91 +519,148 @@ const Budget = () => {
         </section>
       )}
 
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        <SortableContext items={categoryGroups.filter(g => g.name.trim().toUpperCase() !== "TESTE").map(g => g.id)} strategy={verticalListSortingStrategy}>
-          <div className="flex flex-col">
-            {categoryGroups.filter(g => g.name.trim().toUpperCase() !== "TESTE").map((group) => (
-              <SortableItem key={group.id} id={group.id} isGroup>
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between px-2">
-                    <div className="flex items-center gap-3">
-                      <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">{group.name}</h2>
-                      
-                      <div className="flex items-center gap-1">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <button data-testid="add-category-button" className="h-5 w-5 rounded-md bg-muted/40 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
-                              <Plus className="h-3 w-3" />
-                            </button>
-                          </DialogTrigger>
-                          <DialogContent className="glass border-border/60">
-                            <DialogHeader><DialogTitle>Nova Categoria em "{group.name}"</DialogTitle></DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid gap-2">
-                                <Label htmlFor="catName">Nome da Categoria</Label>
-                                <Input id="catName" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Ex: Cinema..." className="bg-background/50" />
-                              </div>
-                              <DialogFooter>
-                                <Button onClick={() => handleAddCategory(group.id)} className="gradient-primary w-full">Adicionar Categoria</Button>
-                              </DialogFooter>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                        
-                        <CategoryActions category={group} isGroup />
-                      </div>
-                    </div>
-                    <span className="text-xs font-medium text-muted-foreground">
-                      Total: {formatMoney((group.children || []).reduce((a, b) => a + (b.assigned_amount || 0), 0), "EUR")}
-                    </span>
-                  </div>
-
-                  <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden shadow-sm">
-                    <Table>
-                      <TableHeader className="bg-muted/30">
-                        <TableRow className="hover:bg-transparent border-border/40">
-                          <TableHead className="w-[40px] p-2 sm:p-4 h-auto"></TableHead>
-                          <TableHead className="w-1/2 p-2 sm:p-4 h-auto text-xs sm:text-sm">Categoria</TableHead>
-                          <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                            <div className="flex items-center justify-end gap-1">
-                              Reservado
-                              <HelpTooltip content="O valor que você planejou gastar nesta categoria." side="top" />
-                            </div>
-                          </TableHead>
-                          <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                            <div className="flex items-center justify-end gap-1">
-                              Gasto
-                              <HelpTooltip content="O quanto já foi de fato gasto." side="top" />
-                            </div>
-                          </TableHead>
-                          <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                            <div className="flex items-center justify-end gap-1">
-                              Disponível
-                              <HelpTooltip content="Quanto ainda resta para você gastar nesta categoria." side="top" />
-                            </div>
-                          </TableHead>
-                          <TableHead className="w-[50px] hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <SortableContext items={(group.children || []).map(c => c.id)} strategy={verticalListSortingStrategy}>
-                          {(!group.children || group.children.length === 0) ? (
-                            <TableRow><TableCell colSpan={6} className="h-16 text-center text-muted-foreground italic text-xs">Vazio.</TableCell></TableRow>
-                          ) : (
-                            group.children.map((cat) => (
-                              <SortableCategoryRow key={cat.id} cat={cat} assignMoney={assignMoney} />
-                            ))
-                          )}
-                        </SortableContext>
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </SortableItem>
-            ))}
+      {activeGroups.length === 0 ? (
+        <div className="flex flex-col items-center justify-center text-center p-8 sm:p-16 border border-dashed border-border/60 rounded-3xl bg-card/25 backdrop-blur-sm gap-4 animate-in fade-in duration-300">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+            <Wallet className="h-8 w-8" />
           </div>
-        </SortableContext>
-      </DndContext>
+          <div className="max-w-md space-y-1">
+            <h3 className="text-base sm:text-lg font-bold text-foreground">Sem Grupos de Categorias</h3>
+            <p className="text-xs sm:text-sm text-muted-foreground">
+              Você ainda não possui nenhum grupo de categorias de orçamento configurado neste período. Crie o seu primeiro grupo de planejamento para começar.
+            </p>
+          </div>
+          <Button onClick={() => setIsGroupDialogOpen(true)} className="gradient-primary rounded-xl gap-1.5 font-bold px-5">
+            <FolderPlus className="h-4 w-4" />
+            Criar Primeiro Grupo
+          </Button>
+        </div>
+      ) : (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={activeGroups.map(g => g.id)} strategy={verticalListSortingStrategy}>
+            <div className="flex flex-col">
+              {activeGroups.map((group) => (
+                <SortableItem key={group.id} id={group.id} isGroup>
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between px-2">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">{group.name}</h2>
+                        
+                        <div className="flex items-center gap-1">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <button data-testid="add-category-button" className="h-5 w-5 rounded-md bg-muted/40 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </DialogTrigger>
+                            <DialogContent className="glass border-border/60">
+                              <DialogHeader><DialogTitle>Nova Categoria em "{group.name}"</DialogTitle></DialogHeader>
+                              <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                  <Label htmlFor="catName">Nome da Categoria</Label>
+                                  <Input id="catName" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Ex: Cinema..." className="bg-background/50" />
+                                </div>
+                                <DialogFooter>
+                                  <Button onClick={() => handleAddCategory(group.id)} className="gradient-primary w-full">Adicionar Categoria</Button>
+                                </DialogFooter>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          
+                          <CategoryActions category={group} isGroup />
+                        </div>
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Total: {formatMoney((Array.isArray(group.children) ? group.children : []).reduce((a, b) => a + ((b && b.assigned_amount) || 0), 0), "EUR")}
+                      </span>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden shadow-sm">
+                      <Table>
+                        <TableHeader className="bg-muted/30">
+                          <TableRow className="hover:bg-transparent border-border/40">
+                            <TableHead className="w-[40px] p-2 sm:p-4 h-auto"></TableHead>
+                            <TableHead className="w-1/2 p-2 sm:p-4 h-auto text-xs sm:text-sm">Categoria</TableHead>
+                            <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                              <div className="flex items-center justify-end gap-1">
+                                Reservado
+                                <HelpTooltip content="O valor que você planejou gastar nesta categoria." side="top" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                              <div className="flex items-center justify-end gap-1">
+                                Gasto
+                                <HelpTooltip content="O quanto já foi de fato gasto." side="top" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                              <div className="flex items-center justify-end gap-1">
+                                Disponível
+                                <HelpTooltip content="Quanto ainda resta para você gastar nesta categoria." side="top" />
+                              </div>
+                            </TableHead>
+                            <TableHead className="w-[50px] hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm"></TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {(() => {
+                            const rawChildren = (Array.isArray(group.children) ? group.children : [])
+                              .filter(c => c && c.id && (typeof c.id === "string" || typeof c.id === "number"));
+                            const seenChildren = new Set();
+                            const children = rawChildren.filter(c => {
+                              if (seenChildren.has(c.id)) return false;
+                              seenChildren.add(c.id);
+                              return true;
+                            });
+
+                            return (
+                              <SortableContext items={children.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                                {children.length === 0 ? (
+                                  <TableRow><TableCell colSpan={6} className="h-16 text-center text-muted-foreground italic text-xs">Vazio.</TableCell></TableRow>
+                                ) : (
+                                  children.map((cat) => (
+                                    <SortableCategoryRow key={cat.id} cat={cat} assignMoney={assignMoney} />
+                                  ))
+                                )}
+                              </SortableContext>
+                            );
+                          })()}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                </SortableItem>
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+
+      {/* Standalone Dialog for Creating a New Category Group */}
+      <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
+        <DialogContent className="glass border-border/60">
+          <DialogHeader>
+            <DialogTitle>Novo Grupo de Categorias</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleAddGroup} className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="groupName">Nome do Grupo</Label>
+              <Input 
+                id="groupName" 
+                value={newGroupName} 
+                onChange={(e) => setNewGroupName(e.target.value)} 
+                placeholder="Ex: Contas de Consumo..." 
+                className="bg-background/50" 
+                required
+              />
+            </div>
+            <DialogFooter>
+              <Button type="submit" className="gradient-primary w-full">Adicionar Grupo</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <div className="h-20" />
     </div>
   );

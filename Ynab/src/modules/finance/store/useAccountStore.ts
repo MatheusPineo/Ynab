@@ -580,16 +580,18 @@ export const useAccountStore = create<AccountState>()(
       // --- HELPERS ---
       getAccount: (id) => {
         const idStr = String(id);
+        const tree = Array.isArray(get().tree) ? get().tree : [];
         const findAccount = (nodes: AccountNode[]): AccountNode | undefined => {
+          if (!Array.isArray(nodes)) return undefined;
           for (const node of nodes) {
-            if (String(node.id) === idStr) return node;
-            if (node.children) {
+            if (node && String(node.id) === idStr) return node;
+            if (node && Array.isArray(node.children)) {
               const found = findAccount(node.children);
               if (found) return found;
             }
           }
         };
-        return findAccount(get().tree);
+        return findAccount(tree);
       },
 
       getAccountName: (id) => {
@@ -599,29 +601,38 @@ export const useAccountStore = create<AccountState>()(
 
       getCategoryName: (id) => {
         const idStr = String(id);
+        const groups = Array.isArray(get().categoryGroups) ? get().categoryGroups : [];
         const findCategory = (nodes: CategoryNode[]): string | undefined => {
+          if (!Array.isArray(nodes)) return undefined;
           for (const node of nodes) {
-            if (String(node.id) === idStr) return node.name;
-            if (node.children) {
+            if (node && String(node.id) === idStr) return node.name;
+            if (node && Array.isArray(node.children)) {
               const name = findCategory(node.children);
               if (name) return name;
             }
           }
         };
-        return findCategory(get().categoryGroups) || "Categoria";
+        return findCategory(groups) || "Categoria";
       },
 
       totalsByCurrency: (tree: AccountNode[]): Record<Currency, number> => {
         const totals: Record<Currency, number> = { EUR: 0, BRL: 0, USD: 0 };
         const walk = (node: AccountNode, inherited: Currency) => {
+          if (!node) return;
           const cur = node.currency ?? inherited;
           if (!node.exclude_from_totals) {
             const balance = Number(node.balance) || 0;
             totals[cur] += balance;
           }
-          node.children?.forEach((c) => walk(c, cur));
+          if (Array.isArray(node.children)) {
+            node.children.forEach((c) => walk(c, cur));
+          }
         };
-        tree.forEach((root) => walk(root, root.currency ?? "EUR"));
+        if (Array.isArray(tree)) {
+          tree.forEach((root) => {
+            if (root) walk(root, root.currency ?? "EUR");
+          });
+        }
         return totals;
       },
 

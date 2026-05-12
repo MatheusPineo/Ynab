@@ -23,7 +23,8 @@ import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock, Ch
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { type Transaction } from "@/types";
-import { cn } from "@/shared/lib/utils";
+import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+
 
 interface Props {
   children?: React.ReactNode;
@@ -76,11 +77,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
 
-  // Estados para popovers customizados de busca de conta
-  const [showAccountSuggestions, setShowAccountSuggestions] = useState(false);
-  const [activeAccountSuggestionIndex, setActiveAccountSuggestionIndex] = useState<number>(-1);
-  const [showToAccountSuggestions, setShowToAccountSuggestions] = useState(false);
-  const [activeToAccountSuggestionIndex, setActiveToAccountSuggestionIndex] = useState<number>(-1);
+
 
   // Resetar índice de sugestão ativa ao mudar o termo de busca
   useEffect(() => {
@@ -198,30 +195,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   
   const allAccounts = getAllAccounts(tree);
 
-  const filteredFromAccounts = allAccounts.filter(acc => 
-    acc.name.toLowerCase().includes(accountSearch.toLowerCase())
-  );
 
-  const filteredToAccounts = allAccounts
-    .filter(acc => String(acc.id) !== accountId)
-    .filter(acc => acc.name.toLowerCase().includes(toAccountSearch.toLowerCase()));
-
-  // Resetar ou inicializar índice de sugestão de conta ativa ao mudar o filtro ou abrir
-  useEffect(() => {
-    if (filteredFromAccounts.length > 0) {
-      setActiveAccountSuggestionIndex(0);
-    } else {
-      setActiveAccountSuggestionIndex(-1);
-    }
-  }, [accountSearch, showAccountSuggestions, filteredFromAccounts.length]);
-
-  useEffect(() => {
-    if (filteredToAccounts.length > 0) {
-      setActiveToAccountSuggestionIndex(0);
-    } else {
-      setActiveToAccountSuggestionIndex(-1);
-    }
-  }, [toAccountSearch, showToAccountSuggestions, filteredToAccounts.length]);
 
   const fromAccount = allAccounts.find(a => String(a.id) === accountId);
   const toAccount = allAccounts.find(a => String(a.id) === toAccountId);
@@ -486,191 +460,22 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           <div className="grid grid-cols-2 gap-4">
             <div id="account-container" className="relative grid gap-2">
               <Label htmlFor="account">{isTransfer ? "De Conta (Origem)" : "Conta"}</Label>
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAccountSuggestions(!showAccountSuggestions);
-                    setAccountSearch(""); // Limpa filtro ao abrir
-                  }}
-                  className="w-full h-10 px-3 bg-background/50 border border-border/60 hover:border-primary/50 rounded-xl flex items-center justify-between text-sm font-medium transition-colors cursor-pointer text-left"
-                >
-                  <span className="truncate">
-                    {fromAccount ? (
-                      <span className="flex items-center gap-1.5">
-                        <span className="whitespace-pre">{fromAccount.displayName || fromAccount.name}</span>
-                        <span className="text-[10px] text-muted-foreground">({fromAccount.currency})</span>
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground/60">Selecione uma conta</span>
-                    )}
-                  </span>
-                  <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground/80 transition-transform duration-200", showAccountSuggestions && "rotate-180")} />
-                </button>
-
-                {showAccountSuggestions && (
-                  <div className="absolute top-[calc(100%+4px)] z-50 w-full rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-glow p-2 text-xs flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
-                    <Input 
-                      type="text"
-                      placeholder="🔍 Filtrar conta..." 
-                      value={accountSearch}
-                      onChange={(e) => {
-                        setAccountSearch(e.target.value);
-                      }}
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (filteredFromAccounts.length === 0) return;
-                        
-                        const currentFilteredIndex = activeAccountSuggestionIndex;
-                        if (e.key === "ArrowDown") {
-                          e.preventDefault();
-                          const nextIdx = currentFilteredIndex < filteredFromAccounts.length - 1 ? currentFilteredIndex + 1 : 0;
-                          setActiveAccountSuggestionIndex(nextIdx);
-                        } else if (e.key === "ArrowUp") {
-                          e.preventDefault();
-                          const prevIdx = currentFilteredIndex > 0 ? currentFilteredIndex - 1 : filteredFromAccounts.length - 1;
-                          setActiveAccountSuggestionIndex(prevIdx);
-                        } else if (e.key === "Enter") {
-                          e.preventDefault(); // Impede o submit do formulário
-                          if (activeAccountSuggestionIndex >= 0 && activeAccountSuggestionIndex < filteredFromAccounts.length) {
-                            const selected = filteredFromAccounts[activeAccountSuggestionIndex];
-                            setAccountId(String(selected.id));
-                            setShowAccountSuggestions(false);
-                          }
-                        } else if (e.key === "Escape") {
-                          setShowAccountSuggestions(false);
-                        }
-                      }}
-                      className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-lg focus-visible:ring-primary/50"
-                    />
-
-                    <div className="max-h-48 overflow-y-auto flex flex-col gap-0.5 scrollbar-thin">
-                      {filteredFromAccounts.length === 0 ? (
-                        <div className="py-2.5 px-3 text-xs text-muted-foreground text-center select-none">Nenhuma conta encontrada</div>
-                      ) : (
-                        filteredFromAccounts.map((acc, index) => {
-                          const isHighlighted = index === activeAccountSuggestionIndex;
-                          const isSelected = String(acc.id) === accountId;
-                          return (
-                            <button
-                              key={acc.id}
-                              type="button"
-                              onClick={() => {
-                                setAccountId(String(acc.id));
-                                setShowAccountSuggestions(false);
-                              }}
-                              className={cn(
-                                "w-full text-left px-2.5 py-2 rounded-lg text-foreground transition-colors flex items-center justify-between cursor-pointer",
-                                isHighlighted ? "bg-primary/20" : isSelected ? "bg-primary/10" : "hover:bg-primary/10"
-                              )}
-                            >
-                              <span className="whitespace-pre">{acc.displayName || acc.name}</span>
-                              <span className="text-[10px] text-muted-foreground font-semibold px-1 bg-background/30 rounded border border-border/30">
-                                {acc.currency}
-                              </span>
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <AccountCombobox
+                value={accountId}
+                onValueChange={setAccountId}
+                placeholder="Selecione uma conta"
+              />
             </div>
 
             {isTransfer && (
               <div id="to-account-container" className="relative grid gap-2 animate-in slide-in-from-right-2">
                 <Label htmlFor="to_account">Para Conta (Destino)</Label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowToAccountSuggestions(!showToAccountSuggestions);
-                      setToAccountSearch(""); // Limpa filtro ao abrir
-                    }}
-                    className="w-full h-10 px-3 bg-background/50 border border-border/60 hover:border-primary/50 rounded-xl flex items-center justify-between text-sm font-medium transition-colors cursor-pointer text-left"
-                  >
-                    <span className="truncate">
-                      {toAccount ? (
-                        <span className="flex items-center gap-1.5">
-                          <span className="whitespace-pre">{toAccount.displayName || toAccount.name}</span>
-                          <span className="text-[10px] text-muted-foreground">({toAccount.currency})</span>
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground/60">Selecione uma conta</span>
-                      )}
-                    </span>
-                    <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground/80 transition-transform duration-200", showToAccountSuggestions && "rotate-180")} />
-                  </button>
-
-                  {showToAccountSuggestions && (
-                    <div className="absolute top-[calc(100%+4px)] z-50 w-full rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-glow p-2 text-xs flex flex-col gap-1.5 animate-in fade-in slide-in-from-top-1">
-                      <Input 
-                        type="text"
-                        placeholder="🔍 Filtrar conta..." 
-                        value={toAccountSearch}
-                        onChange={(e) => {
-                          setToAccountSearch(e.target.value);
-                        }}
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (filteredToAccounts.length === 0) return;
-                          
-                          const currentToFilteredIndex = activeToAccountSuggestionIndex;
-                          if (e.key === "ArrowDown") {
-                            e.preventDefault();
-                            const nextIdx = currentToFilteredIndex < filteredToAccounts.length - 1 ? currentToFilteredIndex + 1 : 0;
-                            setActiveToAccountSuggestionIndex(nextIdx);
-                          } else if (e.key === "ArrowUp") {
-                            e.preventDefault();
-                            const prevIdx = currentToFilteredIndex > 0 ? currentToFilteredIndex - 1 : filteredToAccounts.length - 1;
-                            setActiveToAccountSuggestionIndex(prevIdx);
-                          } else if (e.key === "Enter") {
-                            e.preventDefault(); // Impede o submit do formulário
-                            if (activeToAccountSuggestionIndex >= 0 && activeToAccountSuggestionIndex < filteredToAccounts.length) {
-                              const selected = filteredToAccounts[activeToAccountSuggestionIndex];
-                              setToAccountId(String(selected.id));
-                              setShowToAccountSuggestions(false);
-                            }
-                          } else if (e.key === "Escape") {
-                            setShowToAccountSuggestions(false);
-                          }
-                        }}
-                        className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-lg focus-visible:ring-primary/50"
-                      />
-
-                      <div className="max-h-48 overflow-y-auto flex flex-col gap-0.5 scrollbar-thin">
-                        {filteredToAccounts.length === 0 ? (
-                          <div className="py-2.5 px-3 text-xs text-muted-foreground text-center select-none">Nenhuma conta encontrada</div>
-                        ) : (
-                          filteredToAccounts.map((acc, index) => {
-                            const isHighlighted = index === activeToAccountSuggestionIndex;
-                            const isSelected = String(acc.id) === toAccountId;
-                            return (
-                              <button
-                                key={acc.id}
-                                type="button"
-                                onClick={() => {
-                                  setToAccountId(String(acc.id));
-                                  setShowToAccountSuggestions(false);
-                                }}
-                                className={cn(
-                                  "w-full text-left px-2.5 py-2 rounded-lg text-foreground transition-colors flex items-center justify-between cursor-pointer",
-                                  isHighlighted ? "bg-primary/20" : isSelected ? "bg-primary/10" : "hover:bg-primary/10"
-                                )}
-                              >
-                                <span className="whitespace-pre">{acc.displayName || acc.name}</span>
-                                <span className="text-[10px] text-muted-foreground font-semibold px-1 bg-background/30 rounded border border-border/30">
-                                  {acc.currency}
-                                </span>
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <AccountCombobox
+                  value={toAccountId}
+                  onValueChange={setToAccountId}
+                  placeholder="Selecione uma conta"
+                  excludeAccountId={accountId}
+                />
               </div>
             )}
           </div>

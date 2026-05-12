@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { toast } from "sonner";
+import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
 
 export const ImportModal = ({ children }: { children?: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
@@ -100,18 +101,12 @@ export const ImportModal = ({ children }: { children?: React.ReactNode }) => {
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="account">Conta de Destino</Label>
-            <Select value={accountId} onValueChange={setAccountId} required>
-              <SelectTrigger className="bg-background/50 border-border/60 rounded-xl">
-                <SelectValue placeholder="Selecione uma conta" />
-              </SelectTrigger>
-              <SelectContent className="glass border-border/60">
-                {leafAccounts.map(acc => (
-                  <SelectItem key={acc.id} value={String(acc.id)}>
-                    {acc.name} ({acc.currency || 'EUR'})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <AccountCombobox
+              value={accountId}
+              onValueChange={setAccountId}
+              placeholder="Selecione uma conta"
+              filterLeafOnly={true}
+            />
           </div>
 
           <div className="grid gap-2">

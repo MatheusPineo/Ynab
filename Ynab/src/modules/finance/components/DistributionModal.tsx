@@ -7,6 +7,13 @@ import {
   DialogTrigger,
   DialogFooter
 } from "@/shared/components/ui/dialog";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -14,13 +21,9 @@ import { useAccountStore, DistributionTemplateItem, DistributionTemplate } from 
 import { AccountNode } from "@/types";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { Split, Plus, Trash, Save } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/shared/components/ui/select";
+import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { toast } from "sonner";
+
 
 interface DistributionModalProps {
   initialSourceAccount?: string;
@@ -55,7 +58,9 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
   const accountsFlat = useMemo(() => {
     const list: (AccountNode & { displayName?: string })[] = [];
     const walk = (nodes: AccountNode[], depth = 0) => {
+      if (!Array.isArray(nodes)) return;
       nodes.forEach(n => {
+        if (!n) return;
         const indent = "\u00A0\u00A0".repeat(depth);
         list.push({
           ...n,
@@ -197,18 +202,11 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs sm:text-sm font-semibold text-muted-foreground">Conta de Origem</Label>
-              <Select value={sourceAccount} onValueChange={setSourceAccount}>
-                <SelectTrigger className="bg-background/50 h-10 rounded-xl text-xs sm:text-sm border-border/40">
-                  <SelectValue placeholder="Selecione a conta de origem..." />
-                </SelectTrigger>
-                <SelectContent className="glass border-border/60">
-                  {accountsFlat.map(a => (
-                    <SelectItem key={a.id} value={String(a.id)} className="text-xs sm:text-sm">
-                      <span className="whitespace-pre">{a.displayName || a.name}</span> ({formatMoney(a.balance, a.currency)})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <AccountCombobox
+                value={sourceAccount}
+                onValueChange={setSourceAccount}
+                placeholder="Selecione a conta de origem..."
+              />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs sm:text-sm font-semibold text-muted-foreground">Valor Total a Distribuir</Label>
@@ -255,18 +253,13 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
                 {/* Desktop layout: clean row */}
                 <div className="hidden sm:flex items-center gap-3 p-1">
                   <div className="flex-1">
-                    <Select value={row.account} onValueChange={(v) => handleRowChange(idx, "account", v)}>
-                      <SelectTrigger className="h-9 bg-background/50 rounded-xl text-xs border-border/40">
-                        <SelectValue placeholder="Conta destino..." />
-                      </SelectTrigger>
-                      <SelectContent className="glass border-border/60">
-                        {accountsFlat.filter(a => String(a.id) !== sourceAccount).map(a => (
-                          <SelectItem key={a.id} value={String(a.id)} className="text-xs">
-                            <span className="whitespace-pre">{a.displayName || a.name}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <AccountCombobox
+                      value={row.account}
+                      onValueChange={(v) => handleRowChange(idx, "account", v)}
+                      placeholder="Conta destino..."
+                      excludeAccountId={sourceAccount}
+                      className="h-9"
+                    />
                   </div>
                   <div className="w-24">
                     <Input 
@@ -335,18 +328,13 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
 
                   <div className="space-y-1">
                     <Label className="text-[9px] text-muted-foreground uppercase font-black">Conta Destino</Label>
-                    <Select value={row.account} onValueChange={(v) => handleRowChange(idx, "account", v)}>
-                      <SelectTrigger className="h-9 bg-background/50 rounded-lg text-xs border-border/40">
-                        <SelectValue placeholder="Selecione a conta destino..." />
-                      </SelectTrigger>
-                      <SelectContent className="glass border-border/60">
-                        {accountsFlat.filter(a => String(a.id) !== sourceAccount).map(a => (
-                          <SelectItem key={a.id} value={String(a.id)} className="text-xs">
-                            <span className="whitespace-pre">{a.displayName || a.name}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <AccountCombobox
+                      value={row.account}
+                      onValueChange={(v) => handleRowChange(idx, "account", v)}
+                      placeholder="Selecione a conta destino..."
+                      excludeAccountId={sourceAccount}
+                      className="h-9"
+                    />
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">

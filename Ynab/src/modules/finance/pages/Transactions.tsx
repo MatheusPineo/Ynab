@@ -35,6 +35,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { AddTransactionModal } from "@/modules/finance/components/AddTransactionModal";
 import { ImportModal } from "@/modules/finance/components/ImportModal";
+import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
 import { useQueryClient } from "@tanstack/react-query";
 import { PullToRefresh } from "@/shared/components/dashboard/PullToRefresh";
 import { SwipeableTransactionCard } from "@/modules/finance/components/SwipeableTransactionCard";
@@ -155,17 +156,13 @@ const Transactions = () => {
             </SelectContent>
           </Select>
 
-          <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-            <SelectTrigger className="flex-1 min-w-[120px] sm:w-[180px] rounded-xl border-border/60 bg-muted/10 h-9 sm:h-10 text-xs sm:text-sm">
-              <SelectValue placeholder="Filtrar Conta" />
-            </SelectTrigger>
-            <SelectContent className="glass border-border/60">
-              <SelectItem value="all" className="text-xs sm:text-sm">Todas as Contas</SelectItem>
-              {allAccounts.map(acc => (
-                <SelectItem key={acc.id} value={acc.id} className="text-xs sm:text-sm">{acc.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <AccountCombobox
+            value={selectedAccountId}
+            onValueChange={setSelectedAccountId}
+            placeholder="Filtrar Conta"
+            showAllOption
+            className="flex-1 min-w-[120px] sm:w-[180px] h-9 sm:h-10"
+          />
         </div>
       </div>
 
