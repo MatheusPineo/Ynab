@@ -27,11 +27,16 @@ import {
   ChevronDown,
   Monitor,
   Cpu,
-  Activity
+  Activity,
+  User,
+  Clock,
+  ArrowUpRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { authenticatedFetch } from "@/shared/lib/api";
+import { Progress } from "@/shared/components/ui/progress";
+import { Badge } from "@/shared/components/ui/badge";
 
 interface Article {
   id: string;
@@ -98,7 +103,6 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
 
   // Simulate network latency and load initial info
   useEffect(() => {
-    // Generate a realistic local latency
     setLatenceSimulated(Math.floor(22 + Math.random() * 25));
     if (isPublic) {
       window.scrollTo(0, 0);
@@ -130,7 +134,6 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
 
   const handleTabChange = (tabId: string) => {
     setSearchParams({ tab: tabId });
-    // Reset secondary states
     setSelectedArticleId(null);
     setSubmittedTicket(null);
     handleRemoveFile();
@@ -172,25 +175,21 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
       return;
     }
 
-    // Max 5MB Limit
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Limite de tamanho excedido! O arquivo deve ter no máximo 5MB.");
       return;
     }
 
-    // Set file
     setAttachedFile(file);
     setIsUploadingFile(true);
     setUploadProgress(0);
 
-    // Create preview URL if image
     if (file.type.startsWith("image/")) {
       setFilePreviewUrl(URL.createObjectURL(file));
     } else {
       setFilePreviewUrl(null);
     }
 
-    // Simulate upload progression bar
     let progress = 0;
     const interval = setInterval(() => {
       progress += 20;
@@ -216,7 +215,6 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
     }
   };
 
-  // Get diagnostic information
   const getDiagnosticData = () => {
     const ua = navigator.userAgent;
     let os = "Windows OS";
@@ -237,7 +235,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
       os,
       browser,
       resolution: `${window.screen.width}x${window.screen.height} (${window.innerWidth}x${window.innerHeight} viewport)`,
-      appVersion: "v1.7.0 (Production)",
+      appVersion: "v1.17.0 (Production)",
       latence: `${latenceSimulated}ms`,
       lang: navigator.language || "pt-BR",
       cookiesEnabled: navigator.cookieEnabled ? "Ativado" : "Desativado"
@@ -246,7 +244,6 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
 
   const diagnostics = getDiagnosticData();
 
-  // Pre-defined technical articles
   const articles: Article[] = [
     {
       id: "ynab-recursiveness",
@@ -316,7 +313,6 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
     }
   ];
 
-  // Filters logic
   const filteredArticles = articles.filter((art) => {
     const matchesSearch = 
       art.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -329,9 +325,9 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
   });
 
   const categoriesList = [
-    { id: "metodologia", label: "Metodologia YNAB & Orçamento", count: 2, color: "from-emerald-500/20 to-teal-500/10 border-emerald-500/30 text-emerald-400" },
-    { id: "moedas", label: "Câmbio & Multimoedas", count: 1, color: "from-blue-500/20 to-indigo-500/10 border-blue-500/30 text-blue-400" },
-    { id: "seguranca", label: "Segurança & Privacidade", count: 2, color: "from-purple-500/20 to-pink-500/10 border-purple-500/30 text-purple-400" }
+    { id: "metodologia", label: "Metodologia YNAB & Orçamento", count: 2, color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+    { id: "moedas", label: "Câmbio & Multimoedas", count: 1, color: "bg-blue-500/10 text-blue-400 border-blue-500/20" },
+    { id: "seguranca", label: "Segurança & Privacidade", count: 2, color: "bg-purple-500/10 text-purple-400 border-purple-500/20" }
   ];
 
   // Submit Support Ticket Handler
@@ -372,7 +368,6 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
       setSubmittedTicket(data.ticket_id);
       toast.success(`Chamado enviado com sucesso! Protocolo: ${data.ticket_id}`);
       
-      // Clear fields and file
       setSupportSubject("");
       setSupportMessage("");
       handleRemoveFile();
@@ -411,7 +406,6 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
 
     toast.success("Feedback enviado com sucesso! Muito obrigado pelo seu apoio.");
     
-    // Reset Form
     setFeedbackStars(0);
     setFeedbackComment("");
   };
@@ -433,55 +427,50 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  // ==========================================================================
-  // RENDER: WORKSPACE CONTENT (SHARED)
-  // ==========================================================================
   const renderTabContent = () => {
     switch (activeTab) {
       case "articles":
         return (
           <div className="space-y-6">
             {selectedArticleId ? (
-              // Article Reader View
               <ArticleReader 
                 article={articles.find(a => a.id === selectedArticleId)!} 
                 onBack={() => setSelectedArticleId(null)} 
               />
             ) : (
-              // Search & Grid View
               <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row gap-3 items-center justify-between border-b border-slate-900 pb-4">
+                <div className="flex flex-col sm:flex-row gap-3 items-center justify-between border-b border-border/40 pb-4">
                   <div>
                     <h2 className="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-emerald-400" />
+                      <BookOpen className="w-5 h-5 text-emerald-400 animate-pulse-subtle" />
                       Base de Artigos Técnicos
                     </h2>
-                    <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5">Explore informações estruturadas de funcionamento.</p>
+                    <p className="text-muted-foreground text-[10px] sm:text-xs mt-0.5">Explore informações estruturadas e metodológicas de engenharia.</p>
                   </div>
                 </div>
 
                 {/* Search Bar input */}
                 <div className="relative">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Buscar artigos por palavra-chave (ex: YNAB, 2FA, Câmbio)..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2.5 pl-11 pr-4 text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full bg-muted/20 border border-border/40 hover:bg-muted/30 focus:border-primary/50 focus:bg-muted/30 rounded-2xl py-3 pl-12 pr-4 text-xs sm:text-sm text-foreground placeholder-muted-foreground focus:outline-none transition-all"
                   />
                 </div>
 
                 {/* Categories Quick Filters */}
                 <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Filtro de Categorias</span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block font-mono">Filtro de Categorias</span>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => setSelectedCategory(null)}
-                      className={`px-3 py-1.5 rounded-lg border text-[10px] sm:text-xs font-semibold transition-all ${
+                      className={`px-3.5 py-1.5 rounded-xl border text-[10px] sm:text-xs font-bold transition-all ${
                         selectedCategory === null
-                          ? "bg-emerald-500/10 border-emerald-500/35 text-emerald-400"
-                          : "bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700"
+                          ? "bg-primary/20 border-primary/30 text-primary"
+                          : "bg-muted/20 border-border/40 text-muted-foreground hover:border-border/80 hover:text-foreground"
                       }`}
                     >
                       Todos ({articles.length})
@@ -490,10 +479,10 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                       <button
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
-                        className={`px-3 py-1.5 rounded-lg border text-[10px] sm:text-xs font-semibold transition-all ${
+                        className={`px-3.5 py-1.5 rounded-xl border text-[10px] sm:text-xs font-bold transition-all ${
                           selectedCategory === cat.id
-                            ? "bg-emerald-500/10 border-emerald-500/35 text-emerald-400"
-                            : "bg-slate-900/50 border-slate-800 text-slate-400 hover:border-slate-700"
+                            ? "bg-primary/20 border-primary/30 text-primary"
+                            : "bg-muted/20 border-border/40 text-muted-foreground hover:border-border/80 hover:text-foreground"
                         }`}
                       >
                         {cat.label} ({cat.count})
@@ -509,37 +498,37 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                       <button
                         key={art.id}
                         onClick={() => setSelectedArticleId(art.id)}
-                        className="w-full text-left bg-slate-900/30 border border-slate-900 p-5 rounded-xl hover:border-slate-800 hover:bg-slate-900/50 transition-all group flex flex-col justify-between h-full"
+                        className="w-full text-left bg-muted/10 border border-border/40 hover:border-primary/30 hover:bg-muted/25 p-5 sm:p-6 rounded-3xl transition-all duration-300 group flex flex-col justify-between h-full relative overflow-hidden shadow-sm hover:shadow-glow"
                       >
                         <div>
-                          <div className="flex flex-wrap items-center gap-2 mb-2">
-                            <span className="text-[9px] font-mono py-0.5 px-2 bg-slate-900 rounded border border-slate-800 text-slate-400 uppercase">
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <Badge variant="secondary" className="text-[9px] font-mono py-0.5 px-2.5 bg-background/60 border border-border/40 text-muted-foreground uppercase">
                               {art.category}
-                            </span>
+                            </Badge>
                             {art.tags.slice(0, 2).map((tag, i) => (
-                              <span key={i} className="text-[9px] text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-900">
+                              <span key={i} className="text-[9px] text-muted-foreground bg-background/35 px-2 py-0.5 rounded-md border border-border/30 font-mono">
                                 #{tag}
                               </span>
                             ))}
                           </div>
-                          <h3 className="text-sm sm:text-base font-bold text-slate-100 group-hover:text-emerald-400 transition-colors leading-snug">
+                          <h3 className="text-sm sm:text-base font-extrabold text-slate-100 group-hover:text-emerald-400 transition-colors leading-snug">
                             {art.title}
                           </h3>
-                          <p className="text-slate-400 text-[11px] sm:text-xs mt-2 line-clamp-2">
+                          <p className="text-muted-foreground text-[11px] sm:text-xs mt-2.5 line-clamp-2 leading-relaxed">
                             {art.summary}
                           </p>
                         </div>
-                        <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold mt-4">
+                        <div className="flex items-center gap-1.5 text-xs text-primary font-bold mt-4 pt-1">
                           <span>Ler artigo completo</span>
-                          <ChevronRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+                          <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
                         </div>
                       </button>
                     ))
                   ) : (
-                    <div className="text-center py-10 border border-dashed border-slate-800 rounded-2xl">
-                      <HelpCircle className="w-8 h-8 text-slate-600 mx-auto mb-3" />
-                      <p className="text-slate-400 font-semibold text-sm">Nenhum artigo encontrado</p>
-                      <p className="text-slate-600 text-xs mt-1">Tente ajustar suas palavras-chave ou limpe as categorias.</p>
+                    <div className="text-center py-12 border border-dashed border-border/60 rounded-3xl bg-muted/10">
+                      <HelpCircle className="w-10 h-10 text-muted-foreground/60 mx-auto mb-3" />
+                      <p className="text-foreground font-bold text-sm">Nenhum artigo encontrado</p>
+                      <p className="text-muted-foreground text-xs mt-1">Tente ajustar suas palavras-chave ou limpe as categorias.</p>
                     </div>
                   )}
                 </div>
@@ -550,21 +539,21 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
 
       case "support":
         if (isPublic) {
-          // Locked State for Public View
           return (
-            <div className="text-center py-12 px-6 border border-slate-800/80 rounded-2xl bg-slate-950/40 space-y-6 max-w-md mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="p-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full w-14 h-14 flex items-center justify-center mx-auto shadow-inner">
+            <div className="text-center py-12 px-6 border border-border/60 rounded-3xl bg-card/45 backdrop-blur-sm space-y-6 max-w-md mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300 relative overflow-hidden shadow-glow">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="p-4 bg-primary/15 text-primary border border-primary/20 rounded-2xl w-14 h-14 flex items-center justify-center mx-auto shadow-inner">
                 <ShieldAlert className="w-7 h-7" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-base sm:text-lg font-extrabold text-slate-100">Área Exclusiva de Clientes</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Para abrir um chamado técnico de engenharia (com telemetria diagnóstica segura e anexo de capturas de tela) você precisa estar logado na sua conta autenticada do sistema.
                 </p>
               </div>
               <Link
                 to="/auth"
-                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 transition-all text-xs shadow-[0_0_20px_rgba(16,185,129,0.25)] active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 transition-all text-xs shadow-glow active:scale-[0.98]"
               >
                 Entrar no Vault Finance OS
               </Link>
@@ -572,37 +561,40 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
           );
         }
 
-        // Native Logged View (Active support form)
         return (
           <div className="space-y-6">
-            <div className="border-b border-slate-900 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div className="border-b border-border/40 pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <div>
                 <h2 className="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">
-                  <LifeBuoy className="w-5 h-5 text-emerald-400" />
+                  <LifeBuoy className="w-5 h-5 text-emerald-400 animate-pulse-subtle" />
                   Abertura de Ticket de Suporte
                 </h2>
-                <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5">Nossa equipe responderá sua solicitação em até 24 horas úteis.</p>
+                <p className="text-muted-foreground text-[10px] sm:text-xs mt-0.5 font-sans">Nossa equipe de engenharia responderá sua solicitação em até 24 horas úteis.</p>
               </div>
             </div>
 
             {submittedTicket ? (
-              <div className="text-center py-10 px-4 space-y-4 max-w-md mx-auto">
-                <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto animate-bounce">
+              <div className="text-center py-12 px-6 space-y-5 max-w-md mx-auto bg-muted/10 border border-border/40 rounded-3xl relative overflow-hidden shadow-glow">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl pointer-events-none" />
+                <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 flex items-center justify-center mx-auto animate-bounce">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
-                <h3 className="text-base sm:text-lg font-bold text-slate-100">Ticket Aberto com Sucesso!</h3>
-                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
-                  Seu chamado foi registrado na nossa fila de suporte de engenharia sob o protocolo exclusivo:
-                </p>
-                <div className="py-2.5 px-4 bg-slate-950 border border-slate-800 rounded-lg font-mono text-emerald-400 text-base sm:text-lg font-bold select-all inline-block">
+                <div className="space-y-1">
+                  <h3 className="text-base sm:text-lg font-extrabold text-slate-100">Ticket Aberto com Sucesso!</h3>
+                  <p className="text-muted-foreground text-xs sm:text-sm leading-relaxed">
+                    Seu chamado foi registrado na nossa fila de suporte de engenharia sob o protocolo exclusivo:
+                  </p>
+                </div>
+                <div className="py-3 px-5 bg-background border border-border/60 rounded-2xl font-mono text-emerald-400 text-base sm:text-lg font-extrabold select-all inline-block shadow-inner">
                   {submittedTicket}
                 </div>
-                <p className="text-[10px] sm:text-xs text-slate-500">
+                <p className="text-[10px] sm:text-xs text-muted-foreground">
                   Um e-mail de confirmação foi encaminhado. Retornaremos sua solicitação de suporte diretamente no e-mail cadastrado.
                 </p>
                 <button
+                  type="button"
                   onClick={() => setSubmittedTicket(null)}
-                  className="mt-6 px-5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-xl text-xs font-semibold text-slate-200 transition-all"
+                  className="mt-6 px-5 py-2.5 bg-muted/20 hover:bg-muted/40 border border-border/40 rounded-2xl text-xs font-bold text-slate-200 transition-all active:scale-95"
                 >
                   Abrir Outro Chamado
                 </button>
@@ -610,7 +602,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
             ) : (
               <form onSubmit={handleSupportSubmit} className="space-y-5">
                 {user && (
-                  <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center gap-3">
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                     <p className="text-[11px] text-emerald-300">
                       Você está logado como <strong>{user.name}</strong>. Os dados cadastrais foram vinculados e travados de forma segura.
@@ -620,7 +612,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Seu Nome</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Seu Nome</label>
                     <input
                       type="text"
                       required
@@ -628,11 +620,11 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                       placeholder="Ex: Matheus"
                       value={supportName}
                       onChange={(e) => setSupportName(e.target.value)}
-                      className="w-full bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                      className="w-full bg-muted/15 border border-border/40 rounded-2xl p-3.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:bg-muted/25 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">E-mail de Contato</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">E-mail de Contato</label>
                     <input
                       type="email"
                       required
@@ -640,76 +632,76 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                       placeholder="Ex: dpo@vaultfinance.os"
                       value={supportEmail}
                       onChange={(e) => setSupportEmail(e.target.value)}
-                      className="w-full bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                      className="w-full bg-muted/15 border border-border/40 rounded-2xl p-3.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:bg-muted/25 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Tipo de Chamado</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Tipo de Chamado</label>
                     <select
                       value={supportType}
                       onChange={(e) => setSupportType(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                      className="w-full bg-muted/15 border border-border/40 rounded-2xl p-3.5 text-xs sm:text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all cursor-pointer font-sans"
                     >
-                      <option value="technical">Problema Técnico ou Bug</option>
-                      <option value="account">Dúvidas de Conta / Login</option>
-                      <option value="finance">Assinatura / Cobrança Pro</option>
-                      <option value="other">Outro Tipo de Dúvida</option>
+                      <option value="technical" className="bg-card">Problema Técnico ou Bug</option>
+                      <option value="account" className="bg-card">Dúvidas de Conta / Login</option>
+                      <option value="finance" className="bg-card">Assinatura / Cobrança Pro</option>
+                      <option value="other" className="bg-card">Outro Tipo de Dúvida</option>
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Urgência da Demanda</label>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Urgência da Demanda</label>
                     <select
                       value={supportPriority}
                       onChange={(e) => setSupportPriority(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                      className="w-full bg-muted/15 border border-border/40 rounded-2xl p-3.5 text-xs sm:text-sm text-foreground focus:outline-none focus:border-primary/50 transition-all cursor-pointer font-sans"
                     >
-                      <option value="low">Baixa — Tirar dúvidas comuns</option>
-                      <option value="medium">Média — Dificuldade de uso</option>
-                      <option value="high">Alta — Falha que impede operação</option>
+                      <option value="low" className="bg-card">Baixa — Tirar dúvidas comuns</option>
+                      <option value="medium" className="bg-card">Média — Dificuldade de uso</option>
+                      <option value="high" className="bg-card">Alta — Falha que impede operação</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Assunto do Chamado *</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Assunto do Chamado *</label>
                   <input
                     type="text"
                     required
                     placeholder="Digite um resumo curto (ex: Erro ao consolidar teto da conta poupança)..."
                     value={supportSubject}
                     onChange={(e) => setSupportSubject(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-all"
+                    className="w-full bg-muted/15 border border-border/40 rounded-2xl p-3.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:bg-muted/25 transition-all"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Descrição Detalhada *</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Descrição Detalhada *</label>
                   <textarea
                     required
                     rows={4}
                     placeholder="Forneça o máximo de detalhes possível, passos para reprodução ou informações relevantes..."
                     value={supportMessage}
                     onChange={(e) => setSupportMessage(e.target.value)}
-                    className="w-full bg-slate-900/60 border border-slate-800 rounded-xl p-2.5 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-all resize-y"
+                    className="w-full bg-muted/15 border border-border/40 rounded-2xl p-3.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:bg-muted/25 transition-all resize-y"
                   />
                 </div>
 
                 {/* Upload drag drop */}
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Anexar Print Screen ou Extrato (Opcional)</label>
+                  <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Anexar Print Screen ou Extrato (Opcional)</label>
                   {!attachedFile ? (
                     <div
                       onDragOver={handleDragOver}
                       onDragLeave={handleDragLeave}
                       onDrop={handleDrop}
                       onClick={() => fileInputRef.current?.click()}
-                      className={`border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2.5 group select-none ${
+                      className={`border border-dashed rounded-3xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 group select-none ${
                         isDragging 
-                          ? "border-emerald-400 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)] scale-[0.99]" 
-                          : "border-slate-800 bg-slate-950/40 text-slate-500 hover:border-slate-700 hover:bg-slate-900/10"
+                          ? "border-primary bg-primary/10 text-primary shadow-glow scale-[0.99]" 
+                          : "border-border/60 bg-muted/10 text-muted-foreground hover:border-primary/40 hover:bg-muted/15"
                       }`}
                     >
                       <input
@@ -719,41 +711,39 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                         accept=".png,.jpg,.jpeg,.webp,.pdf"
                         className="hidden"
                       />
-                      <div className={`p-3 rounded-xl border transition-colors ${
-                        isDragging ? "bg-emerald-500/20 border-emerald-400 text-emerald-400" : "bg-slate-900 border-slate-800 text-slate-400 group-hover:border-slate-700 group-hover:text-slate-300"
+                      <div className={`p-3.5 rounded-2xl border transition-colors ${
+                        isDragging ? "bg-primary/20 border-primary text-primary" : "bg-background/60 border-border/40 text-muted-foreground group-hover:border-primary/30 group-hover:text-foreground"
                       }`}>
-                        <UploadCloud className="w-6 h-6 animate-pulse" />
+                        <UploadCloud className="w-6 h-6 animate-pulse-subtle" />
                       </div>
-                      <div className="space-y-1">
-                        <p className="text-[11px] sm:text-xs font-semibold text-slate-300">
-                          Arraste e solte o arquivo aqui ou <span className="text-emerald-400 group-hover:underline">clique para procurar</span>
+                      <div className="space-y-1 px-4">
+                        <p className="text-[11px] sm:text-xs font-bold text-slate-350">
+                          Arraste e solte o arquivo aqui ou <span className="text-primary group-hover:underline">clique para procurar</span>
                         </p>
-                        <p className="text-[9px] text-slate-500 font-mono">
+                        <p className="text-[9px] text-muted-foreground/80 font-mono">
                           Formatos aceitos: PNG, JPG, WEBP ou PDF (Tamanho máximo: 5MB)
                         </p>
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
+                    <div className="bg-muted/10 border border-border/40 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-bottom-1 duration-200">
                       <div className="flex items-center gap-3.5 w-full min-w-0">
                         {filePreviewUrl ? (
-                          <a href={filePreviewUrl} target="_blank" rel="noreferrer" className="relative h-14 w-14 rounded-xl border border-slate-800 overflow-hidden shrink-0 group block">
+                          <a href={filePreviewUrl} target="_blank" rel="noreferrer" className="relative h-14 w-14 rounded-xl border border-border/40 overflow-hidden shrink-0 group block">
                             <img src={filePreviewUrl} alt="Preview anexo" className="h-full w-full object-cover group-hover:scale-105 transition-transform" />
                           </a>
                         ) : (
-                          <div className="h-14 w-14 rounded-xl border border-slate-800 bg-slate-950 flex items-center justify-center text-red-400 shrink-0 select-none">
+                          <div className="h-14 w-14 rounded-xl border border-border/45 bg-background flex items-center justify-center text-rose-450 shrink-0 select-none">
                             <FileText className="w-6 h-6" />
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="text-[11px] sm:text-xs font-semibold text-slate-200 truncate font-mono">{attachedFile.name}</p>
-                          <p className="text-[9px] text-slate-500 mt-1 font-mono">{formatFileSize(attachedFile.size)}</p>
+                          <p className="text-[11px] sm:text-xs font-bold text-foreground truncate font-mono">{attachedFile.name}</p>
+                          <p className="text-[9px] text-muted-foreground mt-1 font-mono">{formatFileSize(attachedFile.size)}</p>
                           {isUploadingFile && (
                             <div className="mt-2 space-y-1">
-                              <div className="h-1 w-full bg-slate-950 rounded-full overflow-hidden">
-                                <div className="h-full bg-emerald-500 transition-all duration-150" style={{ width: `${uploadProgress}%` }} />
-                              </div>
-                              <p className="text-[9px] text-emerald-400 font-mono">Processando arquivo... {uploadProgress}%</p>
+                              <Progress value={uploadProgress} className="h-1.5" />
+                              <p className="text-[9px] text-primary font-mono">Processando arquivo... {uploadProgress}%</p>
                             </div>
                           )}
                         </div>
@@ -761,7 +751,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                       <button
                         type="button"
                         onClick={handleRemoveFile}
-                        className="p-2 bg-slate-950 border border-slate-800 text-slate-500 hover:text-rose-400 hover:border-rose-500/30 rounded-xl transition-all shadow-soft shrink-0"
+                        className="p-2.5 bg-background border border-border/40 text-muted-foreground hover:text-rose-450 hover:border-rose-500/30 rounded-xl transition-all shadow-sm shrink-0"
                         title="Remover anexo"
                       >
                         <X className="w-4 h-4" />
@@ -771,55 +761,55 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                 </div>
 
                 {/* Diagnostics */}
-                <div className="border border-slate-900 rounded-2xl overflow-hidden bg-slate-950/25">
-                  <div className="flex items-center justify-between p-4 border-b border-slate-900">
-                    <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <div className="border border-border/40 rounded-3xl overflow-hidden bg-muted/5 backdrop-blur-sm shadow-sm">
+                  <div className="flex items-center justify-between p-4 border-b border-border/30">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
                       <input
                         type="checkbox"
                         checked={includeDiagnostics}
                         onChange={(e) => setIncludeDiagnostics(e.target.checked)}
-                        className="rounded border-slate-800 bg-slate-900 text-emerald-500 focus:ring-emerald-500 h-4 w-4"
+                        className="rounded border-border/60 bg-muted/15 text-primary focus:ring-primary h-4.5 w-4.5 cursor-pointer"
                       />
                       <div className="text-left">
                         <p className="text-[11px] sm:text-xs font-bold text-slate-200">Anexar Telemetria de Diagnóstico</p>
-                        <p className="text-[9px] text-slate-500 mt-0.5 leading-none">Anexa dados técnicos do navegador para triagem rápida.</p>
+                        <p className="text-[9px] text-muted-foreground mt-0.5 leading-none">Anexa dados técnicos criptografados para triagem de alta performance.</p>
                       </div>
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowDiagnosticsDetail(!showDiagnosticsDetail)}
-                      className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
+                      className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                     >
                       <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${showDiagnosticsDetail ? "rotate-180" : ""}`} />
                     </button>
                   </div>
 
                   {showDiagnosticsDetail && (
-                    <div className="p-4 bg-slate-950/60 border-b border-slate-900 space-y-3 font-mono text-[9px] sm:text-[10px] text-slate-400 leading-relaxed animate-fade-in-up">
-                      <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                    <div className="p-4 bg-background/40 border-b border-border/30 space-y-3 font-mono text-[9px] sm:text-[10px] text-muted-foreground leading-relaxed animate-fade-in-up">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
                         <div className="flex items-center gap-1.5">
-                          <Cpu className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Sistema: <strong>{diagnostics.os}</strong></span>
+                          <Cpu className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span>Sistema: <strong className="text-foreground">{diagnostics.os}</strong></span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Monitor className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Monitor: <strong>{diagnostics.resolution}</strong></span>
+                          <Monitor className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span>Monitor: <strong className="text-foreground">{diagnostics.resolution}</strong></span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Globe className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Navegador: <strong>{diagnostics.browser}</strong></span>
+                          <Globe className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span>Navegador: <strong className="text-foreground">{diagnostics.browser}</strong></span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Database className="w-3.5 h-3.5 text-slate-500" />
-                          <span>App Version: <strong>{diagnostics.appVersion}</strong></span>
+                          <Database className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span>App Version: <strong className="text-foreground">{diagnostics.appVersion}</strong></span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <Activity className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Latência de Rede: <strong className="text-emerald-400">{diagnostics.latence}</strong></span>
+                          <Activity className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span>Latência de Rede: <strong className="text-primary">{diagnostics.latence}</strong></span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <ShieldAlert className="w-3.5 h-3.5 text-slate-500" />
-                          <span>Cookies Local: <strong>{diagnostics.cookiesEnabled}</strong></span>
+                          <ShieldAlert className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                          <span>Cookies Local: <strong className="text-foreground">{diagnostics.cookiesEnabled}</strong></span>
                         </div>
                       </div>
                     </div>
@@ -829,7 +819,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                 <button
                   type="submit"
                   disabled={isSubmittingSupport || isUploadingFile}
-                  className="w-full sm:w-max flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                  className="w-full sm:w-max flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-emerald-500 text-zinc-950 font-extrabold hover:bg-emerald-400 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none text-xs sm:text-sm shadow-glow shrink-0"
                 >
                   {isSubmittingSupport ? (
                     <>
@@ -850,21 +840,21 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
 
       case "feedback":
         if (isPublic) {
-          // Locked State for Public View
           return (
-            <div className="text-center py-12 px-6 border border-slate-800/80 rounded-2xl bg-slate-950/40 space-y-6 max-w-md mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300">
-              <div className="p-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full w-14 h-14 flex items-center justify-center mx-auto shadow-inner">
+            <div className="text-center py-12 px-6 border border-border/60 rounded-3xl bg-card/45 backdrop-blur-sm space-y-6 max-w-md mx-auto animate-in fade-in slide-in-from-bottom-2 duration-300 relative overflow-hidden shadow-glow">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="p-4 bg-primary/15 text-primary border border-primary/20 rounded-2xl w-14 h-14 flex items-center justify-center mx-auto shadow-inner">
                 <Heart className="w-7 h-7" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-base sm:text-lg font-extrabold text-slate-100">Diga-nos o que achou</h3>
-                <p className="text-slate-400 text-xs leading-relaxed">
+                <p className="text-muted-foreground text-xs leading-relaxed">
                   Queremos ouvir a sua opinião! Se já é cliente do Vault Finance OS, faça login para deixar sua classificação de estrelas e comentários em nossa timeline de feedbacks do app.
                 </p>
               </div>
               <Link
                 to="/auth"
-                className="w-full flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 transition-all text-xs shadow-[0_0_20px_rgba(16,185,129,0.25)] active:scale-[0.98]"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500 text-zinc-950 font-bold hover:bg-emerald-400 transition-all text-xs shadow-glow active:scale-[0.98]"
               >
                 Entrar no Vault Finance OS
               </Link>
@@ -872,21 +862,21 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
           );
         }
 
-        // Native Logged View (Active feedback timeline)
         return (
           <div className="space-y-8">
-            <div className="border-b border-slate-900 pb-4">
+            <div className="border-b border-border/40 pb-4">
               <h2 className="text-sm sm:text-base font-bold text-slate-100 flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-emerald-400" />
+                <MessageSquare className="w-5 h-5 text-emerald-400 animate-pulse-subtle" />
                 Deixe sua Opinião e Avaliação
               </h2>
-              <p className="text-slate-500 text-[10px] sm:text-xs mt-0.5">Sua opinião ajuda nossa equipe de engenharia a calibrar o sistema.</p>
+              <p className="text-muted-foreground text-[10px] sm:text-xs mt-0.5 font-sans">Sua opinião ajuda nossa equipe de engenharia a calibrar o sistema.</p>
             </div>
 
-            <form onSubmit={handleFeedbackSubmit} className="space-y-5 bg-slate-900/30 border border-slate-900 p-5 sm:p-6 rounded-2xl relative overflow-hidden">
-              <div className="space-y-2 text-center sm:text-left">
-                <label className="text-[10px] font-bold text-slate-400 uppercase font-mono block">Classifique sua Experiência Geral *</label>
-                <div className="flex items-center justify-center sm:justify-start gap-1.5 py-1.5">
+            <form onSubmit={handleFeedbackSubmit} className="space-y-6 bg-muted/10 border border-border/40 p-5 sm:p-6 rounded-3xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="space-y-2.5 text-center sm:text-left">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Classifique sua Experiência Geral *</label>
+                <div className="flex items-center justify-center sm:justify-start gap-2 py-1">
                   {[1, 2, 3, 4, 5].map((starValue) => {
                     const isGold = (feedbackHoverStars || feedbackStars) >= starValue;
                     return (
@@ -896,31 +886,31 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                         onClick={() => setFeedbackStars(starValue)}
                         onMouseEnter={() => setFeedbackHoverStars(starValue)}
                         onMouseLeave={() => setFeedbackHoverStars(0)}
-                        className="focus:outline-none transition-transform active:scale-95"
+                        className="focus:outline-none transition-transform active:scale-90"
                         aria-label={`Avaliar como ${starValue} estrelas`}
                       >
                         <Star className={`w-8 h-8 transition-colors ${
-                          isGold ? "fill-yellow-400 text-yellow-400 scale-105" : "text-slate-700"
+                          isGold ? "fill-yellow-450 text-yellow-450 scale-110" : "text-muted-foreground/30 hover:text-muted-foreground/60"
                         }`} />
                       </button>
                     );
                   })}
                   {feedbackStars > 0 && (
-                    <span className="text-[10px] font-mono text-slate-500 ml-2 py-0.5 px-2 bg-slate-900 border border-slate-800 rounded-full">
+                    <Badge variant="outline" className="border-border/60 ml-2 py-0.5 px-2.5 font-mono text-muted-foreground">
                       {feedbackStars} de 5
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase font-mono block">Qual o teor principal? *</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Qual o teor principal? *</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                   {[
-                    { id: "love", icon: Heart, text: "Amo o App" },
-                    { id: "suggestion", icon: Sparkles, text: "Sugestão" },
-                    { id: "bug", icon: Bug, text: "Bug/Erro" },
-                    { id: "other", icon: HelpCircle, text: "Outro" }
+                    { id: "love", icon: Heart, text: "Amo o App", activeCls: "bg-rose-500/10 border-rose-500/30 text-rose-400" },
+                    { id: "suggestion", icon: Sparkles, text: "Sugestão", activeCls: "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" },
+                    { id: "bug", icon: Bug, text: "Bug/Erro", activeCls: "bg-amber-500/10 border-amber-500/30 text-amber-400" },
+                    { id: "other", icon: HelpCircle, text: "Outro", activeCls: "bg-blue-500/10 border-blue-500/30 text-blue-400" }
                   ].map((cat) => {
                     const Icon = cat.icon;
                     const isSelected = feedbackCategory === cat.id;
@@ -929,10 +919,10 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                         key={cat.id}
                         type="button"
                         onClick={() => setFeedbackCategory(cat.id)}
-                        className={`flex items-center gap-2 justify-center p-3 rounded-xl border text-[11px] font-semibold transition-all ${
+                        className={`flex items-center gap-2 justify-center p-3.5 rounded-2xl border text-[11px] font-bold transition-all ${
                           isSelected
-                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-                            : "bg-slate-900/40 border-slate-800 text-slate-400 hover:border-slate-700"
+                            ? cat.activeCls
+                            : "bg-muted/15 border-border/40 text-muted-foreground hover:border-border/80 hover:text-foreground"
                         }`}
                       >
                         <Icon className="w-4 h-4 shrink-0" />
@@ -944,26 +934,26 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-slate-400 uppercase font-mono">Sua mensagem ou ideias de melhoria</label>
+                <label className="text-[10px] font-bold text-muted-foreground uppercase font-mono block">Sua mensagem ou ideias de melhoria</label>
                 <textarea
                   rows={4}
                   placeholder="Escreva livremente sua opinião, sugestões de novas telas ou feedbacks de design..."
                   value={feedbackComment}
                   onChange={(e) => setFeedbackComment(e.target.value)}
-                  className="w-full bg-slate-900/60 border border-slate-800 rounded-xl p-3 text-xs sm:text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:bg-slate-900 transition-all resize-none"
+                  className="w-full bg-muted/15 border border-border/40 rounded-2xl p-4 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:bg-muted/25 transition-all resize-none"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full sm:w-max flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-slate-100 text-zinc-950 font-bold hover:bg-white active:scale-[0.98] transition-all text-xs sm:text-sm shadow-xl"
+                className="w-full sm:w-max flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-slate-100 text-zinc-950 font-extrabold hover:bg-white active:scale-[0.98] transition-all text-xs sm:text-sm shadow-md"
               >
                 <Send className="w-4 h-4" />
                 <span>Enviar Avaliação</span>
               </button>
             </form>
 
-            <div className="space-y-4 pt-4 border-t border-slate-900">
+            <div className="space-y-4 pt-4 border-t border-border/40">
               <h3 className="text-xs font-bold text-slate-300 flex items-center gap-2 uppercase tracking-wider font-mono">
                 <History className="w-4 h-4 text-emerald-400" />
                 Seus Feedbacks Enviados nesta Máquina
@@ -972,23 +962,25 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
               {feedbacksHistory.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {feedbacksHistory.map((item) => (
-                    <div key={item.id} className="bg-slate-900/40 border border-slate-900 rounded-xl p-4 space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-[9px] font-mono py-0.5 px-2 bg-slate-950 rounded border border-slate-900 text-slate-500">
+                    <div key={item.id} className="bg-muted/10 border border-border/40 rounded-3xl p-5 space-y-3 shadow-sm hover:border-border/60 hover:bg-muted/15 transition-all">
+                      <div className="flex items-center justify-between gap-2 border-b border-border/30 pb-2.5">
+                        <span className="text-[9px] font-mono py-0.5 px-2 bg-background/60 rounded-md border border-border/40 text-muted-foreground">
                           {item.id}
                         </span>
-                        <span className="text-[10px] text-slate-500 font-mono">{item.date}</span>
+                        <span className="text-[9px] text-muted-foreground font-mono flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> {item.date}
+                        </span>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="flex text-yellow-400">
+                        <div className="flex text-yellow-450">
                           {Array.from({ length: 5 }).map((_, i) => (
-                            <Star key={i} className={`w-3.5 h-3.5 ${i < item.stars ? "fill-yellow-400" : "text-slate-800"}`} />
+                            <Star key={i} className={`w-3.5 h-3.5 ${i < item.stars ? "fill-yellow-450 text-yellow-450" : "text-muted-foreground/20"}`} />
                           ))}
                         </div>
-                        <span className="text-xs font-bold text-emerald-400">{getCategoryLabel(item.category)}</span>
+                        <span className="text-xs font-bold text-primary">{getCategoryLabel(item.category)}</span>
                       </div>
                       {item.comment && (
-                        <p className="text-[11px] text-slate-400 leading-relaxed font-mono italic">
+                        <p className="text-[11px] text-muted-foreground leading-relaxed font-sans italic p-3 bg-background/30 rounded-2xl border border-border/30">
                           "{item.comment}"
                         </p>
                       )}
@@ -996,7 +988,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 border border-dashed border-slate-900 rounded-xl text-slate-600 text-xs">
+                <div className="text-center py-8 border border-dashed border-border/40 rounded-3xl text-muted-foreground text-xs bg-muted/5">
                   Nenhum feedback enviado anteriormente deste dispositivo.
                 </div>
               )}
@@ -1009,103 +1001,104 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
     }
   };
 
-  // ==========================================================================
-  // RENDER: SIDEBAR CHANNELS (SHARED)
-  // ==========================================================================
   const renderSidebarChannels = () => (
-    <aside className={`${isPublic ? "hidden lg:block lg:col-span-4" : "col-span-1 lg:col-span-4"} sticky top-6 bg-slate-900/45 border border-slate-900 p-5 rounded-2xl shadow-xl backdrop-blur-md`}>
-      <div className="space-y-6">
-        <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase px-3 block">
-          Canais Disponíveis
+    <aside className={`${isPublic ? "hidden lg:block lg:col-span-4" : "col-span-1 lg:col-span-4"} sticky top-6 bg-card/40 border border-border/60 p-5 sm:p-6 rounded-3xl shadow-glow backdrop-blur-md relative overflow-hidden`}>
+      <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+      <div className="space-y-6 relative">
+        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase px-2.5 block font-mono">
+          Canais de Suporte
         </span>
-        <div className="space-y-1">
+        <div className="space-y-2">
           <button
+            type="button"
             onClick={() => handleTabChange("articles")}
-            className={`w-full flex items-center justify-between text-left p-3 rounded-xl border transition-all duration-200 group relative ${
+            className={`w-full flex items-center justify-between text-left p-3.5 rounded-2xl border transition-all duration-300 group relative ${
               activeTab === "articles"
-                ? "bg-slate-900/80 text-white border-slate-800 font-medium"
-                : "bg-transparent text-slate-400 border-transparent hover:bg-slate-900/30"
+                ? "bg-primary/15 border-primary/30 text-white font-bold shadow-sm"
+                : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/15 hover:text-foreground"
             }`}
           >
             {activeTab === "articles" && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 rounded-r-md bg-gradient-to-b from-emerald-400 to-emerald-600" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1/2 rounded-r-full bg-gradient-to-b from-primary to-emerald-500 animate-pulse" />
             )}
-            <div className="flex items-center gap-3 pl-1.5">
-              <div className={`p-1.5 rounded-lg border ${
-                activeTab === "articles" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-950 text-slate-500 border-slate-800"
+            <div className="flex items-center gap-3 pl-1.5 min-w-0">
+              <div className={`p-2 rounded-xl border shrink-0 transition-all ${
+                activeTab === "articles" ? "bg-primary/20 text-primary border-primary/20" : "bg-background/80 text-muted-foreground/65 border-border/40"
               }`}>
                 <BookOpen className="w-4 h-4" />
               </div>
-              <div>
-                <p className="text-xs sm:text-sm font-semibold tracking-tight">Artigos e Dicas</p>
-                <p className="text-[10px] text-slate-500 mt-0.5 leading-none">Base de Conhecimento</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-extrabold tracking-tight truncate">Artigos e Dicas</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">Base de Conhecimento</p>
               </div>
             </div>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400" />
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
           </button>
 
           <button
+            type="button"
             onClick={() => handleTabChange("support")}
-            className={`w-full flex items-center justify-between text-left p-3 rounded-xl border transition-all duration-200 group relative ${
+            className={`w-full flex items-center justify-between text-left p-3.5 rounded-2xl border transition-all duration-300 group relative ${
               activeTab === "support"
-                ? "bg-slate-900/80 text-white border-slate-800 font-medium"
-                : "bg-transparent text-slate-400 border-transparent hover:bg-slate-900/30"
+                ? "bg-primary/15 border-primary/30 text-white font-bold shadow-sm"
+                : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/15 hover:text-foreground"
             }`}
           >
             {activeTab === "support" && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 rounded-r-md bg-gradient-to-b from-emerald-400 to-emerald-600" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1/2 rounded-r-full bg-gradient-to-b from-primary to-emerald-500 animate-pulse" />
             )}
-            <div className="flex items-center gap-3 pl-1.5">
-              <div className={`p-1.5 rounded-lg border ${
-                activeTab === "support" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-950 text-slate-500 border-slate-800"
+            <div className="flex items-center gap-3 pl-1.5 min-w-0">
+              <div className={`p-2 rounded-xl border shrink-0 transition-all ${
+                activeTab === "support" ? "bg-primary/20 text-primary border-primary/20" : "bg-background/80 text-muted-foreground/65 border-border/40"
               }`}>
                 <LifeBuoy className="w-4 h-4" />
               </div>
-              <div>
-                <p className="text-xs sm:text-sm font-semibold tracking-tight">Suporte Direto</p>
-                <p className="text-[10px] text-slate-500 mt-0.5 leading-none">Abrir Ticket Técnico</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-extrabold tracking-tight truncate">Suporte Direto</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">Abrir Ticket Técnico</p>
               </div>
             </div>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400" />
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
           </button>
 
           <button
+            type="button"
             onClick={() => handleTabChange("feedback")}
-            className={`w-full flex items-center justify-between text-left p-3 rounded-xl border transition-all duration-200 group relative ${
+            className={`w-full flex items-center justify-between text-left p-3.5 rounded-2xl border transition-all duration-300 group relative ${
               activeTab === "feedback"
-                ? "bg-slate-900/80 text-white border-slate-800 font-medium"
-                : "bg-transparent text-slate-400 border-transparent hover:bg-slate-900/30"
+                ? "bg-primary/15 border-primary/30 text-white font-bold shadow-sm"
+                : "bg-transparent text-muted-foreground border-transparent hover:bg-muted/15 hover:text-foreground"
             }`}
           >
             {activeTab === "feedback" && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-1/2 rounded-r-md bg-gradient-to-b from-emerald-400 to-emerald-600" />
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1/2 rounded-r-full bg-gradient-to-b from-primary to-emerald-500 animate-pulse" />
             )}
-            <div className="flex items-center gap-3 pl-1.5">
-              <div className={`p-1.5 rounded-lg border ${
-                activeTab === "feedback" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-slate-950 text-slate-500 border-slate-800"
+            <div className="flex items-center gap-3 pl-1.5 min-w-0">
+              <div className={`p-2 rounded-xl border shrink-0 transition-all ${
+                activeTab === "feedback" ? "bg-primary/20 text-primary border-primary/20" : "bg-background/80 text-muted-foreground/65 border-border/40"
               }`}>
                 <MessageSquare className="w-4 h-4" />
               </div>
-              <div>
-                <p className="text-xs sm:text-sm font-semibold tracking-tight">Enviar Feedback</p>
-                <p className="text-[10px] text-slate-500 mt-0.5 leading-none">Dar Ideias ou Estrelas</p>
+              <div className="min-w-0">
+                <p className="text-xs sm:text-sm font-extrabold tracking-tight truncate">Enviar Feedback</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5 leading-none">Dar Ideias ou Estrelas</p>
               </div>
             </div>
-            <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400" />
+            <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-foreground group-hover:translate-x-0.5 transition-all shrink-0" />
           </button>
         </div>
       </div>
 
-      <div className="mt-8 pt-6 border-t border-slate-800/60 px-3 text-[10px] sm:text-xs text-slate-500 leading-relaxed font-mono">
+      <div className="mt-8 pt-6 border-t border-border/30 px-3 text-[10px] sm:text-xs text-muted-foreground leading-relaxed font-mono relative">
         <p>Precisa de suporte imediato?</p>
-        <a href="mailto:suporte@vaultfinance.os" className="text-emerald-400 hover:underline block mt-1 font-semibold">suporte@vaultfinance.os</a>
+        <a href="mailto:matheuskrx@gmail.com" className="text-primary hover:underline block mt-1.5 font-bold flex items-center gap-1 group">
+          <span>matheuskrx@gmail.com</span>
+          <ArrowUpRight className="h-3 w-3 opacity-60 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+        </a>
       </div>
     </aside>
   );
 
-  // ==========================================================================
-  // VIEW: 1. SITE PUBLIC VIEW (isPublic === true)
-  // ==========================================================================
   if (isPublic) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-emerald-500/30 selection:text-emerald-100 relative overflow-x-hidden">
@@ -1118,17 +1111,17 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
           
           {/* Navigation Top Header */}
-          <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 sm:mb-12 border-b border-slate-900 pb-6">
+          <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8 sm:mb-12 border-b border-border/40 pb-6">
             <Link
               to="/"
-              className="inline-flex items-center text-emerald-400 hover:text-emerald-300 transition-colors gap-2 text-xs sm:text-sm font-semibold group"
+              className="inline-flex items-center text-primary hover:text-primary-foreground transition-colors gap-2 text-xs sm:text-sm font-bold group"
             >
               <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" /> 
               <span>Voltar para a Home</span>
             </Link>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs font-mono py-1 px-3 bg-slate-900 border border-slate-800 text-slate-400 rounded-full flex items-center gap-1.5">
+              <span className="text-xs font-mono py-1 px-3.5 bg-muted/20 border border-border/40 text-muted-foreground rounded-full flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                 Suporte Técnico Ativo
               </span>
@@ -1136,16 +1129,16 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
           </header>
 
           {/* Hero Banner Section */}
-          <section className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 rounded-3xl p-6 sm:p-10 mb-10 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-4 uppercase tracking-wider">
+          <section className="bg-gradient-to-br from-card/60 via-card/40 to-primary/5 border border-border/60 rounded-3xl p-6 sm:p-10 mb-10 shadow-glow relative overflow-hidden group">
+            <div className="absolute -top-24 -right-24 w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none group-hover:bg-primary/15 transition-colors duration-500" />
+            <div className="max-w-3xl relative">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 border border-primary/25 text-primary text-[10px] font-mono font-bold mb-5 uppercase tracking-wider">
                 Help Center / Central de Ajuda
               </div>
-              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200 mb-4 tracking-tight leading-tight">
-                Como podemos te ajudar hoje?
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200 mb-4 tracking-tight leading-tight">
+                Como podemos ajudar hoje?
               </h1>
-              <p className="text-slate-400 text-xs sm:text-sm lg:text-base leading-relaxed">
+              <p className="text-muted-foreground text-xs sm:text-sm lg:text-base leading-relaxed">
                 Explore nossos artigos explicativos sobre o ecossistema, consulte as lógicas matemáticas do YNAB, abra chamados para nossa equipe de engenharia ou envie feedbacks para moldarmos juntos o amanhã do **Vault Finance OS**.
               </p>
             </div>
@@ -1197,7 +1190,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
             {renderSidebarChannels()}
 
             {/* MAIN WORKSPACE */}
-            <main className="lg:col-span-8 bg-slate-900/20 border border-slate-900/50 rounded-2xl p-4 sm:p-8 shadow-inner">
+            <main className="lg:col-span-8 bg-card/40 border border-border/60 rounded-3xl p-6 sm:p-8 shadow-inner backdrop-blur-sm relative overflow-hidden">
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {renderTabContent()}
               </div>
@@ -1215,20 +1208,18 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
   // ==========================================================================
   return (
     <>
-      {/* Section header */}
       <div className="flex items-center justify-between gap-4 mt-2 mb-6">
         <div className="flex-1 min-w-0">
-          <h2 className="text-base sm:text-lg font-semibold text-foreground tracking-tight flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
             Central de Ajuda e Suporte
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
           </h2>
-          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-relaxed">
+          <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-relaxed font-sans">
             Consulte nossos artigos de engenharia financeira, abra um chamado direto com nossa equipe ou envie sugestões de design.
           </p>
         </div>
       </div>
 
-      {/* Content Layout Grid (Natively Integrated) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* MOBILE TABS NAVIGATION (LOGGED) */}
@@ -1236,7 +1227,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
           <div className="flex gap-2 min-w-max">
             <button
               onClick={() => handleTabChange("articles")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[11px] font-semibold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-[11px] font-extrabold transition-all ${
                 activeTab === "articles"
                   ? "bg-primary text-primary-foreground border-primary shadow-soft"
                   : "bg-muted/40 text-muted-foreground border-border"
@@ -1247,7 +1238,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
             </button>
             <button
               onClick={() => handleTabChange("support")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[11px] font-semibold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-[11px] font-extrabold transition-all ${
                 activeTab === "support"
                   ? "bg-primary text-primary-foreground border-primary shadow-soft"
                   : "bg-muted/40 text-muted-foreground border-border"
@@ -1258,7 +1249,7 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
             </button>
             <button
               onClick={() => handleTabChange("feedback")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl border text-[11px] font-semibold transition-all ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl border text-[11px] font-extrabold transition-all ${
                 activeTab === "feedback"
                   ? "bg-primary text-primary-foreground border-primary shadow-soft"
                   : "bg-muted/40 text-muted-foreground border-border"
@@ -1274,8 +1265,9 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
         {renderSidebarChannels()}
 
         {/* MAIN WORKSPACE (LOGGED) */}
-        <main className="col-span-1 lg:col-span-8 bg-card/45 border border-border/60 rounded-2xl p-4 sm:p-6 shadow-inner">
-          <div className="animate-in fade-in slide-in-from-bottom-1 duration-250">
+        <main className="col-span-1 lg:col-span-8 bg-card/40 backdrop-blur-sm border border-border/60 rounded-3xl p-5 sm:p-7 shadow-glow relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="animate-in fade-in slide-in-from-bottom-1 duration-250 relative">
             {renderTabContent()}
           </div>
         </main>
@@ -1284,10 +1276,6 @@ export default function HelpCenter({ isPublic = false }: HelpCenterProps) {
     </>
   );
 }
-
-// ============================================================================
-// SECONDARY COMPONENTS
-// ============================================================================
 
 /**
  * Article Reader Secondary Component
@@ -1308,31 +1296,31 @@ function ArticleReader({ article, onBack }: { article: Article; onBack: () => vo
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
       
       {/* Article Navigation Bar */}
-      <div className="border-b border-slate-900 pb-4 flex items-center justify-between">
+      <div className="border-b border-border/30 pb-4 flex items-center justify-between">
         <button
           onClick={onBack}
-          className="inline-flex items-center text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors gap-1.5"
+          className="inline-flex items-center text-xs font-bold text-primary hover:text-primary/80 transition-colors gap-1.5"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
-          <span>Voltar para a Lista de Artigos</span>
+          <span>Voltar para os Artigos</span>
         </button>
 
-        <span className="text-[10px] font-mono text-slate-500 py-0.5 px-2 bg-slate-950 rounded border border-slate-900 select-none uppercase">
+        <Badge variant="secondary" className="text-[10px] font-mono text-muted-foreground py-0.5 px-2.5 bg-background border border-border/40 select-none uppercase">
           {article.category}
-        </span>
+        </Badge>
       </div>
 
       {/* Article Content */}
       <article className="space-y-5">
-        <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200 leading-tight">
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200 leading-tight">
           {article.title}
         </h1>
         
-        <p className="text-xs sm:text-sm font-semibold text-slate-400 border-l-2 border-emerald-500 pl-3 italic py-0.5 leading-relaxed">
+        <p className="text-xs sm:text-sm font-bold text-muted-foreground border-l-2 border-primary pl-3.5 italic py-0.5 leading-relaxed">
           {article.summary}
         </p>
 
-        <div className="prose prose-invert max-w-none space-y-4 text-xs sm:text-sm text-slate-300 leading-relaxed font-sans">
+        <div className="prose prose-invert max-w-none space-y-4.5 text-xs sm:text-sm text-muted-foreground/90 leading-relaxed font-sans">
           {article.content.map((paragraph, i) => (
             <p key={i}>{paragraph}</p>
           ))}
@@ -1340,41 +1328,43 @@ function ArticleReader({ article, onBack }: { article: Article; onBack: () => vo
       </article>
 
       {/* Tags details */}
-      <div className="flex flex-wrap gap-1.5 pt-4 border-t border-slate-900">
+      <div className="flex flex-wrap gap-1.5 pt-4 border-t border-border/30">
         {article.tags.map((tag, i) => (
-          <span key={i} className="text-[10px] text-slate-500 bg-slate-950 px-2 py-0.5 rounded border border-slate-900">
+          <span key={i} className="text-[10px] text-muted-foreground/80 bg-background/40 px-2 py-0.5 rounded-md border border-border/30 font-mono">
             #{tag}
           </span>
         ))}
       </div>
 
       {/* Helpfulness Vote Area */}
-      <div className="bg-slate-900/40 border border-slate-900 p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="bg-muted/10 border border-border/40 p-5 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 relative overflow-hidden">
         <div className="text-center sm:text-left">
-          <p className="text-xs sm:text-sm font-bold text-slate-200">Este artigo tirou suas dúvidas de uso?</p>
-          <p className="text-xs text-slate-500 mt-0.5">Sua avaliação melhora nossa base continuamente.</p>
+          <p className="text-xs sm:text-sm font-extrabold text-slate-200">Este artigo tirou suas dúvidas de uso?</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Sua avaliação melhora nossa base continuamente.</p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
           {voted ? (
-            <div className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 py-1.5 px-3.5 rounded-lg flex items-center gap-1.5">
+            <div className="text-xs font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 py-1.5 px-3.5 rounded-xl flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4" />
               <span>Obrigado pelo seu voto!</span>
             </div>
           ) : (
             <>
               <button
+                type="button"
                 onClick={() => handleVote("yes")}
-                className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-slate-200 text-xs text-slate-400 transition-all active:scale-95"
+                className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-background border border-border/40 hover:border-primary/40 hover:text-foreground text-xs text-muted-foreground transition-all active:scale-95"
               >
                 <ThumbsUp className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Sim</span>
               </button>
               <button
+                type="button"
                 onClick={() => handleVote("no")}
-                className="flex items-center gap-1.5 py-1.5 px-3.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 hover:text-slate-200 text-xs text-slate-400 transition-all active:scale-95"
+                className="flex items-center gap-1.5 py-2 px-4 rounded-xl bg-background border border-border/40 hover:border-rose-500/30 hover:text-foreground text-xs text-muted-foreground transition-all active:scale-95"
               >
-                <ThumbsDown className="w-3.5 h-3.5 text-pink-400" />
+                <ThumbsDown className="w-3.5 h-3.5 text-rose-450" />
                 <span>Não</span>
               </button>
             </>
