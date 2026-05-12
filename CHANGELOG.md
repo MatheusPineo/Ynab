@@ -6,6 +6,32 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.17.2] — 2026-05-12
+
+Esta versão realiza a **Correção Estrutural e Redecoração de Luxo dos Modais de Dívidas** no Vault Finance OS. Focado em usabilidade e design responsivo mobile-first, ela elimina uma quebra de layout no componente de dívidas causada por conflitos de aninhamento de tags e esmagamento horizontal de campos, transformando o formulário em um layout vertical luxuoso e fluído com suporte a glassmorphism.
+
+### Corrigido
+* **Aninhamento Inválido de Componentes:**
+  - **Debts.tsx:** Correção da inserção de elementos `<DialogFooter>` dentro de `<DialogHeader>` que causava o vazamento de layouts flexbox horizontais indesejados, corrompendo a organização estrutural dos inputs no formulário.
+* **Layout Espremido e Sobreposições:**
+  - Mudança do layout horizontal rígido (`grid-cols-4`) para um elegante fluxo de empilhamento vertical (`flex flex-col gap-1.5` e `space-y-4`) com labels posicionadas de forma limpa acima de cada campo. Isso previne cortes de texto e sobreposição de inputs em todas as resoluções de tela.
+
+### Alterado
+* **Estilização Premium de Dívidas:**
+  - Redesenho dos modais de **Nova Dívida**, **Registrar Pagamento** e **Adicionar Débito** incorporando a paleta de cores HSL, gradientes sutis, cantos arredondados generosos (`rounded-3xl` e `rounded-xl`) e efeito de glassmorphism (`backdrop-blur-md bg-gradient-to-br from-card/90 via-card/50 to-primary/5`) em conformidade com a assinatura visual do sistema.
+
+---
+
+## [1.17.1] — 2026-05-12
+
+Esta versão consagra a **Redecoração Visual de Luxo da Central de Ajuda e Suporte (HelpCenter.tsx)** no Vault Finance OS. Utilizando o design do painel de faturamento e assinaturas como referência máxima de elegância, a Central de Ajuda foi inteiramente reconstruída sob a estética de glassmorphism translúcido, brilhos sutis de profundidade e micro-transições impecáveis.
+
+### Alterado
+* **Redesenho do HelpCenter:**
+  - **HelpCenter.tsx:** Reconstrução visual completa do formulário de abertura de tickets de suporte, menu lateral de canais e painel de feedbacks anteriores. Adicionados elementos translúcidos de vidro, efeitos de hover de altíssimo nível, badges premium do Shadcn UI e animações de drag and drop para arquivos anexados.
+
+---
+
 ## [1.17.0] — 2026-05-12
 
 Esta versão realiza a **Modularização de Alta Fidelidade da Aba de Assinaturas e Planos** no Vault Finance OS. Extraído diretamente do escopo de simulações do Lovable, o ecossistema agora gerencia e valida de forma isolada os planos e simulações de faturamento (Stripe, Apple App Store, Google Play Store), integrando visualizações dinâmicas de consumo de limites gratuitos, histórico de recibos para download e benefícios corporativos Pro através de um componente autônomo de alta coesão (`SubscriptionPanel`).

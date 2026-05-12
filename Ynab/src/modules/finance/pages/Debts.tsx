@@ -386,61 +386,65 @@ export const Debts = () => {
 
       {/* Nova Dívida Modal */}
       <Dialog open={isAddDebtOpen} onOpenChange={setIsAddDebtOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={handleAddDebt}>
-            <DialogHeader>
-              <DialogTitle>Nova Dívida</DialogTitle>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl border-border/60 bg-gradient-to-br from-card/90 via-card/50 to-primary/5 backdrop-blur-md overflow-hidden p-6 shadow-glow">
+          <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <form onSubmit={handleAddDebt} className="space-y-5 relative">
+            <DialogHeader className="space-y-1.5">
+              <DialogTitle className="text-xl font-extrabold text-foreground">Nova Dívida</DialogTitle>
+              <p className="text-xs text-muted-foreground">Registre um novo compromisso de conta a pagar ou receber.</p>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="type" className="text-right">Tipo</Label>
-                <div className="col-span-3">
-                  <Select value={debtType} onValueChange={(val: any) => setDebtType(val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="me_devem">Me Devem</SelectItem>
-                      <SelectItem value="minhas_dividas">Eu Devo</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+
+            <div className="space-y-4 py-2">
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="type" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Tipo de Transação</Label>
+                <Select value={debtType} onValueChange={(val: any) => setDebtType(val)}>
+                  <SelectTrigger className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11">
+                    <SelectValue placeholder="Selecione o tipo de dívida" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border/60">
+                    <SelectItem value="me_devem">Me Devem (Ativo / Contas a Receber)</SelectItem>
+                    <SelectItem value="minhas_dividas">Eu Devo (Passivo / Contas a Pagar)</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="counterparty" className="text-right">
-                  {debtType === "me_devem" ? "Devedor" : "Credor"}
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="counterparty" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">
+                  {debtType === "me_devem" ? "Devedor (Quem te deve?)" : "Credor (A quem você deve?)"}
                 </Label>
                 <Input
                   id="counterparty"
-                  className="col-span-3"
+                  className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11"
                   placeholder="Nome da pessoa ou empresa"
                   value={counterparty}
                   onChange={(e) => setCounterparty(e.target.value)}
                   required
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">Valor</Label>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  className="col-span-3"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="currency" className="text-right">Moeda</Label>
-                <div className="col-span-3">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="amount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Valor</Label>
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="currency" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Moeda</Label>
                   <Select value={currency} onValueChange={(val: any) => setCurrency(val)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a moeda" />
+                    <SelectTrigger className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11">
+                      <SelectValue placeholder="Selecione" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-card border-border/60">
                       <SelectItem value="EUR">EUR (€)</SelectItem>
                       <SelectItem value="BRL">BRL (R$)</SelectItem>
                       <SelectItem value="USD">USD ($)</SelectItem>
@@ -448,20 +452,26 @@ export const Debts = () => {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="notes" className="text-right mt-2">Obs.</Label>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="notes" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Observações (Opcional)</Label>
                 <Input
                   id="notes"
-                  className="col-span-3"
-                  placeholder="Detalhes opcionais..."
+                  className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11"
+                  placeholder="Detalhes adicionais ou prazos..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsAddDebtOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting}>Salvar</Button>
+
+            <DialogFooter className="pt-3 gap-2 sm:gap-0 border-t border-border/20">
+              <Button type="button" variant="outline" className="rounded-xl border-border/60 text-xs font-bold active:scale-95 transition-all cursor-pointer" onClick={() => setIsAddDebtOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="rounded-xl font-bold text-xs shadow-glow active:scale-95 transition-all cursor-pointer">
+                {isSubmitting ? "Registrando..." : "Registrar Dívida"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -469,62 +479,74 @@ export const Debts = () => {
 
       {/* Registrar Pagamento Modal */}
       <Dialog open={isPaymentOpen} onOpenChange={setIsPaymentOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={handleAddPayment}>
-            <DialogHeader>
-              <DialogTitle>Registrar Pagamento</DialogTitle>
-              <DialogFooter className="text-sm text-muted-foreground mt-1 text-left sm:justify-start">
-                Dívida de: <strong className="ml-1 text-foreground">{selectedDebt?.counterparty_name}</strong>
-              </DialogFooter>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl border-border/60 bg-gradient-to-br from-card/90 via-card/50 to-primary/5 backdrop-blur-md overflow-hidden p-6 shadow-glow">
+          <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <form onSubmit={handleAddPayment} className="space-y-5 relative">
+            <DialogHeader className="space-y-1.5">
+              <DialogTitle className="text-xl font-extrabold text-foreground">Registrar Pagamento</DialogTitle>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                Amortizando a dívida de: <strong className="text-foreground">{selectedDebt?.counterparty_name}</strong>
+              </p>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="payAmount" className="text-right">Valor</Label>
-                <Input
-                  id="payAmount"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  max={selectedDebt?.amount_remaining}
-                  className="col-span-3"
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="payDate" className="text-right">Data</Label>
-                <Input
-                  id="payDate"
-                  type="date"
-                  className="col-span-3"
-                  value={payDate}
-                  onChange={(e) => setPayDate(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="payAccount" className="text-right">Conta</Label>
-                <div className="col-span-3">
-                  <Select value={payAccount} onValueChange={setPayAccount} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a conta" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {subaccounts.map(acc => (
-                        <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="payAmount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Valor Amortizado</Label>
+                  <Input
+                    id="payAmount"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    max={selectedDebt?.amount_remaining}
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 font-mono font-bold"
+                    value={payAmount}
+                    onChange={(e) => setPayAmount(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="payDate" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Data da Transação</Label>
+                  <Input
+                    id="payDate"
+                    type="date"
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11"
+                    value={payDate}
+                    onChange={(e) => setPayDate(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2 col-span-4 text-center">
-                Isto criará automaticamente uma {selectedDebt?.is_mine ? "despesa" : "receita"} na conta selecionada.
-              </p>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="payAccount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Conta Bancária de Destino / Origem</Label>
+                <Select value={payAccount} onValueChange={setPayAccount} required>
+                  <SelectTrigger className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11">
+                    <SelectValue placeholder="Selecione a conta bancária" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border/60">
+                    {subaccounts.map(acc => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="p-3 bg-muted/10 border border-border/30 rounded-2xl">
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-center leading-relaxed font-sans">
+                  💡 Isto criará automaticamente uma transação do tipo <strong className="text-foreground">{selectedDebt?.is_mine ? "Despesa" : "Receita"}</strong> na conta selecionada para fins de conciliação.
+                </p>
+              </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsPaymentOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting}>Confirmar Pagamento</Button>
+
+            <DialogFooter className="pt-3 gap-2 sm:gap-0 border-t border-border/20">
+              <Button type="button" variant="outline" className="rounded-xl border-border/60 text-xs font-bold active:scale-95 transition-all cursor-pointer" onClick={() => setIsPaymentOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="rounded-xl font-bold text-xs shadow-glow active:scale-95 transition-all cursor-pointer">
+                {isSubmitting ? "Amortizando..." : "Confirmar Pagamento"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
@@ -532,63 +554,75 @@ export const Debts = () => {
 
       {/* Adicionar Débito Modal */}
       <Dialog open={isAddAmountOpen} onOpenChange={setIsAddAmountOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <form onSubmit={handleAddDebtAmountSubmit}>
-            <DialogHeader>
-              <DialogTitle>Adicionar Débito</DialogTitle>
-              <DialogFooter className="text-sm text-muted-foreground mt-1 text-left sm:justify-start">
-                Dívida de: <strong className="ml-1 text-foreground">{selectedDebt?.counterparty_name}</strong>
-              </DialogFooter>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl border-border/60 bg-gradient-to-br from-card/90 via-card/50 to-primary/5 backdrop-blur-md overflow-hidden p-6 shadow-glow">
+          <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
+          <form onSubmit={handleAddDebtAmountSubmit} className="space-y-5 relative">
+            <DialogHeader className="space-y-1.5">
+              <DialogTitle className="text-xl font-extrabold text-foreground">Adicionar Débito</DialogTitle>
+              <p className="text-xs text-muted-foreground">
+                Incrementando o saldo devedor de: <strong className="text-foreground">{selectedDebt?.counterparty_name}</strong>
+              </p>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="addAmountValue" className="text-right">Valor</Label>
-                <Input
-                  id="addAmountValue"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  className="col-span-3"
-                  value={addAmountValue}
-                  onChange={(e) => setAddAmountValue(e.target.value)}
-                  placeholder="0.00"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="addAmountDate" className="text-right">Data</Label>
-                <Input
-                  id="addAmountDate"
-                  type="date"
-                  className="col-span-3"
-                  value={addAmountDate}
-                  onChange={(e) => setAddAmountDate(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="addAmountAccount" className="text-right">Conta (Opcional)</Label>
-                <div className="col-span-3">
-                  <Select value={addAmountAccount} onValueChange={setAddAmountAccount}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sem conta bancária vinculada" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="none">Nenhuma (ajuste apenas contábil)</SelectItem>
-                      {subaccounts.map(acc => (
-                        <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="addAmountValue" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Valor Acrescido</Label>
+                  <Input
+                    id="addAmountValue"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 font-mono font-bold"
+                    value={addAmountValue}
+                    onChange={(e) => setAddAmountValue(e.target.value)}
+                    placeholder="0.00"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="addAmountDate" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Data do Acréscimo</Label>
+                  <Input
+                    id="addAmountDate"
+                    type="date"
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11"
+                    value={addAmountDate}
+                    onChange={(e) => setAddAmountDate(e.target.value)}
+                    required
+                  />
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground mt-2 col-span-4 text-center">
-                Caso selecione uma conta, isto criará automaticamente uma {selectedDebt?.is_mine ? "receita" : "despesa"} para conciliação.
-              </p>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="addAmountAccount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Conta de Conciliação (Opcional)</Label>
+                <Select value={addAmountAccount} onValueChange={setAddAmountAccount}>
+                  <SelectTrigger className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11">
+                    <SelectValue placeholder="Sem conta bancária vinculada" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border/60">
+                    <SelectItem value="none">Nenhuma (ajuste estritamente contábil / manual)</SelectItem>
+                    {subaccounts.map(acc => (
+                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="p-3 bg-muted/10 border border-border/30 rounded-2xl">
+                <p className="text-[10px] sm:text-xs text-muted-foreground text-center leading-relaxed font-sans">
+                  💡 Caso selecione uma conta bancária, isto criará automaticamente uma transação do tipo <strong className="text-foreground">{selectedDebt?.is_mine ? "Receita" : "Despesa"}</strong> para balanceamento.
+                </p>
+              </div>
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsAddAmountOpen(false)}>Cancelar</Button>
-              <Button type="submit" disabled={isSubmitting}>Confirmar Acréscimo</Button>
+
+            <DialogFooter className="pt-3 gap-2 sm:gap-0 border-t border-border/20">
+              <Button type="button" variant="outline" className="rounded-xl border-border/60 text-xs font-bold active:scale-95 transition-all cursor-pointer" onClick={() => setIsAddAmountOpen(false)}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="rounded-xl font-bold text-xs shadow-glow active:scale-95 transition-all cursor-pointer">
+                {isSubmitting ? "Acrescentando..." : "Confirmar Acréscimo"}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>
