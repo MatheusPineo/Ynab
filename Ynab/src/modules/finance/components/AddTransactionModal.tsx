@@ -421,7 +421,18 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                   type="text"
                   placeholder="🔍 Filtrar..." 
                   value={accountSearch}
-                  onChange={(e) => setAccountSearch(e.target.value)}
+                  onChange={(e) => {
+                    const searchVal = e.target.value;
+                    setAccountSearch(searchVal);
+                    if (searchVal.trim().length > 0) {
+                      const matched = allAccounts.find(acc => 
+                        acc && typeof acc.name === "string" && acc.name.toLowerCase().includes(searchVal.toLowerCase())
+                      );
+                      if (matched) {
+                        setAccountId(String(matched.id));
+                      }
+                    }
+                  }}
                   className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-xl focus-visible:ring-primary/50"
                 />
               )}
@@ -451,7 +462,20 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                     type="text"
                     placeholder="🔍 Filtrar..." 
                     value={toAccountSearch}
-                    onChange={(e) => setToAccountSearch(e.target.value)}
+                    onChange={(e) => {
+                      const searchVal = e.target.value;
+                      setToAccountSearch(searchVal);
+                      if (searchVal.trim().length > 0) {
+                        const matched = allAccounts
+                          .filter(acc => acc && String(acc.id) !== accountId)
+                          .find(acc => 
+                            acc && typeof acc.name === "string" && acc.name.toLowerCase().includes(searchVal.toLowerCase())
+                          );
+                        if (matched) {
+                          setToAccountId(String(matched.id));
+                        }
+                      }
+                    }}
                     className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-xl focus-visible:ring-primary/50"
                   />
                 )}

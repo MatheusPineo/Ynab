@@ -6,6 +6,17 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.17.8] — 2026-05-12
+
+Esta versão realiza a **Implementação de Seleção Automática de Contas por Filtro Reativo** no Vault Finance OS. Focada em velocidade de digitação e atalhos cognitivos, ela atualiza o comportamento de busca de contas de origem e destino no modal de transações, de forma que ao digitar no campo de filtro, a conta correspondente mais próxima é selecionada e exibida no seletor imediatamente em tempo real.
+
+### Adicionado
+* **Filtro Reativo e Seleção Dinâmica de Contas (AddTransactionModal.tsx):**
+  - **Auto-Select de Origem:** Quando o usuário começa a digitar no filtro de conta, o sistema busca e altera o estado do seletor de conta automaticamente para o primeiro resultado compatível.
+  - **Auto-Select de Destino:** O mesmo comportamento inteligente foi aplicado à busca da conta de destino em transferências, desconsiderando a conta de origem para evitar duplicidade.
+
+---
+
 ## [1.17.7] — 2026-05-12
 
 Esta versão realiza a **Correção de Estabilidade do Lançamento de Transações (Hotfix de Runtime)** no Vault Finance OS. Focada em robustez, ela sana uma falha crítica que causava tela branca (crash do React) ao digitar no campo de descrição no modal de Nova Transação, garantindo uma experiência suave e ininterrupta.
