@@ -162,11 +162,11 @@ export default function CookieBanner() {
               </h3>
               <p className="text-xs sm:text-sm text-slate-400 leading-relaxed max-w-4xl">
                 {t.descPart1}
-                <Link to="/politica-de-privacidade" className="text-emerald-400 hover:underline">
+                <Link to="/legal?tab=privacidade" className="text-emerald-400 hover:underline">
                   {t.descPart2}
                 </Link>
                 {t.descPart3}
-                <Link to="/politica-de-cookies" className="text-emerald-400 hover:underline">
+                <Link to="/legal?tab=cookies" className="text-emerald-400 hover:underline">
                   {t.descPart4}
                 </Link>
               </p>

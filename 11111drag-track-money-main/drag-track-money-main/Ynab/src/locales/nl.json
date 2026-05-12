@@ -1,0 +1,68 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "accounts": "Rekeningen",
+    "transactions": "Transacties",
+    "budget": "Budget",
+    "debts": "Schulden",
+    "goals": "Doelen",
+    "insights": "Inzichten",
+    "settings": "Instellingen"
+  },
+  "nav_descriptions": {
+    "dashboard": "Overzicht van uw nettowaarde en cashflow.",
+    "accounts": "Beheer uw bankrekeningen, kaarten en limieten.",
+    "transactions": "Registreer en volg uw inkomsten en uitgaven.",
+    "budget": "Verdeel uw inkomsten en plan uw maandelijkse uitgaven.",
+    "debts": "Beheer wie u geld schuldig is en wat u aan anderen schuldig bent.",
+    "goals": "Maak financiële doelen voor de middellange en lange termijn.",
+    "insights": "Slimme rapporten over uw uitgavenpatroon.",
+    "settings": "Accountinstellingen, profiel en sjablonen voor inkomstenverdeling.",
+    "collapse_expand": "Zijbalk inklappen",
+    "collapse_collapsed": "Zijbalk uitklappen"
+  },
+  "settings": {
+    "regional_preferences": "Regionaal & Voorkeuren",
+    "system_language": "Systeemtaal",
+    "select_language": "Selecteer taal",
+    "main_currency": "Hoofdweergavevaluta",
+    "select_currency": "Selecteer valuta",
+    "value_display": "Waarde Weergave",
+    "show_cents": "Centen Tonen",
+    "show_cents_desc": "Toon waarden met decimalen (bijv. ,00)",
+    "cents_active": "Actief",
+    "cents_inactive": "Inactief",
+    "panel_privacy": "Privacy van het Paneel",
+    "hide_balances": "Saldo Verbergen",
+    "hide_balances_desc": "Verbergt saldi en bedragen voor privacy",
+    "balances_hidden": "Verborgen",
+    "balances_visible": "Zichtbaar",
+    "save_changes": "Wijzigingen Opslaan",
+    "saving": "Opslaan..."
+  },
+  "dashboard": {
+    "net_worth": "Nettowaarde",
+    "net_worth_desc": "De som van alles wat u bezit minus wat u schuldig bent.",
+    "income": "Inkomsten (Maand)",
+    "income_desc": "Al het geld dat deze maand op uw rekeningen is binnengekomen.",
+    "expense": "Uitgaven (Maand)",
+    "expense_desc": "Al het geld dat deze maand van uw rekeningen is afgeschreven.",
+    "balance": "Maandelijkse Balans",
+    "balance_desc": "Het geldbedrag dat overblijft nadat uw uitgaven van uw inkomsten zijn afgetrokken.",
+    "savings_rate": "Spaarpercentage",
+    "flow_evolution": "Ontwikkeling van de Cashflow",
+    "flow_evolution_desc": "Vergelijkende grafiek van inkomsten en uitgaven van dag tot dag deze maand.",
+    "top_categories": "Top Categorieën",
+    "top_categories_desc": "De categorieën waaraan u deze maand het meeste geld heeft uitgegeven.",
+    "pending_transactions": "Transacties in Behandeling",
+    "pending_transactions_desc": "Toekomstige boekingen die nog niet definitief zijn verwerkt op de rekening."
+  },
+  "debts": {
+    "title": "Schulden",
+    "desc": "Een eenvoudig beheer van vorderingen (mensen die u geld schuldig zijn) en schulden (uw eigen schulden).",
+    "me_devem": "Aan Mij Verschuldigd",
+    "me_devem_desc": "Geld dat u heeft uitgeleend. Wordt na betaling geregistreerd als Inkomsten.",
+    "minhas_dividas": "Mijn Schulden",
+    "minhas_dividas_desc": "Geld dat u heeft geleend. Wordt na betaling geregistreerd als Uitgaven."
+  }
+}

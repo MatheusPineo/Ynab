@@ -1,0 +1,68 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "accounts": "Accounts",
+    "transactions": "Transactions",
+    "budget": "Budget",
+    "debts": "Debts",
+    "goals": "Goals",
+    "insights": "Insights",
+    "settings": "Settings"
+  },
+  "nav_descriptions": {
+    "dashboard": "Overview of your net worth and cash flow.",
+    "accounts": "Manage your bank accounts, cards, and limits.",
+    "transactions": "Register and track your income and expenses.",
+    "budget": "Distribute your income and plan your monthly spending.",
+    "debts": "Control who owes you money and what you owe to others.",
+    "goals": "Create medium and long-term financial objectives.",
+    "insights": "Smart reports on your spending habits.",
+    "settings": "Account settings, profile, and income distribution templates.",
+    "collapse_expand": "Collapse sidebar",
+    "collapse_collapsed": "Expand sidebar"
+  },
+  "settings": {
+    "regional_preferences": "Regional & Preferences",
+    "system_language": "System Language",
+    "select_language": "Select language",
+    "main_currency": "Main Display Currency",
+    "select_currency": "Select currency",
+    "value_display": "Value Display",
+    "show_cents": "Show Cents",
+    "show_cents_desc": "Display values with decimal fractions (e.g., .00)",
+    "cents_active": "Active",
+    "cents_inactive": "Inactive",
+    "panel_privacy": "Panel Privacy",
+    "hide_balances": "Hide Balances Mode",
+    "hide_balances_desc": "Hides balances and amounts for privacy",
+    "balances_hidden": "Hidden",
+    "balances_visible": "Visible",
+    "save_changes": "Save Changes",
+    "saving": "Saving..."
+  },
+  "dashboard": {
+    "net_worth": "Net Worth",
+    "net_worth_desc": "The sum of everything you own (positive balance) minus what you owe.",
+    "income": "Income (Month)",
+    "income_desc": "All the money that entered your accounts during the current month.",
+    "expense": "Expenses (Month)",
+    "expense_desc": "All the money that went out of your accounts during the current month.",
+    "balance": "Monthly Balance",
+    "balance_desc": "The amount of money left over after subtracting your expenses from your income.",
+    "savings_rate": "Savings Rate",
+    "flow_evolution": "Flow Evolution",
+    "flow_evolution_desc": "Comparative chart showing how income and expenses behaved day by day this month.",
+    "top_categories": "Top Categories",
+    "top_categories_desc": "The categories where you spent most of your money this month.",
+    "pending_transactions": "Pending Transactions",
+    "pending_transactions_desc": "Future entries that have not yet been marked as cleared in the account."
+  },
+  "debts": {
+    "title": "Debts",
+    "desc": "A simple management of receivables (people who owe you) and payables (your own debts).",
+    "me_devem": "Owed to Me",
+    "me_devem_desc": "Money you lent or receivables. When paid, they turn into Income.",
+    "minhas_dividas": "My Debts",
+    "minhas_dividas_desc": "Money you borrowed. When paid, they turn into Expense."
+  }
+}

@@ -13,9 +13,13 @@ from datetime import datetime
 import pyotp
 import uuid
 
+from django.core.mail import EmailMultiAlternatives
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+import json
+
 from drf_spectacular.utils import extend_schema, inline_serializer
 
-from .models import UserProfile
+from .models import UserProfile, SupportTicket
 from .serializers import UserSerializer, MyTokenObtainPairSerializer
 from .social_auth import verify_google_token, get_or_create_google_user, verify_google_access_token
 
@@ -295,3 +299,128 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save()
         return Response({"message": "Senha alterada com sucesso!"})
+
+
+class SubmitSupportTicketView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+
+    def post(self, request):
+        user = request.user
+        name = request.data.get('name')
+        email = request.data.get('email')
+        ticket_type = request.data.get('ticket_type', 'technical')
+        urgency = request.data.get('urgency', 'medium')
+        subject = request.data.get('subject')
+        message = request.data.get('message')
+        attachment = request.FILES.get('attachment')
+        diagnostic_data_str = request.data.get('diagnostic_data')
+
+        if not name or not email or not subject or not message:
+            return Response({"error": "Campos obrigatórios ausentes."}, status=status.HTTP_400_BAD_REQUEST)
+
+        diagnostic_data = None
+        if diagnostic_data_str:
+            try:
+                diagnostic_data = json.loads(diagnostic_data_str)
+            except Exception:
+                pass
+
+        ticket = SupportTicket.objects.create(
+            user=user,
+            name=name,
+            email=email,
+            ticket_type=ticket_type,
+            urgency=urgency,
+            subject=subject,
+            message=message,
+            attachment=attachment,
+            diagnostic_data=diagnostic_data
+        )
+
+        ticket_code = f"VT-{ticket.id:05d}"
+        
+        type_labels = {
+            'technical': 'Problema Técnico ou Bug 🐛',
+            'account': 'Dúvidas de Conta / Login 🔐',
+            'finance': 'Assinatura / Cobrança Pro 💳',
+            'other': 'Outro Tipo de Dúvida 💬'
+        }
+        urgency_labels = {
+            'low': 'Baixa 🟢',
+            'medium': 'Média 🟡',
+            'high': 'Alta 🔴'
+        }
+        
+        ticket_type_label = type_labels.get(ticket_type, ticket_type)
+        urgency_label = urgency_labels.get(urgency, urgency)
+
+        plain_body = f"""
+NOVO CHAMADO DE SUPORTE - {ticket_code}
+
+Assunto: {subject}
+Usuário: {name} ({user.username})
+Email de contato: {email}
+Tipo: {ticket_type_label}
+Urgência: {urgency_label}
+
+Mensagem:
+{message}
+"""
+        html_body = f"""
+<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #111827; border-radius: 12px; overflow: hidden; background-color: #0b0f19; color: #f3f4f6;">
+    <div style="background-color: #090d16; border-bottom: 2px solid #10b981; padding: 24px; text-align: center;">
+        <h1 style="color: #10b981; margin: 0; font-size: 20px; letter-spacing: 1px;">VAULT FINANCE OS</h1>
+        <p style="color: #9ca3af; margin: 4px 0 0 0; font-size: 12px;">Novo Chamado de Suporte Aberto</p>
+    </div>
+    <div style="padding: 24px;">
+        <div style="background-color: #111827; border: 1px solid #1f2937; border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+            <p style="margin: 0 0 8px 0; font-size: 13px;"><strong>Código do Ticket:</strong> <span style="color: #10b981; font-family: monospace; font-size: 15px;">{ticket_code}</span></p>
+            <p style="margin: 0 0 8px 0; font-size: 13px;"><strong>Usuário:</strong> {name} ({user.username})</p>
+            <p style="margin: 0 0 8px 0; font-size: 13px;"><strong>E-mail de Contato:</strong> {email}</p>
+            <p style="margin: 0 0 8px 0; font-size: 13px;"><strong>Tipo de Chamado:</strong> {ticket_type_label}</p>
+            <p style="margin: 0; font-size: 13px;"><strong>Urgência:</strong> {urgency_label}</p>
+        </div>
+        <h2 style="font-size: 15px; color: #10b981; margin-top: 0; border-bottom: 1px solid #1f2937; pb: 6px;">Mensagem do Usuário:</h2>
+        <div style="background-color: #111827; border-left: 4px solid #10b981; padding: 12px; border-radius: 4px; font-size: 13px; line-height: 1.6; color: #e5e7eb; white-space: pre-wrap; margin-bottom: 20px;">{message}</div>
+"""
+        if diagnostic_data:
+            html_body += f"""
+        <h2 style="font-size: 15px; color: #10b981; margin-top: 0; border-bottom: 1px solid #1f2937; pb: 6px;">Dados de Telemetria:</h2>
+        <table style="width: 100%; font-size: 11px; font-family: monospace; border-collapse: collapse; margin-bottom: 20px;">
+            <tr style="background-color: #111827;"><td style="padding: 6px; font-weight: bold; width: 30%;">Sistema Operacional:</td><td style="padding: 6px; color: #10b981;">{diagnostic_data.get('os')}</td></tr>
+            <tr style="background-color: #0b0f19;"><td style="padding: 6px; font-weight: bold;">Navegador:</td><td style="padding: 6px; color: #10b981;">{diagnostic_data.get('browser')}</td></tr>
+            <tr style="background-color: #111827;"><td style="padding: 6px; font-weight: bold;">Resolução:</td><td style="padding: 6px; color: #10b981;">{diagnostic_data.get('resolution')}</td></tr>
+            <tr style="background-color: #0b0f19;"><td style="padding: 6px; font-weight: bold;">Versão do App:</td><td style="padding: 6px; color: #10b981;">{diagnostic_data.get('appVersion')}</td></tr>
+            <tr style="background-color: #111827;"><td style="padding: 6px; font-weight: bold;">Latência de Rede:</td><td style="padding: 6px; color: #10b981;">{diagnostic_data.get('latence')}</td></tr>
+        </table>
+"""
+        html_body += """
+    </div>
+    <div style="background-color: #090d16; padding: 16px; text-align: center; font-size: 11px; color: #6b7280; border-top: 1px solid #1f2937;">
+        Este é um e-mail automático enviado pela central de suporte do Vault Finance OS.
+    </div>
+</div>
+"""
+
+        try:
+            email_msg = EmailMultiAlternatives(
+                subject=f"[Vault Finance] Novo Chamado {ticket_code} - {subject}",
+                body=plain_body,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                to=[settings.SUPPORT_RECEIVER_EMAIL]
+            )
+            email_msg.attach_alternative(html_body, "text/html")
+            
+            if attachment:
+                email_msg.attach(attachment.name, attachment.read(), attachment.content_type)
+                
+            email_msg.send(fail_silently=False)
+        except Exception as e:
+            # Registrar erro de envio de e-mail silenciosamente para não quebrar a API do cliente
+            pass
+
+        return Response({
+            "message": "Chamado aberto com sucesso!",
+            "ticket_id": ticket_code
+        }, status=status.HTTP_201_CREATED)

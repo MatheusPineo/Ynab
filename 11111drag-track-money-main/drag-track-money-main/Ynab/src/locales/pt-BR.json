@@ -1,0 +1,68 @@
+{
+  "navigation": {
+    "dashboard": "Dashboard",
+    "accounts": "Contas",
+    "transactions": "Transações",
+    "budget": "Orçamento",
+    "debts": "Dívidas",
+    "goals": "Metas",
+    "insights": "Insights",
+    "settings": "Configurações"
+  },
+  "nav_descriptions": {
+    "dashboard": "Visão geral do seu patrimônio e fluxo de caixa.",
+    "accounts": "Gerencie suas contas bancárias, cartões e limites.",
+    "transactions": "Registre e acompanhe suas entradas e saídas de dinheiro.",
+    "budget": "Distribua sua renda e planeje seus gastos do mês.",
+    "debts": "Controle quem te deve dinheiro e o que você deve a terceiros.",
+    "goals": "Crie objetivos financeiros de médio e longo prazo.",
+    "insights": "Relatórios inteligentes sobre seus hábitos financeiros.",
+    "settings": "Ajustes da conta, perfil e modelo de distribuição de renda.",
+    "collapse_expand": "Recolher menu lateral",
+    "collapse_collapsed": "Expandir menu lateral"
+  },
+  "settings": {
+    "regional_preferences": "Regional e Preferências",
+    "system_language": "Idioma do Sistema",
+    "select_language": "Selecione o idioma",
+    "main_currency": "Moeda Principal de Exibição",
+    "select_currency": "Selecione a moeda",
+    "value_display": "Exibição de Valores",
+    "show_cents": "Mostrar Centavos",
+    "show_cents_desc": "Exibir valores com frações decimais (ex: ,00)",
+    "cents_active": "Ativo",
+    "cents_inactive": "Inativo",
+    "panel_privacy": "Privacidade do Painel",
+    "hide_balances": "Modo Ocultar Saldos",
+    "hide_balances_desc": "Esconde saldos e quantias por privacidade",
+    "balances_hidden": "Ocultado",
+    "balances_visible": "Visível",
+    "save_changes": "Salvar Alterações",
+    "saving": "Salvando..."
+  },
+  "dashboard": {
+    "net_worth": "Patrimônio Total",
+    "net_worth_desc": "O somatório de tudo o que você possui (saldo positivo) menos o que você deve.",
+    "income": "Receitas (Mês)",
+    "income_desc": "Todo o dinheiro que entrou nas suas contas durante o mês atual.",
+    "expense": "Despesas (Mês)",
+    "expense_desc": "Todo o dinheiro que saiu das suas contas durante o mês atual.",
+    "balance": "Balanço do Mês",
+    "balance_desc": "O quanto de dinheiro sobrou após subtrair suas despesas das suas receitas.",
+    "savings_rate": "Taxa de poupança",
+    "flow_evolution": "Evolução do Fluxo",
+    "flow_evolution_desc": "Gráfico comparativo de como as receitas e despesas se comportaram dia após dia neste mês.",
+    "top_categories": "Top Categorias",
+    "top_categories_desc": "As categorias onde você gastou a maior parte do seu dinheiro neste mês.",
+    "pending_transactions": "Transações Pendentes",
+    "pending_transactions_desc": "Lançamentos futuros que ainda não foram marcados como efetivados na conta."
+  },
+  "debts": {
+    "title": "Dívidas",
+    "desc": "Um controle simples de contas a receber (pessoas que te devem) e contas a pagar (dívidas suas).",
+    "me_devem": "Me Devem",
+    "me_devem_desc": "Dinheiro que você emprestou ou contas que têm a receber. Quando pagas, viram Receita.",
+    "minhas_dividas": "Minhas Dívidas",
+    "minhas_dividas_desc": "Dinheiro que você pegou emprestado. Quando pagas, viram Despesa."
+  }
+}

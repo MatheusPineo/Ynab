@@ -13,7 +13,9 @@ import {
   LogOut,
   User as UserIcon,
   Handshake,
-  Scale
+  Scale,
+  HelpCircle,
+  BarChart3
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
@@ -39,6 +41,7 @@ const navItems = [
   { icon: Handshake, key: "debts", to: "/debts" },
   { icon: Target, key: "goals", to: "/goals" },
   { icon: Sparkles, key: "insights", to: "/insights" },
+  { icon: BarChart3, key: "reports", featureKey: "insights", to: "/reports" },
 ];
 
 export const Sidebar = () => {
@@ -48,7 +51,7 @@ export const Sidebar = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const activeNavItems = navItems.filter(item => features[item.key as keyof typeof features] !== false);
+  const activeNavItems = navItems.filter(item => features[(item.featureKey || item.key) as keyof typeof features] !== false);
 
   const handleLogout = () => {
     logout();
@@ -116,6 +119,28 @@ export const Sidebar = () => {
 
       {/* Footer / User Profile */}
       <div className="p-3 border-t border-sidebar-border space-y-1">
+        <HelpTooltip content={t("nav_descriptions.help")} side="right">
+          <NavLink
+            to="/help"
+            className={({ isActive }) => cn(
+              "group relative flex flex-row items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+              isActive 
+                ? "bg-sidebar-accent text-sidebar-accent-foreground" 
+                : "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+            )}
+          >
+            {({ isActive }) => (
+              <>
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full gradient-primary" />
+                )}
+                <HelpCircle className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+                {!collapsed && <span className="truncate">{t("navigation.help")}</span>}
+              </>
+            )}
+          </NavLink>
+        </HelpTooltip>
+
         <HelpTooltip content={t("nav_descriptions.settings")} side="right">
           <NavLink
             to="/settings"

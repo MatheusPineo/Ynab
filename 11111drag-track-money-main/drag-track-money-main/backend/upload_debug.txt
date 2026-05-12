@@ -1,0 +1,15 @@
+
+--- UPLOAD ATTEMPT 2026-05-03 19:57:33.542311 ---
+Receiving file: icon.png, size: 399615
+
+--- UPLOAD ATTEMPT 2026-05-03 19:57:47.990933 ---
+Receiving file: icon.png, size: 399615
+
+--- UPLOAD ATTEMPT 2026-05-03 19:59:11.823211 ---
+Receiving file: icon.png, size: 399615
+Created directory C:\Users\mathe\PROJETO-YNAB\backend\media\icons
+File saved as icons/icon.png, URL: http://localhost:8002/media/icons/icon.png
+
+--- UPLOAD ATTEMPT 2026-05-03 20:00:58.422849 ---
+Receiving file: icon.png, size: 13756
+File saved as icons/icon_x8B1kjX.png, URL: http://localhost:8002/media/icons/icon_x8B1kjX.png

@@ -1,0 +1,15 @@
+{
+  "name": "root",
+  "private": true,
+  "scripts": {
+    "postinstall": "cd Ynab && bun install",
+    "dev": "cd Ynab && bun run dev",
+    "build": "cd Ynab && bun install && bun run build && rm -rf ../dist && cp -r dist ../dist",
+    "build:dev": "cd Ynab && bun install && bun run build:dev && rm -rf ../dist && cp -r dist ../dist",
+    "preview": "cd Ynab && bun run preview",
+    "lint": "cd Ynab && bun run lint"
+  },
+  "dependencies": {
+    "zustand": "^5.0.12"
+  }
+}

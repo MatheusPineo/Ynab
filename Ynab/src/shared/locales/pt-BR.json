@@ -7,8 +7,10 @@
     "debts": "Dívidas",
     "goals": "Metas",
     "insights": "Insights",
+    "reports": "Relatórios",
     "rule503020": "Regra 50-30-20",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "help": "Ajuda e Suporte"
   },
   "nav_descriptions": {
     "dashboard": "Visão geral do seu patrimônio e fluxo de caixa.",
@@ -18,10 +20,12 @@
     "debts": "Controle quem te deve dinheiro e o que você deve a terceiros.",
     "goals": "Crie objetivos financeiros de médio e longo prazo.",
     "insights": "Relatórios inteligentes sobre seus hábitos financeiros.",
+    "reports": "Análises e relatórios interativos sobre sua saúde financeira.",
     "rule503020": "Organize sua renda pela técnica 50-30-20: Necessidades, Desejos e Futuro.",
     "settings": "Ajustes da conta, perfil e modelo de distribuição de renda.",
     "collapse_expand": "Recolher menu lateral",
-    "collapse_collapsed": "Expandir menu lateral"
+    "collapse_collapsed": "Expandir menu lateral",
+    "help": "Encontre artigos explicativos, tire suas dúvidas e envie feedbacks."
   },
   "settings": {
     "regional_preferences": "Regional e Preferências",

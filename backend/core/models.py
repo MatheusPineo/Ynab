@@ -22,3 +22,23 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Perfil de {self.user.username}"
+
+
+class SupportTicket(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tickets')
+    name = models.CharField(max_length=150)
+    email = models.EmailField()
+    ticket_type = models.CharField(max_length=50)
+    urgency = models.CharField(max_length=50)
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    attachment = models.FileField(upload_to='support_tickets/', null=True, blank=True)
+    diagnostic_data = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_supportticket'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"Ticket #{self.id or 'Novo'}: {self.subject} ({self.user.username})"

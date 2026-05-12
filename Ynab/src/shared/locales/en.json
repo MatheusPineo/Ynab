@@ -7,7 +7,8 @@
     "debts": "Debts",
     "goals": "Goals",
     "insights": "Insights",
-    "settings": "Settings"
+    "settings": "Settings",
+    "help": "Help & Support"
   },
   "nav_descriptions": {
     "dashboard": "Overview of your net worth and cash flow.",
@@ -19,7 +20,8 @@
     "insights": "Smart reports on your spending habits.",
     "settings": "Account settings, profile, and income distribution templates.",
     "collapse_expand": "Collapse sidebar",
-    "collapse_collapsed": "Expand sidebar"
+    "collapse_collapsed": "Expand sidebar",
+    "help": "Find explanatory articles, clear your doubts, and submit feedback."
   },
   "settings": {
     "regional_preferences": "Regional & Preferences",

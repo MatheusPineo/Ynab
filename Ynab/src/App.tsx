@@ -18,12 +18,12 @@ import Settings from "@/modules/auth/pages/Settings";
 import AccountDetails from "@/modules/finance/pages/AccountDetails";
 import Debts from "@/modules/finance/pages/Debts";
 import Rule503020 from "@/modules/finance/pages/Rule503020";
+import Reports from "@/modules/finance/pages/Reports";
 import Auth from "@/modules/auth/pages/Auth";
 import Landing from "@/modules/auth/pages/Landing";
 import NotFound from "@/modules/auth/pages/NotFound";
-import TermsOfUse from "@/modules/auth/pages/TermsOfUse";
-import PrivacyPolicy from "@/modules/auth/pages/PrivacyPolicy";
-import CookiePolicy from "@/modules/auth/pages/CookiePolicy";
+import LegalCenter from "@/modules/auth/pages/LegalCenter";
+import HelpCenter from "@/modules/auth/pages/HelpCenter";
 import CookieBanner from "@/modules/auth/components/CookieBanner";
 import { useConsentTracker } from "@/shared/hooks/useConsentTracker";
 import { FinanceDataTab, FinanceTemplatesTab } from "@/modules/finance/components/FinanceSettingsTab";
@@ -112,9 +112,12 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/termos-de-uso" element={<TermsOfUse />} />
-              <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
-              <Route path="/politica-de-cookies" element={<CookiePolicy />} />
+              <Route path="/termos-de-uso" element={<Navigate to="/legal?tab=termos" replace />} />
+              <Route path="/politica-de-privacidade" element={<Navigate to="/legal?tab=privacidade" replace />} />
+              <Route path="/politica-de-cookies" element={<Navigate to="/legal?tab=cookies" replace />} />
+              <Route path="/legal" element={<LegalCenter />} />
+              <Route path="/help-center" element={<HelpCenter isPublic={true} />} />
+              <Route path="/ajuda" element={<Navigate to="/help-center?tab=articles" replace />} />
 
               <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
                 <Route path="dashboard" element={<FeatureProtectedRoute featureKey="dashboard"><Dashboard /></FeatureProtectedRoute>} />
@@ -124,6 +127,7 @@ const App = () => {
                 <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />
                 <Route path="debts" element={<FeatureProtectedRoute featureKey="debts"><Debts /></FeatureProtectedRoute>} />
                 <Route path="insights" element={<FeatureProtectedRoute featureKey="insights"><Insights /></FeatureProtectedRoute>} />
+                <Route path="reports" element={<FeatureProtectedRoute featureKey="insights"><Reports /></FeatureProtectedRoute>} />
                 <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
                 <Route 
                   path="settings" 
@@ -155,6 +159,7 @@ const App = () => {
                   } 
                 />
                 <Route path="account/:id" element={<AccountDetails />} />
+                <Route path="help" element={<HelpCenter isPublic={false} />} />
               </Route>
 
               <Route path="*" element={<NotFound />} />

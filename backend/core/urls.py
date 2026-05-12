@@ -1,7 +1,8 @@
 from django.urls import path
 from .views import (
     ping, UpdateProfileView, ChangePasswordView,
-    TwoFactorSetupView, TwoFactorVerifyView, TwoFactorDisableView, TwoFactorLoginView
+    TwoFactorSetupView, TwoFactorVerifyView, TwoFactorDisableView, TwoFactorLoginView,
+    SubmitSupportTicketView
 )
 
 urlpatterns = [
@@ -12,4 +13,5 @@ urlpatterns = [
     path('auth/2fa/verify/', TwoFactorVerifyView.as_view(), name='2fa-verify'),
     path('auth/2fa/disable/', TwoFactorDisableView.as_view(), name='2fa-disable'),
     path('auth/2fa/login/', TwoFactorLoginView.as_view(), name='2fa-login'),
+    path('tickets/', SubmitSupportTicketView.as_view(), name='tickets'),
 ]

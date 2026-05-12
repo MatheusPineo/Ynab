@@ -979,22 +979,28 @@ export default function Landing() {
               <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-300">{getFooterText("legal", lang)}</h4>
               <ul className="space-y-2 text-xs">
                 <li>
-                  <Link to="/termos-de-uso" className="hover:text-emerald-400 transition-colors font-medium">
+                  <Link to="/legal" className="hover:text-emerald-400 transition-colors font-semibold text-emerald-400 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {lang === "pt" ? "Central Legal (Legal Center)" : "Legal Center"}
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/legal?tab=termos" className="hover:text-emerald-400 transition-colors font-medium">
                     {getFooterText("terms", lang)}
                   </Link>
                 </li>
                 <li>
-                  <Link to="/politica-de-privacidade" className="hover:text-emerald-400 transition-colors font-medium">
+                  <Link to="/legal?tab=privacidade" className="hover:text-emerald-400 transition-colors font-medium">
                     {getFooterText("privacy", lang)}
                   </Link>
                 </li>
                 <li>
-                  <Link to="/politica-de-cookies" className="hover:text-emerald-400 transition-colors font-medium">
+                  <Link to="/legal?tab=cookies" className="hover:text-emerald-400 transition-colors font-medium">
                     {getFooterText("cookies", lang)}
                   </Link>
                 </li>
                 <li>
-                  <Link to="/termos-de-uso" className="hover:text-emerald-400 transition-colors text-zinc-500">
+                  <Link to="/legal?tab=termos" className="hover:text-emerald-400 transition-colors text-zinc-500">
                     {getFooterText("sla", lang)}
                   </Link>
                 </li>
@@ -1005,6 +1011,27 @@ export default function Landing() {
             <div className="flex flex-col gap-3">
               <h4 className="text-xs font-bold uppercase tracking-widest text-zinc-300">{getFooterText("support", lang)}</h4>
               <ul className="space-y-2 text-xs">
+                <li>
+                  <Link to="/help-center" className="hover:text-emerald-400 transition-colors font-semibold text-emerald-400 flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    {lang === "pt" ? "Central de Ajuda (Help Center)" : "Help Center"}
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/help-center?tab=articles" className="hover:text-emerald-400 transition-colors font-medium">
+                    {lang === "pt" ? "Artigos de Ajuda e FAQ" : "Help Articles & FAQ"}
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/help-center?tab=support" className="hover:text-emerald-400 transition-colors font-medium">
+                    {lang === "pt" ? "Abrir Ticket de Suporte" : "Open Support Ticket"}
+                  </Link>
+                </li>
+                <li>
+                  <Link to="/help-center?tab=feedback" className="hover:text-emerald-400 transition-colors font-medium">
+                    {lang === "pt" ? "Enviar Feedback e Sugestões" : "Submit Feedback & Ideas"}
+                  </Link>
+                </li>
                 <li><a href="mailto:suporte@vaultfinance.os" className="hover:text-emerald-400 transition-colors">suporte@vaultfinance.os</a></li>
                 <li><a href="mailto:dpo@vaultfinance.os" className="hover:text-emerald-400 transition-colors">{getFooterText("dpo", lang)}</a></li>
                 <li><a href="#faq" className="hover:text-emerald-400 transition-colors">{getFooterText("faq", lang)}</a></li>

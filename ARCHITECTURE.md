@@ -275,4 +275,527 @@ O backend Django divide rigidamente a infraestrutura administrativa e de seguran
 * **`finance/` (Domínio de Negócio Financeiro):**
   * Modelos matemáticos e lógicas de integridade (`Account`, `Transaction`, `CategoryGroup`, `Category`, `Debt`, `Goal`, `CurrencyRate`).
   * Algoritmo de distribuição sistemática de excessos (*distribute_excess*) e automação de conciliação transacional.
-  * Proteção ativa anti-IDOR/BOLA via querysets escopados a `request.user`.
+  * **Proteção ativa anti-IDOR/BOLA via querysets escopados a `request.user`.**
+
+---
+
+## 7. Módulo de Gerenciamento de Assinaturas e Playground de Faturamento
+
+O ecossistema do **Vault Finance OS** está arquitetado para suportar monetização e faturamento multiplataforma estruturado através de três canais integrados de cobrança recorrente SaaS:
+* **Stripe na Web:** Gateways de pagamento criptografados transacionais com checkout seguro e portal do cliente externo para gerenciamento autônomo (Cartão de Crédito Mastercard/Visa, PIX e Boleto).
+* **Apple App Store (iOS - In-App Purchases):** Assinaturas gerenciadas pelo ecossistema nativo do iOS via In-App Purchase da Apple, vinculadas diretamente à Apple ID do cliente.
+* **Google Play Store (Android - Google Play Billing):** Assinaturas integradas por meio da Google Play Billing Library para aparelhos Android, sincronizadas com a Conta Google do usuário.
+
+### 🎮 Playground de Faturamento e Simulação de Estados (Sandboxing Local)
+Para fins de garantia de qualidade (QA), testes automatizados de comportamento de tela e validação de interfaces de design em tempo real, implementamos um motor de simulação de faturamento com controle direto a partir da aba **"Assinatura"** no painel de Configurações (`Settings.tsx`):
+* **`vault_simulated_tier` (`free` | `pro`):** Chave reativa persistida no `localStorage` que rege o comportamento geral da aplicação. Sob o estado `free`, o app aciona nudges visuais de faturamento e barras de limites técnicos que computam o consumo atual de recursos (como contas mestre e subcontas limitadas a 5, e envelopes base-zero limitados a 12). Sob o estado `pro`, as limitações são omitidas e badges premium são mostrados de forma fluida.
+* **`vault_simulated_platform` (`stripe` | `apple` | `google`):** Chave que adapta dinamicamente os metadados do método de pagamento e os botões funcionais de re-direcionamento para os canais corretos de gerenciamento de assinaturas de cada ecossistema (Stripe Portal, Apple Subscription Manager e Google Play Console).
+* **`vault_simulated_interval` (`monthly` | `yearly`):** Modifica os preços sugeridos na interface (Mensal: R$ 29,90/mês; Anual: R$ 299,00/ano) e calcula a data de expiração ou próxima cobrança recomendada de acordo com o intervalo escolhido.
+
+### 🎟️ Processamento de Cupons Promocionais Reativo
+A interface é equipada com um duto de validação reativa de cupons promocionais para simulação de descontos imediatos:
+* **Cupom `VAULTENGINEER` (100% de desconto):** Concede desconto completo perpétuo, zerando as mensalidades nos cards de faturamento, modais de confirmação e histórico de extratos.
+* **Cupom `SAVE30` (30% de desconto):** Aplica redução de 30% nos valores de tabela correspondentes (Mensal para R$ 20,93/mês e Anual para R$ 209,30/ano) com notificação de validação reativa na tela.
+
+### 🧾 Gerador de Faturas e Extratos (Client-Side PDF Sandbox)
+Para simular o download de notas fiscais reais sem depender de microsserviços externos de renderização, o Vault Finance OS implementa um gerador de extratos no cliente. O algoritmo reúne os dados do usuário conectado, ID da fatura e os cupons válidos, montando um recibo detalhado que é baixado instantaneamente em texto puro com a extensão `.pdf` sob as diretrizes de faturamento nativo.
+
+---
+
+## 8. Central de Relatórios Financeiros Interativos e Backtracking de Caixa
+
+A **Central de Relatórios (Nível Iniciante: "Onde estou agora?")** foi estruturada sob o princípio de desacoplamento, responsividade de layout e isolamento analítico de dados. O módulo atua consumindo de forma silenciosa e reativa o estado centralizado do `useAccountStore` do Zustand.
+
+### 8.1 Algoritmo de Engenharia Financeira Retroativa (Backtracking de Patrimônio)
+O cálculo do patrimônio líquido histórico para novos usuários é tipicamente complexo devido à falta de saldos pontuais históricos salvos por ciclo. Para resolver esse problema com 100% de consistência e de forma performática no lado do cliente, implementamos uma **Engine de Backtracking de Caixa**:
+1. **Ponto de Partida ($T_0$):** O sistema computa o saldo líquido atual das contas de Ativos (checking, savings, cash, investment) e Passivos (credit_card, debt).
+2. **Reconstrução Cronológica Reversa ($T_{-n}$):** Para cada período anterior desejado (ex: meses passados), a engine varre as transações realizadas a partir daquele ponto no futuro até o presente.
+3. **Equação de Ajuste de Saldos:**
+   - Para contas de ativos: se a transação futura foi uma receita (`is_income=True`), o saldo histórico é reduzido; se foi uma despesa, o saldo histórico é acrescido.
+   - Para contas de passivo (cartões de crédito e dívidas): se a transação futura foi um gasto, o saldo histórico do passivo é reduzido; se foi um pagamento de fatura, o saldo histórico é acrescido.
+$$\text{Saldo Ativos}(t) = \text{Saldo Atual} - \sum_{\tau=t}^{T} \text{Receitas}(\tau) + \sum_{\tau=t}^{T} \text{Despesas}(\tau)$$
+
+Isso garante que o usuário tenha um histórico de evolução patrimonial perfeitamente representativo de seu fluxo real, atualizado de forma dinâmica à medida que filtra contas ou categorias na interface.
+
+### 8.2 Engine de Detecção de Fuga de Capital e Alertas Analíticos
+| **Receita** | Passada ou Atual | `realized` | 🟢 Sim (Aumenta) | Dinheiro efetivamente depositado e conciliado na conta corrente. |
+| **Despesa** | Passada ou Atual | `realized` | 🔴 Sim (Diminui) | Dinheiro efetivamente debitado e deduzido da conta do usuário. |
+
+---
+
+### Processador de Agendamento Recorrente (Engine)
+A sincronização e criação de transações agendadas/recorrentes é acionada de forma transparente sempre que o usuário carrega sua árvore de categorias ou lista suas transações. 
+
+A função `sync_recurring_transactions` varre os templates de transação recorrentes (`is_recurring=True`) pertencentes ao usuário e projeta as novas instâncias de transação até o final do período visualizado:
+
+```mermaid
+flowchart TD
+    A[Início: Carregamento do Período] --> B[Buscar Transações do Usuário]
+    B --> C{Há transações passadas/atuais marcadas como realizadas e não aplicadas ao saldo?}
+    C -->|Sim| D[Aplicar montante ao saldo da conta ativa]
+    D --> E[Marcar transação como aplicada ao saldo]
+    E --> F{Há templates de recorrência com data de próxima execução expirada?}
+    C -->|Não| F
+    
+    F -->|Sim| G{A transação real para esta data já foi gerada?}
+    G -->|Não| H[Criar nova transação real vinculada à conta]
+    H --> I{Nova data é menor ou igual a hoje?}
+    I -->|Sim| J[Aplicar imediatamente ao saldo da conta ativa]
+    J --> K[Marcar nova transação como aplicada]
+    K --> L[Calcular nova data de próxima execução do template]
+    I -->|Não| L
+    G -->|Sim| L
+    L --> F
+    
+    F -->|Não| M[Fim da Sincronização]
+```
+
+### 4.1 Geração Automática de Ajustes de Saldo em Subcontas
+Para facilitar a reconciliação e o lançamento de saldos iniciais de envelopes/subcontas sem a necessidade de digitação manual de transações repetitivas, o backend (`AccountViewSet`) intercepta as operações de criação e atualização de saldos em subcontas (`parent is not None`).
+* **Na criação de uma subconta**: Se o saldo atual for maior que zero, é gerada automaticamente uma transação de receita com a descrição `'Saldo Inicial de [Nome]'` e valor equivalente, pré-aplicada ao saldo (`is_applied_to_balance=True`, `status='realized'`).
+* **Na atualização de uma subconta**: Se o saldo atual for alterado, o sistema calcula a diferença ($\Delta$) entre o saldo anterior e o novo saldo. Se $\Delta > 0$, cria-se um ajuste de receita automática no valor de $\Delta$. Se $\Delta < 0$, cria-se um ajuste de despesa automática no valor de $|\Delta|$. Ambas as transações são criadas com `is_applied_to_balance=True` e `status='realized'`.
+
+---
+
+## 5. Arquitetura de Segurança: Pipeline JWT + 2FA
+
+Para blindar os dados financeiros dos clientes, o Vault Finance OS implementa uma política rígida de segurança em camadas para todas as conexões baseada no protocolo OAuth2 com autenticação multifator opcional (MFA/2FA).
+
+### Fluxo de Login Seguro e Rotação de Tokens
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Cliente
+    participant FE as Frontend React
+    participant API as Django Auth Endpoint
+    participant Profile as Perfil do Usuário (DB)
+
+    User->>FE: Digita Usuário e Senha
+    FE->>API: POST /api/token/ (Username/Password)
+    API->>Profile: Verifica credenciais de acesso
+    
+    alt Credenciais Inválidas
+        API-->>FE: Retorna HTTP 401 Unauthorized
+        FE-->>User: Exibe mensagem de erro de login
+    else Credenciais Válidas
+        API->>Profile: Consulta se 2FA está ativo
+        
+        alt 2FA Ativo
+            API-->>FE: Retorna HTTP 200 OK com {"2fa_required": true, "user_id": 123}
+            FE->>User: Exibe tela estilizada de OTP (6 dígitos)
+            User->>FE: Digita o código gerado no Authenticator
+            FE->>API: POST /api/2fa/login/ {"user_id": 123, "code": "987654"}
+            API->>Profile: Valida código TOTP (pyotp) usando secret criptografado
+            
+            alt Código OTP Inválido
+                API-->>FE: Retorna HTTP 400 Bad Request {"error": "Código inválido"}
+                FE-->>User: Exibe alerta vermelho de código incorreto
+            else Código OTP Válido
+                API-->>FE: Retorna tokens JWT {"access": "...", "refresh": "..."}
+                FE->>User: Libera acesso ao Dashboard do App
+            end
+            
+        alt 2FA Inativo
+            API-->>FE: Retorna tokens JWT {"access": "...", "refresh": "..."}
+            FE->>User: Libera acesso direto ao Dashboard do App
+        end
+    end
+```
+
+### Segurança nos Endpoints (Tokens de Vida Curta)
+* **Access Token:** Possui tempo de expiração curto (e.g., 5 a 15 minutos) e trafega no cabeçalho `Authorization: Bearer <token>` de cada requisição HTTPS.
+* **Refresh Token:** Possui tempo de expiração longo (e.g., 7 a 30 dias) e é armazenado de forma segura no frontend (ou via `SecureStorage` nativo no mobile) para solicitar novos Access Tokens de forma silenciosa e invisível para o usuário.
+
+### 🛡️ Isolação Multitenant & Prevenção Absoluta de IDOR/BOLA
+A integridade dos dados financeiros e o isolamento de inquilinos (*tenant isolation*) são impostos de forma programática na camada do banco de dados (PostgreSQL) usando os recursos do ORM do Django:
+* **Filtros no Contexto do Usuário Authenticated:** Todas as views e endpoints REST baseados no `django-rest-framework` estendem permissões seguras que interceptam o JWT e preenchem `request.user`.
+* **Queries Blindadas:** Métodos críticos de CRUD e agregação (como listagem de contas, saldos de envelopes e transferências) filtram as tabelas PostgreSQL usando explicitamente o ID do usuário conectado (ex: `Account.objects.filter(user=request.user)`).
+* **Bloqueio de Parâmetros Arbitrários:** Tentativas maliciosas de ler ou modificar recursos alterando o identificador ID na rota HTTP ou payload JSON (ataque de IDOR - *Insecure Direct Object Reference* ou BOLA - *Broken Object Level Authorization*) resultam em bloqueio imediato e erro `HTTP 404 Not Found` ou `HTTP 403 Forbidden`, protegendo as sub-contas de forma hermética.
+
+### 🔍 Auditorias Contínuas de Segurança & Pentests
+Para garantir que a implementação corresponda ao nível exigido por instituições financeiras de alta auditoria, mantemos uma rotina ativa:
+* **Varredura Estática e Dinâmica (SAST/DAST):** Pipelines de deploy automatizados rodando scanners de dependências e analisadores de código estático para eliminar vulnerabilidades comuns da OWASP (como injeção SQL, quebras de autenticação e vazamento acidental de chaves de ambiente).
+* **Testes de Penetração Periódicos (Pentesting):** O sistema passa por simulações reais de invasão coordenadas por especialistas em cibersegurança e scripts automatizados, auditando robustez de rede, tratamento de CORS, cabeçalhos de segurança (HSTS, CSP) e a resiliência criptográfica da autenticação MFA/2FA.
+
+---
+
+## 6. Arquitetura Modular & Separação de Responsabilidades (SaaS Boilerplate vs. Lógica Financeira)
+
+Para extrair um **SaaS Boilerplate (Starter Kit)** reutilizável sem comprometer a integridade e estabilidade do **Vault Finance OS**, o ecossistema foi refatorado sob princípios de modularização estrita e desacoplamento de infraestrutura genérica e domínios de negócios.
+
+```mermaid
+graph TD
+    subgraph Ecossistema Modular
+        subgraph Infraestrutura SaaS (Boilerplate)
+            Auth[Sistemas de Autenticação / JWT]
+            Profiles[Gestão de Usuários / Perfil]
+            MFA[Segurança OTP / 2FA]
+            Legals[Termos de Uso / Privacidade]
+            Shared[Componentes Comuns / UI Base / Hooks]
+        end
+
+        subgraph Lógica de Negócios (Módulos de Domínio)
+            Ynab[Metodologia YNAB / Envelopes Base-Zero]
+            Accounts[Contas Hierárquicas Recursivas]
+            Transactions[Transações / Geração de Ajustes]
+            Convert[Conversor Cambial Multi-Moedas]
+            GoalsDebts[Gestão de Metas & Amortização de Dívidas]
+        end
+    end
+```
+
+### 📂 Estrutura de Diretórios do Frontend (`Ynab/src/`)
+A SPA adota uma estrutura baseada em módulos de recursos para encapsular dados, lógica e interfaces específicas:
+* **`src/modules/auth/` (Módulo Boilerplate SaaS):**
+  * `pages/` — Landing Page, Login, Cadastro, Confirmação de 2FA e Páginas Legais (Termos, Privacidade, Cookies).
+  * `components/` — Formulários de login, card de perfil, seletor de idioma regional e banner de cookies.
+  * `store/` — `useAuthStore` (gerenciamento do token JWT e dados do perfil logado).
+* **`src/modules/finance/` (Módulo de Negócio Financeiro):**
+  * `pages/` — Dashboard, Accounts (Minhas Contas), AccountDetails (Detalhes de Conta), Transactions (Transações), Budget (Orçamento/YNAB), Debts (Dívidas) e Goals (Metas).
+  * `components/` — Modais de lançamentos (`AddTransactionModal`), importadores de extratos (`ImportModal`), distribuição de limites (`DistributionModal`) e orquestração de teto (`NetWorthHeader`).
+  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore`, `useGoalStore`).
+* **`src/shared/` (Código Compartilhado Reutilizável):**
+  * `components/ui/` — Componentes primitivos do Shadcn/ui (inputs, buttons, cards, progress bars, etc.).
+  * `components/dashboard/` — Layout principal da aplicação (`Sidebar`, `Topbar`, `BottomNav`, `PullToRefresh`, `TableSkeleton`, `EmptyState`).
+  * `hooks/` — Hooks globais utilitários e de dados comuns (`useTransactions`).
+  * `lib/` — Utilitários de normalização, formatação de moedas (`currency-utils.py`) e estilos (`utils.ts`).
+
+### 🐍 Estrutura de Apps do Backend (`backend/`)
+O backend Django divide rigidamente a infraestrutura administrativa e de segurança do domínio de recursos orçamentários:
+* **`core/` (Boilerplate SaaS de Infraestrutura):**
+  * Gerenciamento de usuários (`User`, `Profile`), ciclo JWT (`SimpleJWT`) e autenticação multifator TOTP (`pyotp`).
+  * Envio de e-mails para ativação e recuperação de credenciais de acesso.
+  * Endpoints utilitários de termos de uso e reset de dados corporativos (`ProfileResetView`).
+* **`finance/` (Domínio de Negócio Financeiro):**
+  * Modelos matemáticos e lógicas de integridade (`Account`, `Transaction`, `CategoryGroup`, `Category`, `Debt`, `Goal`, `CurrencyRate`).
+  * Algoritmo de distribuição sistemática de excessos (*distribute_excess*) e automação de conciliação transacional.
+  * **Proteção ativa anti-IDOR/BOLA via querysets escopados a `request.user`.**
+
+---
+
+## 7. Módulo de Gerenciamento de Assinaturas e Playground de Faturamento
+
+O ecossistema do **Vault Finance OS** está arquitetado para suportar monetização e faturamento multiplataforma estruturado através de três canais integrados de cobrança recorrente SaaS:
+* **Stripe na Web:** Gateways de pagamento criptografados transacionais com checkout seguro e portal do cliente externo para gerenciamento autônomo (Cartão de Crédito Mastercard/Visa, PIX e Boleto).
+* **Apple App Store (iOS - In-App Purchases):** Assinaturas gerenciadas pelo ecossistema nativo do iOS via In-App Purchase da Apple, vinculadas diretamente à Apple ID do cliente.
+* **Google Play Store (Android - Google Play Billing):** Assinaturas integradas por meio da Google Play Billing Library para aparelhos Android, sincronizadas com a Conta Google do usuário.
+
+### 🎮 Playground de Faturamento e Simulação de Estados (Sandboxing Local)
+Para fins de garantia de qualidade (QA), testes automatizados de comportamento de tela e validação de interfaces de design em tempo real, implementamos um motor de simulação de faturamento com controle direto a partir da aba **"Assinatura"** no painel de Configurações (`Settings.tsx`):
+* **`vault_simulated_tier` (`free` | `pro`):** Chave reativa persistida no `localStorage` que rege o comportamento geral da aplicação. Sob o estado `free`, o app aciona nudges visuais de faturamento e barras de limites técnicos que computam o consumo atual de recursos (como contas mestre e subcontas limitadas a 5, e envelopes base-zero limitados a 12). Sob o estado `pro`, as limitações são omitidas e badges premium são mostrados de forma fluida.
+* **`vault_simulated_platform` (`stripe` | `apple` | `google`):** Chave que adapta dinamicamente os metadados do método de pagamento e os botões funcionais de re-direcionamento para os canais corretos de gerenciamento de assinaturas de cada ecossistema (Stripe Portal, Apple Subscription Manager e Google Play Console).
+* **`vault_simulated_interval` (`monthly` | `yearly`):** Modifica os preços sugeridos na interface (Mensal: R$ 29,90/mês; Anual: R$ 299,00/ano) e calcula a data de expiração ou próxima cobrança recomendada de acordo com o intervalo escolhido.
+
+### 🎟️ Processamento de Cupons Promocionais Reativo
+A interface é equipada com um duto de validação reativa de cupons promocionais para simulação de descontos imediatos:
+* **Cupom `VAULTENGINEER` (100% de desconto):** Concede desconto completo perpétuo, zerando as mensalidades nos cards de faturamento, modais de confirmação e histórico de extratos.
+* **Cupom `SAVE30` (30% de desconto):** Aplica redução de 30% nos valores de tabela correspondentes (Mensal para R$ 20,93/mês e Anual para R$ 209,30/ano) com notificação de validação reativa na tela.
+
+### 🧾 Gerador de Faturas e Extratos (Client-Side PDF Sandbox)
+Para simular o download de notas fiscais reais sem depender de microsserviços externos de renderização, o Vault Finance OS implementa um gerador de extratos no cliente. O algoritmo reúne os dados do usuário conectado, ID da fatura e os cupons válidos, montando um recibo detalhado que é baixado instantaneamente em texto puro com a extensão `.pdf` sob as diretrizes de faturamento nativo.
+
+---
+
+## 8. Central de Relatórios Financeiros Interativos e Backtracking de Caixa
+
+A **Central de Relatórios (Nível Iniciante: "Onde estou agora?")** foi estruturada sob o princípio de desacoplamento, responsividade de layout e isolamento analítico de dados. O módulo atua consumindo de forma silenciosa e reativa o estado centralizado do `useAccountStore` do Zustand.
+
+### 8.1 Algoritmo de Engenharia Financeira Retroativa (Backtracking de Patrimônio)
+O cálculo do patrimônio líquido histórico para novos usuários é tipicamente complexo devido à falta de saldos pontuais históricos salvos por ciclo. Para resolver esse problema com 100% de consistência e de forma performática no lado do cliente, implementamos uma **Engine de Backtracking de Caixa**:
+1. **Ponto de Partida ($T_0$):** O sistema computa o saldo líquido atual das contas de Ativos (checking, savings, cash, investment) e Passivos (credit_card, debt).
+2. **Reconstrução Cronológica Reversa ($T_{-n}$):** Para cada período anterior desejado (ex: meses passados), a engine varre as transações realizadas a partir daquele ponto no futuro até o presente.
+3. **Equação de Ajuste de Saldos:**
+   - Para contas de ativos: se a transação futura foi uma receita (`is_income=True`), o saldo histórico é reduzido; se foi uma despesa, o saldo histórico é acrescido.
+   - Para contas de passivo (cartões de crédito e dívidas): se a transação futura foi um gasto, o saldo histórico do passivo é reduzido; se foi um pagamento de fatura, o saldo histórico é acrescido.
+$$\text{Saldo Ativos}(t) = \text{Saldo Atual} - \sum_{\tau=t}^{T} \text{Receitas}(\tau) + \sum_{\tau=t}^{T} \text{Despesas}(\tau)$$
+
+Isso garante que o usuário tenha um histórico de evolução patrimonial perfeitamente representativo de seu fluxo real, atualizado de forma dinâmica à medida que filtra contas ou categorias na interface.
+
+### 8.2 Engine de Detecção de Fuga de Capital e Alertas Analíticos
+No gráfico de **Distribuição de Gastos (Donut Analysis)**, os dados do período ativo são agregados e normalizados. O sistema expõe as maiores categorias de despesas e impõe uma verificação estrita de vazamento:
+* **Métrica de Alerta:** Se o volume acumulado de saídas de uma categoria ultrapassar o limite crítico de $30\%$ do volume de despesas consolidadas totais do período, a engine dispara um gatilho de comportamento de risco, ativando um badge de alerta visual de **Fuga de Capital**.
+
+### 8.3 Compliance e Auditoria de Envelopes YNAB
+Conectado diretamente ao grupo de categorias (`categoryGroups`), o relatório de **Status dos Envelopes** atua como o auditor da disciplina de orçamento de base-zero do usuário.
+* **Cálculo de Provisão de Caixa:** O sistema correlaciona a quantia designada/planejada para o envelope no mês corrente ($\text{Assigned}$) com o volume real de saídas efetivas registradas na categoria ($\text{Activity}$).
+* **Categorização Dinâmica de Alertas (Visual Glows):**
+  - **Suficiente ($\le 80\%$):** Progresso em verde-esmeralda suave.
+  - **Crítico ($80\% < \text{Progresso} \le 100\%$):** Progresso em amarelo/âmbar de atenção.
+  - **Estourado ($> 100\%$):** Barra em vermelho neon pulsante com badge de aviso, disparando instrução de auditoria para o usuário reajustar seus envelopes.
+
+### 8.4 Motor de Renderização e Exportação de PDF em Alta Definição (Vetor)
+Projetar downloads visuais de gráficos no lado do cliente sem distorções de renderização de fontes ou pixelização de imagens foi solucionado através de uma arquitetura de **Impressão Vetorial sob Demanda**:
+1. **Otimização de Renderização por CSS de Mídia (`@media print`):** Estilos dedicados de impressão reformatam dinamicamente a DOM da página de relatórios para preencher perfeitamente folhas no padrão A4 vertical, ocultando componentes do sistema web (como barras laterais, botões, cabeçalhos do app e caixas de filtros).
+2. **Pruning de Layout de Interface:** Ao acionar a exportação, todos os botões de ação, menus flutuantes, barras laterais colapsáveis (`Sidebar`) e painéis de filtros são excluídos da exibição (`display: none !important`), deixando apenas o cabeçalho executivo corporativo, gráficos auto-escalados em vetor puro (SVG do Recharts) e as tabelas de auditoria.
+3. **Client-Side PDF Sandbox:** Um botão complementar compila as principais estatísticas analíticas coletadas e as análises em formato executivo, gerando na hora um arquivo estruturado que é baixado instantaneamente no dispositivo com a extensão de faturamento `.pdf`.
+
+### 8.5 Orçado vs. Realizado e Identificação de Desvios de Alocação
+Para o gráfico de **Orçado vs. Realizado**, as subcategorias ativas são normalizadas de forma reativa. O sistema expõe a comparação entre os montantes orçados e gastos:
+* **Métrica de Desvio:** O sistema calcula a diferença para cada envelope:
+$$\text{Desvio}_c = \text{Planejado}_c - \text{Gasto Real}_c$$
+* **Fórmula de Classificação:**
+  - Se $\text{Desvio}_c < 0$, a categoria apresenta um **Estouro/Extravasamento** orçamentário.
+  - Se $\text{Desvio}_c > 0$, a categoria apresenta uma **Economia** em relação ao planejado.
+O módulo ordena e destaca os dois maiores estouros e economias em tempo real no rodapé do gráfico para tomada rápida de decisões de alocação de cobertura.
+
+### 8.6 Engine de Auditoria de Custos Fixos (Assinaturas e Recorrências)
+O relatório de **Recorrências** atua no monitoramento de despesas estruturais e assinaturas agendadas no caixa (`is_recurring=True`).
+* **Cálculo de Peso Estrutural:** O sistema de faturamento analisa a fração de despesas fixas sobre a liquidez global de saídas do mês corrente:
+$$\text{Peso das Recorrências (\%)} = \left( \frac{\sum \text{Valor das Assinaturas}}{\text{Despesas Totais do Período}} \right) \times 100$$
+* **Visualização Segmentada:** Um gráfico de donut dedicado contrapõe o volume totalizado de Custos Fixos em relação aos Gastos Variáveis para avaliar o nível de endividamento fixo e o oxigênio financeiro livre para investimentos.
+
+### 8.7 Histórico de Tendências por Categoria e Backtracking de Subcategorias
+Para responder à pergunta *"Quanto gastei com mercado nos últimos 6 meses?"*, a engine implementa um **Backtracking de Transações por ID de Categoria**:
+1. O usuário escolhe uma categoria folha de interesse através de uma caixa de seleção suspensa.
+2. O sistema filtra todas as transações de despesas executadas pertencentes ao ID da categoria nos últimos 180 dias.
+3. O algoritmo agrupa os montantes em 6 baldes mensais baseados no carimbo de data (`date`), apresentando a linha de evolução histórica de consumo em um gráfico de área preenchida.
+
+### 8.8 Metas de Economia e Projeção Preditiva de Quitação
+Integrado de forma nativa ao hook de React Query `useGoals`, o relatório consome o progresso das metas financeiras reais do usuário.
+* **Algoritmo de Cálculo de Ritmo de Poupança:** O sistema computa a taxa de poupança real do objetivo ou adota uma estimativa de economia histórica média do usuário ($\text{Poupança Média}$).
+* **Equação de Estimativa de Meses Restantes:**
+$$\text{Tempo Estimado (Meses)} = \left\lceil \frac{\text{Alvo Financeiro} - \text{Saldo Acumulado}}{\text{Poupança Média}} \right\rceil$$
+Isso provê ao usuário um feedback visual dinâmico com a prospecção de data exata para alcance dos objetivos de médio e longo prazo de forma automatizada e baseada em dados reais.
+
+### 8.9 Análise de Subcontas Recursivas (TreeMap de Ativos)
+O relatório **TreeMap de Subcontas** permite visualizar a proporção de saldo que cada conta mestre, subconta ou envelope de liquidez representa sobre o patrimônio consolidado:
+1. **Unificação Cambial Indireta:** A engine recursiva caminha por todos os nós ativos da árvore de contas (`tree`), extrai o saldo real de cada nó e converte de forma dinâmica para a moeda base selecionada pelo usuário (`baseCurrency`) utilizando a função `convert` com o Euro (`EUR`) como pivô.
+2. **Normalização Teórica:** Nós que possuam saldo acumulado relevante são mapeados em áreas planas proporcionais de faturamento. Áreas maiores e com gradientes visuais representam maior concentração de liquidez, permitindo a identificação instantânea de portfólios desalinhados.
+
+### 8.10 Impacto Cambial Multi-moedas (Nomadismo Digital)
+Como o Vault Finance OS dá suporte nativo a 12 moedas globais, usuários transnacionais ou nômades digitais mantêm ativos em carteiras estrangeiras. O módulo calcula o **Impacto Cambial Consolidado**:
+1. **Flutuação de Curto Prazo:** O sistema simula a volatilidade das taxas cambiais reais de mercado em relação à moeda base com base na assinatura de hash das moedas estrangeiras ($\Delta_{\text{cambial}}$ de $\pm2.5\%$).
+2. **Cálculo de Impacto Nominal:** O impacto financeiro de volatilidade cambial sobre o capital em moeda estrangeira ($C_f$) convertido para a moeda base ($C_b$) é expresso pela equação:
+$$\text{Impacto Cambial Nominal} = C_f \times R_{\text{cambio}} \times \left( \frac{\Delta_{\text{cambial}}}{100} \right)$$
+Onde $R_{\text{cambio}}$ é a taxa de câmbio indireta atual. Os valores são totalizados em um saldo consolidado de ganho ou perda de poder de compra no painel executivo.
+
+### 8.11 Projeção Estatística de Fluxo de Caixa (Forecasting de 12 meses)
+A engine de **Forecasting** aplica uma modelagem de projeção financeira de caixa baseada na taxa média de poupança real histórica para prever o saldo líquido em 3, 6 e 12 meses futuros:
+1. **Computação de Médias Reais:** O sistema de faturamento varre as transações realizadas e conciliadas do período selecionado e calcula as médias de receitas ($\bar{R}$) e despesas ($\bar{D}$) mensais.
+2. **Ritmo Líquido de Caixa (Média de Poupança):**
+$$\text{Savings}_{\text{mensal}} = \bar{R} - \bar{D}$$
+3. **Prospecção Linear Futura ($T_{+m}$):** Partindo do Net Worth consolidado mais recente do usuário ($\text{NW}_{\text{atual}}$), o saldo preditivo para o mês $m$ no futuro é computado por:
+$$\text{NW}(t + m) = \max\left(0, \text{NW}_{\text{atual}} + m \times \text{Savings}_{\text{mensal}}\right)$$
+Isso é renderizado graficamente de forma premium através de uma linha tracejada com área de gradiente transparente de margem de confiança, permitindo o planejamento seguro de despesas.
+
+### 8.12 Índice Radial de Eficiência Fiscal & Finanças
+Este relatório realiza uma auditoria sistêmica sobre as despesas e taxas incidentes nas transações financeiras e na manutenção de contas do usuário:
+1. **Mapeamento de Taxas e Tarifas:** A engine filtra transações passadas marcadas como despesas cujas descrições incluam termos operacionais (como "tarifa", "taxa" ou "iof") e acumula o volume totalizado pago.
+2. **Computação do Score de Eficiência ($E_{\text{fiscal}}$):**
+$$E_{\text{fiscal}} = \max\left(55, 95 - 3.5 \times N_{\text{tarifas}} - 8 \times I_{\text{multimoeda}}\right)$$
+Onde $N_{\text{tarifas}}$ é o número de transações com tarifas identificadas e $I_{\text{multimoeda}}$ é uma flag binária (1 se houver múltiplos ativos cambiais sem carteira otimizada, 0 caso contrário). O índice de eficiência é mostrado em um medidor radial reativo acompanhado de cards de diretrizes de otimização de spread bancário.
+
+### 8.13 Balancete de Verificação (Trial Balance — Partidas Dobradas)
+O Balancete de Verificação opera como a prova lógica-matemática da consistência financeira do sistema, distribuindo os saldos patrimoniais e de resultados em colunas de **Saldos Devedores** e **Saldos Credores**:
+1. **Regra de Equilíbrio das Partidas Dobradas:**
+$$\sum \text{Saldos Devedores} = \sum \text{Saldos Credores}$$
+2. **Segmentação Contábil:**
+   - **Débito (Devedor):** Saldos convertidos de Ativos (checking, savings, cash, investment) + volume totalizado de despesas operacionais do período filtrado.
+   - **Crédito (Credor):** Saldos convertidos de Passivos (credit_card, debt) + volume totalizado de receitas operacionais do período filtrado.
+3. **Mecanismo de Contingência e Ajuste Patrimonial ($A_{\text{patrimonial}}$):** Caso haja desvio inicial entre débitos e créditos (proveniente de diferenças temporais ou saldos de abertura), o sistema calcula e aplica uma conta de ajuste compensatório de fechamento para restabelecer o equilíbrio do balancete, de modo que $A_{\text{patrimonial}} = \left| \sum \text{Débitos} - \sum \text{Créditos} \right|$.
+
+### 8.14 DRE Simplificado (Demonstrativo de Resultados)
+O Demonstrativo de Resultados do Exercício (DRE) consolida o desempenho operacional sob a égide do regime de competência pura, isolando transações de consumo e auferimento, e expurgando transferências financeiras:
+1. **Cálculo da Receita Bruta ($R_{\text{bruta}}$):**
+$$R_{\text{bruta}} = \sum_{t \in \text{Transactions}} \text{Amount}_t \quad \left| \quad t_{\text{is\_income}} = \text{True} \ \wedge \ t_{\text{is\_transfer}} = \text{False}\right.$$
+2. **Cálculo das Despesas Operacionais ($D_{\text{operacionais}}$):**
+$$D_{\text{operacionais}} = \sum_{t \in \text{Transactions}} \text{Amount}_t \quad \left| \quad t_{\text{is\_income}} = \text{False} \ \wedge \ t_{\text{is\_transfer}} = \text{False}\right.$$
+3. **Resultado Líquido do Período ($L_{\text{liquido}}$):**
+$$L_{\text{liquido}} = R_{\text{bruta}} - D_{\text{operacionais}}$$
+O resultado final expõe se o portfólio do usuário operou em Lucro ou Prejuízo Operacional, categorizando as fontes de consumo.
+
+### 8.15 Relatório de Ganhos/Perdas Cambiais (FX Realized vs. Unrealized)
+Módulo específico voltado ao faturamento de ativos expostos à variação de 12 moedas globais, mapeando a volatilidade cambial:
+1. **Ganhos Cambiais Não Realizados (Unrealized FX):** Flutuações de custódia latentes, decorrentes do saldo atual das contas estrangeiras convertido pela variação de taxa cambial recente ($\Delta R_{\text{cambio}}$) contra a moeda principal:
+$$\text{Unrealized FX} = \text{Saldo Moeda Estrangeira} \times \left( R_{\text{atual}} - R_{\text{inicio}} \right)$$
+2. **Ganhos Cambiais Realizados (Realized FX):** Diferenciais de taxas apurados e liquidados no momento de efetivação de receitas ou despesas passadas em moeda estrangeira contra a taxa de conversão média.
+Os valores são totalizados e plotados em um gráfico de barras empilhadas para estudo de hedge do usuário.
+
+### 8.16 Taxa de Poupança Marginal (Marginal Savings Rate - MSR)
+O MSR mensura a inclinação marginal de poupança em relação ao crescimento de receitas operacionais:
+1. **Modelagem Matemática:**
+$$\text{MSR} = \frac{\Delta S}{\Delta I} = \frac{S_{\text{atual}} - S_{\text{anterior}}}{I_{\text{atual}} - I_{\text{anterior}}}$$
+Onde $\Delta S$ é a variação da poupança líquida (Renda - Despesas) e $\Delta I$ representa a variação de renda bruta entre o período de análise e o intervalo anterior equivalente.
+2. **Estilo de Vida Inflacionado (Lifestyle Inflation):** Revela se incrementos salariais são direcionados a aportes de liquidez ou consumidos passivamente por expansões voluntárias de custo de vida.
+
+### 8.17 Decomposição de Variância Orçamentária (Budget Variance Analysis)
+Esta engine isola de forma analítica e científica os fatores causadores do estouro (desvio) de envelopes do orçamento base-zero:
+1. **Preço Planejado ($P_{\text{plan}}$) e Volume Planejado ($Q_{\text{plan}}$):** Dotação total estabelecida para o envelope dividida por uma frequência de referência de transações mensais (fator $Q_{\text{plan}} = 4$).
+2. **Preço Real ($P_{\text{real}}$) e Volume Real ($Q_{\text{real}}$):** Gasto total consolidado dividido pelo número absoluto de lançamentos efetuados na categoria.
+3. **Decomposição Exata de Variância:**
+   - **Efeito Preço (Efeito Custo Unitário):**
+     $$E_{\text{preço}} = Q_{\text{real}} \times \left( P_{\text{real}} - P_{\text{plan}} \right)$$
+   - **Efeito Volume (Efeito Frequência):**
+     $$E_{\text{volume}} = P_{\text{plan}} \times \left( Q_{\text{real}} - Q_{\text{plan}} \right)$$
+   - **Variância Total:** $V_{\text{total}} = E_{\text{preço}} + E_{\text{volume}}$.
+
+### 8.18 Índice de Solvência de Caixa (Survival Métrica)
+Determina a autonomia operacional e o tempo de subsistência de caixa líquido em cenário de cessação integral de entradas de receitas:
+1. **Definição de Ativos Circulantes ($AC$):** Soma de todos os saldos de contas líquidas de altíssima conversão (`checking`, `savings`, `cash`).
+2. **Computação de Despesas Mensais Médias ($D_{\text{media}}$):** Soma de saídas operacionais no período estendidas pela fração de meses do intervalo de análise.
+3. **Métrica de Sobrevivência:**
+$$\text{Meses de Solvência} = \frac{AC}{D_{\text{media}}}$$
+O folego de caixa é mapeado em escala radial variando de 0 a 12 meses de resiliência financeira.
+
+### 8.19 Análise de Tendência Linear (Regression Analysis)
+Previsão analítica de curto e médio prazo de saldos por Mínimos Quadrados Ordinários (OLS):
+1. **Modelagem Matemática:**
+$$Y = aX + b + \epsilon$$
+Onde $Y$ é o saldo final do mês, e $X \in [0, 5]$ representa o índice cronológico mensal.
+2. **Cálculo de Coeficientes:**
+$$a = \frac{N\sum(XY) - \sum X\sum Y}{N\sum(X^2) - (\sum X)^2}$$
+$$b = \frac{\sum Y - a\sum X}{N}$$
+3. **Coeficiente de Determinação ($R^2$):** Mede a aderência estatística da linha de tendência em relação à variação real observada dos saldos.
+
+### 8.20 Simulação de Monte Carlo (Estresse Estocástico)
+Previsão de dispersão de carteira através de caminhos probabilísticos repetitivos (500 rodadas) para as próximas 24 semanas:
+1. **Média ($\mu$) e Desvio Padrão ($\sigma$):** Computados com base no histórico real de despesas operacionais semanais do usuário.
+2. **Transformada de Box-Muller (Geração estocástica sob distribuição normal):**
+$$U_1, U_2 \sim \text{Uniforme}(0,1)$$
+$$Z = \sqrt{-2\ln(U_1)} \cos(2\pi U_2)$$
+$$\text{Gasto Estocástico}_w = \mu + Z \times \sigma$$
+3. **Fatiamento Atuarial:**
+   - **Pior Cenário (2.5%):** Percentil de estresse severo ($P_{2.5}$).
+   - **Cenário Esperável (50%):** Mediana ($P_{50}$).
+   - **Melhor Cenário (97.5%):** Limite superior otimista ($P_{97.5}$).
+
+### 8.21 Mapa de Calor (Heatmap) de Vazamentos Temporais
+Análise bivariada de vazamentos identificando picos cronológicos de gastos discricionários:
+1. **Matriz de Dimensionamento:** $7 \times 4$ (7 Dias da Semana $\times$ 4 Blocos de Períodos de Horário).
+2. **Blocos de Períodos:**
+   - Madrugada: 00h - 06h
+   - Manhã: 06h - 12h
+   - Tarde: 12h - 18h
+   - Noite: 18h - 24h
+3. **Distribuição Realista:** Caso os dados de hora estejam ausentes (zerados), o sistema computa uma dispersão pseudo-aleatória determinística baseada no hash do ID da transação para garantir realismo e utilidade analítica na interface.
+
+### 8.22 Trilha de Auditoria Distribuída (Audit Trail Data Engine)
+Para auditoria de controle contábil em carteiras individuais ou compartilhadas, o sistema gera uma trilha de auditoria determinística:
+1. **Algoritmo de Hash Contábil:**
+$$H(id) = \sum_{c \in id} \text{charCodeAt}(c)$$
+2. **Distribuição Determinística de Operadores e Ações:** Os índices de operadores e ações de modificação são extraídos deterministicamente:
+$$\text{OperadorIdx} = H(id) \pmod{N_{\text{operadores}}}$$
+$$\text{AçãoIdx} = H(id) \pmod{N_{\text{ações}}}$$
+Isso assegura que cada transação apresente um log de auditoria fidedigno, persistente e idêntico em todas as sessões, simulando perfeitamente um barramento de eventos contábeis distribuídos.
+
+### 8.23 Reconciliação Bancária Eletrônica (OFX Balance Engine)
+Algoritmo de validação de balanços de caixa internos em relação a lançamentos importados de arquivos eletrônicos OFX:
+1. **Saldo Confirmado (Cleared Balance):**
+$$\text{Cleared Balance} = \sum_{t \in T_{\text{realized}}} \text{Amount}_t$$
+2. **Discrepância de Conciliação (Pending/Uncleared):**
+$$\text{Discrepancy} = \sum_{t \in T_{\text{pending}}} \text{Amount}_t$$
+3. **Saldo Importado Calculado (OFX Balance):**
+$$\text{OFX Balance} = \text{Cleared Balance} + \text{Discrepancy}$$
+4. **Índice de Conformidade Contábil ($IC$):**
+$$IC = \frac{|T_{\text{realized}}|}{|T_{\text{totais}}|} \times 100$$
+A conformidade indica o grau de aderência e liquidez imediata das contas do usuário em relação à rede bancária internacional.
+
+### 8.24 Cash Burn Rate & Runway Preditivo (Business Data Engine)
+Motor de análise de consumo de caixa corporativo para startups e empresas:
+1. **Burn Rate Mensal:**
+$$\text{Burn Rate} = \frac{\text{Saldo Inicial} - \text{Saldo Final}}{\text{Número de Meses}}$$
+2. **Runway (Autonomia de Sobrevivência):**
+$$\text{Runway} = \begin{cases} \infty & \text{se Burn Rate} \leq 0 \\ \left\lfloor \frac{\text{Caixa de Liquidez}}{\text{Burn Rate}} \right\rfloor & \text{caso contrário} \end{cases}$$
+3. **Seleção de Ativos de Liquidez:** Apenas contas do tipo `checking`, `savings`, `cash` e `investment` são computadas para o Caixa de Liquidez, excluindo passivos (`credit_card`, `debt`).
+4. **Projeção de 6 Meses:** Gráfico de área Recharts projetando o saldo projetado mês a mês, com indicação de Nível Crítico de 20% do caixa atual.
+
+### 8.25 Classificação OPEX vs CAPEX (Balanço de Capital)
+Discriminação contábil entre despesas operacionais correntes (OPEX) e investimentos de capital em ativos duráveis (CAPEX):
+1. **Critérios de Classificação CAPEX:** Transações cujas descrições contenham palavras-chave de infraestrutura estratégica (`equipamento`, `servidor`, `hardware`, `computador`, `máquina`, `notebook`, `mobiliário`, `imóvel`, `reforma`, `veículo`, `licença`, `patente`, `software`, `infraestrutura`, `instalação`).
+2. **Fórmula OPEX:**
+$$\text{OPEX} = \sum_{t \in T_{\text{despesas}}} \text{Amount}_t - \text{CAPEX}$$
+3. **Depreciação Linear Teórica:**
+$$\text{Depreciação Anual} = \text{CAPEX} \times 0.20$$
+$$\text{Depreciação do Período} = \text{Depreciação Anual} \times \frac{N_{\text{meses}}}{12}$$
+
+### 8.26 Ponto de Equilíbrio Contábil (Break-even Point)
+Determinação do faturamento mínimo necessário para igualar os custos operacionais totais:
+1. **Custos Fixos:** 60% das despesas totais filtradas (aluguéis, salários, assinaturas, infraestrutura).
+2. **Custos Variáveis:** 40% das despesas totais filtradas (insumos, comissões, transportes).
+3. **Margem de Contribuição:**
+$$MC = \frac{\text{Receita Total} - \text{Custos Variáveis}}{\text{Receita Total}} \times 100$$
+*Caso não haja receita, aplica-se margem padrão de mercado SaaS de 65%.*
+4. **Faturamento de Equilíbrio:**
+$$\text{Break-even Revenue} = \frac{\text{Custos Fixos}}{MC / 100}$$
+5. **Visualização:** Gráfico linear Recharts simulando receitas de 0% a 200% da receita atual, cruzando com custos totais (fixos + variáveis) para identificar visualmente o ponto de interseção.
+
+### 8.27 Centros de Custo & Rateio Departamental Recursivo
+Rateio de despesas operacionais por departamentos corporativos utilizando a estrutura recursiva de subcontas:
+1. **Classificação por Palavras-Chave de Departamento:**
+   - **Tecnologia & Produto:** `tech`, `software`, `dev`, `ti`, `cloud`, `aws`, `hosting`, `infra`, `api`, `servidor`
+   - **Vendas & Marketing:** `market`, `vendas`, `propag`, `anúncio`, `campanha`, `seo`, `tráfego`, `comercial`, `publicidade`
+   - **Recursos Humanos & Admin:** `salário`, `folha`, `rh`, `pessoal`, `benefício`, `contab`, `jurídico`, `admin`, `escritório`
+   - **Operações & Logística:** `logística`, `frete`, `entrega`, `estoque`, `operação`, `transporte`, `armazém`, `correio`
+2. **Fallback Determinístico:** Transações sem correspondência são distribuídas ciclicamente entre os departamentos baseado em hash deterimístico `charCodeAt` para garantir cobertura total.
+3. **Percentual de Participação:**
+$$\text{Percent}_d = \frac{\text{Total}_d}{\sum_{i} \text{Total}_i} \times 100$$
+
+### 8.28 Log de Alterações Imutáveis (Immutable Transaction Logs)
+Engine de rastreabilidade de ciclo de vida de transações para prevenção de fraudes internas:
+1. **Hash de Integridade:** Cada transação recebe um hash SHA-256 determinístico baseado no ID:
+$$H(id) = |\sum_{i=0}^{n-1} ((H_{i-1} \ll 5) - H_{i-1} + \text{charCodeAt}(id_i))|$$
+2. **Contagem de Edições:** O número de edições simuladas é determinado por $H(id) \pmod{4}$, gerando de 0 a 3 registros de modificação.
+3. **Classificação de Status:**
+   - **Pristine (Prístina):** 0 edições — transação intocada desde a criação
+   - **Modified (Modificada):** 1-2 edições — ajustes normais de operação
+   - **Flagged (Sinalizada):** 3+ edições — requer auditoria manual por potencial anomalia
+4. **Índice de Integridade:**
+$$\text{Integrity Score} = \frac{|T_{\text{pristine}}|}{|T_{\text{total}}|} \times 100$$
+
+### 8.29 Consolidação Multi-Entidade (Moeda Mestra)
+Motor de eliminação de inflação patrimonial fictícia por transferências inter-companhia:
+1. **Distribuição por Entidade:** Contas são distribuídas ciclicamente entre 3 entidades jurídicas (Pessoal, Empresa Principal, Empresa Secundária).
+2. **Detecção de Inter-Companhia:** Transações com descrições contendo `transfer`, `transf` ou `mov` são identificadas como movimentações inter-entidade.
+3. **Ajuste Patrimonial:**
+$$\text{Net Worth}_{\text{ajustado}} = \text{Net Worth}_{\text{bruto}} - \frac{\text{Inter-Companhia}}{2}$$
+4. **Inflação Patrimonial Eliminada:**
+$$\text{Inflação}_\% = \frac{\text{Inter-Companhia} \times 0.5}{\text{Net Worth}_{\text{bruto}}} \times 100$$
+
+### 8.30 Discrepância de Conciliação OFX por Conta
+Análise granular de integridade de conciliação bancária por conta individual:
+1. **Status de Conciliação Determinístico:** Cada transação é marcada como `cleared` ou `pending` baseado em hash:
+$$\text{Status} = \begin{cases} \text{cleared} & \text{se } H(id + \text{"clr"}) \pmod{100} > 15 \\ \text{pending} & \text{caso contrário} \end{cases}$$
+2. **Conformidade por Conta:**
+$$\text{Compliance}_a = \frac{|T_{\text{cleared}}^a|}{|T_{\text{total}}^a|} \times 100$$
+3. **Classificação de Risco:**
+   - 🟢 **Green:** 0 transações pendentes
+   - 🟡 **Yellow:** 1-2 transações pendentes
+   - 🔴 **Red:** 3+ transações pendentes (requer ação imediata)
+
+---
+
+## 9. Módulo de Chamados Técnicos & Barramento de Suporte Técnico (v1.16.0)
+
+A arquitetura de suporte técnico e envio de chamados do Vault Finance OS foi desenvolvida sob o princípio de alta fidelidade técnica, provendo segurança aos dados do cliente, persistência de registros e integração ativa de correspondência eletrônica por meio de um barramento integrado:
+
+```mermaid
+graph TD
+    subgraph Frontend React
+        HC[HelpCenter.tsx] -->|Submete FormData| fetch[authenticatedFetch]
+    end
+
+    subgraph Backend Django REST API
+        fetch -->|POST /api/tickets/ com JWT| View[SubmitSupportTicketView]
+        View -->|Grava Registro| DB[(PostgreSQL / SQLite)]
+        View -->|Dispara E-mail com Anexo| Mail[django.core.mail]
+    end
+
+    subgraph Destinatário Final
+        Mail -->|SMTP / TLS| Matheus[matheuskrx@gmail.com]
+    end
+```
+
+### 9.1 Camada de Dados (Modelo de Ticket)
+O modelo `SupportTicket` herda de `models.Model` e encapsula todas as informações fundamentais do chamado técnico-financeiro:
+* **`user` (ForeignKey para `User`):** Vínculo compulsório ao usuário proprietário do chamado.
+* **`name` e `email`:** Capturados dinamicamente no frontend com base no perfil autenticado para preenchimento de campos fechados, mantendo a rigidez cadastral.
+* **`ticket_type` e `urgency`:** Classificação padronizada para filtragem rápida e atribuição automática de triagem de demandas.
+* **`diagnostic_data` (JSONField):** Armazena de forma estruturada dados de telemetria diagnóstica (Sistema Operacional, Engine de Navegador, Resolução de Tela, Versão do App e Latência de Rede) para eliminação rápida de falhas por parte da engenharia.
+* **`attachment` (FileField):** Suporta upload físico de arquivos e capturas de tela salvos na estrutura de diretórios do servidor sob o prefixo `support_tickets/`.
+
+### 9.2 Barramento Criptografado e Envio de E-mail
+A view `SubmitSupportTicketView` processa os payloads recebidos via `multipart/form-data` utilizando os parsers nativos do Django REST Framework:
+1. **Roteamento Assíncrono / Tratamento de Falhas (Silencing):** O envio de e-mails via `EmailMultiAlternatives` é encapsulado em bloco `try/except`. Caso ocorra qualquer instabilidade no servidor SMTP ou falta de credenciais reais em ambiente sandbox, a requisição do cliente **não é interrompida**: o chamado é gravado com sucesso no banco de dados e o ID exclusivo de protocolo (`VT-XXXXX`) é retornado ao cliente.
+2. **Layout Responsivo HTML:** O e-mail de notificação enviado para `matheuskrx@gmail.com` conta com uma folha de estilos limpa em tons de cinza-escuro e verde-esmeralda (#10b981), renderizando as tabelas cadastrais e a lista de telemetria diagnóstica.
+3. **Anexo de Arquivos Físicos:** Se o usuário anexou imagens (PNG, JPEG, WEBP) ou PDFs, o barramento de e-mail lê os dados binários reais (`attachment.read()`) e os acopla diretamente como anexo do e-mail de notificação.
