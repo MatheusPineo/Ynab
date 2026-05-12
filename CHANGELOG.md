@@ -6,6 +6,19 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.17.7] — 2026-05-12
+
+Esta versão realiza a **Correção de Estabilidade do Lançamento de Transações (Hotfix de Runtime)** no Vault Finance OS. Focada em robustez, ela sana uma falha crítica que causava tela branca (crash do React) ao digitar no campo de descrição no modal de Nova Transação, garantindo uma experiência suave e ininterrupta.
+
+### Corrigido
+* **Crash no Lançamento de Transações (AddTransactionModal.tsx):**
+  - **Importação do Utilitário `cn`:** Importada a função de utilidade `cn` em `AddTransactionModal.tsx` que estava ausente, sanando o erro fatal `ReferenceError: cn is not defined` que ocorria assim que as sugestões de histórico tentavam renderizar suas etiquetas estilizadas.
+  - **Proteção do Array de Transações:** Adicionada validação robusta `Array.isArray(transactions)` e checagens defensivas para cada transação e propriedade antes de processar sugestões de autocompletar na busca de histórico, blindando o modal contra falhas de tipo (`TypeError`).
+* **Saneamento de Importações Fantasmas (Dashboard.tsx):**
+  - Remoção de importação duplicada e inexistente do `AddTransactionModal` em `Dashboard.tsx` para garantir a conformidade estrita de resolução de módulos na compilação.
+
+---
+
 ## [1.17.6] — 2026-05-12
 
 Esta versão realiza a **Implementação de Sinalização Visual Premium para Contas Desconsideradas nos Totais** e ativa a **Automação Completa de Sincronização de Versão do Rodapé** no Vault Finance OS. Focada em design estético de alto padrão e governança de release, ela introduz uma diferenciação visual luxuosa em tons de púrpura para contas que não participam da somatória de totais, além de automatizar o rastreamento de versões a partir deste changelog.
