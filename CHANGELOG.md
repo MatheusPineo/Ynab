@@ -6,6 +6,18 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.17.10] — 2026-05-12
+
+Esta versão realiza a **Correção e Otimização do Autocomplete de Contas** no Vault Finance OS. Ela substitui a dependência do dropdown nativo do Radix UI (que impedia o recebimento das setas do teclado devido ao roubo de foco) por um popover customizado e reativo que flutua diretamente sob o campo de busca de contas (origem e destino).
+
+### Corrigido
+* **Autocomplete de Contas Premium (AddTransactionModal.tsx):**
+  - **Foco e Teclado:** Ao digitar no campo de busca de conta, um popup flutuante de sugestões se abre logo abaixo.
+  - **Navegação com Setas:** É possível navegar entre as contas filtradas utilizando as teclas `ArrowDown` e `ArrowUp` de forma nativa e sem perder o foco de digitação.
+  - **Confirmação com Enter:** Apertar `Enter` seleciona a conta destacada, preenche o seletor correspondente e fecha o popup instantaneamente, mantendo o formulário intacto e prevenindo submissões prematuras.
+
+---
+
 ## [1.17.9] — 2026-05-12
 
 Esta versão realiza a **Implementação de Navegação e Seleção de Teclado Avançada** no Vault Finance OS. Focada em otimização de fluxo de trabalho para usuários avançados (power users) e acessibilidade de teclado, ela adiciona controles que permitem navegar por sugestões de histórico (descrições) e filtros de contas utilizando as setas do teclado (para cima e para baixo), além de confirmar seleções com a tecla Enter sem disparar o envio precoce do formulário.
