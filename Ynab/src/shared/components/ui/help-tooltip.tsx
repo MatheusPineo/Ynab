@@ -42,7 +42,7 @@ export function HelpTooltip({
         </TooltipTrigger>
         <TooltipContent 
           side={side} 
-          className="max-w-[280px] bg-sidebar/95 border-sidebar-border shadow-glow p-3 backdrop-blur-md text-sm leading-relaxed"
+          className="max-w-[240px] sm:max-w-[320px] bg-sidebar/95 border-sidebar-border shadow-glow p-3 backdrop-blur-md text-sm leading-relaxed break-words whitespace-normal text-foreground"
           sideOffset={6}
         >
           {content}

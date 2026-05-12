@@ -35,6 +35,7 @@ interface DebtState {
   deleteDebt: (id: string) => Promise<void>;
   addPayment: (data: { debt: string; amount: number; date: string; account: string | null }) => Promise<void>;
   deletePayment: (paymentId: string) => Promise<void>;
+  addDebtAmount: (id: string, data: { amount: number; date: string; account: string | null }) => Promise<void>;
 }
 
 export const useDebtStore = create<DebtState>((set, get) => ({
@@ -127,6 +128,25 @@ export const useDebtStore = create<DebtState>((set, get) => ({
       toast.success("Pagamento removido.");
     } catch (error: any) {
       toast.error(error.message);
+    }
+  },
+
+  addDebtAmount: async (id, data) => {
+    try {
+      const res = await authenticatedFetch(`/debts/${id}/add_debt_amount/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Falha ao adicionar débito");
+      }
+      await get().fetchDebts();
+      toast.success("Débito adicionado com sucesso!");
+    } catch (error: any) {
+      toast.error(error.message);
+      throw error;
     }
   },
 }));

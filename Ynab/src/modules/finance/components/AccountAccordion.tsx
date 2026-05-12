@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Plus, GripVertical, Gauge, Move } from "lucide-react";
+import { ChevronRight, Plus, GripVertical, Gauge, Move, ArrowDownAZ } from "lucide-react";
 import { toast } from "sonner";
 import {
   type AccountNode,
@@ -32,6 +32,7 @@ interface AccountRowProps {
   node: AccountNode;
   depth: number;
   parentCurrency: Currency;
+  sortByAlphabet?: boolean;
 }
 
 // Subtle background per depth — kept inside the dark theme palette
@@ -43,7 +44,7 @@ const depthBg = [
 ];
 const bgFor = (d: number) => depthBg[Math.min(d, depthBg.length - 1)];
 
-const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
+const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowProps) => {
   const [open, setOpen] = useState(depth === 0);
   const currency = nodeCurrency(node, parentCurrency);
   const hasChildren = !!node.children?.length;
@@ -303,14 +304,21 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
         >
           <div className="overflow-hidden">
             <div className={cn("flex flex-col pt-3 pb-1")}>
-              {node.children!.map((child) => (
-                <AccountRow
-                  key={child.id}
-                  node={child}
-                  depth={depth + 1}
-                  parentCurrency={currency}
-                />
-              ))}
+              {(() => {
+                const displayChildren = node.children ? [...node.children] : [];
+                if (sortByAlphabet) {
+                  displayChildren.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
+                }
+                return displayChildren.map((child) => (
+                  <AccountRow
+                    key={child.id}
+                    node={child}
+                    depth={depth + 1}
+                    parentCurrency={currency}
+                    sortByAlphabet={sortByAlphabet}
+                  />
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -327,6 +335,17 @@ interface Props {
 
 export const AccountAccordion = ({ tree }: Props) => {
   const { setTree } = useAccountStore();
+  const [sortByAlphabet, setSortByAlphabet] = useState<boolean>(() => {
+    return localStorage.getItem("vault_sort_subaccounts_az") === "true";
+  });
+
+  const handleToggleSort = () => {
+    setSortByAlphabet((prev) => {
+      const newVal = !prev;
+      localStorage.setItem("vault_sort_subaccounts_az", String(newVal));
+      return newVal;
+    });
+  };
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -352,32 +371,53 @@ export const AccountAccordion = ({ tree }: Props) => {
   }
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex flex-col gap-4">
-
-        <SortableContext items={tree.map(n => n.id)} strategy={verticalListSortingStrategy}>
-          {tree.map((root) => (
-            <AccountRow
-              key={root.id}
-              node={root}
-              depth={0}
-              parentCurrency={nodeCurrency(root)}
-            />
-          ))}
-        </SortableContext>
+    <div className="flex flex-col gap-3">
+      <div className="flex justify-end items-center px-1">
+        <button
+          type="button"
+          onClick={handleToggleSort}
+          className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-300 shadow-sm cursor-pointer select-none",
+            sortByAlphabet
+              ? "bg-primary/10 border-primary/40 text-primary hover:bg-primary/15"
+              : "bg-muted/15 border-border/50 text-muted-foreground hover:bg-muted/25 hover:text-foreground"
+          )}
+        >
+          <ArrowDownAZ className="h-3.5 w-3.5" />
+          <span>Ordenar Subcontas A-Z</span>
+        </button>
       </div>
-    </DndContext>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex flex-col gap-4">
+          <SortableContext items={tree.map(n => n.id)} strategy={verticalListSortingStrategy}>
+            {tree.map((root) => (
+              <AccountRow
+                key={root.id}
+                node={root}
+                depth={0}
+                parentCurrency={nodeCurrency(root)}
+                sortByAlphabet={sortByAlphabet}
+              />
+            ))}
+          </SortableContext>
+        </div>
+      </DndContext>
+    </div>
   );
 };
 
-function sumNode(node: AccountNode): number {
-  const balance = Number(node.balance) || 0;
+function sumNode(node: AccountNode, isRootCall = true): number {
+  const balance = (!isRootCall && node.exclude_from_totals) ? 0 : (Number(node.balance) || 0);
   if (!node.children || node.children.length === 0) return balance;
-  return node.children.reduce((acc, c) => acc + sumNode(c), balance);
+  return node.children.reduce((acc, c) => {
+    if (c.exclude_from_totals) return acc;
+    return acc + sumNode(c, false);
+  }, balance);
 }
 
 function nodeCurrency(node: AccountNode, parentCurrency?: Currency): Currency {

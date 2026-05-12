@@ -44,6 +44,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [editedBalance, setEditedBalance] = useState(account.balance);
   const [editedIcon, setEditedIcon] = useState(account.icon_url);
   const [editedCeiling, setEditedCeiling] = useState<number | null>(account.ceiling ?? null);
+  const [editedExcludeFromTotals, setEditedExcludeFromTotals] = useState(!!account.exclude_from_totals);
   const [isSaving, setIsSaving] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
   
@@ -89,6 +90,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
       setEditedBalance(account.balance);
       setEditedIcon(account.icon_url);
       setEditedCeiling(account.ceiling ?? null);
+      setEditedExcludeFromTotals(!!account.exclude_from_totals);
     }
   }, [isEditDialogOpen, account]);
 
@@ -101,7 +103,8 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
         name: editedName, 
         balance: editedBalance,
         icon_url: editedIcon,
-        ceiling: editedCeiling
+        ceiling: editedCeiling,
+        exclude_from_totals: editedExcludeFromTotals
       });
       
       setIsEditDialogOpen(false);
@@ -230,6 +233,21 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                 placeholder="Ex: 1000.00"
                 className="bg-background/50"
               />
+            </div>
+            <div className="flex items-center space-x-3 py-1 bg-muted/20 border border-border/40 px-3.5 py-3 rounded-xl">
+              <input
+                id="exclude_from_totals"
+                type="checkbox"
+                checked={editedExcludeFromTotals}
+                onChange={(e) => setEditedExcludeFromTotals(e.target.checked)}
+                className="h-4.5 w-4.5 rounded border-border/60 text-primary focus:ring-primary bg-background/50 cursor-pointer accent-primary shrink-0"
+              />
+              <div className="space-y-0.5 min-w-0">
+                <Label htmlFor="exclude_from_totals" className="text-sm font-semibold text-foreground cursor-pointer flex items-center gap-1.5 select-none">
+                  Desconsiderar nos Totais
+                  <HelpTooltip content="Oculta o saldo desta conta dos somatórios de contas pai, Net Worth e do dashboard global." />
+                </Label>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label>Ícone da Conta</Label>

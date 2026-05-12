@@ -18,8 +18,15 @@ import { cn } from "@/shared/lib/utils";
 import { AccountNode } from "@/types";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
-// Helper component for Debt Card
-const DebtCard = ({ debt, onAddPayment }: { debt: Debt; onAddPayment: (d: Debt) => void }) => {
+const DebtCard = ({ 
+  debt, 
+  onAddPayment, 
+  onAddDebtAmount 
+}: { 
+  debt: Debt; 
+  onAddPayment: (d: Debt) => void; 
+  onAddDebtAmount: (d: Debt) => void; 
+}) => {
   const [showHistory, setShowHistory] = useState(false);
   const { deleteDebt, deletePayment } = useDebtStore();
   
@@ -89,24 +96,36 @@ const DebtCard = ({ debt, onAddPayment }: { debt: Debt; onAddPayment: (d: Debt) 
         </div>
       </CardContent>
       
-      <div className="bg-muted/30 border-t border-sidebar-border px-6 py-3 flex items-center justify-between">
+      <div className="bg-muted/30 border-t border-sidebar-border px-4 py-3 flex flex-wrap gap-2 items-center justify-between">
         <Button 
           variant="ghost" 
           size="sm" 
-          className="text-xs h-8 px-2 text-muted-foreground"
+          className="text-xs h-8 px-2 text-muted-foreground shrink-0"
           onClick={() => setShowHistory(!showHistory)}
         >
-          <History className="mr-2 h-3.5 w-3.5" />
+          <History className="mr-1.5 h-3.5 w-3.5" />
           {debt.payments.length} Pagamento{debt.payments.length !== 1 && 's'}
           {showHistory ? <ChevronUp className="ml-1 h-3.5 w-3.5" /> : <ChevronDown className="ml-1 h-3.5 w-3.5" />}
         </Button>
         
-        {!isPaid && (
-          <Button size="sm" className="h-8 shadow-soft" onClick={() => onAddPayment(debt)}>
-            <Plus className="mr-1.5 h-3.5 w-3.5" />
-            Adicionar Saldo
-          </Button>
-        )}
+        <div className="flex items-center gap-1.5 ml-auto flex-wrap">
+          {!isPaid && (
+            <>
+              <Button 
+                variant="outline"
+                size="sm" 
+                className="h-8 text-xs border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-primary cursor-pointer shrink-0" 
+                onClick={() => onAddDebtAmount(debt)}
+              >
+                <Plus className="mr-1 h-3.5 w-3.5" />
+                Mais Débito
+              </Button>
+              <Button size="sm" className="h-8 text-xs shadow-soft cursor-pointer shrink-0" onClick={() => onAddPayment(debt)}>
+                Adicionar Saldo
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Payment History Expandable */}
@@ -143,7 +162,7 @@ const DebtCard = ({ debt, onAddPayment }: { debt: Debt; onAddPayment: (d: Debt) 
 };
 
 export const Debts = () => {
-  const { debts, fetchDebts, addDebt, addPayment } = useDebtStore();
+  const { debts, fetchDebts, addDebt, addPayment, addDebtAmount } = useDebtStore();
   const { tree, fetchAccounts } = useAccountStore();
   const { baseCurrency } = useCurrencyStore();
   
@@ -157,16 +176,29 @@ export const Debts = () => {
   const [counterparty, setCounterparty] = useState("");
   const [amount, setAmount] = useState("");
   const [notes, setNotes] = useState("");
+  const [currency, setCurrency] = useState<string>(baseCurrency);
 
   // Payment Form State
   const [payAmount, setPayAmount] = useState("");
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
   const [payAccount, setPayAccount] = useState("");
 
+  // Add Debt Amount Form State
+  const [isAddAmountOpen, setIsAddAmountOpen] = useState(false);
+  const [addAmountValue, setAddAmountValue] = useState("");
+  const [addAmountDate, setAddAmountDate] = useState(new Date().toISOString().split('T')[0]);
+  const [addAmountAccount, setAddAmountAccount] = useState("");
+
   useEffect(() => {
     fetchDebts();
     if (tree.length === 0) fetchAccounts();
   }, [fetchDebts, fetchAccounts, tree.length]);
+
+  useEffect(() => {
+    if (isAddDebtOpen) {
+      setCurrency(baseCurrency);
+    }
+  }, [isAddDebtOpen, baseCurrency]);
 
   const handleAddDebt = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,7 +212,7 @@ export const Debts = () => {
       await addDebt({
         counterparty_name: counterparty,
         original_amount: Number(amount),
-        currency: baseCurrency,
+        currency: currency,
         is_mine: debtType === "minhas_dividas",
         notes
       });
@@ -216,11 +248,40 @@ export const Debts = () => {
     }
   };
 
+  const handleAddDebtAmountSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDebt || !addAmountValue || !addAmountDate) {
+      toast.error("Preencha todos os campos.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await addDebtAmount(selectedDebt.id, {
+        amount: Number(addAmountValue),
+        date: addAmountDate,
+        account: (addAmountAccount && addAmountAccount !== "none") ? addAmountAccount : null
+      });
+      setIsAddAmountOpen(false);
+      setAddAmountValue("");
+      setAddAmountAccount("");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const openPaymentModal = (debt: Debt) => {
     setSelectedDebt(debt);
     // Suggest the remaining amount
     setPayAmount(debt.amount_remaining.toString());
     setIsPaymentOpen(true);
+  };
+
+  const openAddAmountModal = (debt: Debt) => {
+    setSelectedDebt(debt);
+    setAddAmountValue("");
+    setAddAmountAccount("");
+    setIsAddAmountOpen(true);
   };
 
   // Flatten accounts for the select dropdown (only subaccounts usually receive/pay)
@@ -291,7 +352,7 @@ export const Debts = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {meDevem.map(debt => (
-                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} />
+                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onAddDebtAmount={openAddAmountModal} />
                   ))}
                 </div>
               )}
@@ -314,7 +375,7 @@ export const Debts = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {minhasDividas.map(debt => (
-                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} />
+                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onAddDebtAmount={openAddAmountModal} />
                   ))}
                 </div>
               )}
@@ -371,6 +432,21 @@ export const Debts = () => {
                   onChange={(e) => setAmount(e.target.value)}
                   required
                 />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="currency" className="text-right">Moeda</Label>
+                <div className="col-span-3">
+                  <Select value={currency} onValueChange={(val: any) => setCurrency(val)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione a moeda" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EUR">EUR (€)</SelectItem>
+                      <SelectItem value="BRL">BRL (R$)</SelectItem>
+                      <SelectItem value="USD">USD ($)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid grid-cols-4 items-start gap-4">
                 <Label htmlFor="notes" className="text-right mt-2">Obs.</Label>
@@ -449,6 +525,70 @@ export const Debts = () => {
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsPaymentOpen(false)}>Cancelar</Button>
               <Button type="submit" disabled={isSubmitting}>Confirmar Pagamento</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adicionar Débito Modal */}
+      <Dialog open={isAddAmountOpen} onOpenChange={setIsAddAmountOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <form onSubmit={handleAddDebtAmountSubmit}>
+            <DialogHeader>
+              <DialogTitle>Adicionar Débito</DialogTitle>
+              <DialogFooter className="text-sm text-muted-foreground mt-1 text-left sm:justify-start">
+                Dívida de: <strong className="ml-1 text-foreground">{selectedDebt?.counterparty_name}</strong>
+              </DialogFooter>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="addAmountValue" className="text-right">Valor</Label>
+                <Input
+                  id="addAmountValue"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  className="col-span-3"
+                  value={addAmountValue}
+                  onChange={(e) => setAddAmountValue(e.target.value)}
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="addAmountDate" className="text-right">Data</Label>
+                <Input
+                  id="addAmountDate"
+                  type="date"
+                  className="col-span-3"
+                  value={addAmountDate}
+                  onChange={(e) => setAddAmountDate(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="addAmountAccount" className="text-right">Conta (Opcional)</Label>
+                <div className="col-span-3">
+                  <Select value={addAmountAccount} onValueChange={setAddAmountAccount}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sem conta bancária vinculada" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma (ajuste apenas contábil)</SelectItem>
+                      {subaccounts.map(acc => (
+                        <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2 col-span-4 text-center">
+                Caso selecione uma conta, isto criará automaticamente uma {selectedDebt?.is_mine ? "receita" : "despesa"} para conciliação.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsAddAmountOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isSubmitting}>Confirmar Acréscimo</Button>
             </DialogFooter>
           </form>
         </DialogContent>

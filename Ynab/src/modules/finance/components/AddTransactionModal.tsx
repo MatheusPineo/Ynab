@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +35,30 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [open, setOpen] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   
+  // Estados para caixas de busca de contas
+  const [accountSearch, setAccountSearch] = useState("");
+  const [toAccountSearch, setToAccountSearch] = useState("");
+
+  // Resetar termos de busca ao fechar o modal
+  useEffect(() => {
+    if (!open) {
+      setAccountSearch("");
+      setToAccountSearch("");
+    }
+  }, [open]);
+
+  // Sincronizar e limpar os campos controlados com base no ciclo de abertura e edição
+  useEffect(() => {
+    if (open) {
+      setDescription(transaction?.description || "");
+      setAmount(transaction ? String(Math.abs(transaction.amount)) : "");
+      setType(transaction ? (transaction.is_income ? "income" : "expense") : "expense");
+      setAccountId(transaction?.account ? String(transaction.account) : (initialAccountId || ""));
+      setUseCategory(transaction?.category ? true : false);
+      setCategoryId(transaction?.category ? String(transaction.category) : "none");
+    }
+  }, [open, transaction, initialAccountId]);
+
   // Estados controlados para os seletores novos
   const [type, setType] = useState<string>(transaction ? (transaction.is_income ? "income" : "expense") : "expense");
   const [accountId, setAccountId] = useState<string>(transaction?.account ? String(transaction.account) : (initialAccountId || ""));
@@ -45,10 +69,67 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [toAccountId, setToAccountId] = useState<string>("");
   const [toAmount, setToAmount] = useState<string>("");
 
+  // Estados para o preenchimento automático (autocomplete) baseado no histórico
+  const [description, setDescription] = useState<string>(transaction?.description || "");
+  const [amount, setAmount] = useState<string>(transaction ? String(Math.abs(transaction.amount)) : "");
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const { tree, categoryGroups } = useAccountStore();
-  const { addTransaction, updateTransaction, transferTransaction } = useTransactions();
+  const { transactions = [], addTransaction, updateTransaction, transferTransaction } = useTransactions();
   
   const isEdit = !!transaction;
+
+  // Fechar sugestões ao clicar fora do componente de autocomplete
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const container = document.getElementById("autocomplete-container");
+      if (container && !container.contains(e.target as Node)) {
+        setShowSuggestions(false);
+      }
+    };
+    
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
+  }, []);
+
+  // Obter o nome de uma categoria pelo ID
+  const getCategoryName = (catId: any) => {
+    if (!catId) return "";
+    for (const group of categoryGroups) {
+      const found = (group.children || []).find((c: any) => String(c.id) === String(catId));
+      if (found) return found.name;
+    }
+    return "";
+  };
+
+  // Buscar sugestões de transações anteriores
+  const getSuggestions = () => {
+    if (!description || description.trim().length === 0) return [];
+    
+    const term = description.toLowerCase();
+    
+    const matching = transactions.filter(t => 
+      t.description && 
+      t.description.toLowerCase().includes(term) &&
+      !t.transfer_group
+    );
+    
+    const uniqueMap = new Map<string, Transaction>();
+    
+    // Pegar as ocorrências mais recentes (fim do array para o início)
+    [...matching].reverse().forEach(t => {
+      const descKey = t.description.trim();
+      if (!uniqueMap.has(descKey)) {
+        uniqueMap.set(descKey, t);
+      }
+    });
+    
+    return Array.from(uniqueMap.values()).slice(0, 5);
+  };
+
+  const suggestions = getSuggestions();
 
   const getAllAccounts = (nodes: any[], depth = 0): any[] => {
     let list: any[] = [];
@@ -68,6 +149,14 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   };
   
   const allAccounts = getAllAccounts(tree);
+
+  const filteredFromAccounts = allAccounts.filter(acc => 
+    acc.name.toLowerCase().includes(accountSearch.toLowerCase())
+  );
+
+  const filteredToAccounts = allAccounts
+    .filter(acc => String(acc.id) !== accountId)
+    .filter(acc => acc.name.toLowerCase().includes(toAccountSearch.toLowerCase()));
 
   const fromAccount = allAccounts.find(a => String(a.id) === accountId);
   const toAccount = allAccounts.find(a => String(a.id) === toAccountId);
@@ -130,16 +219,83 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           <DialogTitle>{isEdit ? "Editar Transação" : "Lançar Transação"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          <div className="grid gap-2">
+          <div id="autocomplete-container" className="relative grid gap-2">
             <Label htmlFor="description">Descrição</Label>
             <Input 
               id="description" 
               name="description" 
-              defaultValue={transaction?.description}
+              value={description}
+              onChange={(e) => {
+                setDescription(e.target.value);
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
               placeholder="Ex: Mercado, Uber..." 
               required 
               className="bg-background/50" 
+              autoComplete="off"
             />
+            
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute top-[calc(100%+4px)] z-50 w-full rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-glow py-1 text-sm max-h-52 overflow-y-auto animate-in fade-in slide-in-from-top-1">
+                <div className="px-2.5 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider opacity-60 select-none">
+                  Sugestões do Histórico
+                </div>
+                {suggestions.map((sug) => {
+                  const sAcc = allAccounts.find(a => String(a.id) === String(sug.account));
+                  return (
+                    <button
+                      key={sug.id}
+                      type="button"
+                      onClick={() => {
+                        setDescription(sug.description);
+                        setAmount(String(Math.abs(sug.amount)));
+                        setType(sug.is_income ? "income" : "expense");
+                        if (sug.account) setAccountId(String(sug.account));
+                        if (sug.category) {
+                          setUseCategory(true);
+                          setCategoryId(String(sug.category));
+                        } else {
+                          setUseCategory(false);
+                          setCategoryId("none");
+                        }
+                        setShowSuggestions(false);
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-primary/10 text-foreground transition-colors flex flex-col gap-1 cursor-pointer"
+                    >
+                      <div className="font-medium text-xs flex justify-between items-center w-full">
+                        <span>{sug.description}</span>
+                        <span className={sug.is_income ? "text-emerald-400" : "text-rose-400"}>
+                          {new Intl.NumberFormat("pt-BR", { style: "currency", currency: sAcc?.currency || "BRL" }).format(Math.abs(sug.amount))}
+                        </span>
+                      </div>
+                      <div className="text-[10px] text-muted-foreground flex flex-wrap gap-x-1.5 gap-y-0.5 items-center">
+                        <span className={cn(
+                          "text-[9px] font-semibold px-1 py-0.2 rounded-md",
+                          sug.is_income ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                        )}>
+                          {sug.is_income ? "Receita" : "Despesa"}
+                        </span>
+                        {sug.category && (
+                          <>
+                            <span>•</span>
+                            <span className="bg-primary/10 text-primary-foreground/90 px-1 rounded-sm">
+                              {getCategoryName(sug.category)}
+                            </span>
+                          </>
+                        )}
+                        {sAcc && (
+                          <>
+                            <span>•</span>
+                            <span>{sAcc.name}</span>
+                          </>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           
           <div className="grid grid-cols-2 gap-4">
@@ -150,7 +306,8 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                 name="amount" 
                 type="number" 
                 step="0.01" 
-                defaultValue={transaction ? Math.abs(transaction.amount) : ""}
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00" 
                 required 
                 className="bg-background/50" 
@@ -251,16 +408,29 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="account">{isTransfer ? "De Conta (Origem)" : "Conta"}</Label>
+              {allAccounts.length > 4 && (
+                <Input 
+                  type="text"
+                  placeholder="🔍 Filtrar..." 
+                  value={accountSearch}
+                  onChange={(e) => setAccountSearch(e.target.value)}
+                  className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-xl focus-visible:ring-primary/50"
+                />
+              )}
               <Select value={accountId} onValueChange={setAccountId} required>
                 <SelectTrigger className="bg-background/50 border-border/60">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent className="glass border-border/60">
-                  {allAccounts.map(acc => (
-                    <SelectItem key={acc.id} value={String(acc.id)}>
-                      <span className="whitespace-pre">{acc.displayName || acc.name}</span> ({acc.currency})
-                    </SelectItem>
-                  ))}
+                  {filteredFromAccounts.length === 0 ? (
+                    <div className="py-2.5 px-3 text-xs text-muted-foreground text-center select-none">Nenhuma conta encontrada</div>
+                  ) : (
+                    filteredFromAccounts.map(acc => (
+                      <SelectItem key={acc.id} value={String(acc.id)}>
+                        <span className="whitespace-pre">{acc.displayName || acc.name}</span> ({acc.currency})
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -268,16 +438,29 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             {isTransfer && (
               <div className="grid gap-2 animate-in slide-in-from-right-2">
                 <Label htmlFor="to_account">Para Conta (Destino)</Label>
+                {allAccounts.length > 4 && (
+                  <Input 
+                    type="text"
+                    placeholder="🔍 Filtrar..." 
+                    value={toAccountSearch}
+                    onChange={(e) => setToAccountSearch(e.target.value)}
+                    className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-xl focus-visible:ring-primary/50"
+                  />
+                )}
                 <Select value={toAccountId} onValueChange={setToAccountId} required>
                   <SelectTrigger className="bg-background/50 border-border/60">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent className="glass border-border/60">
-                    {allAccounts.filter(acc => String(acc.id) !== accountId).map(acc => (
-                      <SelectItem key={acc.id} value={String(acc.id)}>
-                        <span className="whitespace-pre">{acc.displayName || acc.name}</span> ({acc.currency})
-                      </SelectItem>
-                    ))}
+                    {filteredToAccounts.length === 0 ? (
+                      <div className="py-2.5 px-3 text-xs text-muted-foreground text-center select-none">Nenhuma conta encontrada</div>
+                    ) : (
+                      filteredToAccounts.map(acc => (
+                        <SelectItem key={acc.id} value={String(acc.id)}>
+                          <span className="whitespace-pre">{acc.displayName || acc.name}</span> ({acc.currency})
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>

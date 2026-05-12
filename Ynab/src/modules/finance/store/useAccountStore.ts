@@ -158,6 +158,7 @@ export const useAccountStore = create<AccountState>()(
             parent: parentId !== "root" ? parentId : null,
             currency: partialNode.currency || "EUR",
             ceiling: partialNode.ceiling ?? null,
+            exclude_from_totals: partialNode.exclude_from_totals ?? false,
           };
 
           const response = await authenticatedFetch("/accounts/", {
@@ -614,8 +615,10 @@ export const useAccountStore = create<AccountState>()(
         const totals: Record<Currency, number> = { EUR: 0, BRL: 0, USD: 0 };
         const walk = (node: AccountNode, inherited: Currency) => {
           const cur = node.currency ?? inherited;
-          const balance = Number(node.balance) || 0;
-          totals[cur] += balance;
+          if (!node.exclude_from_totals) {
+            const balance = Number(node.balance) || 0;
+            totals[cur] += balance;
+          }
           node.children?.forEach((c) => walk(c, cur));
         };
         tree.forEach((root) => walk(root, root.currency ?? "EUR"));

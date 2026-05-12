@@ -46,6 +46,19 @@ Para conferir conformidade total às diretrizes de privacidade de dados, impleme
 * **`useConsentStore`:** Armazena de forma persistente (`localStorage`) o estado de aceite granular do usuário para três categorias de rastreadores: Essenciais (JWT de sessão - sempre ativos), Analíticos (métricas de uso) e Marketing (pixels e campanhas).
 * **`useConsentTracker`:** Hook reativo global acoplado no ponto de montagem principal do app (`App.tsx`). Ele ouve as mudanças do Zustand e injeta ou remove scripts de terceiros (como Google Analytics, Facebook Pixel ou PostHog) dinamicamente na DOM do browser apenas se o usuário fornecer consentimento positivo (*opt-in*). Caso o consentimento seja revogado, os scripts e seus elementos DOM correspondentes são limpos em tempo real.
 
+### Sistema de Controle Modular de Recursos (Feature Flags)
+Para dar controle total da interface ao usuário, introduzimos uma arquitetura de chaveamento de módulos (*feature toggles*):
+* **`useFeatureStore`:** Gerencia as flags de visibilidade de páginas e funcionalidades (`dashboard`, `accounts`, `transactions`, `budget`, `debts`, `goals`, `insights`, `rule503020`). Os estados de visualização de navegação na `Sidebar` e `BottomNav` são filtrados instantaneamente.
+* **`FeatureProtectedRoute`:** Wrapper de rotas no React Router (`App.tsx`) que blinda acessos diretos por digitação de URL quando o recurso correspondente estiver inativo, redirecionando o usuário para áreas ativas autorizadas de forma segura.
+
+### Módulo Regra 50-30-20 (Planejamento Financeiro Autônomo e Conectado)
+A técnica de divisão de despesas (50% Necessidades, 30% Desejos e 20% Futuro) foi implementada como um microsserviço de visualização desacoplado:
+* **`useRule503020Store`:** Store persistente no Zustand que mapeia de forma persistente cada categoria de orçamento (`CategoryNode` do YNAB) a um dos três baldes financeiros.
+* **Duplo Modo de Funcionamento (Dual Engine):**
+  * **Modo Autônomo:** O usuário digita manualmente a renda líquida e acompanha os limites sugeridos de forma rápida e independente.
+  * **Modo Integrado:** Conectado à árvore financeira do YNAB. O sistema consome as receitas reais cadastradas para o mês ativo e os gastos computados nas transações atreladas às categorias mapeadas, fornecendo um diagnóstico real de saúde financeira em tempo real.
+
+
 
 ### Pipeline de Atualizações Otimistas (Optimistic Updates)
 Quando o usuário cria uma nova transação, o sistema não espera o retorno do servidor para atualizar o balanço na tela. O fluxo ocorre da seguinte forma:

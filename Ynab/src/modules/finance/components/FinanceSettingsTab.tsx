@@ -42,6 +42,11 @@ export const FinanceDataTab = () => {
   const [isResetting, setIsResetting] = useState(false);
 
   const { 
+    tree,
+    transactions,
+    categoryGroups,
+    goals,
+    distributionTemplates,
     fetchAccounts, 
     fetchTransactions, 
     fetchCategoryGroups, 
@@ -49,7 +54,97 @@ export const FinanceDataTab = () => {
     fetchDistributionTemplates 
   } = useAccountStore();
   
-  const { fetchDebts } = useDebtStore();
+  const { debts, fetchDebts } = useDebtStore();
+
+  const handleExportJSON = () => {
+    try {
+      const backupData = {
+        exported_at: new Date().toISOString(),
+        accounts: tree,
+        transactions: transactions,
+        categoryGroups: categoryGroups,
+        goals: goals,
+        debts: debts,
+        distributionTemplates: distributionTemplates
+      };
+
+      const jsonString = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonString], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `vault_finance_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Backup JSON exportado com sucesso!");
+    } catch (error: any) {
+      toast.error("Erro ao exportar dados em JSON: " + error.message);
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      if (!transactions || transactions.length === 0) {
+        toast.error("Nenhuma transação disponível para exportar no período atual.");
+        return;
+      }
+
+      // Cabeçalho do CSV
+      const headers = ["ID", "Data", "Descricao", "Valor", "Tipo", "Status", "Conta", "Categoria"];
+      
+      // Mapeia cada transação para uma linha do CSV
+      const rows = transactions.map(t => {
+        const accountName = useAccountStore.getState().getAccountName(t.account);
+        const categoryName = useAccountStore.getState().getCategoryName(t.category);
+        const type = t.is_income ? "Receita" : "Despesa";
+        const status = t.status === "realized" ? "Realizada" : "Pendente";
+        
+        // Escapa caracteres especiais para formato CSV seguro
+        const escapeCSV = (str: any) => {
+          if (str === null || str === undefined) return "";
+          const s = String(str);
+          if (s.includes(",") || s.includes('"') || s.includes("\n")) {
+            return `"${s.replace(/"/g, '""')}"`;
+          }
+          return s;
+        };
+
+        return [
+          t.id,
+          t.date,
+          escapeCSV(t.description),
+          t.amount,
+          type,
+          status,
+          escapeCSV(accountName),
+          escapeCSV(categoryName)
+        ];
+      });
+
+      // Junta cabeçalhos e linhas usando ponto e vírgula ou vírgula
+      const csvContent = [headers, ...rows]
+        .map(e => e.join(","))
+        .join("\n");
+
+      // Força encoding UTF-8 com BOM para garantir que o Excel abra caracteres especiais corretamente
+      const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `vault_finance_transacoes_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success("Planilha de Transações CSV exportada com sucesso!");
+    } catch (error: any) {
+      toast.error("Erro ao exportar dados em CSV: " + error.message);
+    }
+  };
 
   const handleResetData = async () => {
     if (resetConfirmation !== "EXCLUIR") {
@@ -103,17 +198,32 @@ export const FinanceDataTab = () => {
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4">
-            <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 space-y-4">
-              <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <Download className="h-5 w-5 text-primary" />
+            <div className="p-6 rounded-3xl bg-muted/20 border border-border/40 space-y-4 flex flex-col justify-between">
+              <div className="space-y-4">
+                <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center">
+                  <Download className="h-5 w-5 text-primary" />
+                </div>
+                <div className="space-y-1">
+                  <p className="font-bold">Backup & Exportação</p>
+                  <p className="text-xs text-muted-foreground text-pretty">Baixe todos os seus dados para backup manual ou controle em planilha.</p>
+                </div>
               </div>
-              <div className="space-y-1">
-                <p className="font-bold">Backup de Segurança</p>
-                <p className="text-xs text-muted-foreground text-pretty">Baixe um arquivo JSON com todos os seus dados para backup manual.</p>
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+                <Button 
+                  onClick={handleExportJSON}
+                  variant="outline" 
+                  className="flex-1 rounded-xl gap-2 h-10 hover:bg-primary/5 hover:text-primary transition-colors font-semibold"
+                >
+                  JSON Backup
+                </Button>
+                <Button 
+                  onClick={handleExportCSV}
+                  variant="outline" 
+                  className="flex-1 rounded-xl gap-2 h-10 hover:bg-primary/5 hover:text-primary transition-colors font-semibold"
+                >
+                  CSV Planilha
+                </Button>
               </div>
-              <Button variant="outline" className="w-full rounded-xl gap-2 h-10">
-                Exportar JSON
-              </Button>
             </div>
 
             <div className="p-6 rounded-3xl bg-rose-500/5 border border-rose-500/10 hover:border-rose-500/20 transition-all space-y-4">

@@ -80,6 +80,8 @@ export interface AccountNode {
   children?: AccountNode[];
   /** Teto de saldo opcional que ativa o gatilho de transbordo e distribuição de excedentes */
   ceiling: number | null;
+  /** Se true, o saldo desta conta/subconta não é computado na soma mestre e nem nos totais do dashboard */
+  exclude_from_totals?: boolean;
 }
 
 /**

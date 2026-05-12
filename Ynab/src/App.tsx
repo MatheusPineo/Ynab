@@ -17,6 +17,7 @@ import Insights from "@/modules/finance/pages/Insights";
 import Settings from "@/modules/auth/pages/Settings";
 import AccountDetails from "@/modules/finance/pages/AccountDetails";
 import Debts from "@/modules/finance/pages/Debts";
+import Rule503020 from "@/modules/finance/pages/Rule503020";
 import Auth from "@/modules/auth/pages/Auth";
 import Landing from "@/modules/auth/pages/Landing";
 import NotFound from "@/modules/auth/pages/NotFound";
@@ -27,12 +28,27 @@ import CookieBanner from "@/modules/auth/components/CookieBanner";
 import { useConsentTracker } from "@/shared/hooks/useConsentTracker";
 import { FinanceDataTab, FinanceTemplatesTab } from "@/modules/finance/components/FinanceSettingsTab";
 import { Database, LayoutGrid } from "lucide-react";
+import { useFeatureStore, type EnabledFeatures } from "@/shared/store/useFeatureStore";
 
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuthStore();
   if (!isAuthenticated) return <Navigate to="/auth" replace />;
+  return <>{children}</>;
+};
+
+const FeatureProtectedRoute = ({ children, featureKey }: { children: React.ReactNode; featureKey: keyof EnabledFeatures }) => {
+  const { features } = useFeatureStore();
+  const isEnabled = features[featureKey] !== false;
+  
+  if (!isEnabled) {
+    if (featureKey !== "dashboard" && features.dashboard !== false) {
+      return <Navigate to="/dashboard" replace />;
+    }
+    return <Navigate to="/settings" replace />;
+  }
+  
   return <>{children}</>;
 };
 
@@ -101,13 +117,14 @@ const App = () => {
               <Route path="/politica-de-cookies" element={<CookiePolicy />} />
 
               <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                <Route path="dashboard" element={<Dashboard />} />
-                <Route path="accounts" element={<Accounts />} />
-                <Route path="transactions" element={<Transactions />} />
-                <Route path="budget" element={<Budget />} />
-                <Route path="goals" element={<Goals />} />
-                <Route path="debts" element={<Debts />} />
-                <Route path="insights" element={<Insights />} />
+                <Route path="dashboard" element={<FeatureProtectedRoute featureKey="dashboard"><Dashboard /></FeatureProtectedRoute>} />
+                <Route path="accounts" element={<FeatureProtectedRoute featureKey="accounts"><Accounts /></FeatureProtectedRoute>} />
+                <Route path="transactions" element={<FeatureProtectedRoute featureKey="transactions"><Transactions /></FeatureProtectedRoute>} />
+                <Route path="budget" element={<FeatureProtectedRoute featureKey="budget"><Budget /></FeatureProtectedRoute>} />
+                <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />
+                <Route path="debts" element={<FeatureProtectedRoute featureKey="debts"><Debts /></FeatureProtectedRoute>} />
+                <Route path="insights" element={<FeatureProtectedRoute featureKey="insights"><Insights /></FeatureProtectedRoute>} />
+                <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
                 <Route 
                   path="settings" 
                   element={

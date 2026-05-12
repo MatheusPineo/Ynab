@@ -114,14 +114,14 @@ class AccountViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         account = serializer.save(user=self.request.user)
         
-        # Se possuir saldo positivo
-        if account.balance > 0:
+        # Se possuir saldo (positivo ou negativo)
+        if account.balance != 0:
             Transaction.objects.create(
                 account=account,
-                amount=account.balance,
+                amount=abs(account.balance),
                 description=f"Saldo Inicial de {account.name}",
                 date=date.today(),
-                is_income=True,
+                is_income=account.balance > 0,
                 status='realized',
                 is_applied_to_balance=True
             )
@@ -183,6 +183,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                         'icon_url': account.icon_url,
                         'parent': str(account.parent_id) if account.parent_id else None,
                         'ceiling': float(account.ceiling) if account.ceiling is not None else None,
+                        'exclude_from_totals': account.exclude_from_totals,
                     }
                     if children:
                         acc_dict['children'] = children
@@ -1084,6 +1085,59 @@ class DebtViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def add_debt_amount(self, request, pk=None):
+        debt = self.get_object()
+        amount = Decimal(str(request.data.get('amount', '0')))
+        account_id = request.data.get('account')
+        pay_date = request.data.get('date') or date.today().isoformat()
+
+        if amount <= 0:
+            return Response({"detail": "O valor do débito deve ser maior que zero."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            # Atualiza o original_amount somando o acréscimo
+            debt.original_amount += amount
+            
+            # Cria a transação correspondente caso seja vinculada a uma conta
+            account = Account.objects.get(id=account_id) if account_id else None
+            if account:
+                if debt.is_mine:
+                    # Minha dívida: recebi mais dinheiro (empréstimo contraído) -> Receita (is_income = True)
+                    description = f"Acréscimo de dívida (empréstimo de {debt.counterparty_name})"
+                    is_income = True
+                else:
+                    # Eles me devem: emprestei mais dinheiro -> Despesa (is_income = False)
+                    description = f"Acréscimo de dívida (dinheiro emprestado para {debt.counterparty_name})"
+                    is_income = False
+
+                # Cria a transação real
+                Transaction.objects.create(
+                    account=account,
+                    amount=amount,
+                    description=description,
+                    date=pay_date,
+                    is_income=is_income,
+                    is_applied_to_balance=True,
+                )
+
+                # Aplica o ajuste de saldo
+                if is_income:
+                    account.balance += amount
+                else:
+                    account.balance -= amount
+                account.save()
+
+                # Adiciona notas explicativas para auditoria
+                notes_append = f"\n[Acréscimo de {amount} {debt.currency} em {pay_date} via {account.name}]"
+                debt.notes = (debt.notes + notes_append).strip()
+
+            debt.save()
+
+        # Retornar o serializer atualizado
+        serializer = self.get_serializer(debt)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class DebtPaymentViewSet(viewsets.ModelViewSet):
     serializer_class = DebtPaymentSerializer

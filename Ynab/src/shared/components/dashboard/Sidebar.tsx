@@ -12,10 +12,12 @@ import {
   ChevronLeft,
   LogOut,
   User as UserIcon,
-  Handshake
+  Handshake,
+  Scale
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
+import { useFeatureStore } from "@/shared/store/useFeatureStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import {
   DropdownMenu,
@@ -33,6 +35,7 @@ const navItems = [
   { icon: Wallet, key: "accounts", to: "/accounts" },
   { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
   { icon: PieChart, key: "budget", to: "/budget" },
+  { icon: Scale, key: "rule503020", to: "/rule-503020" },
   { icon: Handshake, key: "debts", to: "/debts" },
   { icon: Target, key: "goals", to: "/goals" },
   { icon: Sparkles, key: "insights", to: "/insights" },
@@ -41,8 +44,11 @@ const navItems = [
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const { user, logout } = useAuthStore();
+  const { features } = useFeatureStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const activeNavItems = navItems.filter(item => features[item.key as keyof typeof features] !== false);
 
   const handleLogout = () => {
     logout();
@@ -76,7 +82,7 @@ export const Sidebar = () => {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-6 space-y-1">
-        {navItems.map((item) => {
+        {activeNavItems.map((item) => {
           const Icon = item.icon;
           const label = t(`navigation.${item.key}`);
           const description = t(`nav_descriptions.${item.key}`);

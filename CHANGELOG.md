@@ -6,6 +6,42 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.5.0] — 2026-05-11
+
+Esta versão introduz a funcionalidade altamente solicitada de **Exclusão Seletiva de Contas das Somatórias**, permitindo aos usuários ocultarem saldos de contas e subcontas específicas dos totais acumulados de contas pai, Net Worth global e dashboard, sem excluí-las visualmente da interface.
+
+### Adicionado
+* **Exclusão Seletiva de Somatórios (Domínio):** Adição do campo `exclude_from_totals` à tabela física e modelo `Account` no Django, expondo-o na resposta serializada da árvore financeira.
+* **Cálculo de Saldos Inteligente e Recursivo (Frontend):** Refatoração do algoritmo recursivo de somatório (`sumNode`) em `AccountAccordion.tsx` com tratamento adaptativo de raiz (`isRootCall`). Subcontas marcadas para exclusão retornam saldo consolidado individual `0` para a conta pai, mas exibem seus saldos reais na sua própria linha visual.
+* **Filtragem de Ativos do Dashboard:** Adaptação da lógica global do Zustand `totalsByCurrency` para ignorar o saldo de qualquer conta ou subconta que possua a flag de exclusão ativa, recalculando instantaneamente o Net Worth e as distribuições de excedentes.
+* **Componentes de Configuração Premium (UI):** Inclusão de um checkbox emoldurado de alta fidelidade visual ("Desconsiderar nos Totais") equipado com HelpTooltip dinâmico explicando as consequências da flag nos modais de:
+  * **Criação de Conta Raiz** (`AddRootAccountModal.tsx`)
+  * **Criação de Subconta** (`AddAccountModal.tsx`)
+  * **Edição de Conta** (`AccountActions.tsx`)
+* **Ordenação Alfabética de Subcontas (A-Z):** Implementação de um controle de ordenação alfabética para as subcontas de cada conta matriz. O estado é controlado por um botão reativo estilizado com o ícone `ArrowDownAZ` posicionado no canto superior direito do acordeão financeiro, cuja preferência do usuário é gravada e persistida reativamente no `localStorage` sob a chave `vault_sort_subaccounts_az`.
+* **Caixa de Busca na Seleção de Contas (Lançamento):** Adição de caixas de busca reativas e inteligentes nos campos de seleção de contas de origem e destino dentro do modal de lançamento de transações (`AddTransactionModal.tsx`). O campo aparece de forma sutil e condicionada quando o usuário possui mais de 4 contas cadastradas, acompanhado por filtragem reativa instantânea de digitação e tratamento de estado vazio ("Nenhuma conta encontrada") nos dropdowns do seletor.
+* **Escolha de Moedas em Dívidas (Multi-moedas):** Introdução da possibilidade de selecionar a moeda ("EUR", "BRL", "USD") na criação de novas dívidas no painel de devedores (`Debts.tsx`), integrando-se perfeitamente com os cálculos cambiais dinâmicos do sistema.
+* **Acréscimo de Saldo Devedor (Mais Débito):** Implementação de um botão de ação e modal dedicado ("Mais Débito") para aumentar o saldo devedor de dívidas existentes. A ação conta com uma `@action add_debt_amount` atômica no Django que incrementa a dívida e opcionalmente gera a transação financeira reversa correspondente para conciliação bancária de saldos, registrando também uma nota automática de auditoria nos históricos.
+* **Layout de Dívidas Responsivo (Pixel-Perfect):** Refatoração do rodapé dos cards de dívida em `Debts.tsx` para usar layout flex-wrap responsivo, impedindo colisões de texto e que o botão "Adicionar Saldo" saia para fora do contêiner em telas pequenas e celulares.
+* **Preenchimento Automático Baseado no Histórico (Autocomplete Inteligente):** Introdução de um mecanismo reativo de auto-complete integrado ao campo de Descrição do modal de transações (`AddTransactionModal.tsx`). Ao começar a digitar, o sistema busca ativamente transações anteriores com descrições correspondentes (case-insensitive). Ao selecionar uma sugestão, o formulário é magicamente preenchido com o último valor absoluto, o tipo correto (Receita/Despesa), a Conta de Origem anterior e a Categoria de Orçamento anterior correspondentes. O dropdown exibe informações completas (Moeda, Categoria, Conta e Tipo) com badges premium e se fecha automaticamente se houver clique fora do contêiner.
+* **Personalização Modular da Interface (Feature Flags do Usuário):** Criação de um mecanismo dinâmico e persistente no Zustand (`useFeatureStore.ts`) que permite ao usuário ativar ou desativar páginas inteiras do painel de controle (Dashboard, Árvore de Contas, Extrato de Transações, Orçamentos, Dívidas, Metas e Insights Inteligentes).
+* **Painel de Controle de Módulos (UI/UX):** Integração de uma nova aba ("Módulos") equipada com cards informativos individuais no painel de Configurações gerais (`Settings.tsx`), oferecendo botões de status ("✓ Habilitado" em verde / "✗ Desabilitado" em vermelho) e salvamento automático instantâneo no `localStorage`.
+* **Segurança e Filtragem de Navegação Dinâmicas:** Readequação da Sidebar (`Sidebar.tsx`) e da navegação mobile (`BottomNav.tsx`) para refletir em tempo real apenas as seções selecionadas pelo usuário, associada a um componente de proteção de rotas (`FeatureProtectedRoute` em `App.tsx`) que blinda o acesso direto por URL e previne loops de redirecionamento.
+* **Planejamento Financeiro 50-30-20:** Criação de um módulo completo dedicado à consagrada regra financeira 50-30-20, dividindo a renda líquida em Necessidades (50%), Desejos (30%) e Prioridades/Futuro (20%).
+* **Integração Inteligente ou Autônoma:** Inclusão de um mecanismo de chaveamento que permite ao módulo rodar no modo manual (inserindo renda estática) ou totalmente integrado ao ecossistema YNAB, somando as receitas reais do período e computando as despesas das categorias mapeadas automaticamente.
+* **Componente de Mapeamento de Categorias (UI/UX):** Painel de mapeamento interativo para que o usuário associe suas categorias de orçamento a um dos 3 baldes com um único clique (persistido de forma segura e reativa no `localStorage` via `useRule503020Store`).
+* **Gráficos e Indicadores de Desempenho Visual:** Inclusão de medidores de progresso reativos, indicadores inteligentes de teto de gastos (Verde/Alvo, Âmbar/Atenção, Vermelho/Estourado) e gráficos de pizza comparativos paralelos (Distribuição Ideal vs. Gastos Reais do Mês).
+* **Migração de Banco Segura e Sem Interrupções:** Aplicação de migração Django vinculando os modelos ao app original `core` (usando `app_label = 'core'`), gerando uma alteração de coluna no SQLite e PostgreSQL sem quebrar deploys de produção ou tentar apagar tabelas legadas.
+
+
+
+### Corrigido
+* **Saldo Inicial de Contas Negativas:** Correção da lógica de criação de contas no Django (`perform_create` em `views.py`) que gerava a transação automática de saldo inicial apenas para saldos positivos. Agora, contas criadas com saldo negativo também ganham automaticamente sua transação de saldo inicial (como despesa, usando o valor absoluto do saldo inicial), sanando inconsistências de relatórios.
+* **Migração Corretiva de Dados Retroativos (Produção):** Introdução da migração corretiva de dados `0022_fix_negative_and_positive_initial_balances.py` no Django. Durante o deploy, ela varre todas as contas reais do banco de dados (especialmente na produção) que foram criadas sem transações de saldo inicial (seja saldo positivo ou negativo) e gera a transação corretiva inicial de forma 100% segura e invisível ao usuário.
+* **Ajuste de Balões de Texto Informativo (Tooltips):** Correção do estouro e corte de balões informativos de ajuda (`HelpTooltip.tsx`) por meio da adição das propriedades de utilidade CSS `break-words` e `whitespace-normal`, e diminuição da largura responsiva máxima em celulares (`max-w-[240px] sm:max-w-[320px]`). Evita o vazamento lateral em todas as resoluções e layouts móveis do sistema.
+
+---
+
 ## [1.4.0] — 2026-05-11
 
 Esta versão representa um marco de engenharia focando em **Clean Architecture** e **Modularização de Alta Coesão**, separando de forma estrita e hermética a infraestrutura administrativa reutilizável do SaaS (**SaaS Boilerplate Starter Kit**) das lógicas e fluxos de negócios especializados de finanças e metodologia YNAB do **Vault Finance OS**.
@@ -13,6 +49,8 @@ Esta versão representa um marco de engenharia focando em **Clean Architecture**
 ### Adicionado
 * **Isolamento de Infraestrutura SaaS (Boilerplate):** Encapsulamento completo de rotinas administrativas, JWT, perfil do usuário, autenticação segura multifator 2FA (TOTP) e políticas internacionais de dados (GDPR/LGPD) em módulos dedicados (`core` no Django e `src/modules/auth` no React).
 * **Módulo Especializado de Finanças (Domain Core):** Criação do módulo financeiro autocontido (`finance` no Django e `src/modules/finance` no React), responsável exclusivo por árvores de contas mestre e envelopes recursivos, algoritmos de teto/transbordo (*distribute_excess*), amortização de dívidas e metas.
+* **Backup de Segurança Completo (JSON):** Correção do botão de exportação e implementação de rotina para download de backup integral instantâneo contendo todas as contas, transações, categorias, metas, dívidas e modelos.
+* **Exportação Analítica para Planilha (CSV):** Adicionada funcionalidade para exportar o livro-razão de transações do período ativo em formato CSV de planilha, otimizado com codificação UTF-8 BOM para compatibilidade com Excel e Google Sheets.
 * **Estrutura Compartilhada de UI (Shared Componentry):** Unificação de componentes genéricos e primitives do Shadcn/ui sob o diretório `src/shared/`, otimizando a reusabilidade e blindando os módulos de negócios contra dependências acopladas.
 * **Garantia de Não-Regressão (Zero-Regression Pipeline):** Expansão e normalização da suíte de testes com 100% de sucesso em todas as verificações do backend (40 de 40 testes verdes no Pytest) e do frontend (27 de 27 testes verdes no Vitest).
 

@@ -10,6 +10,7 @@ import {
   MoreHorizontal,
   Settings as SettingsIcon,
   Handshake,
+  Scale,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useState } from "react";
@@ -21,6 +22,7 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
+import { useFeatureStore } from "@/shared/store/useFeatureStore";
 
 const primaryNavItems = [
   { icon: LayoutDashboard, key: "dashboard", to: "/dashboard" },
@@ -30,6 +32,7 @@ const primaryNavItems = [
 ];
 
 const moreNavItems = [
+  { icon: Scale, key: "rule503020", to: "/rule-503020" },
   { icon: Handshake, key: "debts", to: "/debts" },
   { icon: Target, key: "goals", to: "/goals" },
   { icon: Sparkles, key: "insights", to: "/insights" },
@@ -39,11 +42,15 @@ const moreNavItems = [
 export const BottomNav = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { features } = useFeatureStore();
+
+  const activePrimaryNavItems = primaryNavItems.filter(item => features[item.key as keyof typeof features] !== false);
+  const activeMoreNavItems = moreNavItems.filter(item => features[item.key as keyof typeof features] !== false);
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-sidebar-border bg-sidebar/95 backdrop-blur-xl">
       <div className="flex items-center justify-around px-2 pt-2 pb-[calc(8px+env(safe-area-inset-bottom,0px))]">
-        {primaryNavItems.map((item) => {
+        {activePrimaryNavItems.map((item) => {
           const Icon = item.icon;
           const label = t(`navigation.${item.key}`);
           const description = t(`nav_descriptions.${item.key}`);
@@ -96,7 +103,7 @@ export const BottomNav = () => {
             sideOffset={8}
             className="glass border-border/60 min-w-[160px] mb-2"
           >
-            {moreNavItems.map((item) => {
+            {activeMoreNavItems.map((item) => {
               const Icon = item.icon;
               const label = t(`navigation.${item.key}`);
               const description = t(`nav_descriptions.${item.key}`);

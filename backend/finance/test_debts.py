@@ -128,3 +128,64 @@ class DebtTests(TestCase):
         )
         response = self.client.get(reverse('debt-list'))
         self.assertEqual(len(response.data), 0)
+
+    def test_add_debt_amount_receivable_creates_expense(self):
+        """Adding debt to a receivable should create an expense transaction (lending more money)."""
+        debt = Debt.objects.create(
+            user=self.user, counterparty_name='Carlos', original_amount=300.00,
+            currency='BRL', is_mine=False
+        )
+        initial_balance = float(self.account.balance)
+
+        response = self.client.post(reverse('debt-add-debt-amount', args=[debt.id]), {
+            'amount': '150.00',
+            'date': datetime.date.today().isoformat(),
+            'account': self.account.id,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Original amount should be 450.00
+        debt.refresh_from_db()
+        self.assertEqual(float(debt.original_amount), 450.00)
+        self.assertIn("Acréscimo de 150.00", debt.notes)
+
+        # Check transaction was created (expense)
+        txn = Transaction.objects.filter(account=self.account, description__icontains='Carlos').first()
+        self.assertIsNotNone(txn)
+        self.assertFalse(txn.is_income)
+        self.assertEqual(float(txn.amount), 150.00)
+        self.assertEqual(txn.description, 'Acréscimo de dívida (dinheiro emprestado para Carlos)')
+
+        # Balance should have decreased
+        self.account.refresh_from_db()
+        self.assertEqual(float(self.account.balance), initial_balance - 150.00)
+
+    def test_add_debt_amount_payable_creates_income(self):
+        """Adding debt to a payable should create an income transaction (borrowing more money)."""
+        debt = Debt.objects.create(
+            user=self.user, counterparty_name='Ana', original_amount=200.00,
+            currency='BRL', is_mine=True
+        )
+        initial_balance = float(self.account.balance)
+
+        response = self.client.post(reverse('debt-add-debt-amount', args=[debt.id]), {
+            'amount': '100.00',
+            'date': datetime.date.today().isoformat(),
+            'account': self.account.id,
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Original amount should be 300.00
+        debt.refresh_from_db()
+        self.assertEqual(float(debt.original_amount), 300.00)
+
+        # Check transaction was created (income)
+        txn = Transaction.objects.filter(account=self.account, description__icontains='Ana').first()
+        self.assertIsNotNone(txn)
+        self.assertTrue(txn.is_income)
+        self.assertEqual(float(txn.amount), 100.00)
+        self.assertEqual(txn.description, 'Acréscimo de dívida (empréstimo de Ana)')
+
+        # Balance should have increased
+        self.account.refresh_from_db()
+        self.assertEqual(float(self.account.balance), initial_balance + 100.00)

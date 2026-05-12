@@ -252,6 +252,35 @@ class AccountsAndCategoriesTests(TestCase):
         self.assertTrue(tx.is_applied_to_balance)
         self.assertIn("Saldo Inicial", tx.description)
 
+    def test_automatic_expense_on_negative_account_creation(self):
+        from .models import Transaction
+        
+        # Cria uma conta mestre com saldo inicial negativo de -500.00
+        response = self.client.post(reverse('account-list'), {
+            'name': 'Credit Card',
+            'account_type': 'credit_card',
+            'currency': 'BRL',
+            'balance': '-500.00'
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        
+        account_id = response.data['id']
+        acc = Account.objects.get(id=account_id)
+        
+        # Verifica se o saldo é -500.00
+        self.assertEqual(float(acc.balance), -500.00)
+        
+        # Verifica se foi criada uma transação de despesa de saldo inicial vinculada
+        transactions = Transaction.objects.filter(account=acc)
+        self.assertEqual(transactions.count(), 1)
+        
+        tx = transactions.first()
+        self.assertEqual(float(tx.amount), 500.00) # Valor absoluto!
+        self.assertFalse(tx.is_income) # Despesa!
+        self.assertEqual(tx.status, 'realized')
+        self.assertTrue(tx.is_applied_to_balance)
+        self.assertIn("Saldo Inicial", tx.description)
+
     def test_automatic_adjustment_on_account_balance_update(self):
         from .models import Transaction
         

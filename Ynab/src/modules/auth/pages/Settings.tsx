@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { useSettingsStore } from "@/modules/auth/store/useSettingsStore";
+import { useFeatureStore, EnabledFeatures } from "@/shared/store/useFeatureStore";
 import { formatMoney, getCurrencySymbol } from "@/shared/lib/currency-utils";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/utils";
@@ -55,6 +56,7 @@ interface SettingsProps {
 const Settings = ({ extraTabs = [] }: SettingsProps) => {
   const { user, logout, accessToken } = useAuthStore();
   const { isPrivateMode, showDecimals, togglePrivateMode, toggleDecimals } = useSettingsStore();
+  const { features, toggleFeature } = useFeatureStore();
   const { t, i18n } = useTranslation();
 
   // Preferências Regionais de Moeda (Mockadas no Boilerplate se não houver cotações ou lendo do Settings se necessário)
@@ -348,6 +350,10 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
             <TabsTrigger value="appearance" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
               <Globe className="h-4 w-4 shrink-0" />
               <span>Preferências</span>
+            </TabsTrigger>
+            <TabsTrigger value="features" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
+              <SettingsIcon className="h-4 w-4 shrink-0" />
+              <span>Módulos</span>
             </TabsTrigger>
             {extraTabs.map((tab) => (
               <TabsTrigger 
@@ -757,6 +763,85 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
               </div>
            </Card>
         </TabsContent>
+         {/* Features Tab */}
+         <TabsContent value="features" className="space-y-6 animate-in fade-in duration-300">
+            <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm p-8">
+               <div className="space-y-6">
+                 <div className="space-y-2">
+                   <h3 className="font-bold text-lg flex items-center gap-2">
+                     <SettingsIcon className="h-5 w-5 text-primary animate-pulse-subtle" /> Módulos Ativos do Sistema
+                   </h3>
+                   <p className="text-sm text-muted-foreground">
+                     Ative ou remova funções e páginas inteiras do seu painel de controle de forma 100% dinâmica. As seções desativadas serão instantaneamente removidas da barra lateral e do menu móvel de celular, dando total controle do seu sistema.
+                   </p>
+                 </div>
+
+                 <div className="grid gap-4 max-w-2xl">
+                   {Object.keys(features).map((featureKey) => {
+                     const key = featureKey as keyof EnabledFeatures;
+                     const isEnabled = features[key];
+                     
+                     // Fornece títulos legíveis e amigáveis em português
+                     const featureNames: Record<keyof EnabledFeatures, string> = {
+                       dashboard: "Visão Geral (Dashboard)",
+                       accounts: "Árvore de Contas",
+                       transactions: "Extrato de Transações",
+                       budget: "Orçamento Base-Zero",
+                       debts: "Controle de Dívidas",
+                       goals: "Metas Financeiras",
+                       insights: "Insights Inteligentes",
+                       rule503020: "Regra 50-30-20",
+                     };
+
+                     const featureDescriptions: Record<keyof EnabledFeatures, string> = {
+                       dashboard: "Painel principal com Net Worth consolidado, gráficos de despesas, distribuição de saldos e atividades recentes.",
+                       accounts: "Visualização hierárquica e controle de contas mestre, subcontas, saldos e transferência de valores.",
+                       transactions: "Lançamento de receitas, despesas, transferências e histórico completo de movimentações com busca avançada.",
+                       budget: "Alocação inteligente e controle de categorias por envelopes base-zero para o mês e ano correspondentes.",
+                       debts: "Gerenciamento de devedores, credores, acréscimos e abatimento de empréstimos com histórico de auditoria.",
+                       goals: "Criação de objetivos de poupança inteligente e acompanhamento percentual com prazos e emojis customizáveis.",
+                       insights: "Relatórios de desempenho e analítica avançada sobre o comportamento e distribuição de seus recursos.",
+                     };
+
+                     const label = featureNames[key] || key;
+                     const description = featureDescriptions[key] || "";
+                     
+                     return (
+                       <div 
+                         key={key} 
+                         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/30 transition-all duration-300"
+                       >
+                         <div className="space-y-1">
+                           <p className="text-sm font-bold text-foreground">
+                             {label}
+                           </p>
+                           <p className="text-xs text-muted-foreground leading-relaxed pr-2">
+                             {description}
+                           </p>
+                         </div>
+                         <Button 
+                           variant={isEnabled ? "outline" : "destructive"}
+                           type="button"
+                           onClick={() => {
+                             toggleFeature(key);
+                             toast.success(`Módulo "${label}" ${isEnabled ? "desativado" : "ativado"}!`);
+                           }}
+                           className={cn(
+                             "rounded-xl px-5 h-10 font-bold shrink-0 shadow-sm transition-all text-xs border border-border/50",
+                             isEnabled 
+                               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20" 
+                               : "bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20"
+                           )}
+                         >
+                           {isEnabled ? "✓ Habilitado" : "✗ Desabilitado"}
+                         </Button>
+                       </div>
+                     );
+                   })}
+                 </div>
+               </div>
+            </Card>
+         </TabsContent>
 
         {extraTabs.map((tab) => (
           <TabsContent key={tab.value} value={tab.value} className="space-y-6">

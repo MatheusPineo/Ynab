@@ -18,9 +18,11 @@ class Account(models.Model):
     icon_url = models.URLField(max_length=500, null=True, blank=True)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     created_at = models.DateTimeField(auto_now_add=True)
+    exclude_from_totals = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'core_account'
+        app_label = 'core'
 
     def __str__(self):
         return f"{self.name} ({self.user.username})"
@@ -33,6 +35,7 @@ class Category(models.Model):
     class Meta:
         db_table = 'core_category'
         verbose_name_plural = "Categories"
+        app_label = 'core'
 
     def __str__(self):
         return self.name
@@ -46,6 +49,7 @@ class MonthlyBudget(models.Model):
     class Meta:
         db_table = 'core_monthlybudget'
         unique_together = ('category', 'month', 'year')
+        app_label = 'core'
 
     def __str__(self):
         return f"{self.category.name} - {self.month}/{self.year}: {self.amount}"
@@ -74,6 +78,7 @@ class Transaction(models.Model):
 
     class Meta:
         db_table = 'core_transaction'
+        app_label = 'core'
 
     def __str__(self):
         type_str = "Receita" if self.is_income else "Despesa"
@@ -91,6 +96,7 @@ class Goal(models.Model):
 
     class Meta:
         db_table = 'core_goal'
+        app_label = 'core'
 
     def __str__(self):
         return f"Meta: {self.name} ({self.current_amount}/{self.target_amount})"
@@ -102,6 +108,7 @@ class DistributionTemplate(models.Model):
 
     class Meta:
         db_table = 'core_distributiontemplate'
+        app_label = 'core'
 
     def __str__(self):
         return f"{self.name} ({self.user.username})"
@@ -114,6 +121,7 @@ class DistributionTemplateItem(models.Model):
 
     class Meta:
         db_table = 'core_distributiontemplateitem'
+        app_label = 'core'
 
     def __str__(self):
         return f"{self.account.name} - {self.percentage}% or {self.fixed_amount}"
@@ -129,6 +137,7 @@ class Debt(models.Model):
 
     class Meta:
         db_table = 'core_debt'
+        app_label = 'core'
 
     def __str__(self):
         direction = "Devo para" if self.is_mine else "Me deve"
@@ -144,6 +153,7 @@ class DebtPayment(models.Model):
 
     class Meta:
         db_table = 'core_debtpayment'
+        app_label = 'core'
 
     def __str__(self):
         return f"Pagamento de {self.amount} em {self.date} - {self.debt.counterparty_name}"

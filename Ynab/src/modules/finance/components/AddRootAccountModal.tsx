@@ -14,9 +14,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus } from "lucide-react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { toast } from "sonner";
+import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
 export const AddRootAccountModal = () => {
   const [open, setOpen] = useState(false);
+  const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const { addNode } = useAccountStore();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -32,9 +34,11 @@ export const AddRootAccountModal = () => {
       balance: balance,
       currency: formData.get("currency") as any,
       ceiling: ceiling,
+      exclude_from_totals: excludeFromTotals,
     });
 
     toast.success(`Conta raiz "${formData.get("name") as string}" criada!`);
+    setExcludeFromTotals(false);
     setOpen(false);
   };
 
@@ -78,6 +82,22 @@ export const AddRootAccountModal = () => {
                 <SelectItem value="USD">Dólar ($)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center space-x-3 py-1 bg-muted/20 border border-border/40 px-3.5 py-3 rounded-xl">
+            <input
+              id="root_exclude_from_totals"
+              type="checkbox"
+              checked={excludeFromTotals}
+              onChange={(e) => setExcludeFromTotals(e.target.checked)}
+              className="h-4.5 w-4.5 rounded border-border/60 text-primary focus:ring-primary bg-background/50 cursor-pointer accent-primary shrink-0"
+            />
+            <div className="space-y-0.5 min-w-0">
+              <Label htmlFor="root_exclude_from_totals" className="text-sm font-semibold text-foreground cursor-pointer flex items-center gap-1.5 select-none">
+                Desconsiderar nos Totais
+                <HelpTooltip content="Oculta o saldo desta conta raiz (e suas subcontas) dos somatórios de Net Worth e do dashboard global." />
+              </Label>
+            </div>
           </div>
 
           <DialogFooter>

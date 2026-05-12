@@ -15,6 +15,7 @@ import { Plus } from "lucide-react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { toast } from "sonner";
 import { type AccountNode } from "@/types";
+import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
 interface Props {
   parentAccount: AccountNode;
@@ -23,6 +24,7 @@ interface Props {
 
 export const AddAccountModal = ({ parentAccount, children }: Props) => {
   const [open, setOpen] = useState(false);
+  const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const { addNode } = useAccountStore();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -39,9 +41,11 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
       base: balance, // Default target to same as initial balance
       currency: formData.get("currency") as any,
       ceiling: ceiling,
+      exclude_from_totals: excludeFromTotals,
     });
 
     toast.success(`Sub-conta criada em "${parentAccount.name}"`);
+    setExcludeFromTotals(false);
     setOpen(false);
   };
 
@@ -86,6 +90,22 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
                 <SelectItem value="USD">Dólar ($)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center space-x-3 py-1 bg-muted/20 border border-border/40 px-3.5 py-3 rounded-xl">
+            <input
+              id="sub_exclude_from_totals"
+              type="checkbox"
+              checked={excludeFromTotals}
+              onChange={(e) => setExcludeFromTotals(e.target.checked)}
+              className="h-4.5 w-4.5 rounded border-border/60 text-primary focus:ring-primary bg-background/50 cursor-pointer accent-primary shrink-0"
+            />
+            <div className="space-y-0.5 min-w-0">
+              <Label htmlFor="sub_exclude_from_totals" className="text-sm font-semibold text-foreground cursor-pointer flex items-center gap-1.5 select-none">
+                Desconsiderar nos Totais
+                <HelpTooltip content="Oculta o saldo desta subconta dos somatórios de contas pai, Net Worth e do dashboard global." />
+              </Label>
+            </div>
           </div>
 
           <DialogFooter>
