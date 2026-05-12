@@ -1704,7 +1704,7 @@ export default function Reports() {
       let hour = txDate.getHours();
       // Pseudo-aleatoriedade determinística elegante se a hora for zerada no banco
       if (hour === 0 && txDate.getMinutes() === 0 && txDate.getSeconds() === 0) {
-        const charSum = t.id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const charSum = String(t.id || "").split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
         hour = (charSum % 16) + 8; // Distribui entre 8h e 23h
       }
 
@@ -1762,7 +1762,7 @@ export default function Reports() {
     // Criar logs determinísticos convincentes de auditoria a partir das transações ativas filtradas
     const list = filteredTransactions.map((t, idx) => {
       // Usar a soma dos caracteres do ID para derivar um índice determinístico consistente
-      const charSum = t.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
+      const charSum = String(t.id || "").split("").reduce((acc, c) => acc + c.charCodeAt(0), 0);
       const opIdx = charSum % operators.length;
       const actIdx = charSum % actions.length;
 

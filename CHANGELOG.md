@@ -6,6 +6,16 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.17.3] — 2026-05-12
+
+Esta versão realiza a **Correção de Crash de Runtime na Central de Relatórios (Reports.tsx)** no Vault Finance OS. Focada em segurança de tipos e robustez matemática, ela resolve um travamento instantâneo que ocorria ao carregar o painel de relatórios quando o banco de dados do Django retornava IDs numéricos inteiros para as transações, impedindo que o método `.split("")` quebrasse o fluxo de renderização do React.
+
+### Corrigido
+* **Crash de Conversão de Tipo de ID de Transação:**
+  - **Reports.tsx:** Correção das chamadas diretas de `.split("")` no atributo `t.id` nas engines de Mapa de Calor de Vazamentos Temporais (linha 1707) e Trilha de Auditoria Compartilhada (linha 1765). Agora, o ID é encapsulado de forma segura como string via `String(t.id || "")` antes do fatiamento, tolerando perfeitamente tanto identificadores numéricos (chaves primárias autoincrementais do Django) quanto UUIDs de texto.
+
+---
+
 ## [1.17.2] — 2026-05-12
 
 Esta versão realiza a **Correção Estrutural e Redecoração de Luxo dos Modais de Dívidas** no Vault Finance OS. Focado em usabilidade e design responsivo mobile-first, ela elimina uma quebra de layout no componente de dívidas causada por conflitos de aninhamento de tags e esmagamento horizontal de campos, transformando o formulário em um layout vertical luxuoso e fluído com suporte a glassmorphism.
