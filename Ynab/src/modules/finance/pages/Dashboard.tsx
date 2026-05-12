@@ -28,7 +28,6 @@ import {
 import { format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
-import { AddTransactionModal } from "@/shared/components/dashboard/AddTransactionModal";
 import { cn } from "@/shared/lib/utils";
 import { PullToRefresh } from "@/shared/components/dashboard/PullToRefresh";
 

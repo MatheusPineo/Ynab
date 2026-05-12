@@ -23,6 +23,7 @@ import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock } f
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { type Transaction } from "@/types";
+import { cn } from "@/shared/lib/utils";
 
 interface Props {
   children?: React.ReactNode;
