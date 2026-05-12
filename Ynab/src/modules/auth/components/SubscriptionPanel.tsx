@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { useAuthStore } from "@/store/useAuthStore";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
+import { Button } from "@/shared/components/ui/button";
+import { Badge } from "@/shared/components/ui/badge";
+import { Progress } from "@/shared/components/ui/progress";
+import { Separator } from "@/shared/components/ui/separator";
+import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { toast } from "sonner";
 import {
   Crown,
@@ -75,9 +75,13 @@ const detectPlatform = (): Platform => {
 export const SubscriptionPanel = () => {
   const { user } = useAuthStore();
 
-  // Mock state — em produção vem da API
-  const [plan] = useState<Plan>("free");
-  const [cycle, setCycle] = useState<Cycle>("annual");
+  // Obter o estado atual a partir do localStorage ou mockar de acordo com o estado simulado do sistema
+  const [plan, setPlan] = useState<Plan>(() => {
+    return (localStorage.getItem("vault_simulated_tier") as Plan) || "free";
+  });
+  const [cycle, setCycle] = useState<Cycle>(() => {
+    return (localStorage.getItem("vault_simulated_interval") === "yearly" ? "annual" : "monthly");
+  });
   const platform = useMemo(detectPlatform, []);
   const PlatformIcon = platformMeta[platform].icon;
 
@@ -107,6 +111,14 @@ export const SubscriptionPanel = () => {
     } else {
       toast.info("Redirecionando para o checkout seguro do Stripe...");
     }
+    
+    // Simula a alteração para Pro após o clique para fins de demonstração visual instantânea
+    setTimeout(() => {
+      setPlan("pro");
+      localStorage.setItem("vault_simulated_tier", "pro");
+      toast.success("Assinatura simulada ativada com sucesso!");
+      window.dispatchEvent(new Event("storage")); // Notifica outros ouvintes de localStorage
+    }, 1500);
   };
 
   const handleManageOnPlatform = () => {
@@ -116,6 +128,14 @@ export const SubscriptionPanel = () => {
       apple: "Para gerenciar, acesse Ajustes do iPhone → Apple ID → Assinaturas.",
     };
     toast.info(map[platform]);
+  };
+
+  const handleCancelSubscription = () => {
+    if (!confirm("Tem certeza que deseja cancelar sua assinatura Pro? Você perderá o acesso ilimitado aos recursos premium.")) return;
+    setPlan("free");
+    localStorage.setItem("vault_simulated_tier", "free");
+    toast.success("Assinatura cancelada (simulação). Você foi migrado para o plano Free.");
+    window.dispatchEvent(new Event("storage"));
   };
 
   return (
@@ -163,9 +183,6 @@ export const SubscriptionPanel = () => {
                 <>
                   <Button onClick={handleManageOnPlatform} className="gradient-primary rounded-xl font-bold shadow-glow gap-2">
                     <CreditCard className="h-4 w-4" /> Gerenciar Cobrança
-                  </Button>
-                  <Button variant="outline" className="rounded-xl border-border/60 gap-2">
-                    <RefreshCw className="h-4 w-4" /> Trocar de Plano
                   </Button>
                 </>
               ) : (
@@ -487,7 +504,7 @@ export const SubscriptionPanel = () => {
               <span className="text-sm font-bold">Restaurar compra</span>
               <span className="text-[10px] text-muted-foreground text-left">Recuperar assinatura antiga</span>
             </Button>
-            <Button variant="outline" className="rounded-xl h-auto py-4 flex-col items-start gap-1 border-border/40">
+            <Button variant="outline" className="rounded-xl h-auto py-4 flex-col items-start gap-1 border-border/40" onClick={() => toast.info("Por favor, acesse a página de Chamados Técnicos na Central de Ajuda para falar conosco.")}>
               <HelpCircle className="h-4 w-4 text-primary" />
               <span className="text-sm font-bold">Falar com suporte</span>
               <span className="text-[10px] text-muted-foreground text-left">Resposta em até 24h</span>
@@ -495,7 +512,7 @@ export const SubscriptionPanel = () => {
           </div>
           {isPro && (
             <div className="pt-2">
-              <Button variant="ghost" className="text-rose-400 hover:bg-rose-500/10 rounded-xl text-xs">
+              <Button onClick={handleCancelSubscription} variant="ghost" className="text-rose-400 hover:bg-rose-500/10 rounded-xl text-xs">
                 Cancelar assinatura
               </Button>
             </div>

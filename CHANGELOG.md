@@ -6,6 +6,23 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.17.0] — 2026-05-12
+
+Esta versão realiza a **Modularização de Alta Fidelidade da Aba de Assinaturas e Planos** no Vault Finance OS. Extraído diretamente do escopo de simulações do Lovable, o ecossistema agora gerencia e valida de forma isolada os planos e simulações de faturamento (Stripe, Apple App Store, Google Play Store), integrando visualizações dinâmicas de consumo de limites gratuitos, histórico de recibos para download e benefícios corporativos Pro através de um componente autônomo de alta coesão (`SubscriptionPanel`).
+
+### Adicionado
+* **Componente Modularizado SubscriptionPanel:**
+  - **SubscriptionPanel.tsx (Novo):** Criação do componente isolado dentro do ecossistema `@/modules/auth/components/` contendo cards de preços dinâmicos, limitadores visuais de consumo do plano Free para contas, transações e metas (com barras de progresso), faturamento multi-plataforma flexível e download de recibos estruturados de pagamentos simulados.
+* **Layouts de Alta Costura Visual:**
+  - **Indicadores Dinâmicos de Consumo:** Inclusão de alertas amigáveis e indicadores de limite quando o usuário atinge acima de 80% do uso do plano Gratuito.
+  - **Tabelas de Faturas:** Lista de faturas com semáforos de status de transação (Pago, Pendente, Falhou, Reembolsado).
+
+### Alterado
+* **Refatoração Geral de Configurações:**
+  - **Settings.tsx:** Remoção completa de mais de 500 linhas de código duplicadas, incluindo dezenas de variáveis de estados em linha e handlers de faturamento simulado. Integração limpa do novo `<SubscriptionPanel />` sob a aba `subscription`, melhorando drasticamente a legibilidade e a manutenção do arquivo de configurações.
+
+---
+
 ## [1.16.0] — 2026-05-12
 
 Esta versão consagra a **Integração Real e de Alta Performance do Módulo de Chamados Técnicos** (Central de Suporte) do Vault Finance OS. Toda a antiga lógica mockada de simulação de chamados no frontend foi removida para dar lugar a um duto real de dados que persiste as informações com total segurança no banco de dados e as encaminha de forma reativa para o e-mail oficial da engenharia (`matheuskrx@gmail.com`), acompanhado por anexos binários reais e telemetria diagnóstica detalhada do navegador do cliente.

@@ -1,8 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources>
-    <string name="app_name">Vault Finance OS</string>
-    <string name="title_activity_main">Vault Finance OS</string>
-    <string name="package_name">com.ynab.app</string>
-    <string name="custom_url_scheme">com.ynab.app</string>
-    <string name="server_client_id">285793186636-n535672dqu974h5hisrced9rdmp4idmm.apps.googleusercontent.com</string>
-</resources>
