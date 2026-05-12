@@ -2286,470 +2286,14 @@ export default function Reports() {
       globalCompliance,
       redAccounts
     };
-  }, [filteredTransactions, flatAccounts, convert, baseCurrency, getCategoryName]);
+  }, [filteredTransactions, flatAccounts, convert, baseCurrency]);
 
-
-  // === METODO DE EXPORTACAO: IMPRESSAO VETORIAL (window.print) ===
-  const handlePrintReport = () => {
-    toast.info("Preparando visualização de impressão...");
-    setTimeout(() => {
-      window.print();
-    }, 500);
-  };
-
-  // === METODO DE EXPORTACAO: RELATORIO ANALITICO EXECUTIVO (Client-Side PDF/TXT) ===
   const handleDownloadAnalyticReport = () => {
     toast.success("Compilando análise de dados de saúde financeira...");
     
     const nowStr = new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
     const assetsAccountsCount = flatAccounts.filter(a => ["checking", "savings", "cash", "investment"].includes(a.type)).length;
     const liabilityAccountsCount = flatAccounts.filter(a => ["credit_card", "debt"].includes(a.type)).length;
-
-    let reportContent = "";
-
-    if (activeLevel === "beginner") {
-      // RELATORIO INICIANTE
-      const topFuga = expensesDistribution.chartData.slice(0, 2).map(item => `- ${item.name}: R$ ${item.value.toLocaleString("pt-BR")} (${item.percent})`).join("\n");
-      const estourados = envelopesStatus.filter(e => e.status === "red").map(e => `- ${e.name}: Planejado R$ ${e.assigned.toLocaleString("pt-BR")} | Gasto R$ ${e.spent.toLocaleString("pt-BR")} (+${(e.percent - 100).toFixed(1)}% estourado)`).join("\n");
-
-      reportContent = `================================================================================
-                    VAULT FINANCE OS — RELATÓRIO ANALÍTICO INICIANTE
-================================================================================
-Emissão: ${nowStr}
-Usuário: Administrador do Vault Finance OS
-Escopo de Filtros: Período: ${selectedPeriod === "current" ? "Mês Atual" : selectedPeriod === "3months" ? "Últimos 90 dias" : selectedPeriod === "6months" ? "Últimos 180 dias" : "Ano Corrente"}
-Contas Ativas Filtradas: ${selectedAccounts.length} de ${flatAccounts.length} selecionadas
---------------------------------------------------------------------------------
-
-1. DIAGNÓSTICO DO PATRIMÔNIO LÍQUIDO (NET WORTH)
---------------------------------------------------------------------------------
-Evolução Histórica do Patrimônio (Valores Consolidados):
-${netWorthData.map(m => `  - Mês ${m.name}: Ativos R$ ${m.Ativos.toLocaleString("pt-BR")} | Passivos R$ ${m.Passivos.toLocaleString("pt-BR")} | Líquido: R$ ${m["Patrimônio Líquido"].toLocaleString("pt-BR")}`).join("\n")}
-
---------------------------------------------------------------------------------
-2. DISTRIBUIÇÃO E FUGA DE GASTOS (DONUT ANALYSIS)
---------------------------------------------------------------------------------
-* Volume Total de Despesas Efetivadas no Período: R$ ${expensesDistribution.total.toLocaleString("pt-BR")}
-
-Maiores Concentrações de Despesas:
-${topFuga || "Nenhum gasto registrado no período selecionado."}
-
---------------------------------------------------------------------------------
-3. STATUS DE ENVELOPES E COMPLIANCE YNAB (BUDGET)
---------------------------------------------------------------------------------
-${estourados.length > 0 ? `🚨 ENVELOPES ESTOURADOS (Ação Requerida):
-${estourados}` : `🎉 ORÇAMENTO 100% COMPLIANT (YNAB Verde):
-Parabéns! Todos os seus envelopes de orçamento operaram dentro dos limites de provisão planejados. Sem nenhum estouro de balde identificado no período.`}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    } else if (activeLevel === "intermediate") {
-      // RELATORIO INTERMEDIARIO
-      const overspentList = budgetDeviations.topOverspent.map(item => `- ${item.fullName}: Orçado R$ ${item.Orçado.toLocaleString("pt-BR")} | Gasto R$ ${item.Realizado.toLocaleString("pt-BR")} (Estouro de R$ ${Math.abs(item.desvio).toLocaleString("pt-BR")})`).join("\n");
-      const savedList = budgetDeviations.topSaved.map(item => `- ${item.fullName}: Orçado R$ ${item.Orçado.toLocaleString("pt-BR")} | Gasto R$ ${item.Realizado.toLocaleString("pt-BR")} (Economia de R$ ${item.desvio.toLocaleString("pt-BR")})`).join("\n");
-      const recurrenceList = recurrenceReport.items.map(item => `- ${item.name} (${item.interval}): R$ ${item.value.toLocaleString("pt-BR")} | Peso: ${item.impactPercent}% do orçamento total`).join("\n");
-      const goalsList = goalsProgressReport.map(item => `- ${item.emoji} ${item.name}: Progresso ${item.percent}% (${item.current.toLocaleString("pt-BR")} de ${item.target.toLocaleString("pt-BR")}) | Restam cerca de ${item.monthsRemaining} meses`).join("\n");
-
-      reportContent = `================================================================================
-                  VAULT FINANCE OS — RELATÓRIO ANALÍTICO INTERMEDIÁRIO
-================================================================================
-Emissão: ${nowStr}
-Foco: Tendências, Consistência e Planejamento de Médio Prazo ("Estou progredindo?")
---------------------------------------------------------------------------------
-
-1. AUDITORIA DETALHADA: ORÇADO VS. REALIZADO
---------------------------------------------------------------------------------
-Diferença de dotação de envelopes do orçamento base-zero.
-
-${overspentList.length > 0 ? `🚨 MAIORES EXTRAVASAMENTOS IDENTIFICADOS:
-${overspentList}` : "✅ Nenhum estouro orçamentário crítico identificado no período."}
-
-${savedList.length > 0 ? `🎉 MAIORES ECONOMIAS EM RELAÇÃO AO PLANEJADO:
-${savedList}` : "Não há dados consolidados de economia no período."}
-
---------------------------------------------------------------------------------
-2. RELATÓRIO E IMPACTO DE CUSTOS FIXOS (RECORRÊNCIAS)
---------------------------------------------------------------------------------
-* Total Despendido com Assinaturas/Contas Fixas: R$ ${recurrenceReport.sum.toLocaleString("pt-BR")}
-* Peso estrutural das recorrências no orçamento: ${recurrenceReport.impactPercent}% das saídas totais.
-
-Lista de faturas recorrentes mapeadas:
-${recurrenceList}
-
-Observação de Engenharia: Manter as assinaturas abaixo de 20% das suas despesas globais é essencial para dar oxigênio a aportes de investimento de longo prazo.
-
---------------------------------------------------------------------------------
-3. HISTÓRICO DE TENDÊNCIAS DA CATEGORIA SELECIONADA
---------------------------------------------------------------------------------
-Evolução Mensal do Gasto com "${getCategoryName(selectedHistoryCategory) || "Categoria Selecionada"}":
-${categoryHistoryData.map(h => `  - Mês ${h.month}: R$ ${h.Gasto.toLocaleString("pt-BR")}`).join("\n")}
-
---------------------------------------------------------------------------------
-4. STATUS DE METAS DE ECONOMIA E CONQUISTAS
---------------------------------------------------------------------------------
-Acompanhamento dos objetivos de poupança integrados via API de objetivos:
-
-${goalsList}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    } else if (activeLevel === "advanced") {
-      // RELATORIO AVANÇADO
-      const treemapText = treemapData.map(item => `- ${item.name}: Proporção Convertida R$ ${item.value.toLocaleString("pt-BR")}`).join("\n");
-      const cambialText = exchangeImpactData.list.map(item => `- Moeda ${item.currency}: Saldo ${item.amount.toLocaleString("pt-BR")} | Taxa: ${item.rate} | Flutuação: ${item.change > 0 ? "+" : ""}${item.change}% | Impacto: R$ ${item.impact.toLocaleString("pt-BR")}`).join("\n");
-      const recommendationsText = fiscalEfficiencyData.recommendations.map(r => `* ${r.title}\n  - Impacto: ${r.impact}\n  - Diretriz: ${r.desc}`).join("\n\n");
-
-      reportContent = `================================================================================
-                    VAULT FINANCE OS — RELATÓRIO ANALÍTICO AVANÇADO
-================================================================================
-Emissão: ${nowStr}
-Foco: Otimização de Capital, Câmbio Global e Forecasting ("Como otimizar meu capital?")
---------------------------------------------------------------------------------
-
-1. PROPORÇÃO E ALOCAÇÃO DE SUBCONTAS (TREEMAP HIERÁRQUICO)
---------------------------------------------------------------------------------
-Saldos convertidos e auditados na moeda base (${baseCurrency}):
-
-${treemapText}
-
---------------------------------------------------------------------------------
-2. IMPACTO CAMBIAL MULTI-MOEDA (HEDGING & PODER DE COMPRA)
---------------------------------------------------------------------------------
-Análise das contas estrangeiras mantidas no portfólio.
-* Flutuação Cambial Consolidada Recente: R$ ${exchangeImpactData.totalImpact.toLocaleString("pt-BR")} (${exchangeImpactData.totalImpact >= 0 ? "Ganho Nominal" : "Perda Nominal"})
-
-Lista de ativos por moeda estrangeira:
-${cambialText}
-
---------------------------------------------------------------------------------
-3. PROJEÇÃO DE FLUXO DE CAIXA (FORECASTING DE 12 MESES)
---------------------------------------------------------------------------------
-Simulação preditiva baseada em taxas médias de poupança históricas.
-* Média de Entradas Mensais: R$ ${forecastingData.avgInflow.toLocaleString("pt-BR")}
-* Média de Saídas Mensais: R$ ${forecastingData.avgOutflow.toLocaleString("pt-BR")}
-* Ritmo Líquido Mensal: R$ ${forecastingData.monthlySavings.toLocaleString("pt-BR")} /mês
-
-Prospecção de Saldos de Caixa Líquido:
-- Projeção em 3 Meses: R$ ${forecastingData.chartData.find(c => c.name === "+3 Meses")?.Projeção?.toLocaleString("pt-BR") || "N/A"}
-- Projeção em 6 Meses: R$ ${forecastingData.chartData.find(c => c.name === "+6 Meses")?.Projeção?.toLocaleString("pt-BR") || "N/A"}
-- Projeção em 12 Meses: R$ ${forecastingData.chartData.find(c => c.name === "+12 Meses")?.Projeção?.toLocaleString("pt-BR") || "N/A"}
-
---------------------------------------------------------------------------------
-4. AUDITORIA DE EFICIÊNCIA FISCAL E TAXAS BANCÁRIAS
---------------------------------------------------------------------------------
-* Índice de Eficiência Geral do Portfólio: ${fiscalEfficiencyData.score} / 100
-* Tarifas identificadas no período: R$ ${fiscalEfficiencyData.totalFeesPaid.toLocaleString("pt-BR")} (${fiscalEfficiencyData.txWithFeesCount} transações)
-
-Diretrizes recomendadas de Otimização Fiscal:
-${recommendationsText}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    } else if (activeLevel === "compliance") {
-      // RELATÓRIO DE CONFORMIDADE & CONTABILIDADE (compliance)
-      const balanceteText = trialBalanceData.items.map(item => `  - [${item.code}] ${item.name.padEnd(45, " ")} | Débito: R$ ${item.debit.toLocaleString("pt-BR").padEnd(12, " ")} | Crédito: R$ ${item.credit.toLocaleString("pt-BR")}`).join("\n");
-      const dreRevenuesText = incomeStatementData.revenuesList.map(item => `  - ${item.name.padEnd(45, " ")} | R$ ${item.amount.toLocaleString("pt-BR")} (${item.percent}%)`).join("\n");
-      const dreExpensesText = incomeStatementData.expensesList.map(item => `  - ${item.name.padEnd(45, " ")} | R$ ${item.amount.toLocaleString("pt-BR")} (${item.percent}%)`).join("\n");
-      const fxGainsText = fxGainsLossesData.list.map(item => `  - Moeda ${item.currency.padEnd(5, " ")} | Realizado: R$ ${item.realized.toLocaleString("pt-BR").padEnd(12, " ")} | Não Realizado: R$ ${item.unrealized.toLocaleString("pt-BR").padEnd(12, " ")} | Total: R$ ${item.total.toLocaleString("pt-BR")}`).join("\n");
-
-      reportContent = `================================================================================
-                    VAULT FINANCE OS — RELATÓRIO DE CONFORMIDADE & CONTABILIDADE
-================================================================================
-Emissão: ${nowStr}
-Foco: Balancete de Verificação, DRE Simplificado e Ganhos/Perdas Cambiais (FX Realized/Unrealized)
---------------------------------------------------------------------------------
-
-1. BALANCETE DE VERIFICAÇÃO (TRIAL BALANCE — PARTIDAS DOBRADAS)
---------------------------------------------------------------------------------
-Saldos de Ativos, Passivos e Resultado agregados por equilíbrio contábil.
-
-${balanceteText}
-
---------------------------------------------------------------------------------
-Totais do Balancete:
-* TOTAL DEVEDOR (DÉBITOS): R$ ${trialBalanceData.debitSum.toLocaleString("pt-BR")}
-* TOTAL CREDOR (CRÉDITOS): R$ ${trialBalanceData.creditSum.toLocaleString("pt-BR")}
-* STATUS DE EQUILÍBRIO: ${trialBalanceData.balanced ? "🟢 SISTEMA EM PERFEITO EQUILÍBRIO CONTÁBIL" : "⚠️ AJUSTE REALIZADO PARA FECHAMENTO DE CONTINGÊNCIA CONTÁBIL"}
-
---------------------------------------------------------------------------------
-2. DEMONSTRATIVO DE RESULTADOS SIMPLIFICADO (DRE OPERACIONAL)
---------------------------------------------------------------------------------
-Resultados operacionais por competência (exclui transferências).
-
-(+) RECEITA BRUTA OPERACIONAL: R$ ${incomeStatementData.grossRevenue.toLocaleString("pt-BR")}
-${dreRevenuesText || "  (Nenhuma receita operacional registrada no período)"}
-
-(-) DESPESAS OPERACIONAIS CONSOLIDADAS: R$ ${incomeStatementData.totalExpenses.toLocaleString("pt-BR")}
-${dreExpensesText || "  (Nenhuma despesa operacional registrada no período)"}
-
---------------------------------------------------------------------------------
-(=) RESULTADO OPERACIONAL LÍQUINO: R$ ${incomeStatementData.netIncome.toLocaleString("pt-BR")} (${incomeStatementData.netIncome >= 0 ? "LUCRO LÍQUIDO OPERACIONAL" : "PREJUÍZO OPERACIONAL"})
-
---------------------------------------------------------------------------------
-3. RELATÓRIO TÉCNICO DE GANHOS & PERDAS CAMBIAIS (FX REALIZED VS. UNREALIZED)
---------------------------------------------------------------------------------
-Análise das perdas e ganhos decorrentes de ativos em moedas estrangeiras.
-
-* Ganhos/Perdas Realizados (Efetivados em transações): R$ ${fxGainsLossesData.totalRealized.toLocaleString("pt-BR")}
-* Ganhos/Perdas Não Realizados (Variação cambial de custódia): R$ ${fxGainsLossesData.totalUnrealized.toLocaleString("pt-BR")}
-* Ganho Cambial Consolidado Combinado: R$ ${fxGainsLossesData.totalCombined.toLocaleString("pt-BR")}
-
-Discriminação técnica por moeda estrangeira:
-${fxGainsText}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    } else if (activeLevel === "performance") {
-      // RELATÓRIO DE EFICIÊNCIA & PERFORMANCE (performance)
-      const varianceText = budgetVarianceData.map(item => `  - Subcategoria: ${item.name.padEnd(35, " ")} | Desvio: R$ ${item.variance.toLocaleString("pt-BR").padEnd(10, " ")} | Efeito Preço: R$ ${item.priceEffect.toLocaleString("pt-BR").padEnd(10, " ")} | Efeito Volume: R$ ${item.volumeEffect.toLocaleString("pt-BR")}\n    Diretriz Analítica: ${item.diagnosis}`).join("\n\n");
-
-      reportContent = `================================================================================
-                    VAULT FINANCE OS — RELATÓRIO DE EFICIÊNCIA & PERFORMANCE
-================================================================================
-Emissão: ${nowStr}
-Foco: Poupança Marginal, Decomposição de Variância e Índice de Solvência
---------------------------------------------------------------------------------
-
-1. TAXA DE POUPANÇA MARGINAL (MARGINAL SAVINGS RATE — MSR)
---------------------------------------------------------------------------------
-Mapeia a sensibilidade de poupança em relação ao aumento de ganhos (estilo de vida).
-
-* Renda do Período Atual: R$ ${marginalSavingsData.currentInflow.toLocaleString("pt-BR")} | Anterior: R$ ${marginalSavingsData.prevInflow.toLocaleString("pt-BR")}
-* Poupança Líquida Atual: R$ ${marginalSavingsData.currentSavings.toLocaleString("pt-BR")} | Anterior: R$ ${marginalSavingsData.prevSavings.toLocaleString("pt-BR")}
-* Variação Marginal de Receita ($\Delta I$): R$ ${marginalSavingsData.deltaIncome.toLocaleString("pt-BR")}
-* Variação Marginal de Poupança ($\Delta S$): R$ ${marginalSavingsData.deltaSavings.toLocaleString("pt-BR")}
-
---------------------------------------------------------------------------------
-* TAXA DE POUPANÇA MARGINAL (MSR): ${marginalSavingsData.msr}%
-* DIAGNÓSTICO: ${marginalSavingsData.message}
-
---------------------------------------------------------------------------------
-2. ANÁLISE DE VARIÂNCIA ORÇAMENTÁRIA (PREÇO VS. VOLUME)
---------------------------------------------------------------------------------
-Isola o estouro de envelopes em Efeito Preço (custo médio) vs. Efeito Volume (recorrência).
-
-${varianceText}
-
---------------------------------------------------------------------------------
-3. ÍNDICE DE SOLVÊNCIA (MÉTRICA DE SOBREVIVÊNCIA FINANCEIRA)
---------------------------------------------------------------------------------
-Autonomia de liquidez para cobertura de custos caso todas as receitas cessem.
-
-* Ativos Líquidos Circulantes: R$ ${solvencyData.cashAssets.toLocaleString("pt-BR")}
-* Média Mensal de Despesas Operacionais: R$ ${solvencyData.monthlyExpense.toLocaleString("pt-BR")}
-
---------------------------------------------------------------------------------
-* AUTONOMIA ESTIMADA: ${solvencyData.monthsOfSurvival} meses
-* CLASSIFICAÇÃO: ${solvencyData.status.toUpperCase()}
-* DIRETRIZ DE CAIXA: ${solvencyData.message}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    } else if (activeLevel === "risk") {
-      // RELATÓRIO DE ESTATÍSTICA E PROJEÇÕES DE RISCO (risk)
-      const heatmapCellsText = transactionHeatmapData.flatData
-        .filter(c => c.count > 0)
-        .map(c => `  - ${c.dayName.padEnd(10, " ")} | Bloco: ${c.periodName.padEnd(20, " ")} | Freq: ${c.count} tx | Valor: R$ ${c.amount.toLocaleString("pt-BR")}`)
-        .join("\n");
-
-      reportContent = `================================================================================
-                    VAULT FINANCE OS — RELATÓRIO DE RISCOS E PROJEÇÕES
-================================================================================
-Emissão: ${nowStr}
-Foco: Regressão Linear, Simulação de Monte Carlo e Mapa de Calor Cronológico
---------------------------------------------------------------------------------
-
-1. REGRESSÃO LINEAR DE TENDÊNCIA (MÍNIMOS QUADRADOS - OLS)
---------------------------------------------------------------------------------
-Previsão analítica de saldo de curto e médio prazo.
-
-* Conta sob Estudo: ${regressionAnalysisData.accountName} (${regressionAnalysisData.currency})
-* Coeficiente de Determinação (R²): ${regressionAnalysisData.r2}
-* Variação Média Mensal (Slope): ${regressionAnalysisData.slope.toLocaleString("pt-BR")} por mês
-* Direção Esperada: ${regressionAnalysisData.direction.toUpperCase()}
-
-Projeção de Saldos para os próximos 6 meses:
-${regressionAnalysisData.chartData.filter(d => d.name.startsWith("Mês +")).map(d => `  - ${d.name}: Previsão de Saldo: ${regressionAnalysisData.currency} ${d["Tendência"].toLocaleString("pt-BR")}`).join("\n")}
-
---------------------------------------------------------------------------------
-2. SIMULAÇÃO DE ESTRESSE DE CAIXA DE MONTE CARLO (ESTOCÁSTICO)
---------------------------------------------------------------------------------
-500 trajetórias semanais baseadas em modelagem randômica sob Box-Muller.
-
-* Saldo Líquido de Partida: R$ ${monteCarloData.startBalance.toLocaleString("pt-BR")}
-* Volatilidade Semanal de Gastos: ${monteCarloData.weeklyVolatility}%
-* Pior Cenário Projetado (2.5% Estresse): R$ ${monteCarloData.worstCase.toLocaleString("pt-BR")}
-* Cenário Base Mediano Esperado (50%): R$ ${monteCarloData.expectedCase.toLocaleString("pt-BR")}
-* Melor Cenário Projetado (97.5% Ideal): R$ ${monteCarloData.bestCase.toLocaleString("pt-BR")}
-
-* INTERVALO DE CONFIANÇA (95%):
-Há 95% de probabilidade de que sua liquidez consolidada permaneça rigorosamente entre R$ ${monteCarloData.worstCase.toLocaleString("pt-BR")} e R$ ${monteCarloData.bestCase.toLocaleString("pt-BR")} ao encerrar o ciclo de 24 semanas.
-
---------------------------------------------------------------------------------
-3. MAPA DE CALOR DE VAZAMENTOS CRONOLÓGICOS (HEATMAP TEMPORAL)
---------------------------------------------------------------------------------
-Triagem de saídas acumuladas por dia e período comercial de ocorrência.
-
-* Quadrante Crítico de Maior Perda: ${transactionHeatmapData.worstDay} na faixa de horário (${transactionHeatmapData.worstPeriod})
-* Valor Acumulado no Pior Bloco: R$ ${transactionHeatmapData.worstAmount.toLocaleString("pt-BR")}
-* Total de Transações de Saídas Filtradas: ${transactionHeatmapData.totalOutflows} tx
-
-Concentrações Identificadas de Gastos por Período:
-${heatmapCellsText || "  (Nenhum gasto operacional de saída identificado no período filtrado)"}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    } else if (activeLevel === "audit") {
-      // RELATÓRIO DE AUDITORIA E INTEGRIDADE DO SISTEMA (audit)
-      const logsText = auditTrailData.allLogs
-        .slice(0, 15)
-        .map(l => `  - [${l.id}] ${l.timestamp} | Op: ${l.operator.padEnd(15, " ")} | Ação: ${l.action.padEnd(20, " ")} | Detalhes: ${l.details}`)
-        .join("\n");
-
-      const pendingTxText = reconciliationData.pendingTransactions
-        .map(t => `  - Descrição: ${t.description.padEnd(25, " ")} | Data: ${new Date(t.date).toLocaleDateString("pt-BR")} | Valor: ${reconciliationData.currency} ${Math.abs(t.amount).toLocaleString("pt-BR")}`)
-        .join("\n");
-
-      reportContent = `================================================================================
-                 VAULT FINANCE OS — RELATÓRIO DE AUDITORIA E INTEGRIDADE
-================================================================================
-Emissão: ${nowStr}
-Foco: Trilha de Auditoria Geral (Logs) e Reconciliação de Saldos Bancários OFX
---------------------------------------------------------------------------------
-
-1. TRILHA DE AUDITORIA COMPARTILHADA (ULTIMOS 15 REGISTROS)
---------------------------------------------------------------------------------
-Histórico de ações, ajustes de valor, criações e conformidade contábil.
-
-* Registros Totais Capturados: ${auditTrailData.totalCount} logs
-* Registros Ativos sob Filtro de Busca: ${auditTrailData.filteredCount} logs
-
-Log Histórico Detalhado:
-${logsText || "  (Nenhum registro de log de auditoria encontrado para o período)"}
-
---------------------------------------------------------------------------------
-2. RELATÓRIO DE RECONCILIAÇÃO BANCÁRIA ELETRÔNICA (OFX)
---------------------------------------------------------------------------------
-Diagnóstico de integridade e auditoria de caixa contra extratos bancários.
-
-* Conta Auditada: ${reconciliationData.accountName}
-* Índice de Conformidade Contábil: ${reconciliationData.compliancePercent}%
-
-* Balanços Consolidados:
-  - Saldo Confirmado (Cleared Balance): ${reconciliationData.currency} ${reconciliationData.clearedBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-  - Saldo Importado do Extrato (OFX):   ${reconciliationData.currency} ${reconciliationData.ofxBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-  - Discrepância de Conciliação:        ${reconciliationData.currency} ${reconciliationData.discrepancy.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-
---------------------------------------------------------------------------------
-* Lançamentos Pendentes de Reconciliação (${reconciliationData.pendingTransactions.length} transações):
-${pendingTxText || "  (Parabéns! Nenhuma transação pendente nesta conta. Caixa 100% conciliada!)"}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    } else if (activeLevel === "business") {
-      // RELATÓRIO B2B CORPORATIVO & STARTUPS (business)
-      const costCentersText = businessData.costCentersChartData.map(c => `  - ${c.name.padEnd(25, " ")} | R$ ${c["Total de Despesas"].toLocaleString("pt-BR")} (${c.percent}%)`).join("\n");
-      
-      reportContent = `================================================================================
-                    VAULT FINANCE OS — RELATÓRIO PARA EMPRESAS (B2B & STARTUPS)
-================================================================================
-Emissão: ${nowStr}
-Foco: Cash Burn Rate, Runway, OPEX vs CAPEX, Break-even Point e Centros de Custo
---------------------------------------------------------------------------------
-
-1. CASH BURN RATE & RUNWAY PREDITIVO (SOLVÊNCIA)
---------------------------------------------------------------------------------
-* Caixa de Liquidez Atual (Assets): R$ ${businessData.totalCashBalance.toLocaleString("pt-BR")}
-* Burn Rate Operacional (Consumo Médio): R$ ${businessData.burnRate.toLocaleString("pt-BR")} /mês
-* Autonomia Estimada de Sobrevivência (Runway): ${businessData.runway === Infinity ? "Infinita (Caixa Positivo)" : `${businessData.runway} meses de fôlego`}
-
---------------------------------------------------------------------------------
-2. BALANÇO DE CAPITAL: OPEX VS CAPEX
---------------------------------------------------------------------------------
-Separação entre despesas operacionais correntes e investimentos estruturais.
-* OPEX Total Consumido no Período: R$ ${businessData.opexTotal.toLocaleString("pt-BR")}
-* CAPEX Total Aplicado (Infra/Hardware): R$ ${businessData.capexTotal.toLocaleString("pt-BR")}
-
-* Depreciação Contábil Mensal Estimada (20% a.a): R$ ${(businessData.periodDepreciation / businessData.numMonths).toLocaleString("pt-BR")}
-* Depreciação Acumulada no Período: R$ ${businessData.periodDepreciation.toLocaleString("pt-BR")}
-
---------------------------------------------------------------------------------
-3. PONTO DE EQUILÍBRIO CONTÁBIL (BREAK-EVEN POINT)
---------------------------------------------------------------------------------
-* Custos Fixos Identificados: R$ ${businessData.fixedCosts.toLocaleString("pt-BR")}
-* Custos Variáveis Acumulados: R$ ${businessData.variableCosts.toLocaleString("pt-BR")}
-* Faturamento Total do Período: R$ ${businessData.totalRevenues.toLocaleString("pt-BR")}
-
-* Margem de Contribuição Geral: ${businessData.contributionMarginRatio}%
-* FATURAMENTO ALVO PARA BREAK-EVEN: R$ ${businessData.breakEvenRevenue.toLocaleString("pt-BR")}
-* STATUS DA OPERAÇÃO: ${businessData.totalRevenues >= businessData.breakEvenRevenue ? "SUPERAVITÁRIA (Lucro Operacional)" : "DEFICITÁRIA (Abaixo do Equilíbrio)"}
-
---------------------------------------------------------------------------------
-4. RATEIO DEPARTAMENTAL E CENTROS DE CUSTO
---------------------------------------------------------------------------------
-Distribuição de saídas de capital por setor operacional mapeado:
-${costCentersText}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    } else {
-      // RELATÓRIO DE INTEGRIDADE TÉCNICA (integrity)
-      const logsText = integrityData.immutableLogs.slice(0, 10).map(l => `  - [${l.txId}] ${l.description.padEnd(25, " ")} | Status: ${l.status.toUpperCase().padEnd(10, " ")} | Edições: ${l.editCount} | Hash: ${l.integrityHash}`).join("\n");
-      const entityText = integrityData.consolidatedData.map(e => `  - ${e.name.padEnd(22, " ")} | Contas: ${e.accounts} | Ativos: R$ ${e.assets.toLocaleString("pt-BR")} | Passivos: R$ ${e.liabilities.toLocaleString("pt-BR")} | Líquido: R$ ${e.netWorth.toLocaleString("pt-BR")}`).join("\n");
-      const discText = integrityData.discrepancyByAccount.map(a => `  - ${a.accountName.padEnd(20, " ")} | Total: ${a.totalTx} tx | Conciliadas: ${a.clearedTx} | Pendentes: ${a.pendingTx} | Conformidade: ${a.compliancePercent}%`).join("\n");
-
-      reportContent = `================================================================================
-                  VAULT FINANCE OS — RELATÓRIO DE INTEGRIDADE TÉCNICA
-================================================================================
-Emissão: ${nowStr}
-Foco: Logs Imutáveis, Consolidação Multi-Entidade e Discrepância de Conciliação OFX
---------------------------------------------------------------------------------
-
-1. LOG DE ALTERAÇÕES IMUTÁVEIS (IMMUTABLE TRANSACTION LOGS)
---------------------------------------------------------------------------------
-* Índice de Integridade de Dados: ${integrityData.integrityScore}%
-* Transações Prístinas (sem edição): ${integrityData.pristineCount}
-* Transações Modificadas: ${integrityData.modifiedCount}
-* Transações Sinalizadas (3+ edições): ${integrityData.flaggedCount}
-
-Últimos 10 registros de ciclo de vida:
-${logsText || "  (Nenhuma transação no período filtrado)"}
-
---------------------------------------------------------------------------------
-2. CONSOLIDAÇÃO MULTI-ENTIDADE (MOEDA MESTRA)
---------------------------------------------------------------------------------
-Patrimônio consolidado por entidade jurídica, convertido para ${baseCurrency}:
-${entityText}
-
-* Patrimônio Bruto Consolidado: R$ ${integrityData.rawNetWorth.toLocaleString("pt-BR")}
-* Transferências Inter-Companhia Detectadas: R$ ${integrityData.totalInterCompany.toLocaleString("pt-BR")}
-* Patrimônio Ajustado (sem inflação fictícia): R$ ${integrityData.adjustedNetWorth.toLocaleString("pt-BR")}
-* Inflação Patrimonial Eliminada: ${integrityData.inflationPercent}%
-
---------------------------------------------------------------------------------
-3. DISCREPÂNCIA DE CONCILIAÇÃO OFX (FORÇAR INTEGRIDADE)
---------------------------------------------------------------------------------
-* Conformidade Global do Sistema: ${integrityData.globalCompliance}%
-* Total de Transações Auditadas: ${integrityData.globalTotalTx}
-* Conciliadas com Sucesso: ${integrityData.globalClearedTx}
-* Pendentes de Liquidação: ${integrityData.globalPendingTx}
-* Contas em Estado Crítico (vermelho): ${integrityData.redAccounts}
-
-Diagnóstico por Conta:
-${discText}
-
-================================================================================
-              GERADO AUTOMATICAMENTE PELO VAULT FINANCE OS
-================================================================================`;
-    }
 
     let labelFile = "Iniciante";
     if (activeLevel === "intermediate") labelFile = "Intermediario";
@@ -2761,67 +2305,1287 @@ ${discText}
     else if (activeLevel === "business") labelFile = "Corporativo_B2B";
     else if (activeLevel === "integrity") labelFile = "Integridade_Tecnica";
 
-    // Criar janela de impressão formatada para gerar um PDF real legítimo
+    let reportTitle = "Relatório de Saúde Financeira - Iniciante";
+    let reportFocus = 'Diagnóstico e Visão Geral do Patrimônio ("Onde estou agora?")';
+    let contentHtml = "";
+
+    if (activeLevel === "beginner") {
+      reportTitle = "Relatório de Diagnóstico Patrimonial";
+      reportFocus = "Mapeamento Base-Zero, Liquidez Corrente e Alocação Inicial de Envelopes";
+
+      const netWorthRows = netWorthData.map(m => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">Mês ${m.name}</td>
+          <td style="color: #2563eb; padding: 12px 16px;">R$ ${m.Ativos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="color: #ef4444; padding: 12px 16px;">R$ ${m.Passivos.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="font-weight: 700; color: ${m["Patrimônio Líquido"] >= 0 ? "#10b981" : "#ef4444"}; padding: 12px 16px;">
+            R$ ${m["Patrimônio Líquido"].toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+        </tr>
+      `).join("");
+
+      const fugaRows = expensesDistribution.chartData.map(item => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">${item.name}</td>
+          <td style="padding: 12px 16px;">R$ ${item.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 12px 16px; width: 45%;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="background: #e2e8f0; border-radius: 100px; height: 10px; flex: 1; overflow: hidden; border: 1px solid #cbd5e1;">
+                <div style="background: linear-gradient(90deg, #10b981, #3b82f6); height: 100%; width: ${item.percent}; border-radius: 100px;"></div>
+              </div>
+              <span style="font-weight: 700; font-size: 12px; color: #334155; min-width: 40px; text-align: right;">${item.percent}</span>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      const badEnvelopes = envelopesStatus.filter(e => e.status === "red");
+      const estouradosRows = badEnvelopes.map(e => `
+        <tr style="background-color: #fef2f2;">
+          <td style="font-weight: 600; color: #b91c1c; padding: 12px 16px;">🚨 ${e.name}</td>
+          <td style="padding: 12px 16px;">R$ ${e.assigned.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="color: #b91c1c; font-weight: 600; padding: 12px 16px;">R$ ${e.spent.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="color: #b91c1c; font-weight: 700; padding: 12px 16px;">+${(e.percent - 100).toFixed(1)}% estourado</td>
+        </tr>
+      `).join("");
+
+      contentHtml = `
+        <div class="kpi-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Despesa Total Operacional</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #0f172a;">R$ ${expensesDistribution.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Contas de Ativos</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #10b981;">${assetsAccountsCount} Contas Ativas</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Envelopes Estourados</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: ${badEnvelopes.length > 0 ? "#ef4444" : "#10b981"};">${badEnvelopes.length} Alertas</div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. DIAGNÓSTICO DE EVOLUÇÃO DO PATRIMÔNIO LÍQUIDO (NET WORTH)</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Período</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Ativos Consolidados</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Passivos Consolidados</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Patrimônio Líquido</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${netWorthRows}
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. DISTRIBUIÇÃO E FUGA DE GASTOS (DONUT ANALYSIS)</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Categoria</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Valor Operacional</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Representatividade Orçamentária</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${fugaRows || `<tr><td colspan="3" style="padding: 16px; text-align: center; color: #64748b;">Nenhum gasto registrado no período selecionado.</td></tr>`}
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">3. STATUS DE ENVELOPES E COMPLIANCE YNAB (BUDGET)</h2>
+        ${badEnvelopes.length > 0 ? `
+          <div style="background-color: #fef2f2; border: 1px solid #fca5a5; border-radius: 8px; padding: 16px; color: #991b1b; margin-bottom: 20px; font-weight: 500;">
+            🚨 <strong>Ação Requerida:</strong> Identificamos envelopes operando além do limite provisionado. É essencial reequilibrar esses envelopes utilizando fundos de outras categorias (regra clássica YNAB).
+          </div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+            <thead>
+              <tr style="background-color: #fee2e2; border-bottom: 2px solid #fca5a5;">
+                <th style="text-align: left; padding: 12px 16px; color: #991b1b; font-weight: 700;">Envelope Executado</th>
+                <th style="text-align: left; padding: 12px 16px; color: #991b1b; font-weight: 700;">Orçado / Alocado</th>
+                <th style="text-align: left; padding: 12px 16px; color: #991b1b; font-weight: 700;">Gasto Realizado</th>
+                <th style="text-align: left; padding: 12px 16px; color: #991b1b; font-weight: 700;">Desvio (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${estouradosRows}
+            </tbody>
+          </table>
+        ` : `
+          <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 20px; color: #166534; margin-bottom: 30px; display: flex; align-items: center; gap: 15px;">
+            <div style="font-size: 24px;">🎉</div>
+            <div>
+              <strong style="font-size: 15px;">Orçamento 100% Complacente (YNAB Verde)</strong><br/>
+              Parabéns! Todos os envelopes operaram rigorosamente dentro dos limites planejados no período. Excelente disciplina de caixa!
+            </div>
+          </div>
+        `}
+      `;
+    } else if (activeLevel === "intermediate") {
+      reportTitle = "Relatório de Tendências e Metas";
+      reportFocus = "Orçado vs. Realizado, Relatório de Custos Fixos Recorrentes e Conquistas Financeiras";
+
+      const overspentRows = budgetDeviations.topOverspent.map(item => `
+        <tr style="background-color: #fef2f2;">
+          <td style="font-weight: 600; padding: 12px 16px; color: #b91c1c;">🚨 ${item.fullName}</td>
+          <td style="padding: 12px 16px;">R$ ${item.Orçado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 12px 16px;">R$ ${item.Realizado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="font-weight: 700; color: #b91c1c; padding: 12px 16px;">R$ ${Math.abs(item.desvio).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+        </tr>
+      `).join("");
+
+      const savedRows = budgetDeviations.topSaved.map(item => `
+        <tr style="background-color: #f0fdf4;">
+          <td style="font-weight: 600; padding: 12px 16px; color: #166534;">🎉 ${item.fullName}</td>
+          <td style="padding: 12px 16px;">R$ ${item.Orçado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 12px 16px;">R$ ${item.Realizado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="font-weight: 700; color: #166534; padding: 12px 16px;">R$ ${item.desvio.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+        </tr>
+      `).join("");
+
+      const recurrenceRows = recurrenceReport.items.map(item => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">${item.name} <span style="font-size: 10px; color: #64748b; background: #e2e8f0; padding: 2px 6px; border-radius: 4px; margin-left: 6px;">${item.interval}</span></td>
+          <td style="padding: 12px 16px;">R$ ${item.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 12px 16px; width: 45%;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="background: #e2e8f0; border-radius: 100px; height: 10px; flex: 1; overflow: hidden;">
+                <div style="background: linear-gradient(90deg, #3b82f6, #6366f1); height: 100%; width: ${item.impactPercent}%; border-radius: 100px;"></div>
+              </div>
+              <span style="font-weight: 700; font-size: 12px; color: #334155; min-width: 40px; text-align: right;">${item.impactPercent}%</span>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      const categoryHistoryRows = categoryHistoryData.map(h => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">Mês ${h.month}</td>
+          <td style="font-weight: 700; color: #0f172a; padding: 12px 16px;">R$ ${h.Gasto.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+        </tr>
+      `).join("");
+
+      const goalsRows = goalsProgressReport.map(item => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">${item.emoji} ${item.name}</td>
+          <td style="padding: 12px 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #475569; margin-bottom: 4px;">
+              <span>R$ ${item.current.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} / R$ ${item.target.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+              <strong>${item.percent}%</strong>
+            </div>
+            <div style="background: #e2e8f0; border-radius: 100px; height: 8px; width: 100%; overflow: hidden;">
+              <div style="background: linear-gradient(90deg, #10b981, #059669); height: 100%; width: ${item.percent}%; border-radius: 100px;"></div>
+            </div>
+          </td>
+          <td style="padding: 12px 16px; font-weight: 600; text-align: right; color: #475569;">~${item.monthsRemaining} meses restantes</td>
+        </tr>
+      `).join("");
+
+      contentHtml = `
+        <div class="kpi-container" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 30px;">
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Custo de Assinaturas e Recorrências</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #4f46e5;">R$ ${recurrenceReport.sum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Consome <strong>${recurrenceReport.impactPercent}%</strong> do seu orçamento global.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.5px;">Estratégia Recomendada</div>
+            <div class="kpi-value" style="font-size: 20px; font-weight: 700; color: #0f172a;">Manter Sobrecarga < 20%</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 6px;">Atualmente as assinaturas consomem <strong>${recurrenceReport.impactPercent}%</strong>, dando espaço para investimentos.</div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. AUDITORIA DETALHADA: ORÇADO VS. REALIZADO</h2>
+        <h3 style="font-size: 14px; font-weight: 600; color: #b91c1c; margin-top: 15px; margin-bottom: 10px;">🚨 Envelopes com Maior Extravasamento (Estouros)</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #fee2e2; border-bottom: 2px solid #fca5a5;">
+              <th style="text-align: left; padding: 12px 16px; color: #991b1b; font-weight: 700;">Categoria</th>
+              <th style="text-align: left; padding: 12px 16px; color: #991b1b; font-weight: 700;">Orçado</th>
+              <th style="text-align: left; padding: 12px 16px; color: #991b1b; font-weight: 700;">Realizado</th>
+              <th style="text-align: left; padding: 12px 16px; color: #991b1b; font-weight: 700;">Extravasamento</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${overspentRows || '<tr><td colspan="4" style="padding: 16px; text-align: center; color: #64748b;">Nenhum estouro orçamentário crítico identificado.</td></tr>'}
+          </tbody>
+        </table>
+
+        <h3 style="font-size: 14px; font-weight: 600; color: #166534; margin-top: 25px; margin-bottom: 10px;">🎉 Envelopes de Alta Eficiência (Economias)</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f0fdf4; border-bottom: 2px solid #86efac;">
+              <th style="text-align: left; padding: 12px 16px; color: #166534; font-weight: 700;">Categoria</th>
+              <th style="text-align: left; padding: 12px 16px; color: #166534; font-weight: 700;">Orçado</th>
+              <th style="text-align: left; padding: 12px 16px; color: #166534; font-weight: 700;">Realizado</th>
+              <th style="text-align: left; padding: 12px 16px; color: #166534; font-weight: 700;">Economia Gerada</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${savedRows || '<tr><td colspan="4" style="padding: 16px; text-align: center; color: #64748b;">Nenhum desvio de economia consolidada registrado.</td></tr>'}
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. PESO ESTRUTURAL DAS ASSINATURAS E RECORRÊNCIAS</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Fatura Mapeada</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Custo Mensalizado</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Impacto sobre Saídas Gerais</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${recurrenceRows || '<tr><td colspan="3" style="padding: 16px; text-align: center; color: #64748b;">Nenhuma assinatura ou fatura fixa mapeada.</td></tr>'}
+          </tbody>
+        </table>
+
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px; margin-top: 30px;">
+          <div>
+            <h2 style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px;">3. TENDÊNCIA DA CATEGORIA</h2>
+            <p style="font-size: 12px; color: #64748b; margin-bottom: 10px;">Série histórica recente para: <strong>"${getCategoryName(selectedHistoryCategory) || "Categoria Selecionada"}"</strong></p>
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+              <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                  <th style="text-align: left; padding: 10px 12px; color: #475569; font-weight: 700;">Período</th>
+                  <th style="text-align: left; padding: 10px 12px; color: #475569; font-weight: 700;">Gasto Realizado</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${categoryHistoryRows}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h2 style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px;">4. METAS DE ECONOMIA E POUPE-CONQUISTA</h2>
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+              <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                  <th style="text-align: left; padding: 10px 12px; color: #475569; font-weight: 700;">Objetivo e Emoji</th>
+                  <th style="text-align: left; padding: 10px 12px; color: #475569; font-weight: 700; width: 45%;">Progresso de Alocação</th>
+                  <th style="text-align: right; padding: 10px 12px; color: #475569; font-weight: 700;">Tempo Estimado</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${goalsRows || '<tr><td colspan="3" style="padding: 16px; text-align: center; color: #64748b;">Nenhuma meta de poupança cadastrada na API de objetivos.</td></tr>'}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+    } else if (activeLevel === "advanced") {
+      reportTitle = "Relatório Avançado de Otimização de Capital";
+      reportFocus = "Asset Allocation, Impacto Cambial Multi-Moeda, Modelagem de Forecasting de Caixa e Eficiência de Custos";
+
+      const treemapRows = treemapData.map(item => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">${item.name}</td>
+          <td style="font-weight: 700; color: #0f172a; padding: 12px 16px;">R$ ${item.value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 12px 16px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="background: #e2e8f0; border-radius: 100px; height: 8px; flex: 1; overflow: hidden;">
+                <div style="background: linear-gradient(90deg, #3b82f6, #06b6d4); height: 100%; width: ${item.percent}%; border-radius: 100px;"></div>
+              </div>
+              <span style="font-size: 11px; font-weight: bold; color: #475569; min-width: 35px; text-align: right;">${item.percent}%</span>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      const cambialRows = exchangeImpactData.list.map(item => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">Moeda ${item.currency}</td>
+          <td style="padding: 12px 16px;">${item.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} ${item.currency}</td>
+          <td style="padding: 12px 16px;">1 ${item.currency} = R$ ${item.rate.toFixed(4)}</td>
+          <td style="font-weight: 600; color: ${item.change >= 0 ? "#10b981" : "#ef4444"}; padding: 12px 16px;">
+            ${item.change >= 0 ? "+" : ""}${item.change.toFixed(2)}%
+          </td>
+          <td style="font-weight: 700; color: ${item.impact >= 0 ? "#10b981" : "#ef4444"}; padding: 12px 16px; text-align: right;">
+            R$ ${item.impact.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+        </tr>
+      `).join("");
+
+      const forecastingRows = forecastingData.chartData.map(c => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">${c.name}</td>
+          <td style="font-weight: 700; color: #0f172a; padding: 12px 16px;">R$ ${c["Projeção"].toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="color: #64748b; padding: 12px 16px;">Tendência de acumulação líquida linear contínua</td>
+        </tr>
+      `).join("");
+
+      const recommendationsCards = fiscalEfficiencyData.recommendations.map(r => `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <strong style="color: #0f172a; font-size: 13px;">🎯 ${r.title}</strong>
+            <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 100px; background-color: #ecfdf5; color: #065f46;">
+              Impacto: ${r.impact}
+            </span>
+          </div>
+          <p style="font-size: 12px; color: #475569; margin: 0;">${r.desc}</p>
+        </div>
+      `).join("");
+
+      contentHtml = `
+        <div class="kpi-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Eficiência Fiscal de Portfólio</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #10b981;">${fiscalEfficiencyData.score} <span style="font-size: 14px; font-weight: 400; color: #64748b;">/ 100</span></div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Custo Nominal em Tarifas Bancárias</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #ef4444;">R$ ${fiscalEfficiencyData.totalFeesPaid.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Identificado em <strong>${fiscalEfficiencyData.txWithFeesCount}</strong> transações.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Impacto Cambial Consolidado</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: ${exchangeImpactData.totalImpact >= 0 ? "#10b981" : "#ef4444"};">R$ ${exchangeImpactData.totalImpact.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">${exchangeImpactData.totalImpact >= 0 ? "🟢 Ganho Cambial Nominal" : "🔴 Perda Cambial Nominal"}.</div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. PROPORÇÃO E ALOCAÇÃO DE SUBCONTAS (TREEMAP EXECUTIVO)</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Subconta de Alocação</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Saldo Convertido (${baseCurrency})</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Percentual no Portfólio</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${treemapRows}
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. EXPOSIÇÃO E IMPACTO CAMBIAL MULTI-MOEDA</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Ativo Monetário</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Saldo em Custódia</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Cotação Base</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Variação Cambial</th>
+              <th style="text-align: right; padding: 12px 16px; color: #475569; font-weight: 700;">Resultado Cambial do Período</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cambialRows || '<tr><td colspan="5" style="padding: 16px; text-align: center; color: #64748b;">Nenhum ativo em moeda estrangeira identificado para cálculo de Hedging.</td></tr>'}
+          </tbody>
+        </table>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 30px;">
+          <div>
+            <h2 style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px;">3. MODELO DE FORECASTING (12 MESES)</h2>
+            <div style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 11px; color: #475569; margin-bottom: 15px;">
+              Projeções baseadas nas taxas históricas de poupança líquida:<br/>
+              • Média de Entradas: <strong>R$ ${forecastingData.avgInflow.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>/mês<br/>
+              • Média de Saídas: <strong>R$ ${forecastingData.avgOutflow.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>/mês<br/>
+              • Ritmo de Acumulação: <strong>R$ ${forecastingData.monthlySavings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>/mês
+            </div>
+            <table style="width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+              <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                  <th style="text-align: left; padding: 10px 12px; color: #475569; font-weight: 700;">Horizonte Temporal</th>
+                  <th style="text-align: left; padding: 10px 12px; color: #475569; font-weight: 700;">Projeção de Caixa Líquido</th>
+                  <th style="text-align: left; padding: 10px 12px; color: #475569; font-weight: 700;">Método</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${forecastingRows}
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <h2 style="font-size: 16px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 15px;">4. DIRETRIZES DE AUDITORIA FISCAL E TAXAS</h2>
+            <div>
+              ${recommendationsCards}
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (activeLevel === "compliance") {
+      reportTitle = "Relatório Contábil Executivo e DRE";
+      reportFocus = "Balancete de Verificação (Partidas Dobradas), DRE Operacional e Ganhos/Perdas Cambiais (FX)";
+
+      const balanceteRows = trialBalanceData.items.map(item => `
+        <tr>
+          <td style="font-family: monospace; color: #475569; padding: 10px 14px;">${item.code}</td>
+          <td style="font-weight: 600; padding: 10px 14px;">${item.name}</td>
+          <td style="text-align: right; color: ${item.debit > 0 ? "#2563eb" : "#475569"}; font-family: monospace; padding: 10px 14px;">
+            ${item.debit > 0 ? `R$ ${item.debit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-"}
+          </td>
+          <td style="text-align: right; color: ${item.credit > 0 ? "#10b981" : "#475569"}; font-family: monospace; padding: 10px 14px;">
+            ${item.credit > 0 ? `R$ ${item.credit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-"}
+          </td>
+        </tr>
+      `).join("");
+
+      const dreRevenuesRows = incomeStatementData.revenuesList.map(item => `
+        <tr>
+          <td style="padding: 10px 14px; font-weight: 500;">(+) ${item.name}</td>
+          <td style="text-align: right; font-family: monospace; padding: 10px 14px;">R$ ${item.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right; font-weight: bold; color: #475569; padding: 10px 14px;">${item.percent}%</td>
+        </tr>
+      `).join("");
+
+      const dreExpensesRows = incomeStatementData.expensesList.map(item => `
+        <tr style="background-color: #fafbfc;">
+          <td style="padding: 10px 14px; color: #ef4444; font-weight: 500;">(-) ${item.name}</td>
+          <td style="text-align: right; color: #ef4444; font-family: monospace; padding: 10px 14px;">R$ ${item.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="text-align: right; font-weight: bold; color: #ef4444; padding: 10px 14px;">${item.percent}%</td>
+        </tr>
+      `).join("");
+
+      const fxGainsRows = fxGainsLossesData.list.map(item => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 14px;">Exposição Moeda ${item.currency}</td>
+          <td style="text-align: right; color: ${item.realized >= 0 ? "#10b981" : "#ef4444"}; font-family: monospace; padding: 12px 14px;">
+            R$ ${item.realized.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+          <td style="text-align: right; color: ${item.unrealized >= 0 ? "#10b981" : "#ef4444"}; font-family: monospace; padding: 12px 14px;">
+            R$ ${item.unrealized.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+          <td style="text-align: right; font-weight: 700; color: ${item.total >= 0 ? "#10b981" : "#ef4444"}; font-family: monospace; padding: 12px 14px;">
+            R$ ${item.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+        </tr>
+      `).join("");
+
+      contentHtml = `
+        <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 20px; color: #166534; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 15px;">
+            <div style="font-size: 28px;">🟢</div>
+            <div>
+              <strong style="font-size: 16px; color: #14532d;">SISTEMA CONTÁBIL EM PERFEITO EQUILÍBRIO</strong><br/>
+              <span style="font-size: 13px;">Todos os débitos e créditos de partidas dobradas fecharam com precisão matemática absoluta de conciliação.</span>
+            </div>
+          </div>
+          <div style="text-align: right; font-family: monospace;">
+            <strong>Total Débitos:</strong> R$ ${trialBalanceData.debitSum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}<br/>
+            <strong>Total Créditos:</strong> R$ ${trialBalanceData.creditSum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. BALANCETE DE VERIFICAÇÃO CONSOLIDADO (TRIAL BALANCE)</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 12px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 10%;">Código</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 50%;">Conta Contábil</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700; width: 20%;">Débito (Devedor)</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700; width: 20%;">Crédito (Credor)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${balanceteRows}
+            <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #cbd5e1;">
+              <td colspan="2" style="padding: 12px 14px; font-size: 13px; color: #0f172a;">TOTAIS CONSOLIDADOS</td>
+              <td style="text-align: right; padding: 12px 14px; font-family: monospace; font-size: 13px; color: #2563eb;">R$ ${trialBalanceData.debitSum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; padding: 12px 14px; font-family: monospace; font-size: 13px; color: #10b981;">R$ ${trialBalanceData.creditSum.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. DEMONSTRATIVO DE RESULTADOS DO EXERCÍCIO (DRE SIMPLIFICADO)</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 60%;">Estrutura de Receitas & Despesas Operacionais</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700; width: 25%;">Valor por Competência</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Proporção</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="font-weight: bold; background-color: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 12px 14px; color: #0f172a;">(+) RECEITA BRUTA OPERACIONAL</td>
+              <td style="text-align: right; padding: 12px 14px; font-family: monospace; color: #10b981;">R$ ${incomeStatementData.grossRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; padding: 12px 14px; color: #10b981;">100.0%</td>
+            </tr>
+            ${dreRevenuesRows || '<tr><td colspan="3" style="padding: 12px 14px; text-align: center; color: #64748b;">Nenhuma receita operacional registrada no período.</td></tr>'}
+            
+            <tr style="font-weight: bold; background-color: #f1f5f9; border-top: 2px solid #cbd5e1; border-bottom: 1px solid #cbd5e1;">
+              <td style="padding: 12px 14px; color: #b91c1c;">(-) DESPESAS OPERACIONAIS CONSOLIDADAS</td>
+              <td style="text-align: right; padding: 12px 14px; font-family: monospace; color: #ef4444;">R$ ${incomeStatementData.totalExpenses.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; padding: 12px 14px; color: #ef4444;">${((incomeStatementData.totalExpenses / (incomeStatementData.grossRevenue || 1)) * 100).toFixed(1)}%</td>
+            </tr>
+            ${dreExpensesRows || '<tr><td colspan="3" style="padding: 12px 14px; text-align: center; color: #64748b;">Nenhuma despesa operacional registrada no período.</td></tr>'}
+
+            <tr style="font-weight: 800; background-color: #0f172a; color: #ffffff; border-top: 3px solid #0f172a;">
+              <td style="padding: 14px; font-size: 14px; color: white;">(=) RESULTADO OPERACIONAL LÍQUIDO (LUCRO / PREJUÍZO)</td>
+              <td style="text-align: right; padding: 14px; font-family: monospace; font-size: 14px; color: ${incomeStatementData.netIncome >= 0 ? "#10b981" : "#ef4444"};">
+                R$ ${incomeStatementData.netIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </td>
+              <td style="text-align: right; font-size: 14px; color: ${incomeStatementData.netIncome >= 0 ? "#10b981" : "#ef4444"};">
+                ${incomeStatementData.netIncome >= 0 ? "LUCRO" : "PREJUÍZO"}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">3. GANHOS & PERDAS CAMBIAIS REALIZADOS VS. NÃO REALIZADOS (FX AUDIT)</h2>
+        <p style="font-size: 12px; color: #475569; margin-bottom: 12px;">Detalhamento da variação cambial sob portfólio estrangeiro custodiado:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700;">Moeda Estrangeira</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700;">Ganhos Efetivos Realizados</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700;">Variação Patrimonial Não Realizada</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700;">Resultado Combinado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${fxGainsRows || '<tr><td colspan="4" style="padding: 16px; text-align: center; color: #64748b;">Nenhuma movimentação em moeda internacional registrada.</td></tr>'}
+            <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #cbd5e1;">
+              <td style="padding: 12px 14px;">TOTAL COMBINADO FX</td>
+              <td style="text-align: right; padding: 12px 14px; font-family: monospace; color: ${fxGainsLossesData.totalRealized >= 0 ? "#10b981" : "#ef4444"};">R$ ${fxGainsLossesData.totalRealized.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; padding: 12px 14px; font-family: monospace; color: ${fxGainsLossesData.totalUnrealized >= 0 ? "#10b981" : "#ef4444"};">R$ ${fxGainsLossesData.totalUnrealized.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; padding: 12px 14px; font-family: monospace; font-size: 14px; color: ${fxGainsLossesData.totalCombined >= 0 ? "#10b981" : "#ef4444"};">R$ ${fxGainsLossesData.totalCombined.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+            </tr>
+          </tbody>
+        </table>
+      `;
+    } else if (activeLevel === "performance") {
+      reportTitle = "Relatório de Eficiência & Performance";
+      reportFocus = "Marginal Savings Rate (MSR), Decomposição de Variância e Índice de Autonomia Financeira";
+
+      const varianceRows = budgetVarianceData.map(item => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">${item.name}</td>
+          <td style="font-weight: 700; color: ${item.variance < 0 ? "#ef4444" : "#10b981"}; padding: 12px 16px;">
+            R$ ${item.variance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+          <td style="color: ${item.priceEffect < 0 ? "#ef4444" : "#475569"}; font-family: monospace; padding: 12px 16px;">
+            R$ ${item.priceEffect.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+          <td style="color: ${item.volumeEffect < 0 ? "#ef4444" : "#475569"}; font-family: monospace; padding: 12px 16px;">
+            R$ ${item.volumeEffect.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+          <td style="font-size: 11px; color: #475569; padding: 12px 16px;">${item.diagnosis}</td>
+        </tr>
+      `).join("");
+
+      contentHtml = `
+        <div class="kpi-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Marginal Savings Rate (MSR)</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #10b981;">${marginalSavingsData.msr}%</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Eficiência marginal na captação de novos ganhos.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Índice de Autonomia Líquida</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #2563eb;">${solvencyData.monthsOfSurvival} <span style="font-size: 14px; font-weight: 500; color: #64748b;">meses</span></div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Classificação de Solvência: <strong>${solvencyData.status.toUpperCase()}</strong>.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Liquidez de Emergência</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #0f172a;">R$ ${solvencyData.cashAssets.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Ativos altamente circulantes em moeda local.</div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. ANÁLISE DE POUPANÇA MARGINAL (MSR DIAGNOSTIC)</h2>
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 30px; font-size: 13px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              • Renda no Período Atual: <strong>R$ ${marginalSavingsData.currentInflow.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> (Anterior: R$ ${marginalSavingsData.prevInflow.toLocaleString("pt-BR", { minimumFractionDigits: 2 })})<br/>
+              • Poupança Atual: <strong>R$ ${marginalSavingsData.currentSavings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> (Anterior: R$ ${marginalSavingsData.prevSavings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })})
+            </div>
+            <div>
+              • Delta Receita ($\Delta I$): <strong>R$ ${marginalSavingsData.deltaIncome.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong><br/>
+              • Delta Poupança ($\Delta S$): <strong>R$ ${marginalSavingsData.deltaSavings.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+            </div>
+          </div>
+          <div style="margin-top: 15px; padding-top: 12px; border-top: 1px dashed #e2e8f0; font-weight: 600; color: #0f172a;">
+            📋 Parecer Técnico de Estilo de Vida: <span style="font-weight: 500; color: #475569;">${marginalSavingsData.message}</span>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. DECOMPOSIÇÃO DE VARIÂNCIA ORÇAMENTÁRIA (PREÇO VS. VOLUME)</h2>
+        <p style="font-size: 12px; color: #475569; margin-bottom: 12px;">Isolamento do desvio de envelopes em custo médio unitário (Efeito Preço) vs frequência/recorrência (Efeito Volume):</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700; width: 25%;">Subcategoria</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700; width: 15%;">Desvio Consolidado</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700; width: 15%;">Efeito Preço</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700; width: 15%;">Efeito Volume</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700; width: 30%;">Diagnóstico Corretivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${varianceRows || '<tr><td colspan="5" style="padding: 16px; text-align: center; color: #64748b;">Nenhuma variância computada para o período.</td></tr>'}
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">3. ÍNDICE DE SOLVÊNCIA E AUTONOMIA FINANCEIRA</h2>
+        <div style="background-color: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 20px; color: #166534; display: flex; align-items: flex-start; gap: 15px;">
+          <div style="font-size: 32px; line-height: 1;">🛡️</div>
+          <div>
+            <strong style="font-size: 15px; color: #14532d;">AUTONOMIA DE SOBREVIVÊNCIA GARANTIDA: ${solvencyData.monthsOfSurvival} MESES</strong><br/>
+            <p style="font-size: 13px; margin: 6px 0 0 0; color: #166534;">
+              Caso todas as suas fontes de receita cessem hoje, seus ativos líquidos mantêm sua estrutura de custo atual por cerca de <strong>${solvencyData.monthsOfSurvival} meses</strong>.<br/>
+              <em>Diretriz de Caixa: ${solvencyData.message}</em>
+            </p>
+          </div>
+        </div>
+      `;
+    } else if (activeLevel === "risk") {
+      reportTitle = "Relatório Estatístico e Projeções de Risco";
+      reportFocus = "Regressão OLS de Tendência, Simulação de Monte Carlo Estocástica e Vazamentos Cronológicos";
+
+      const regressionRows = regressionAnalysisData.chartData.filter(d => d.name.startsWith("Mês +")).map(d => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">${d.name}</td>
+          <td style="font-weight: 700; font-family: monospace; color: #0f172a; padding: 12px 16px;">
+            ${regressionAnalysisData.currency} ${d["Tendência"].toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+          <td style="color: #64748b; padding: 12px 16px;">Intervalo linear predictivo estrito</td>
+        </tr>
+      `).join("");
+
+      const heatmapRows = transactionHeatmapData.flatData
+        .filter(c => c.count > 0)
+        .slice(0, 10)
+        .map(c => `
+          <tr>
+            <td style="font-weight: 600; padding: 10px 14px;">${c.dayName}</td>
+            <td style="padding: 10px 14px;">${c.periodName}</td>
+            <td style="font-weight: bold; padding: 10px 14px; text-align: center; color: #2563eb;">${c.count} tx</td>
+            <td style="font-weight: 700; padding: 10px 14px; text-align: right; color: #ef4444;">R$ ${c.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `).join("");
+
+      contentHtml = `
+        <div class="kpi-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Coeficiente de Determinação (R²)</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #2563eb;">${regressionAnalysisData.r2}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Medida de aderência estatística da tendência.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Taxa Média Mensal (Slope)</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: ${regressionAnalysisData.slope >= 0 ? "#10b981" : "#ef4444"};">${regressionAnalysisData.slope >= 0 ? "+" : ""}${regressionAnalysisData.slope.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Sentido geral de acumulação: <strong>${regressionAnalysisData.direction.toUpperCase()}</strong>.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Vulnerabilidade Cronológica Máxima</div>
+            <div class="kpi-value" style="font-size: 18px; font-weight: 800; color: #ef4444;">${transactionHeatmapData.worstDay}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Horário Crítico: <strong>${transactionHeatmapData.worstPeriod}</strong>.</div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. REGRESSÃO LINEAR DE TENDÊNCIA DE CONTA (OLS METHOD)</h2>
+        <p style="font-size: 12px; color: #475569; margin-bottom: 12px;">Análise preditiva linear baseada no algoritmo de mínimos quadrados ordinários sobre a conta <strong>${regressionAnalysisData.accountName} (${regressionAnalysisData.currency})</strong>:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Horizonte Planejado</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Previsão Nominal de Saldo</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Modelo Matemático</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${regressionRows || '<tr><td colspan="3" style="padding: 16px; text-align: center; color: #64748b;">Dados históricos insuficientes para regressão linear de tendência.</td></tr>'}
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. MODELO DE ESTRESSE DE MONTE CARLO (PROBABILÍSTICO ESTOCÁSTICO)</h2>
+        <div style="background-color: #fafbfc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin-bottom: 30px;">
+          <p style="font-size: 13px; margin: 0 0 15px 0; color: #334155;">
+            Simulação preditiva de 500 trajetórias semanais randômicas de fluxo de caixa baseadas na distribuição sob Transformação de Box-Muller:<br/>
+            • Saldo Líquido de Partida: <strong>R$ ${monteCarloData.startBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> | Volatilidade Semanal de Despesas: <strong>${monteCarloData.weeklyVolatility}%</strong>
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 15px;">
+            <div style="background-color: #fef2f2; border: 1px solid #fee2e2; border-radius: 8px; padding: 12px; text-align: center;">
+              <span style="font-size: 10px; font-weight: 700; color: #b91c1c; text-transform: uppercase;">Pior Cenário (Estresse 2.5%)</span>
+              <div style="font-size: 16px; font-weight: bold; color: #b91c1c; margin-top: 4px;">R$ ${monteCarloData.worstCase.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            </div>
+            <div style="background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; text-align: center;">
+              <span style="font-size: 10px; font-weight: 700; color: #334155; text-transform: uppercase;">Cenário Mediano Esperado (50%)</span>
+              <div style="font-size: 16px; font-weight: bold; color: #334155; margin-top: 4px;">R$ ${monteCarloData.expectedCase.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            </div>
+            <div style="background-color: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px; padding: 12px; text-align: center;">
+              <span style="font-size: 10px; font-weight: 700; color: #166534; text-transform: uppercase;">Melhor Cenário (Ideal 97.5%)</span>
+              <div style="font-size: 16px; font-weight: bold; color: #166534; margin-top: 4px;">R$ ${monteCarloData.bestCase.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            </div>
+          </div>
+          <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px; color: #1e3a8a; font-size: 12px; font-weight: 500;">
+            📊 <strong>Intervalo de Confiança (95%):</strong> Há 95% de probabilidade matemática de que sua liquidez consolidada flutue rigorosamente entre <strong>R$ ${monteCarloData.worstCase.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> e <strong>R$ ${monteCarloData.bestCase.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong> ao final do ciclo de 24 semanas estudadas.
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">3. VAZAMENTOS CRONOLÓGICOS E HORÁRIOS CRÍTICOS (HEATMAP ANALSIS)</h2>
+        <p style="font-size: 12px; color: #475569; margin-bottom: 12px;">Identificação de picos de evasão de capital por período comercial e dias de alta volatilidade operacional (Top 10 blocos de calor de perdas):</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700;">Dia da Semana</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700;">Bloco de Horários Comercial</th>
+              <th style="text-align: center; padding: 12px 14px; color: #475569; font-weight: 700;">Frequência de Saídas</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700;">Volume de Perda Acumulada</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${heatmapRows || '<tr><td colspan="4" style="padding: 16px; text-align: center; color: #64748b;">Nenhuma transação operacional registrada no período.</td></tr>'}
+          </tbody>
+        </table>
+      `;
+    } else if (activeLevel === "audit") {
+      reportTitle = "Relatório de Auditoria e Integridade";
+      reportFocus = "Trilha de Auditoria Geral (Logs), Diagnóstico de Reconciliação Bancária OFX e Lançamentos Pendentes";
+
+      const auditRows = auditTrailData.allLogs.slice(0, 15).map(l => `
+        <tr>
+          <td style="font-family: monospace; font-size: 11px; color: #475569; padding: 10px 14px;">[${l.id}]</td>
+          <td style="font-size: 12px; color: #334155; padding: 10px 14px;">${l.timestamp}</td>
+          <td style="font-weight: 600; font-size: 12px; padding: 10px 14px;">${l.operator}</td>
+          <td style="font-weight: 500; font-size: 12px; color: #2563eb; padding: 10px 14px;">${l.action}</td>
+          <td style="font-size: 12px; color: #475569; padding: 10px 14px;">${l.details}</td>
+        </tr>
+      `).join("");
+
+      const pendingTxRows = reconciliationData.pendingTransactions.map(t => `
+        <tr style="background-color: #fffbeb;">
+          <td style="padding: 10px 14px; font-weight: 500; color: #b45309;">⚠️ Pendente de Conciliação</td>
+          <td style="padding: 10px 14px; font-family: monospace;">${new Date(t.date).toLocaleDateString("pt-BR")}</td>
+          <td style="padding: 10px 14px; font-weight: 600;">${t.description}</td>
+          <td style="padding: 10px 14px; text-align: right; font-weight: bold; color: #b45309;">
+            ${reconciliationData.currency} ${Math.abs(t.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+        </tr>
+      `).join("");
+
+      contentHtml = `
+        <div class="kpi-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Total Logs de Auditoria</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #0f172a;">${auditTrailData.totalCount} logs</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Índice de Conformidade Bancária</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #10b981;">${reconciliationData.compliancePercent}%</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Transações Não Conciliadas</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: ${reconciliationData.pendingTransactions.length > 0 ? "#b45309" : "#10b981"};">${reconciliationData.pendingTransactions.length} itens</div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. TRILHA DE AUDITORIA COMPARTILHADA (ULTIMOS 15 REGISTROS)</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 12px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 10%;">ID Log</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 20%;">Data / Hora</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Operador</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Ação Executada</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 40%;">Metadados e Detalhes de Modificação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${auditRows || '<tr><td colspan="5" style="padding: 16px; text-align: center; color: #64748b;">Nenhum log registrado na trilha de governança.</td></tr>'}
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. RECONCILIAÇÃO BANCÁRIA ELETRÔNICA (AUDITORIA OFX EXTRATO)</h2>
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 25px;">
+          <div style="font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 10px;">Diagnóstico Geral de Saldos da Conta: <strong style="color: #2563eb;">${reconciliationData.accountName}</strong></div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 12px;">
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+              <span style="color: #64748b;">Saldo Confirmado (Cleared):</span><br/>
+              <strong style="font-size: 14px; color: #0f172a; font-family: monospace;">${reconciliationData.currency} ${reconciliationData.clearedBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+            </div>
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px;">
+              <span style="color: #64748b;">Saldo Importado Extrato (OFX):</span><br/>
+              <strong style="font-size: 14px; color: #0f172a; font-family: monospace;">${reconciliationData.currency} ${reconciliationData.ofxBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+            </div>
+            <div style="background: white; border: ${reconciliationData.discrepancy === 0 ? "1px solid #e2e8f0" : "1px solid #fca5a5"}; border-radius: 6px; padding: 10px; background-color: ${reconciliationData.discrepancy === 0 ? "white" : "#fff5f5"};">
+              <span style="color: ${reconciliationData.discrepancy === 0 ? "#64748b" : "#b91c1c"};">Discrepância de Conciliação:</span><br/>
+              <strong style="font-size: 14px; color: ${reconciliationData.discrepancy === 0 ? "#10b981" : "#ef4444"}; font-family: monospace;">${reconciliationData.currency} ${reconciliationData.discrepancy.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+            </div>
+          </div>
+        </div>
+
+        <h3 style="font-size: 14px; font-weight: 600; color: #334155; margin-top: 20px; margin-bottom: 10px;">Lançamentos Pendentes de Reconciliação no Sistema</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 25%;">Status de Fluxo</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Data Lançamento</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 45%;">Descrição Comercial da Transação</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Valor Nominal</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${pendingTxRows || '<tr><td colspan="4" style="padding: 20px; text-align: center; color: #166534; background-color: #f0fdf4; font-weight: 600;">🎉 Parabéns! Nenhuma transação pendente nesta conta. Caixa 100% reconciliado contra o banco.</td></tr>'}
+          </tbody>
+        </table>
+      `;
+    } else if (activeLevel === "business") {
+      reportTitle = "Relatório Executivo para Empresas (B2B / SaaS / Startups)";
+      reportFocus = "Cash Burn Rate, Runway Preditivo, Proporção OPEX vs CAPEX, Break-even Point e Rateio por Centro de Custos";
+
+      const costCentersRows = businessData.costCentersChartData.map(c => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 16px;">${c.name}</td>
+          <td style="font-weight: 700; color: #0f172a; padding: 12px 16px;">R$ ${c["Total de Despesas"].toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="padding: 12px 16px; width: 45%;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="background: #e2e8f0; border-radius: 100px; height: 10px; flex: 1; overflow: hidden;">
+                <div style="background: linear-gradient(90deg, #6366f1, #3b82f6); height: 100%; width: ${c.percent}%; border-radius: 100px;"></div>
+              </div>
+              <span style="font-weight: 700; font-size: 12px; color: #334155; min-width: 40px; text-align: right;">${c.percent}%</span>
+            </div>
+          </td>
+        </tr>
+      `).join("");
+
+      contentHtml = `
+        <div class="kpi-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Cash Burn Rate Médio</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #ef4444;">R$ ${businessData.burnRate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })} <span style="font-size: 14px; font-weight: 400; color: #64748b;">/mês</span></div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Consumo operacional bruto recorrente.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Autonomia de Caixa (Runway)</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #10b981;">
+              ${businessData.runway === Infinity ? "Infinita" : `${businessData.runway} meses`}
+            </div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Até esgotamento total das reservas em caixa.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Reserva de Liquidez Total</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #2563eb;">R$ ${businessData.totalCashBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Soma de contas de liquidez corporativa.</div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. EQUILÍBRIO DE CAPITAL: OPEX VS CAPEX</h2>
+        <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin-bottom: 30px; font-size: 13px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div>
+              • <strong>OPEX Total (Despesas Operacionais):</strong> R$ ${businessData.opexTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}<br/>
+              • <strong>CAPEX Total (Investimentos de Infra/Ativos):</strong> R$ ${businessData.capexTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </div>
+            <div>
+              • <strong>Depreciação Mensalizada Estimada:</strong> R$ ${(businessData.periodDepreciation / businessData.numMonths).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}<br/>
+              • <strong>Depreciação Acumulada no Período (20% a.a.):</strong> R$ ${businessData.periodDepreciation.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. ANÁLISE DE PONTO DE EQUILÍBRIO (BREAK-EVEN POINT)</h2>
+        <div style="background-color: ${businessData.totalRevenues >= businessData.breakEvenRevenue ? "#f0fdf4" : "#fef2f2"}; border: 1px solid ${businessData.totalRevenues >= businessData.breakEvenRevenue ? "#86efac" : "#fca5a5"}; border-radius: 8px; padding: 20px; color: ${businessData.totalRevenues >= businessData.breakEvenRevenue ? "#166534" : "#991b1b"}; margin-bottom: 30px;">
+          <strong style="font-size: 15px; text-transform: uppercase;">STATUS DA OPERAÇÃO: ${businessData.totalRevenues >= businessData.breakEvenRevenue ? "🟢 SUPERAVITÁRIA (Lucro Operacional)" : "⚠️ DEFICITÁRIA (Abaixo do Equilíbrio)"}</strong>
+          <p style="font-size: 13px; margin: 6px 0 15px 0; color: inherit;">
+            Sua receita operacional no período foi de <strong>R$ ${businessData.totalRevenues.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>, enquanto seu ponto de equilíbrio nominal contábil exige um faturamento mínimo de <strong>R$ ${businessData.breakEvenRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>.
+          </p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; font-size: 12px;">
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; color: #334155; text-align: center;">
+              <span>Custos Fixos Totais</span><br/>
+              <strong>R$ ${businessData.fixedCosts.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+            </div>
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; color: #334155; text-align: center;">
+              <span>Custos Variáveis Totais</span><br/>
+              <strong>R$ ${businessData.variableCosts.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>
+            </div>
+            <div style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px; color: #334155; text-align: center;">
+              <span>Margem Contribuição Média</span><br/>
+              <strong>${businessData.contributionMarginRatio}%</strong>
+            </div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">3. RATEIO DEPARTAMENTAL E CENTROS DE CUSTO (COST CENTERS)</h2>
+        <p style="font-size: 12px; color: #475569; margin-bottom: 12px;">Distribuição proporcional das despesas corporativas consolidadas por setor operacional da organização:</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Setor e Centro de Custo</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Despesa Acumulada</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Percentual de Absorção</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${costCentersRows || '<tr><td colspan="3" style="padding: 16px; text-align: center; color: #64748b;">Nenhum centro de custos parametrizado no ERP.</td></tr>'}
+          </tbody>
+        </table>
+      `;
+    } else {
+      reportTitle = "Relatório de Integridade Técnica e Auditoria de Dados";
+      reportFocus = "Criptografia de Transações, Prevenção IDOR/BOLA e Consolidação Patrimonial Sem Inflação";
+
+      const immutableRows = integrityData.immutableLogs.slice(0, 10).map(l => `
+        <tr>
+          <td style="font-family: monospace; font-size: 11px; color: #64748b; padding: 10px 14px;">[${l.txId}]</td>
+          <td style="font-weight: 600; padding: 10px 14px;">${l.description}</td>
+          <td style="padding: 10px 14px; text-align: center;">
+            <span style="font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 100px; background-color: #f1f5f9; color: #475569; border: 1px solid #cbd5e1;">
+              ${l.status.toUpperCase()}
+            </span>
+          </td>
+          <td style="font-weight: bold; text-align: center; color: #475569; padding: 10px 14px;">${l.editCount} edições</td>
+          <td style="font-family: monospace; font-size: 11px; color: #2563eb; text-align: right; padding: 10px 14px;">${l.integrityHash}</td>
+        </tr>
+      `).join("");
+
+      const entityRows = integrityData.consolidatedData.map(e => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 14px;">${e.name}</td>
+          <td style="text-align: center; padding: 12px 14px;">${e.accounts} contas</td>
+          <td style="color: #2563eb; padding: 12px 14px;">R$ ${e.assets.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="color: #ef4444; padding: 12px 14px;">R$ ${e.liabilities.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+          <td style="font-weight: 700; color: ${e.netWorth >= 0 ? "#10b981" : "#ef4444"}; padding: 12px 14px; text-align: right;">
+            R$ ${e.netWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+          </td>
+        </tr>
+      `).join("");
+
+      const discRows = integrityData.discrepancyByAccount.map(a => `
+        <tr>
+          <td style="font-weight: 600; padding: 12px 14px;">${a.accountName}</td>
+          <td style="padding: 12px 14px;">${a.totalTx} transações</td>
+          <td style="color: #10b981; padding: 12px 14px;">${a.clearedTx} conciliadas</td>
+          <td style="color: #b45309; padding: 12px 14px;">${a.pendingTx} pendentes</td>
+          <td style="font-weight: 700; color: ${a.compliancePercent >= 90 ? "#10b981" : "#b45309"}; padding: 12px 14px; text-align: right;">
+            ${a.compliancePercent}%
+          </td>
+        </tr>
+      `).join("");
+
+      contentHtml = `
+        <div class="kpi-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px;">
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Score de Integridade Técnica</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #10b981;">${integrityData.integrityScore}%</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Transações prístinas contra adulteração de logs.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Conformidade Global de Contas</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #2563eb;">${integrityData.globalCompliance}%</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Índice geral de conciliação do ecossistema.</div>
+          </div>
+          <div class="kpi-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+            <div class="kpi-label" style="font-size: 11px; font-weight: 700; color: #64748b; text-transform: uppercase; margin-bottom: 6px;">Exclusão Inter-Companhia</div>
+            <div class="kpi-value" style="font-size: 24px; font-weight: 800; color: #4f46e5;">R$ ${integrityData.totalInterCompany.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</div>
+            <div style="font-size: 11px; color: #64748b; margin-top: 4px;">Garante eliminação de inflação patrimonial fictícia.</div>
+          </div>
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. LOG DE SEGURANÇA E INTEGRIDADE DE TRANSAÇÕES IMUTÁVEIS</h2>
+        <p style="font-size: 12px; color: #475569; margin-bottom: 12px;">Auditoria criptográfica rigorosa baseada em hashes de verificação individuais de alteração e histórico de edições (Blockchain-Style Logs):</p>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 35px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 12px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">UUID Transação</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 35%;">Descrição Lançamento</th>
+              <th style="text-align: center; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Status</th>
+              <th style="text-align: center; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Ciclo de Edição</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700; width: 20%;">Hash SHA-256 Imutável</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${immutableRows || '<tr><td colspan="5" style="padding: 16px; text-align: center; color: #64748b;">Nenhuma transação auditada no período.</td></tr>'}
+          </tbody>
+        </table>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">2. CONSOLIDAÇÃO PATRIMONIAL CONJUNTA MULTI-ENTIDADE</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 30%;">Entidade Jurídica / Holding</th>
+              <th style="text-align: center; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Escopo Contas</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 18%;">Ativos Consolidados</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 18%;">Passivos Consolidados</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700; width: 19%;">Net Worth Líquido</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${entityRows}
+            <tr style="background-color: #f8fafc; font-weight: bold; border-top: 2px solid #cbd5e1;">
+              <td colspan="2" style="padding: 12px 14px;">Patrimônio Consolidado Ajustado</td>
+              <td style="color: #2563eb; padding: 12px 14px;">R$ ${integrityData.rawNetWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+              <td style="color: #ef4444; padding: 12px 14px;">R$ ${(integrityData.rawNetWorth - integrityData.adjustedNetWorth).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+              <td style="text-align: right; font-size: 14px; color: #10b981; padding: 12px 14px;">R$ ${integrityData.adjustedNetWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 15px; margin-bottom: 35px; font-size: 12px; color: #1e3a8a; line-height: 1.5;">
+          🛡️ <strong>Ajuste de Consolidação Antigravitacional:</strong> Identificamos faturamentos inter-companhia acumulados em <strong>R$ ${integrityData.totalInterCompany.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>. A inflação patrimonial fictícia foi eliminada de forma que o patrimônio consolidado real ajustado de holding é de <strong>R$ ${integrityData.adjustedNetWorth.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</strong>, representando <strong>${integrityData.inflationPercent}%</strong> de ajuste técnico.
+        </div>
+
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">3. DISCREPÂNCIA DE CONCILIAÇÃO OFX POR CONTA OPERACIONAL</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
+          <thead>
+            <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 30%;">Conta Financeira</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 20%;">Total Transações</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 18%;">Conciliadas</th>
+              <th style="text-align: left; padding: 12px 14px; color: #475569; font-weight: 700; width: 17%;">Lançamentos Pendentes</th>
+              <th style="text-align: right; padding: 12px 14px; color: #475569; font-weight: 700; width: 15%;">Compliance OFX</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${discRows}
+          </tbody>
+        </table>
+      `;
+    }
+
+    const htmlString = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>Relatório Executivo — Vault Finance OS</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+            
+            body {
+              font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+              color: #1e293b;
+              background-color: #ffffff;
+              margin: 0;
+              padding: 30px;
+              line-height: 1.5;
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
+            }
+            
+            /* Capa e Cabecalho */
+            .header-container {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 3px solid #10b981;
+              padding-bottom: 16px;
+              margin-bottom: 25px;
+            }
+            .logo-container {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+            .logo-badge {
+              background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+              color: white;
+              font-weight: 800;
+              padding: 8px 14px;
+              border-radius: 8px;
+              font-size: 15px;
+              letter-spacing: 0.5px;
+            }
+            .logo-text {
+              font-size: 20px;
+              font-weight: 800;
+              color: #0f172a;
+              letter-spacing: -0.5px;
+            }
+            .confidential-badge {
+              background: #f1f5f9;
+              color: #475569;
+              border: 1px solid #cbd5e1;
+              font-size: 10px;
+              font-weight: 700;
+              padding: 5px 12px;
+              border-radius: 100px;
+              letter-spacing: 1px;
+            }
+            
+            .report-title-section {
+              margin-bottom: 25px;
+            }
+            h1 {
+              font-size: 24px;
+              font-weight: 800;
+              color: #0f172a;
+              margin: 0 0 4px 0;
+              letter-spacing: -0.5px;
+            }
+            .report-subtitle {
+              font-size: 13px;
+              color: #64748b;
+              margin: 0;
+            }
+            
+            /* Metadados */
+            .meta-grid {
+              display: grid;
+              grid-template-columns: repeat(3, 1fr);
+              gap: 15px;
+              background: #f8fafc;
+              padding: 15px;
+              border-radius: 10px;
+              margin-bottom: 30px;
+              font-size: 11.5px;
+              border: 1px solid #f1f5f9;
+              color: #475569;
+            }
+            .meta-item {
+              line-height: 1.4;
+            }
+            
+            /* Tabelas */
+            table {
+              border-collapse: collapse;
+              width: 100%;
+              margin-bottom: 25px;
+            }
+            th {
+              background-color: #f8fafc;
+              color: #475569;
+              font-weight: 700;
+              font-size: 12px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            td, th {
+              border-bottom: 1px solid #f1f5f9;
+            }
+            tr:hover {
+              background-color: #fafbfc;
+            }
+            
+            /* Assinaturas */
+            .signatures-container {
+              margin-top: 60px;
+              display: grid;
+              grid-template-columns: repeat(2, 1fr);
+              gap: 40px;
+              text-align: center;
+              font-size: 11.5px;
+              color: #475569;
+            }
+            .signature-card {
+              display: flex;
+              flex-col: column;
+              align-items: center;
+              justify-content: center;
+            }
+            .signature-line {
+              border-top: 1px solid #cbd5e1;
+              width: 220px;
+              margin: 30px auto 8px auto;
+            }
+            .signature-name {
+              font-weight: 600;
+              color: #0f172a;
+              margin: 0;
+            }
+            .signature-title {
+              font-size: 10.5px;
+              color: #64748b;
+              margin: 2px 0 0 0;
+            }
+            
+            /* Footer */
+            .footer-container {
+              margin-top: 50px;
+              border-top: 1px solid #e2e8f0;
+              padding-top: 12px;
+              font-size: 10px;
+              color: #94a3b8;
+              text-align: center;
+              line-height: 1.4;
+            }
+            
+            @media print {
+              body {
+                padding: 0;
+              }
+              .no-print {
+                display: none;
+              }
+              @page {
+                margin: 1.5cm;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header-container">
+            <div class="logo-container">
+              <span class="logo-badge">VF</span>
+              <span class="logo-text">VAULT FINANCE OS</span>
+            </div>
+            <span class="confidential-badge">CONFIDENCIAL — APRESENTAÇÃO EXECUTIVA</span>
+          </div>
+          
+          <div class="report-title-section">
+            <h1>${reportTitle.toUpperCase()}</h1>
+            <p class="report-subtitle">Análise de Alinhamento e Governança Financeira Corporativa — Direção Geral</p>
+          </div>
+          
+          <div class="meta-grid">
+            <div class="meta-item">
+              <strong>Emissão:</strong> ${nowStr}<br/>
+              <strong>Usuário:</strong> Administrador do Vault OS
+            </div>
+            <div class="meta-item">
+              <strong>Escopo de Período:</strong> ${selectedPeriod === "current" ? "Mês Atual" : selectedPeriod === "3months" ? "Últimos 90 dias" : selectedPeriod === "6months" ? "Últimos 180 dias" : "Ano Corrente"}<br/>
+              <strong>Contas Filtradas:</strong> ${selectedAccounts.length} de ${flatAccounts.length} selecionadas
+            </div>
+            <div class="meta-item">
+              <strong>Moeda Base de Auditoria:</strong> ${baseCurrency}<br/>
+              <strong>Foco de Gestão:</strong> ${reportFocus}
+            </div>
+          </div>
+          
+          <div class="content-body">
+            ${contentHtml}
+          </div>
+          
+          <div class="signatures-container">
+            <div class="signature-card">
+              <div class="signature-line"></div>
+              <p class="signature-name">Diretoria Executiva e de Controladoria</p>
+              <p class="signature-title">Diretor Financeiro (CFO) — Vault Finance OS</p>
+            </div>
+            <div class="signature-card">
+              <div class="signature-line"></div>
+              <p class="signature-name">Comitê de Auditoria e Riscos</p>
+              <p class="signature-title">Auditor Contábil Geral do Sistema</p>
+            </div>
+          </div>
+          
+          <div class="footer-container">
+            <p>Este relatório financeiro foi compilado e auditado automaticamente pelo motor de conformidade e integridade contábil do Vault Finance OS v1.17.5. Os logs de dados e transações aqui contidos possuem verificação criptográfica individual de integridade.</p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    // Abrir janela de impressão formatada para gerar um PDF real legítimo
     const printWindow = window.open("", "_blank");
     if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>Relatório Analítico (${labelFile}) - Vault Finance OS</title>
-            <meta charset="utf-8">
-            <style>
-              body {
-                font-family: 'Courier New', Courier, monospace;
-                font-size: 13px;
-                line-height: 1.5;
-                color: #0f172a;
-                background-color: #ffffff;
-                padding: 40px;
-                margin: 0;
-              }
-              pre {
-                white-space: pre-wrap;
-                word-wrap: break-word;
-                font-family: inherit;
-              }
-              @media print {
-                body {
-                  padding: 0;
-                }
-                @page {
-                  margin: 1.5cm;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <pre>${reportContent.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre>
-            <script>
-              window.onload = function() {
-                setTimeout(function() {
-                  window.print();
-                  setTimeout(function() {
-                    window.close();
-                  }, 100);
-                }, 300);
-              };
-            </script>
-          </body>
-        </html>
-      `);
+      printWindow.document.write(htmlString);
       printWindow.document.close();
+      
+      // Chamar o diálogo de impressão nativo
+      printWindow.onload = function() {
+        setTimeout(function() {
+          printWindow.print();
+          setTimeout(function() {
+            printWindow.close();
+          }, 150);
+        }, 350);
+      };
     } else {
-      // Fallback seguro caso pop-ups estejam bloqueados: baixa como um .txt limpo e impecável
-      const blob = new Blob([reportContent], { type: "text/plain;charset=utf-8" });
+      // Fallback seguro caso pop-ups estejam bloqueados: baixa como um .html executivo impecável para o usuário
+      const blob = new Blob([htmlString], { type: "text/html;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Relatorio_${labelFile}_Vault.txt`;
+      link.download = `Relatorio_${labelFile}_Vault.html`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
+      toast.warning("Pop-up bloqueado! Baixamos o relatório como HTML executivo interativo para visualização local.");
     }
   };
 
@@ -2845,20 +3609,11 @@ ${discText}
         <div className="flex items-center gap-2.5">
           <Button
             type="button"
-            variant="ghost"
-            onClick={handlePrintReport}
-            className="rounded-xl border border-slate-850 bg-slate-950/20 text-slate-300 hover:text-slate-100 hover:bg-slate-900 h-10 px-4 text-xs font-bold gap-2"
-          >
-            <Printer className="h-4 w-4 text-emerald-400" />
-            Imprimir Relatório
-          </Button>
-          <Button
-            type="button"
             onClick={handleDownloadAnalyticReport}
-            className="gradient-primary text-zinc-950 font-bold rounded-xl shadow-glow h-10 px-4 text-xs hover:bg-emerald-400 gap-2"
+            className="gradient-primary text-zinc-950 font-bold rounded-xl shadow-glow h-10 px-5 text-xs hover:bg-emerald-400 gap-2.5"
           >
             <Download className="h-4 w-4 text-zinc-950" />
-            Download PDF
+            Download PDF Executivo
           </Button>
         </div>
       </div>

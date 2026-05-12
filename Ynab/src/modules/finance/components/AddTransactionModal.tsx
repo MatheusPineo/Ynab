@@ -107,11 +107,16 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   // Buscar sugestões de transações anteriores
   const getSuggestions = () => {
     if (!description || description.trim().length === 0) return [];
+    if (!Array.isArray(transactions)) {
+      console.warn("⚠️ transactions não é um array válido dentro do AddTransactionModal:", transactions);
+      return [];
+    }
     
     const term = description.toLowerCase();
     
     const matching = transactions.filter(t => 
-      t.description && 
+      t &&
+      typeof t.description === "string" && 
       t.description.toLowerCase().includes(term) &&
       !t.transfer_group
     );
@@ -120,9 +125,11 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     
     // Pegar as ocorrências mais recentes (fim do array para o início)
     [...matching].reverse().forEach(t => {
-      const descKey = t.description.trim();
-      if (!uniqueMap.has(descKey)) {
-        uniqueMap.set(descKey, t);
+      if (t && typeof t.description === "string") {
+        const descKey = t.description.trim();
+        if (!uniqueMap.has(descKey)) {
+          uniqueMap.set(descKey, t);
+        }
       }
     });
     

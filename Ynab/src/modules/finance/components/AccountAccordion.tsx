@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Plus, GripVertical, Gauge, Move, ArrowDownAZ } from "lucide-react";
+import { ChevronRight, Plus, GripVertical, Gauge, Move, ArrowDownAZ, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import {
   type AccountNode,
@@ -49,9 +49,11 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
   const currency = nodeCurrency(node, parentCurrency);
   const hasChildren = !!node.children?.length;
   const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
 
   const total = sumNode(node);
   const isMaster = depth === 0;
+  const isExcluded = !!node.exclude_from_totals;
 
   const { updateNode, tree } = useAccountStore();
 
@@ -166,6 +168,7 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
           hasChildren ? "px-3 sm:px-4 py-3 sm:py-4 border-b border-border/40" : "px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl border border-border/50 shadow-sm", // Papel vs Topo de Pasta
           hasChildren && "hover:bg-muted/60 cursor-pointer",
           !hasChildren && "hover:bg-muted/40 cursor-pointer",
+          isExcluded && "border-l-4 border-l-purple-500/70 bg-purple-950/5 hover:bg-purple-950/10",
           "[--pad-base:6px] [--pad-indent:4px] sm:[--pad-base:12px] sm:[--pad-indent:8px]"
         )}
         style={{ paddingLeft: `calc(var(--pad-base) + ${depth} * var(--pad-indent))` }}
@@ -198,15 +201,18 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         )}
 
         {/* Icon or Currency badge */}
-        {node.icon_url ? (
-          <div className="shrink-0 h-8 w-8 rounded-full overflow-hidden border border-border/40 shadow-sm bg-background/50 flex items-center justify-center">
+        {(node.icon_url && !imageError) ? (
+          <div className={cn(
+            "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-background/50 flex items-center justify-center",
+            isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
+          )}>
             <img 
               src={node.icon_url} 
               alt="" 
               className="h-full w-full object-cover" 
-              onError={(e) => {
-                console.error("❌ Erro ao carregar imagem:", node.icon_url);
-                (e.target as any).style.display = 'none';
+              onError={() => {
+                console.warn("❌ Erro ao carregar imagem, aplicando fallback de moeda:", node.icon_url);
+                setImageError(true);
               }}
             />
           </div>
@@ -214,9 +220,11 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
           <span
             className={cn(
               "shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold tabular",
-              isMaster || hasChildren
-                ? "gradient-primary text-primary-foreground shadow-glow"
-                : "bg-secondary/15 text-secondary border border-secondary/20",
+              isExcluded
+                ? "bg-purple-950/50 text-purple-400 border border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.2)]"
+                : (isMaster || hasChildren
+                  ? "gradient-primary text-primary-foreground shadow-glow"
+                  : "bg-secondary/15 text-secondary border border-secondary/20")
             )}
             title={currency}
           >
@@ -227,11 +235,21 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         {/* Name */}
         <span
           className={cn(
-            "min-w-0 truncate",
+            "min-w-0 truncate flex items-center gap-1.5 sm:gap-2",
             isMaster ? "text-base font-semibold text-foreground" : "text-sm text-foreground/90",
+            isExcluded && "text-foreground/75 italic"
           )}
         >
-          {node.name}
+          <span className="truncate">{node.name}</span>
+          {isExcluded && (
+            <span 
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/25 select-none"
+              title="Este saldo e suas subcontas foram desconsiderados na somatória dos totais globais."
+            >
+              <EyeOff className="h-2.5 w-2.5 text-purple-400 shrink-0" />
+              Fora da Soma
+            </span>
+          )}
         </span>
 
         {/* Indicator for ceiling/limit */}
@@ -282,8 +300,11 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
           className={cn(
             "shrink-0 tabular tracking-tight mr-2",
             isMaster ? "text-base font-bold" : "text-sm font-medium",
-            total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85")
+            isExcluded
+              ? "text-purple-300/60"
+              : (total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
           )}
+          title={isExcluded ? "Este saldo está desconsiderado do cálculo total." : undefined}
         >
           {formatMoney(total, currency)}
         </span>
