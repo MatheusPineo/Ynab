@@ -1,35 +1,21 @@
-import { useState, useMemo, useEffect } from "react";
-import { NetWorthHeader } from "@/modules/finance/components/NetWorthHeader";
+import { useEffect } from "react";
 import { AccountAccordion } from "@/modules/finance/components/AccountAccordion";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
-import { useCurrencyStore, type Currency } from "@/modules/finance/store/useCurrencyStore";
+import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { AddRootAccountModal } from "@/modules/finance/components/AddRootAccountModal";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
 const Accounts = () => {
   const { tree, fetchAccounts } = useAccountStore();
-  const { fetchRates, convert, isLoading, baseCurrency, setBaseCurrency } = useCurrencyStore();
-
+  const { fetchRates, isLoading } = useCurrencyStore();
 
   useEffect(() => {
     fetchRates();
     fetchAccounts();
   }, [fetchAccounts, fetchRates]);
 
-  // Recalculate net worth using real-time rates from store
-  const total = useMemo(() => {
-    const totalsByCur = useAccountStore.getState().totalsByCurrency(tree);
-
-    return (Object.entries(totalsByCur) as [Currency, number][]).reduce(
-      (acc, [cur, amount]) => acc + convert(amount, cur, baseCurrency),
-      0,
-    );
-  }, [tree, baseCurrency, convert]);
-
   return (
     <>
-      <NetWorthHeader base={baseCurrency} onBaseChange={setBaseCurrency} customTotal={total} />
-
       {/* Section header */}
       <div className="flex items-center justify-between gap-4 mt-2">
         <div className="flex-1 min-w-0">

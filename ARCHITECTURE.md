@@ -807,3 +807,31 @@ A view `SubmitSupportTicketView` processa os payloads recebidos via `multipart/f
 1. **Roteamento Assíncrono / Tratamento de Falhas (Silencing):** O envio de e-mails via `EmailMultiAlternatives` é encapsulado em bloco `try/except`. Caso ocorra qualquer instabilidade no servidor SMTP ou falta de credenciais reais em ambiente sandbox, a requisição do cliente **não é interrompida**: o chamado é gravado com sucesso no banco de dados e o ID exclusivo de protocolo (`VT-XXXXX`) é retornado ao cliente.
 2. **Layout Responsivo HTML:** O e-mail de notificação enviado para `matheuskrx@gmail.com` conta com uma folha de estilos limpa em tons de cinza-escuro e verde-esmeralda (#10b981), renderizando as tabelas cadastrais e a lista de telemetria diagnóstica.
 3. **Anexo de Arquivos Físicos:** Se o usuário anexou imagens (PNG, JPEG, WEBP) ou PDFs, o barramento de e-mail lê os dados binários reais (`attachment.read()`) e os acopla diretamente como anexo do e-mail de notificação.
+
+---
+
+## 10. Módulo de Dashboard Premium e Eliminação de Redundâncias (v1.21.0)
+
+A evolução do painel principal para a versão de Alta Fidelidade consagra a centralização visual e o controle absoluto do patrimônio líquido da aplicação em um ponto único e majestoso:
+
+```mermaid
+graph TD
+    subgraph Camada do Dashboard Principal
+        NetWorth[NetWorthHeader.tsx: Seletor de Moedas & Câmbio]
+        HeroStats[Hero Stats: 3 Cards Mensais de Fluxo]
+        Chart[Gráfico de Área de Evolução de Saldo]
+        Widgets[DashboardWidgets.tsx: Biblioteca Modular Customizável]
+    end
+    NetWorth -->|Controla Store| useCurrencyStore[Zustand: useCurrencyStore]
+    HeroStats -->|Consome Transações| useAccountStore[Zustand: useAccountStore]
+```
+
+### 10.1 Centralização do Painel de Patrimônio e Moedas
+Para eliminar redundâncias visuais e de processamento de dados na interface:
+* **Remoção de Duplicatas em Contas:** O componente `NetWorthHeader` (que antes era duplicado na aba de Contas e causava poluição cognitiva) foi transferido para ser a peça central exclusiva do topo do `Dashboard.tsx`.
+* **Governança de Moedas no Topo:** A seleção da Moeda Base do aplicativo (Euro, Real ou Dólar) e o breakdown cambial instantâneo de sub-saldos acontecem no primeiro elemento com o qual o usuário interage.
+
+### 10.2 Biblioteca de Widgets Customizável
+O rodapé do Dashboard conta com um módulo altamente coeso e independente (`DashboardWidgets.tsx`):
+* **Persistência de Layout:** As preferências de ativação e ordenação de widgets (como Ações Rápidas, Distribuição de Gastos, Fluxo Semanal, Top Contas, Resumo de Dívidas e Mapa de Calor) são salvas instantaneamente em `localStorage` sob a chave `vault_dashboard_widgets`.
+* **Renderização Condicional Pura:** Se um widget for desmarcado no menu de customização, sua árvore de componentes é totalmente expurgada da DOM, preservando memória e ciclos de renderização do React.

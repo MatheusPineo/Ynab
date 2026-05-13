@@ -124,7 +124,7 @@ Para verificar quais partes do código Django não estão cobertas por testes, u
 
 ## 3. Testes do Frontend (React + Vitest)
 
-O frontend adota o **Vitest** (executor de testes integrado ao Vite, extremamente veloz) e o **React Testing Library** para validação de fluxos de renderização e reatividade de dados.
+O frontend adota o **Vitest** (executor de testes integrado ao Vite, extremamente veloz) e o **React Testing Library** para validação de fluxos de renderização e reatividade de dados. Atualmente a suíte conta com **30 de 30 testes passando no verde**, incluindo a blindagem da página de Cartões de Crédito (`CreditCards.test.tsx`) e modais de transação.
 
 ### A. Como Mockar Chamadas de Rede da API
 

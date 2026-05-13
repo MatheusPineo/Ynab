@@ -28,8 +28,12 @@ import {
 import { format, parseISO, isValid } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import { NetWorthHeader } from "@/modules/finance/components/NetWorthHeader";
+import { AddTransactionModal } from "@/modules/finance/components/AddTransactionModal";
 import { cn } from "@/shared/lib/utils";
 import { PullToRefresh } from "@/shared/components/dashboard/PullToRefresh";
+import { DashboardWidgets } from "@/modules/finance/components/DashboardWidgets";
+import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 
 const COLORS = [
   "#8b5cf6",
@@ -69,7 +73,7 @@ const CustomTooltip = ({ active, payload, label, baseCurrency }: any) => {
 
 const Dashboard = () => {
   const { fetchAccounts, fetchGoals, tree, getHistory, transactions, goals, updateTransaction } = useAccountStore();
-  const { fetchRates, convert, baseCurrency } = useCurrencyStore();
+  const { fetchRates, convert, baseCurrency, setBaseCurrency } = useCurrencyStore();
 
   useEffect(() => {
     fetchAccounts();
@@ -196,23 +200,42 @@ const Dashboard = () => {
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="flex flex-col gap-4 sm:gap-6 pb-10 animate-in fade-in duration-500">
 
-      {/* ── HEADER ─────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* ── PAINEL CENTRAL DE PATRIMÔNIO & CÂMBIO ──────────── */}
+      <div className="relative">
+        <NetWorthHeader base={baseCurrency} onBaseChange={setBaseCurrency} customTotal={netWorth} />
+        <div className="absolute top-4 right-4 sm:top-8 sm:right-8 z-10 hidden sm:block">
+          <AddTransactionModal>
+            <Button className="gradient-primary text-primary-foreground rounded-xl shadow-glow hover:scale-[1.03] transition-transform h-10 px-5">
+              <Plus className="h-4 w-4 mr-1.5" strokeWidth={2.5} />
+              Nova Transação
+            </Button>
+          </AddTransactionModal>
+        </div>
+      </div>
+
+      {/* ── HEADER DE VISÃO GERAL ──────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
             <span className="text-xs font-medium text-primary uppercase tracking-widest">
-              Visão Geral
+              Desempenho Mensal
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground capitalize">
+          <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground capitalize">
             {monthName}
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            Acompanhe a saúde financeira do seu portfólio.
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Acompanhe o fluxo de caixa, receitas e despesas efetivadas no período.
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <AddTransactionModal>
+            <Button className="gradient-primary text-primary-foreground rounded-xl shadow-glow hover:scale-[1.03] transition-transform h-9 sm:hidden">
+              <Plus className="h-4 w-4 mr-1" strokeWidth={2.5} />
+              Nova Transação
+            </Button>
+          </AddTransactionModal>
           <Button asChild variant="outline" className="glass border-border/60 rounded-xl text-sm h-9">
             <Link to="/transactions" className="flex items-center gap-2">
               <span className="hidden sm:inline">Ver Transações</span>
@@ -223,27 +246,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* ── HERO STATS ROW ─────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-
-        {/* Patrimônio */}
-        <div className="lg:col-span-1 relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card/60 to-card/30 backdrop-blur-sm p-5 shadow-soft group hover:shadow-glow hover:border-primary/40 transition-all duration-300">
-          <div className="absolute top-0 right-0 h-32 w-32 rounded-full bg-primary/5 -translate-y-8 translate-x-8 group-hover:bg-primary/10 transition-colors" />
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-3">
-            <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center">
-              <Wallet className="h-3.5 w-3.5 text-primary" />
-            </div>
-            <span>Patrimônio Total</span>
-            <HelpTooltip content="O somatório de tudo o que você possui (saldo positivo) menos o que você deve." side="right" />
-          </div>
-          <p className={cn(
-            "text-2xl font-bold leading-none",
-            netWorth < 0 ? "text-rose-500" : "text-foreground"
-          )}>
-            {formatMoney(netWorth, baseCurrency)}
-          </p>
-          <p className="text-xs text-muted-foreground mt-2">Em {baseCurrency}</p>
-        </div>
+      {/* ── HERO STATS ROW (3 CARDS) ───────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
 
         {/* Receitas */}
         <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-card/60 to-card/30 backdrop-blur-sm p-5 shadow-soft group hover:border-emerald-500/40 transition-all duration-300">
@@ -674,6 +678,9 @@ const Dashboard = () => {
           )}
         </div>
       </div>
+
+      {/* ── CUSTOMIZABLE WIDGETS ──────────────────────────── */}
+      <DashboardWidgets />
       </div>
     </PullToRefresh>
   );

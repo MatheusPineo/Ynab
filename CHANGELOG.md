@@ -6,6 +6,22 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.21.0] — 2026-05-14
+
+Esta versão consagra a **Substituição e Evolução do Dashboard Principal para o Design Premium de Alta Fidelidade** no Vault Finance OS, aliada a uma cirúrgica otimização arquitetural para eliminação de redundâncias visuais e de dados entre o cabeçalho e as telas.
+
+### Adicionado / Refatorado
+* **Fusão Definitiva do Painel Central de Patrimônio (`Dashboard.tsx` & `Accounts.tsx`):**
+  - **Zero Redundância:** Remoção do card de Patrimônio Total Líquido que ocupava espaço no topo da página de Contas e sua fusão e migração como peça central exclusiva e majestosa no topo do Dashboard.
+  - **Eliminação de Saudações Repetidas:** Remoção do *Hero Greeting* do Dashboard que repetia a saudação de bom dia e a data já existentes no `Topbar` global, mantendo a interface hiper-limpa e focada.
+  - **Cards Mensais Otimizados (3 Cards):** O antigo card redundante de "Patrimônio Total" da fileira inferior foi eliminado. A grade agora se expande de forma harmoniosa com 3 cards de fluxo mensal: `Receitas`, `Despesas` e `Balanço do Mês (com Taxa de Poupança)`.
+* **Biblioteca de Widgets Customizável:** Painel inferior modular permitindo ativar, desativar e reorganizar instantaneamente cards de Ações Rápidas, Distribuição de Gastos, Fluxo Semanal, Top Contas, Resumo de Dívidas e Mapa de Calor de Atividades.
+
+### Removido
+* **Pruning de Pastas Temporárias de Protótipo:** Remoção completa e limpa da pasta de protótipo `111111111111drag-track-money-main` do repositório para assegurar a máxima organização e limpeza do projeto.
+
+---
+
 ## [1.20.0] — 2026-05-13
 
 Esta versão traz a implantação do **Módulo de Cartões de Crédito e Integração YNAB**, projetado para gerenciar compras rotativas e parcelamentos brasileiros com cálculo exato de faturas e reservas automáticas de liquidez para quitação.
@@ -255,7 +271,7 @@ Esta versão consagra a **Redecoração Visual de Luxo da Central de Ajuda e Sup
 
 ## [1.17.0] — 2026-05-12
 
-Esta versão realiza a **Modularização de Alta Fidelidade da Aba de Assinaturas e Planos** no Vault Finance OS. Extraído diretamente do escopo de simulações do Lovable, o ecossistema agora gerencia e valida de forma isolada os planos e simulações de faturamento (Stripe, Apple App Store, Google Play Store), integrando visualizações dinâmicas de consumo de limites gratuitos, histórico de recibos para download e benefícios corporativos Pro através de um componente autônomo de alta coesão (`SubscriptionPanel`).
+Esta versão realiza a **Modularização de Alta Fidelidade da Aba de Assinaturas e Planos** no Vault Finance OS. Extraído diretamente do escopo de simulações e protótipos de alta fidelidade, o ecossistema agora gerencia e valida de forma isolada os planos e simulações de faturamento (Stripe, Apple App Store, Google Play Store), integrando visualizações dinâmicas de consumo de limites gratuitos, histórico de recibos para download e benefícios corporativos Pro através de um componente autônomo de alta coesão (`SubscriptionPanel`).
 
 ### Adicionado
 * **Componente Modularizado SubscriptionPanel:**
