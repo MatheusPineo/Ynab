@@ -19,6 +19,7 @@ import AccountDetails from "@/modules/finance/pages/AccountDetails";
 import Debts from "@/modules/finance/pages/Debts";
 import Rule503020 from "@/modules/finance/pages/Rule503020";
 import Reports from "@/modules/finance/pages/Reports";
+import CreditCards from "@/modules/finance/pages/CreditCards";
 import Auth from "@/modules/auth/pages/Auth";
 import Landing from "@/modules/auth/pages/Landing";
 import NotFound from "@/modules/auth/pages/NotFound";
@@ -129,6 +130,7 @@ const App = () => {
                 <Route path="insights" element={<FeatureProtectedRoute featureKey="insights"><Insights /></FeatureProtectedRoute>} />
                 <Route path="reports" element={<FeatureProtectedRoute featureKey="insights"><Reports /></FeatureProtectedRoute>} />
                 <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
+                <Route path="credit-cards" element={<FeatureProtectedRoute featureKey="credit_cards"><CreditCards /></FeatureProtectedRoute>} />
                 <Route 
                   path="settings" 
                   element={

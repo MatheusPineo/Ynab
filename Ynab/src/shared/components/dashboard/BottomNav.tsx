@@ -11,6 +11,7 @@ import {
   Settings as SettingsIcon,
   Handshake,
   Scale,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useState } from "react";
@@ -32,7 +33,8 @@ const primaryNavItems = [
 ];
 
 const moreNavItems = [
-  { icon: Scale, key: "rule503020", to: "/rule-503020" },
+  { icon: Scale, key: "rule503020", to: "/rule503020" },
+  { icon: CreditCard, key: "credit_cards", to: "/credit-cards" },
   { icon: Handshake, key: "debts", to: "/debts" },
   { icon: Target, key: "goals", to: "/goals" },
   { icon: Sparkles, key: "insights", to: "/insights" },

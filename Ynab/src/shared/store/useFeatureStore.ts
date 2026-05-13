@@ -10,6 +10,7 @@ export interface EnabledFeatures {
   goals: boolean;
   insights: boolean;
   rule503020: boolean;
+  credit_cards: boolean;
   
   // Relatórios Opcionais (v1.17.3)
   report_beginner: boolean;
@@ -38,6 +39,7 @@ const defaultFeatures: EnabledFeatures = {
   goals: true,
   insights: true,
   rule503020: true,
+  credit_cards: true,
   
   // Relatórios Opcionais (v1.17.3)
   report_beginner: true,

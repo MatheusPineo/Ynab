@@ -131,3 +131,57 @@ class DebtSerializer(serializers.ModelSerializer):
         total_paid = sum(p.amount for p in obj.payments.all())
         remaining = obj.original_amount - total_paid
         return float(max(remaining, Decimal('0.00')))
+
+from .models import CreditCard, CreditCardBill, CreditCardTransaction, Installment, Account
+
+class CreditCardSerializer(serializers.ModelSerializer):
+    name = serializers.SerializerMethodField()
+    currency = serializers.SerializerMethodField()
+    account_id = serializers.IntegerField(source='account.id', read_only=True)
+    available_limit = serializers.SerializerMethodField()
+    account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all(), required=False, allow_null=True)
+    
+    class Meta:
+        model = CreditCard
+        fields = ['id', 'name', 'closing_day', 'due_day', 'credit_limit', 'available_limit', 'currency', 'account_id', 'account']
+
+    def get_name(self, obj):
+        return obj.account.name if obj.account else "Cartão"
+
+    def get_currency(self, obj):
+        return obj.account.currency if obj.account else "BRL"
+
+    def get_available_limit(self, obj):
+        from decimal import Decimal
+        total_used = sum(
+            i.amount for bill in obj.bills.filter(is_paid=False) 
+            for i in bill.installments.filter(status__in=['pending', 'posted'])
+        )
+        return float(max(obj.credit_limit - total_used, Decimal('0.00')))
+
+class InstallmentSerializer(serializers.ModelSerializer):
+    description = serializers.CharField(source='transaction.description', read_only=True)
+    total_installments = serializers.IntegerField(source='transaction.installment_count', read_only=True)
+    
+    class Meta:
+        model = Installment
+        fields = '__all__'
+
+class CreditCardBillSerializer(serializers.ModelSerializer):
+    installments = InstallmentSerializer(many=True, read_only=True)
+    total_amount = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = CreditCardBill
+        fields = '__all__'
+        
+    def get_total_amount(self, obj):
+        total = sum(i.amount for i in obj.installments.all())
+        return float(total)
+
+class CreditCardTransactionSerializer(serializers.ModelSerializer):
+    installments = InstallmentSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = CreditCardTransaction
+        fields = '__all__'

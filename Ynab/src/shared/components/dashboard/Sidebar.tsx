@@ -15,7 +15,8 @@ import {
   Handshake,
   Scale,
   HelpCircle,
-  BarChart3
+  BarChart3,
+  CreditCard
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
@@ -35,9 +36,10 @@ import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 const navItems = [
   { icon: LayoutDashboard, key: "dashboard", to: "/dashboard" },
   { icon: Wallet, key: "accounts", to: "/accounts" },
+  { icon: CreditCard, key: "credit_cards", featureKey: "credit_cards", to: "/credit-cards" },
   { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
   { icon: PieChart, key: "budget", to: "/budget" },
-  { icon: Scale, key: "rule503020", to: "/rule-503020" },
+  { icon: Scale, key: "rule503020", to: "/rule503020" },
   { icon: Handshake, key: "debts", to: "/debts" },
   { icon: Target, key: "goals", to: "/goals" },
   { icon: Sparkles, key: "insights", to: "/insights" },

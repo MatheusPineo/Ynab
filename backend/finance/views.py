@@ -1217,3 +1217,124 @@ class ResetDataView(APIView):
         Category.objects.filter(user=user).delete()
         
         return Response({"message": "Todos os seus dados financeiros foram excluídos com sucesso. Você pode recomeçar do zero agora!"}, status=status.HTTP_200_OK)
+
+from .models import CreditCard, CreditCardBill, CreditCardTransaction, Installment
+from .serializers import CreditCardSerializer, CreditCardBillSerializer, CreditCardTransactionSerializer, InstallmentSerializer
+from .services import process_credit_card_transaction
+
+class CreditCardViewSet(viewsets.ModelViewSet):
+    serializer_class = CreditCardSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return CreditCard.objects.filter(account__user=self.request.user)
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        if 'account' not in data or not data['account']:
+            name = data.get('name', 'Cartão de Crédito')
+            currency = data.get('currency', 'BRL')
+            account = Account.objects.create(
+                user=request.user,
+                name=name,
+                account_type='credit_card',
+                currency=currency,
+                balance=Decimal('0.00')
+            )
+            data['account'] = account.id
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @extend_schema(
+        summary="Retorna as faturas de um cartão de crédito específico",
+        description="Lista todas as faturas geradas para o cartão informado, incluindo suas respectivas parcelas e montante total.",
+        responses={200: CreditCardBillSerializer(many=True)}
+    )
+    @action(detail=True, methods=['get'])
+    def bills(self, request, pk=None):
+        card = self.get_object()
+        bills_qs = CreditCardBill.objects.filter(credit_card=card).order_by('-year', '-month')
+        serializer = CreditCardBillSerializer(bills_qs, many=True)
+        return Response(serializer.data)
+
+    @extend_schema(
+        summary="Cadastra uma nova compra no cartão (Compra Matriz)",
+        description="Lança uma transação no cartão, calculando automaticamente as faturas e datas com base no dia de fechamento (closing_day) e alocando as parcelas e reservas no YNAB.",
+        request=inline_serializer(
+            name="CreateCreditCardTransactionRequest",
+            fields={
+                "description": serializers.CharField(help_text="Descrição da compra."),
+                "date": serializers.DateField(help_text="Data da transação."),
+                "total_amount": serializers.DecimalField(max_digits=12, decimal_places=2, help_text="Valor total."),
+                "category_id": serializers.IntegerField(required=False, allow_null=True, help_text="ID da Categoria."),
+                "installment_count": serializers.IntegerField(default=1, help_text="Número de parcelas."),
+                "original_currency": serializers.CharField(default='BRL', help_text="Moeda original da transação."),
+                "original_amount": serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True),
+                "exchange_rate": serializers.DecimalField(max_digits=10, decimal_places=4, default=1.0000, help_text="Taxa de conversão / Spread."),
+                "iof_amount": serializers.DecimalField(max_digits=12, decimal_places=2, default=0.00, help_text="IOF adicionado.")
+            }
+        ),
+        responses={201: CreditCardTransactionSerializer()}
+    )
+    @action(detail=True, methods=['post'])
+    def create_transaction(self, request, pk=None):
+        card = self.get_object()
+        data = request.data
+        
+        try:
+            date_tx = datetime.strptime(data['date'], '%Y-%m-%d').date()
+            matrix_tx, _ = process_credit_card_transaction(
+                credit_card_id=card.id,
+                description=data['description'],
+                date_tx=date_tx,
+                total_amount=Decimal(str(data['total_amount'])),
+                category_id=data.get('category_id'),
+                installment_count=int(data.get('installment_count', 1)),
+                original_currency=data.get('original_currency', 'BRL'),
+                original_amount=Decimal(str(data['original_amount'])) if data.get('original_amount') else None,
+                exchange_rate=Decimal(str(data.get('exchange_rate', '1.0000'))),
+                iof_amount=Decimal(str(data.get('iof_amount', '0.00')))
+            )
+            serializer = CreditCardTransactionSerializer(matrix_tx)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
+        summary="Antecipa uma parcela futura de cartão de crédito",
+        description="Marca uma parcela futura como antecipada ('anticipated'), trazendo o saldo para a fatura aberta do mês atual.",
+        request=inline_serializer(
+            name="AnticipateInstallmentRequest",
+            fields={"installment_id": serializers.IntegerField(help_text="ID da parcela a ser antecipada.")}
+        ),
+        responses={
+            200: inline_serializer(
+                name="AnticipateInstallmentSuccess",
+                fields={"message": serializers.CharField()}
+            ),
+            400: inline_serializer(
+                name="AnticipateInstallmentError",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
+    @action(detail=True, methods=['post'])
+    @transaction.atomic
+    def anticipate_installment(self, request, pk=None):
+        card = self.get_object()
+        installment_id = request.data.get('installment_id')
+        
+        try:
+            inst = Installment.objects.get(id=installment_id, transaction__credit_card=card)
+            if inst.status in ['paid', 'anticipated']:
+                return Response({'error': 'Parcela já paga ou antecipada.'}, status=status.HTTP_400_BAD_REQUEST)
+                
+            inst.status = 'anticipated'
+            inst.save()
+            return Response({'message': f'Parcela {inst.number} antecipada com sucesso.'})
+        except Installment.DoesNotExist:
+            return Response({'error': 'Parcela não encontrada.'}, status=status.HTTP_404_NOT_FOUND)

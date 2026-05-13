@@ -157,3 +157,81 @@ class DebtPayment(models.Model):
 
     def __str__(self):
         return f"Pagamento de {self.amount} em {self.date} - {self.debt.counterparty_name}"
+
+
+class CreditCard(models.Model):
+    account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='credit_card_config')
+    closing_day = models.PositiveSmallIntegerField()  # 1-31
+    due_day = models.PositiveSmallIntegerField()      # 1-31
+    credit_limit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+
+    class Meta:
+        db_table = 'core_creditcard'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"Cartão {self.account.name} (Fechamento: {self.closing_day}, Vencimento: {self.due_day})"
+
+
+class CreditCardBill(models.Model):
+    credit_card = models.ForeignKey(CreditCard, on_delete=models.CASCADE, related_name='bills')
+    month = models.PositiveSmallIntegerField()
+    year = models.PositiveSmallIntegerField()
+    is_closed = models.BooleanField(default=False)
+    is_paid = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'core_creditcardbill'
+        unique_together = ('credit_card', 'month', 'year')
+        app_label = 'core'
+
+    def __str__(self):
+        status = "Fechada" if self.is_closed else "Aberta"
+        return f"Fatura {self.month}/{self.year} - {self.credit_card.account.name} ({status})"
+
+
+class CreditCardTransaction(models.Model):
+    credit_card = models.ForeignKey(CreditCard, on_delete=models.CASCADE, related_name='matrix_transactions')
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='credit_card_transactions')
+    description = models.CharField(max_length=255)
+    date = models.DateField()
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    installment_count = models.PositiveSmallIntegerField(default=1)
+    
+    # Suporte Multi-moeda e Spread
+    original_currency = models.CharField(max_length=3, default='BRL')
+    original_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    exchange_rate = models.DecimalField(max_digits=10, decimal_places=4, default=1.0000)
+    iof_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_creditcardtransaction'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"Compra Matriz: {self.description} ({self.total_amount} em {self.installment_count}x)"
+
+
+class Installment(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pendente'),
+        ('posted', 'Lançada'),
+        ('paid', 'Paga'),
+        ('anticipated', 'Antecipada'),
+    ]
+
+    transaction = models.ForeignKey(CreditCardTransaction, on_delete=models.CASCADE, related_name='installments')
+    bill = models.ForeignKey(CreditCardBill, on_delete=models.CASCADE, related_name='installments')
+    number = models.PositiveSmallIntegerField()
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+
+    class Meta:
+        db_table = 'core_installment'
+        unique_together = ('transaction', 'number')
+        app_label = 'core'
+
+    def __str__(self):
+        return f"Parcela {self.number}/{self.transaction.installment_count} - {self.transaction.description} ({self.amount})"

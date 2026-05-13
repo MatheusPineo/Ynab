@@ -9,6 +9,7 @@
     "insights": "Insights",
     "reports": "Relatórios",
     "rule503020": "Regra 50-30-20",
+    "credit_cards": "Cartões de Crédito",
     "settings": "Configurações",
     "help": "Ajuda e Suporte"
   },
@@ -22,6 +23,7 @@
     "insights": "Relatórios inteligentes sobre seus hábitos financeiros.",
     "reports": "Análises e relatórios interativos sobre sua saúde financeira.",
     "rule503020": "Organize sua renda pela técnica 50-30-20: Necessidades, Desejos e Futuro.",
+    "credit_cards": "Acompanhe faturas, compras parceladas e alocações do YNAB.",
     "settings": "Ajustes da conta, perfil e modelo de distribuição de renda.",
     "collapse_expand": "Recolher menu lateral",
     "collapse_collapsed": "Expandir menu lateral",
