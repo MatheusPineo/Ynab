@@ -23,8 +23,46 @@ from django.views.static import serve
 
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import JsonResponse
+import os
+import requests
+
+def debug_key_view(request):
+    env_key = os.environ.get('GEMINI_API_KEY', '')
+    settings_key = getattr(settings, 'GEMINI_API_KEY', '')
+    test_status = None
+    test_response_body = None
+    if env_key:
+        test_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={env_key}"
+        test_payload = {
+            "contents": [{"parts": [{"text": "Diga OK."}]}]
+        }
+        try:
+            res = requests.post(test_url, json=test_payload, headers={"Content-Type": "application/json"}, timeout=10)
+            test_status = res.status_code
+            try:
+                test_response_body = res.json()
+            except Exception:
+                test_response_body = res.text
+        except Exception as test_err:
+            test_status = "Erro de Conexão"
+            test_response_body = str(test_err)
+
+    return JsonResponse({
+        "env_key_configured": bool(env_key),
+        "env_key_length": len(env_key),
+        "env_key_prefix": env_key[:5] if env_key else "",
+        "env_key_suffix": env_key[-5:] if env_key else "",
+        "settings_key_configured": bool(settings_key),
+        "settings_key_length": len(settings_key),
+        "settings_key_prefix": settings_key[:5] if settings_key else "",
+        "settings_key_suffix": settings_key[-5:] if settings_key else "",
+        "gemini_test_status": test_status,
+        "gemini_test_response": test_response_body
+    })
 
 urlpatterns = [
+    path('api/debug-key/', debug_key_view),
     # OpenAPI / Swagger Endpoints
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
