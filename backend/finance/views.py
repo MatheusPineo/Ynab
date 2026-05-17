@@ -1451,7 +1451,7 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionInboxSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny], authentication_classes=[])
     def debug_key(self, request):
         import os
         import requests
