@@ -1523,12 +1523,18 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
             from django.core.exceptions import ValidationError
             from .models import Account, Category, Transaction
             
-            account = Account.objects.get(id=account_id, user=request.user)
+            try:
+                account_id_int = int(str(account_id).strip())
+                account = Account.objects.get(id=account_id_int, user=request.user)
+            except (Account.DoesNotExist, ValidationError, ValueError, TypeError):
+                return Response({"error": "Conta selecionada inválida ou não encontrada."}, status=status.HTTP_400_BAD_REQUEST)
+
             category = None
-            if category_id and category_id not in ('none', '', 'null', 'undefined'):
+            if category_id:
                 try:
-                    category = Category.objects.get(id=category_id, user=request.user)
-                except (Category.DoesNotExist, ValidationError, ValueError):
+                    category_id_int = int(str(category_id).strip())
+                    category = Category.objects.get(id=category_id_int, user=request.user)
+                except (Category.DoesNotExist, ValidationError, ValueError, TypeError):
                     category = None
 
             with transaction.atomic():
