@@ -16,7 +16,8 @@ import {
   Scale,
   HelpCircle,
   BarChart3,
-  CreditCard
+  CreditCard,
+  Inbox as InboxIcon
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
@@ -38,6 +39,7 @@ const navItems = [
   { icon: Wallet, key: "accounts", to: "/accounts" },
   { icon: CreditCard, key: "credit_cards", featureKey: "credit_cards", to: "/credit-cards" },
   { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
+  { icon: InboxIcon, key: "inbox", to: "/inbox" },
   { icon: PieChart, key: "budget", to: "/budget" },
   { icon: Scale, key: "rule503020", to: "/rule503020" },
   { icon: Handshake, key: "debts", to: "/debts" },

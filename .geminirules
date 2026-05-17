@@ -1,0 +1,27 @@
+# REGRAS GLOBAIS DE ENGENHARIA (NUNCA IGNORE)
+1. **Idioma:** Sempre me responda estritamente em Português do Brasil (pt-BR).
+2. **Qualidade Obrigatória:** Toda alteração no código exige a execução imediata da suíte automatizada de testes (Pytest/Vitest/Typecheck) do respectivo projeto para garantir que tudo está verde.
+3. **Deploy Contínuo:** Sempre faça o envio para o servidor de produção pelo terminal utilizando o comando `vercel --prod --yes`.
+4. **Governança de Documentação:** Sempre que alterar qualquer regra de negócio, identifique os manuais impactados (`README.md`, `ARCHITECTURE.md`, etc.) e atualize-os cirurgicamente, registrando o resumo no `CHANGELOG.md`.
+5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
+
+## MEMÓRIA DE DESENVOLVIMENTO E STATUS
+
+### Status Atual (Versão 1.25.0)
+- **Marco:** Interface Visual da Caixa de Entrada Inteligente (Staging Area) com Visualizador Split-Screen e Homologação Side-by-Side.
+- **Estado:** 100% estável e compilado. Suíte de 30 testes do frontend (Vitest) e 60 testes do backend (Pytest) 100% verde. Deploy contínuo de produção live na nuvem via Vercel.
+- **Arquitetura:** O frontend implementa uma interface premium responsiva de split-screen (`Inbox.tsx`) acoplada a uma store Zustand dedicada (`useInboxStore.ts`). O painel esquerdo exibe a nota carregada com ferramentas de zoom escala CSS e rotação 90°. O painel direito apresenta o formulário reativo preenchido com as chaves do Gemini `ai_suggestions`, mapeando contas financeiras e envelopes de categoria YNAB reativamente. Ao homologar, aciona de forma atômica o endpoint Django REST `/api/finance/inbox/{id}/approve/` que cria a transação real e liquida o staging de forma transacional segura.
+
+### Últimas Alterações Relevantes
+- [v1.25.0] Criação da página visual premium responsiva `Inbox.tsx` em React 18 e Tailwind CSS, implementando controles visuais de mídia e formulário integrado.
+- [v1.25.0] Melhoria de resiliência e tratamento de erros de API não-JSON em `api.ts` para converter respostas HTML de falha em descrições amigáveis e claras, eliminando toasts de `{}`.
+- [v1.25.0] Implementação da store do Zustand `useInboxStore.ts` com TypeScript estrito e suporte à homologação atômica do Django.
+- [v1.25.0] Criação do endpoint de homologação detalhado e transacional no ViewSet Django REST `/api/finance/inbox/{id}/approve/`.
+- [v1.25.0] Registro de rotas no `App.tsx`, atalho com ícone nos menus globais `Sidebar.tsx` e `BottomNav.tsx`, e inclusão das chaves de tradução no `pt-BR.json`.
+- [v1.24.0] Criação do utilitário de inteligência artificial `AIExtractionService` com Structured Outputs Gemini e design defensivo.
+
+### Regras de Negócio Críticas
+- **Segurança:** Isolamento multitenant estrito; sem segredos no repositório.
+- **Processamento Assíncrono:** Chamadas de IA jamais podem travar a thread HTTP principal do Django; uso obrigatório da fila assíncrona com status 202 Accepted e conclusão via Celery.
+- **Consistência:** Sincronização automática de versões entre Changelog e Rodapé.
+- **Portabilidade:** Boilerplate preparado para inicialização rápida via `npm/bun install` e `pip install`.

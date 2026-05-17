@@ -28,3 +28,10 @@ brain/
 
 .vercel
 .env*.local
+
+# Media/Uploads
+backend/media/
+*.png
+*.jpg
+*.jpeg
+*.pdf

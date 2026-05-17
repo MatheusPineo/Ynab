@@ -185,3 +185,15 @@ EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'Vault Finance OS <no-reply@vaultfinance.os>')
 SUPPORT_RECEIVER_EMAIL = os.environ.get('SUPPORT_RECEIVER_EMAIL', 'matheuskrx@gmail.com')
 
+# Celery Configurations
+CELERY_BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.environ.get('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') == 'True'
+
+# Google Gemini API Configurations
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+

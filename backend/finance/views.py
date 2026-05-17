@@ -1338,3 +1338,165 @@ class CreditCardViewSet(viewsets.ModelViewSet):
             return Response({'message': f'Parcela {inst.number} antecipada com sucesso.'})
         except Installment.DoesNotExist:
             return Response({'error': 'Parcela não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+
+from rest_framework.parsers import MultiPartParser, FormParser
+from .models import TransactionInbox
+from .serializers import TransactionInboxSerializer
+from .tasks import process_inbox_document
+
+class InboxUploadView(APIView):
+    """
+    Endpoint DRF para upload em lote (bulk upload) de recibos e comprovantes.
+    Aceita múltiplos arquivos sob o parâmetro 'files' (multipart/form-data)
+    e inicia o processamento assíncrono em segundo plano via Celery.
+    Retorna HTTP 202 Accepted instantaneamente.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(
+        summary="Upload em lote de recibos/comprovantes para área de staging",
+        description="Recebe uma lista de arquivos (imagens/PDFs) via multipart/form-data e despacha tarefas assíncronas para extração multimodal em lote. Retorna HTTP 202 Accepted com as informações iniciais das instâncias criadas.",
+        responses={
+            202: inline_serializer(
+                name="InboxUploadSuccess",
+                fields={
+                    "message": serializers.CharField(),
+                    "items": serializers.ListField(
+                        child=inline_serializer(
+                            name="InboxUploadItem",
+                            fields={
+                                "id": serializers.UUIDField(),
+                                "filename": serializers.CharField(),
+                                "status": serializers.CharField(),
+                            }
+                        )
+                    )
+                }
+            ),
+            400: inline_serializer(
+                name="InboxUploadError",
+                fields={"error": serializers.CharField()}
+            )
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        files = request.FILES.getlist('files')
+        
+        # Se for um único arquivo sob 'file', suportamos também para compatibilidade
+        if not files and 'file' in request.FILES:
+            files = [request.FILES['file']]
+
+        if not files:
+            return Response(
+                {"error": "Nenhum arquivo enviado sob a chave 'files' ou 'file'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        created_items = []
+        
+        # Executamos a criação sob transação para consistência
+        with transaction.atomic():
+            for f in files:
+                # Instancia o inbox para o usuário autenticado
+                inbox = TransactionInbox.objects.create(
+                    user=request.user,
+                    file=f,
+                    status='pending'
+                )
+                
+                # Despacha a tarefa assíncrona no Celery em segundo plano
+                process_inbox_document.delay(inbox.id)
+                
+                created_items.append({
+                    "id": str(inbox.id),
+                    "filename": f.name,
+                    "status": inbox.status
+                })
+
+        return Response(
+            {
+                "message": "Upload de arquivos concluído. Processamento assíncrono iniciado com sucesso.",
+                "items": created_items
+            },
+            status=status.HTTP_202_ACCEPTED
+        )
+
+
+class TransactionInboxViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet DRF para gerenciar os itens na área de staging (inbox).
+    Garante o isolamento multitenant estrito e fornece uma ação atômica para
+    aprovar o recibo, criando a transação financeira real correspondente.
+    """
+    serializer_class = TransactionInboxSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        # Garante o isolamento multitenant estrito ordenando por mais recentes
+        return TransactionInbox.objects.filter(user=self.request.user).order_by('-created_at')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """
+        Aprova o item da inbox de forma atômica, criando a transação correspondente no banco de dados.
+        """
+        inbox = self.get_object()
+
+        account_id = request.data.get('account')
+        category_id = request.data.get('category')
+        amount = request.data.get('amount')
+        description = request.data.get('description', '')
+        date_str = request.data.get('date')
+        is_income = request.data.get('is_income', False)
+
+        if not account_id or amount is None or not date_str:
+            return Response(
+                {"error": "Campos obrigatórios ausentes: conta, valor ou data da transação."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            from .models import Account, Category, Transaction
+            account = Account.objects.get(id=account_id, user=request.user)
+            category = None
+            if category_id:
+                category = Category.objects.get(id=category_id, user=request.user)
+
+            with transaction.atomic():
+                # 1. Cria a transação real
+                transaction_obj = Transaction.objects.create(
+                    user=request.user,
+                    account=account,
+                    category=category,
+                    amount=amount,
+                    description=description,
+                    date=date_str,
+                    is_income=is_income,
+                    status='realized'
+                )
+
+                # 2. Atualiza a referência e transiciona status no inbox para ready
+                inbox.validated_transaction = transaction_obj
+                inbox.status = 'ready'
+                inbox.save(update_fields=['validated_transaction', 'status', 'updated_at'])
+
+            return Response(
+                {
+                    "message": "Transação criada e comprovante homologado com sucesso!",
+                    "transaction_id": str(transaction_obj.id)
+                },
+                status=status.HTTP_201_CREATED
+            )
+
+        except Account.DoesNotExist:
+            return Response({"error": "Conta selecionada inválida ou não encontrada."}, status=status.HTTP_400_BAD_REQUEST)
+        except Category.DoesNotExist:
+            return Response({"error": "Categoria selecionada inválida ou não encontrada."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"error": f"Erro ao processar aprovação: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+

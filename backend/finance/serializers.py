@@ -185,3 +185,15 @@ class CreditCardTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = CreditCardTransaction
         fields = '__all__'
+
+from .models import TransactionInbox
+
+class TransactionInboxSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TransactionInbox
+        fields = '__all__'
+        extra_kwargs = {
+            'user': {'read_only': True},
+            'file': {'required': True},
+        }
+

@@ -235,3 +235,69 @@ class Installment(models.Model):
 
     def __str__(self):
         return f"Parcela {self.number}/{self.transaction.installment_count} - {self.transaction.description} ({self.amount})"
+
+
+def transaction_inbox_upload_path(instance, filename):
+    return f"users/{instance.user.id}/inbox/{filename}"
+
+
+class TransactionInbox(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pendente'),
+        ('processing', 'Processando'),
+        ('ready', 'Pronto'),
+        ('failed', 'Falhou'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transaction_inbox_items')
+    file = models.FileField(upload_to=transaction_inbox_upload_path, null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    ai_suggestions = models.JSONField(default=dict, blank=True, null=True)
+    error_message = models.TextField(null=True, blank=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    validated_transaction = models.ForeignKey(
+        Transaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='inbox_sources'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'core_transactioninbox'
+        app_label = 'core'
+
+    def __str__(self):
+        filename = self.file.name if self.file else "Sem arquivo"
+        return f"Inbox {self.id}: {filename} ({self.get_status_display()}) para {self.user.username}"
+
+    @property
+    def suggested_amount_decimal(self):
+        """Retorna o valor sugerido como um objeto Decimal do Python para maior precisão financeira."""
+        if not self.ai_suggestions:
+            return None
+        amount = self.ai_suggestions.get('amount')
+        if amount is not None:
+            from decimal import Decimal, InvalidOperation
+            try:
+                return Decimal(str(amount))
+            except (ValueError, TypeError, InvalidOperation):
+                return None
+        return None
+
+    @property
+    def suggested_date_object(self):
+        """Retorna a data sugerida convertida para um objeto datetime.date."""
+        if not self.ai_suggestions:
+            return None
+        date_str = self.ai_suggestions.get('date')
+        if date_str:
+            from datetime import date
+            try:
+                return date.fromisoformat(str(date_str))
+            except (ValueError, TypeError):
+                return None
+        return None
+

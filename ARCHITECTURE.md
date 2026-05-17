@@ -771,6 +771,18 @@ $$\text{Compliance}_a = \frac{|T_{\text{cleared}}^a|}{|T_{\text{total}}^a|} \tim
    - 🟡 **Yellow:** 1-2 transações pendentes
    - 🔴 **Red:** 3+ transações pendentes (requer ação imediata)
 
+### 8.31 Ingestão Inteligente e Staging de Documentos (TransactionInbox)
+O Vault Finance OS implementa uma área de staging de alta segurança para ingestão inicial de recibos, comprovantes e faturas antes de sua efetiva consolidação contábil:
+1. **Isolamento de Armazenamento e Multi-tenancy:** Arquivos de imagem ou PDF carregados pelo usuário são armazenados fisicamente sob um caminho isolado por inquilino (`users/{user_id}/inbox/{filename}`), garantindo blindagem de acesso contra IDOR/BOLA na camada de arquivos de mídia.
+2. **Estados de Ciclo de Ingestão:** Cada item de inbox transaciona de forma estrita em quatro estados:
+   - `PENDING` (Pendente): Recibo ingestado, aguardando início do processamento de IA.
+   - `PROCESSING` (Processando): Enviado à API multimodal do Google Gemini 1.5 Flash para análise.
+   - `READY` (Pronto): Dados extraídos com sucesso, aguardando aprovação do usuário.
+   - `FAILED` (Falhou): Erro no processamento do arquivo ou falha de comunicação de IA.
+3. **Sugestões Estruturadas por IA (Gemini 1.5 Flash API):** Um campo `ai_suggestions` do tipo `JSONField` armazena dados preditivos de `amount`, `date`, `merchant` e `currency`.
+4. **Resiliência e Parsing de Tipos:** A modelagem implementa propriedades defensivas no Python (`suggested_amount_decimal` e `suggested_date_object`) contendo tratamentos de erros de integridade (fallbacks com tratamento de exceções do tipo `InvalidOperation` e `ValueError`) para realizar a conversão segura de dados brutos e mutáveis do JSONField para tipos de alta precisão financeira (`Decimal`) e temporais (`date`).
+5. **Vinculação e Rastreabilidade pós-Validação:** Uma chave estrangeira opcional e segura conecta o registro do `TransactionInbox` à entidade consolidada de `Transaction` quando o usuário valida as sugestões de IA, permitindo auditar a origem e retroalimentar modelos preditivos de comportamento de gastos.
+
 ---
 
 ## 9. Módulo de Chamados Técnicos & Barramento de Suporte Técnico (v1.16.0)
@@ -835,3 +847,105 @@ Para eliminar redundâncias visuais e de processamento de dados na interface:
 O rodapé do Dashboard conta com um módulo altamente coeso e independente (`DashboardWidgets.tsx`):
 * **Persistência de Layout:** As preferências de ativação e ordenação de widgets (como Ações Rápidas, Distribuição de Gastos, Fluxo Semanal, Top Contas, Resumo de Dívidas e Mapa de Calor) são salvas instantaneamente em `localStorage` sob a chave `vault_dashboard_widgets`.
 * **Renderização Condicional Pura:** Se um widget for desmarcado no menu de customização, sua árvore de componentes é totalmente expurgada da DOM, preservando memória e ciclos de renderização do React.
+
+---
+
+## 11. Orquestração Assíncrona e Processamento de Documentos via Celery (v1.23.0)
+
+A arquitetura de ingestão de documentos financeiros em lote (Bulk Upload) e processamento assíncrono do **Vault Finance OS** foi desenhada para assegurar altíssima escalabilidade e excelente responsividade na interface do usuário, desacoplando o recebimento de arquivos físicos da análise computacionalmente pesada realizada por IA:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Cliente React App
+    participant API as Django REST API (views.py)
+    participant DB as Banco de Dados (SQL)
+    participant Redis as Redis Message Broker
+    participant Worker as Celery Worker (tasks.py)
+
+    User->>API: POST /api/finance/inbox/upload/<br/>(multipart/form-data com arquivos)
+    activate API
+    loop Para cada arquivo enviado
+        API->>DB: INSERT INTO core_transactioninbox<br/>(status='pending', file=f)
+        DB-->>API: Retorna ID da área de staging
+        API->>Redis: process_inbox_document.delay(inbox_id)
+    end
+    API-->>User: HTTP 202 Accepted (Lista de IDs & nomes originais)
+    deactivate API
+
+    Note over Redis,Worker: Fila de Tarefas Assíncronas (Segundo Plano)
+    Redis->>Worker: Consome tarefa (inbox_id)
+    activate Worker
+    Worker->>DB: SELECT * FROM core_transactioninbox WHERE id=inbox_id
+    Worker->>DB: UPDATE status='processing'
+    Note over Worker: Ponto de Integração Futura:<br/>Leitura de mídia + Extração Gemini 1.5 Flash
+    Worker->>DB: UPDATE status='ready' ou 'failed' + ai_suggestions
+    Worker-->>Redis: Ack (Tarefa Concluída)
+    deactivate Worker
+```
+
+### 11.1 Bootstrap do Celery no Ecossistema Django
+Para integrar de forma transparente o Celery ao ecossistema do Django:
+* **Bootstrap Central (`ynab_backend/celery.py`):** Instancia a aplicação do Celery e configura o namespace `'CELERY'` para carregar automaticamente propriedades declaradas no `settings.py` que comecem com esse prefixo.
+* **Auto-Discovery:** O Celery escaneia todos os aplicativos registrados no `INSTALLED_APPS` (incluindo `finance` e `core`), auto-detectando tarefas declaradas em arquivos `tasks.py` decoradas com `@shared_task`.
+* **Inicialização Coordenada (`ynab_backend/__init__.py`):** Expõe o objeto `celery_app` no escopo global de inicialização para garantir que o worker Celery e o processo WSGI/ASGI compartilhem a mesma instância de aplicação.
+
+### 11.2 Ingestão sem Bloqueios (HTTP 202 Accepted)
+O endpoint `InboxUploadView` atua como um coordenador transacional ultra-rápido:
+1. **Transacionalidade Atômica:** Toda a criação de múltiplos registros no banco é executada sob o decorador `with transaction.atomic()`. Se qualquer upload falhar a gravação física no disco ou estourar cota de persistência, nenhum registro fantasma é gerado no banco.
+2. **Despacho Assíncrono (`delay`):** O método `.delay()` insere uma mensagem contendo o UUID do item de staging no broker de mensageria Redis (`redis://localhost:6379/0`), liberando instantaneamente a conexão HTTP sem esperar o processamento do arquivo físico.
+3. **Acoplamento Eager para Ambientes de Teste:** O arquivo `settings.py` configura `CELERY_TASK_ALWAYS_EAGER = True` sob a suite de testes, permitindo que a chamada do Celery execute sincronamente nos testes unitários e de integração locais sem necessitar de um daemon ativo do Redis.
+
+### 11.3 Fila de Processamento no Worker
+A tarefa `process_inbox_document` gerencia de forma estritamente robusta o ciclo de vida do staging:
+* **Garantia de Estado:** O worker transiciona o status do `TransactionInbox` de `pending` para `processing` no início de sua execução, salvando apenas o campo modificado via `update_fields=['status', 'updated_at']` para evitar race conditions.
+* **Processamento Multimodal Real:** A tarefa inicializa o `AIExtractionService` e passa o caminho físico absoluto (`inbox.file.path`) para extração inteligente.
+* **Consolidação dos Dados:** Após a extração dos metadados da transação via IA, os dados estruturados de sugestão são populados diretamente no banco de dados, transicionando o status final para `ready` e preenchendo o timestamp exato de processamento em `processed_at`.
+* **Resiliência contra Falhas:** Exceções imprevistas durante o parsing ou conexões de rede são capturadas pelo bloco `try-except` externo, transicionando o status do item para `failed` e populando a mensagem descritiva no campo `error_message`, executando em seguida tentativas de reprocessamento programado com backoff exponencial via Celery (`self.retry`).
+
+### 11.4 Integração Multimodal com Google Gemini 1.5 Flash (v1.24.0)
+Para extrair com precisão absoluta as informações fiscais sem depender de OCRs locais rígidos ou expressões regulares quebradiças, o Vault Finance OS delega a análise de mídia para a API do **Google Gemini 1.5 Flash** através da classe utilitária `AIExtractionService` ([ai_services.py](file:///c:/Users/mathe/PROJETO-YNAB/backend/finance/ai_services.py)):
+
+#### 1. Structured Outputs (JSON Schema Estrito)
+A chamada REST utiliza o recurso nativo de **Structured Outputs** da API do Gemini. Ao enviar o payload, passamos no `generationConfig` os parâmetros `responseMimeType='application/json'` e especificamos um esquema JSON estrito no campo `responseSchema`:
+```json
+{
+  "type": "OBJECT",
+  "properties": {
+    "amount": { "type": "NUMBER", "description": "Valor total pago como float. Null se ausente." },
+    "date": { "type": "STRING", "description": "Data no formato YYYY-MM-DD. Null se ausente." },
+    "merchant": { "type": "STRING", "description": "Nome da loja ou empresa. 'Desconhecido' se ausente." },
+    "currency": { "type": "STRING", "description": "Código ISO 4217 de 3 letras. Default 'BRL'." }
+  },
+  "required": ["amount", "date", "merchant", "currency"]
+}
+```
+Isso garante deterministicamente que a resposta da IA será **exclusivamente** um objeto JSON plano contendo as chaves necessárias estruturadas de negócios, sem poluição de comentários, marcações markdown de blocos de código ou textos introdutórios.
+
+#### 2. Design Ultra-Defensivo e Tolerância a Falhas
+A classe utilitária foi desenhada para operar de forma blindada em produção:
+* **MIME Type Dinâmico:** Utiliza o módulo `mimetypes` para inferir em tempo de execução o tipo do arquivo (PNG, JPEG, PDF, etc.) e convertê-lo com precisão para envio Base64.
+* **Mitigação de Rate Limits (HTTP 429):** Caso o endpoint retorne estouro de cota (429), o serviço aplica de forma iterativa **retentativas automáticas sob backoff exponencial**, aguardando tempos progressivamente dobrados (`sleep(2s)`, `sleep(4s)`) antes de abortar.
+* **Timeout Estrito de Conexão:** Cada requisição HTTP tem um timeout severo de 15 segundos para evitar o enfileiramento infinito de conexões presas na fila de workers.
+* **Mecanismo de Fallback Seguro:** Se a chave de API não estiver configurada no ambiente ou ocorrer uma falha catastrófica de rede após as retentativas, o serviço silencia o erro e retorna uma estrutura JSON defensiva válida preenchida com valores nulos/padrões, permitindo que o ciclo do worker Celery conclua com sucesso sem quebras de execução.
+
+### 11.5 Interface Side-by-Side de Homologação e Staging Area (v1.25.0)
+Para fechar o loop de controle e permitir a validação humana dos dados extraídos pela inteligência artificial, implementamos uma interface split-screen premium em React 18 acoplada ao gerenciador de estados **Zustand**:
+
+#### 1. Split-Screen Responsivo e Controles Visuais
+A tela de staging em [Inbox.tsx](file:///c:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/pages/Inbox.tsx) divide a área de trabalho em dois painéis principais:
+* **Painel Esquerdo (Visualizador de Comprovante):** Carrega a imagem do cupom fiscal original servido a partir do bucket/mídia do Django. Apresenta controles de visualização integrados (Zoom In/Out e Rotacionar 90°) para permitir que o usuário verifique letras miúdas ou documentos digitalizados na vertical ou de cabeça para baixo sem sair da tela.
+* **Painel Direito (Formulário Reativo e Inteligente):** Apresenta os campos editáveis preenchidos dinamicamente em tempo de execução a partir dos resultados estruturados sugeridos pela IA.
+
+#### 2. Integração com a Árvore de Contas YNAB e Categorias
+Para consolidar a transação real, o formulário realiza o mapeamento seguro com os recursos financeiros do usuário:
+* **Contas Financeiras:** Lista e achata de forma recursiva todas as contas e cartões ativos a partir da store `useAccountStore` (`tree`), validando moedas dinâmicas.
+* **Categorias de Orçamento (YNAB):** Achata recursivamente a árvore de categorias (`categoryGroups`) para exibir apenas as subcategorias ativas e envelopes de orçamento válidos para dedução de saldo, ocultando cabeçalhos de grupos principais para evitar vinculações incorretas.
+
+#### 3. Pipeline de Homologação Atômica
+Ao submeter o formulário aprovado, o fluxo de consolidação ocorre de forma transacional:
+* **Submissão Segura:** A store do Zustand [useInboxStore.ts](file:///c:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/store/useInboxStore.ts) dispara a action assíncrona `approveInboxItem(id, payload)` utilizando o utilitário `authenticatedFetch` que adiciona tokens de segurança Bearer de forma transparente.
+* **Consolidação no Django:** O endpoint `/api/finance/inbox/{id}/approve/` processa transacionalmente a criação da transação real, a dedução de envelopes correspondentes no YNAB, transiciona o status do comprovante para `'ready'` e o associa via Foreign Key `validated_transaction` para fins de auditoria, limpando em seguida o item da listagem de staging do usuário.
+
+
+

@@ -10,6 +10,7 @@
     "reports": "Relatórios",
     "rule503020": "Regra 50-30-20",
     "credit_cards": "Cartões de Crédito",
+    "inbox": "Inbox IA",
     "settings": "Configurações",
     "help": "Ajuda e Suporte"
   },
@@ -17,6 +18,7 @@
     "dashboard": "Visão geral do seu patrimônio e fluxo de caixa.",
     "accounts": "Gerencie suas contas bancárias, cartões e limites.",
     "transactions": "Registre e acompanhe suas entradas e saídas de dinheiro.",
+    "inbox": "Faça o staging de recibos e extraia valores via Gemini AI de forma automática.",
     "budget": "Distribua sua renda e planeje seus gastos do mês.",
     "debts": "Controle quem te deve dinheiro e o que você deve a terceiros.",
     "goals": "Crie objetivos financeiros de médio e longo prazo.",

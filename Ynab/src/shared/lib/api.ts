@@ -47,8 +47,14 @@ export async function authenticatedFetch(endpoint: string, options: RequestInit 
     }
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.detail || errorData.error || (typeof errorData === 'object' ? JSON.stringify(errorData) : null) || `Erro ${response.status}`;
+      let errorMessage = `Erro ${response.status}`;
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.detail || errorData.error || (typeof errorData === 'object' && Object.keys(errorData).length > 0 ? JSON.stringify(errorData) : null) || errorMessage;
+      } catch {
+        // Fallback robusto se a resposta não for JSON (como páginas HTML 404/500 do servidor)
+        errorMessage = `Erro de conexão com o servidor (Status ${response.status}: ${response.statusText || 'Não Encontrado'})`;
+      }
       throw new Error(errorMessage);
     }
 

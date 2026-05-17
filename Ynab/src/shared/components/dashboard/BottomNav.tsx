@@ -12,6 +12,7 @@ import {
   Handshake,
   Scale,
   CreditCard,
+  Inbox as InboxIcon,
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useState } from "react";
@@ -33,6 +34,7 @@ const primaryNavItems = [
 ];
 
 const moreNavItems = [
+  { icon: InboxIcon, key: "inbox", to: "/inbox" },
   { icon: Scale, key: "rule503020", to: "/rule503020" },
   { icon: CreditCard, key: "credit_cards", to: "/credit-cards" },
   { icon: Handshake, key: "debts", to: "/debts" },

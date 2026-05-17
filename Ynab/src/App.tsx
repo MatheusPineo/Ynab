@@ -20,6 +20,7 @@ import Debts from "@/modules/finance/pages/Debts";
 import Rule503020 from "@/modules/finance/pages/Rule503020";
 import Reports from "@/modules/finance/pages/Reports";
 import CreditCards from "@/modules/finance/pages/CreditCards";
+import Inbox from "@/modules/finance/pages/Inbox";
 import Auth from "@/modules/auth/pages/Auth";
 import Landing from "@/modules/auth/pages/Landing";
 import NotFound from "@/modules/auth/pages/NotFound";
@@ -124,6 +125,7 @@ const App = () => {
                 <Route path="dashboard" element={<FeatureProtectedRoute featureKey="dashboard"><Dashboard /></FeatureProtectedRoute>} />
                 <Route path="accounts" element={<FeatureProtectedRoute featureKey="accounts"><Accounts /></FeatureProtectedRoute>} />
                 <Route path="transactions" element={<FeatureProtectedRoute featureKey="transactions"><Transactions /></FeatureProtectedRoute>} />
+                <Route path="inbox" element={<Inbox />} />
                 <Route path="budget" element={<FeatureProtectedRoute featureKey="budget"><Budget /></FeatureProtectedRoute>} />
                 <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />
                 <Route path="debts" element={<FeatureProtectedRoute featureKey="debts"><Debts /></FeatureProtectedRoute>} />
