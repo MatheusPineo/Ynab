@@ -20,7 +20,7 @@ class AIExtractionService:
     def __init__(self, api_key: str = None) -> None:
         # Recupera a chave das configurações do Django ou de variável de ambiente
         self.api_key = api_key or getattr(settings, 'GEMINI_API_KEY', '') or os.environ.get('GEMINI_API_KEY', '')
-        self.api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+        self.api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 
     def get_fallback_data(self, merchant_name: str = "Erro na Extração") -> dict:
         """Retorna uma estrutura padrão defensiva de fallback com suporte a múltiplas transações."""

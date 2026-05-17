@@ -6,6 +6,29 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.26.2] — 2026-05-17
+
+Esta versão realiza o upgrade tecnológico do motor de IA da Caixa de Entrada Inteligente (Staging Inbox) para o modelo **Gemini 2.5 Flash**, garantindo compatibilidade e resiliência com as novas cotas e deprecando as rotas da versão 1.5.
+
+### Alterado
+* **Upgrade do Motor de IA para Gemini 2.5 Flash:**
+  - Atualização do modelo padrão no serviço `AIExtractionService` (`ai_services.py`) de `gemini-1.5-flash` para `gemini-2.5-flash` em resposta à indisponibilidade de modelos legados sob novas chaves de API em 2026.
+  - Sincronização dos endpoints de teste e diagnóstico (`debug_key` no views e `debug_key_view` em urls) para o novo modelo de alta performance.
+* **Resiliência e Isenção de Autenticação no Diagnóstico:**
+  - Mapeamento de um endpoint puro Django `/api/debug-key/` (`urls.py`) totalmente independente do framework de permissões/autenticação do DRF para diagnóstico público seguro do Gemini.
+
+---
+
+## [1.26.1] — 2026-05-17
+
+Esta versão introduz ferramentas robustas de depuração e diagnóstico em produção para auditoria e validação segura da chave de API do Gemini em ambientes de contêineres efêmeros (Render).
+
+### Adicionado
+* **Endpoint de Depuração e Diagnóstico Seguro (`views.py`):**
+  - Implementação da action `@action` `debug_key` para expor metadados seguros da chave de ambiente configurada (`GEMINI_API_KEY`) em conformidade com políticas de segurança de dados.
+
+---
+
 ## [1.26.0] — 2026-05-17
 
 Esta versão introduz o suporte completo a **Detecção e Homologação Múltipla de Transações** na Caixa de Entrada Inteligente (Staging Inbox), permitindo extrair e aprovar de forma individualizada e granular múltiplas compras contidas em um único comprovante, nota fiscal ou captura de tela por meio da IA do Gemini 1.5 Flash.

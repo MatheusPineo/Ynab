@@ -7,12 +7,15 @@
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
 
-### Status Atual (Versão 1.26.0)
-- **Marco:** Detecção e Homologação Múltipla de Transações na Caixa de Entrada Inteligente (Staging Inbox) via Gemini 1.5 Flash.
-- **Estado:** 100% estável e compilado. Suíte de 30 testes do frontend (Vitest) e 47 testes do backend (Django/Pytest) 100% verde. Deploy contínuo de produção live na nuvem via Vercel e Render.
-- **Arquitetura:** O backend implementa o `AIExtractionService` com Structured Outputs usando um esquema JSON estrito em formato de array (`transactions`), extraindo individualmente múltiplos débitos/compras em uma única imagem. O endpoint `/api/finance/inbox/{id}/approve/` aceita o parâmetro de query opcional `index` para criar transações de forma granular por índice, marcando como aprovado (`"approved": true`) no banco de dados. O inbox só é transicionado e concluído (`ready` com `validated_transaction`) quando todas as transações forem aprovadas. O frontend exibe uma interface de abas dinâmicas por transação sugerida no painel reativo, permitindo edição e homologação individualizada.
+### Status Atual (Versão 1.26.2)
+- **Marco:** Detecção e Homologação Múltipla de Transações na Caixa de Entrada Inteligente (Staging Inbox) via Gemini 2.5 Flash.
+- **Estado:** 100% estável e compilado. Suíte de 30 testes do frontend (Vitest) e 62 testes do backend (Django/Pytest) 100% verde. Deploy contínuo de produção live na nuvem via Vercel e Render.
+- **Arquitetura:** O backend implementa o `AIExtractionService` com Structured Outputs usando um esquema JSON estrito em formato de array (`transactions`) processado pelo Gemini 2.5 Flash, extraindo individualmente múltiplos débitos/compras em uma única imagem. O endpoint `/api/finance/inbox/{id}/approve/` aceita o parâmetro de query opcional `index` para criar transações de forma granular por índice, marcando como aprovado (`"approved": true`) no banco de dados. O inbox só é transicionado e concluído (`ready` com `validated_transaction`) quando todas as transações forem aprovadas. O frontend exibe uma interface de abas dinâmicas por transação sugerida no painel reativo, permitindo edição e homologação individualizada.
 
 ### Últimas Alterações Relevantes
+- [v1.26.2] Upgrade tecnológico global do motor de inteligência artificial para o Gemini 2.5 Flash em resposta à descontinuação de cotas de APIs legadas do Google AI Studio em 2026.
+- [v1.26.2] Criação de rota pública isolada de DRF `/api/debug-key/` (`urls.py`) para testes e diagnósticos transparentes e instantâneos da conexão com o Google Gemini.
+- [v1.26.1] Criação de action segura e anônima `debug_key` no DRF para validação científica de variáveis de ambiente do Render sem expor segredos.
 - [v1.26.0] Refatoração do prompt do Gemini e do esquema JSON do `AIExtractionService` em `ai_services.py` para formato de array nativo `transactions`.
 - [v1.26.0] Adaptação do endpoint de homologação em `views.py` para aprovação granular por parâmetro `index` e arquivamento progressivo apenas após a homologação de todas as transações.
 - [v1.26.0] Ajustes extensivos na suíte de testes unitários do backend (`test_inbox.py`) para validar o ciclo de vida orientado a listas do staging, com 100% dos testes verdes.
