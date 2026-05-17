@@ -1451,6 +1451,23 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionInboxSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
+    def debug_key(self, request):
+        import os
+        from django.conf import settings
+        env_key = os.environ.get('GEMINI_API_KEY', '')
+        settings_key = getattr(settings, 'GEMINI_API_KEY', '')
+        return Response({
+            "env_key_configured": bool(env_key),
+            "env_key_length": len(env_key),
+            "env_key_prefix": env_key[:5] if env_key else "",
+            "env_key_suffix": env_key[-5:] if env_key else "",
+            "settings_key_configured": bool(settings_key),
+            "settings_key_length": len(settings_key),
+            "settings_key_prefix": settings_key[:5] if settings_key else "",
+            "settings_key_suffix": settings_key[-5:] if settings_key else "",
+        })
+
     def get_queryset(self):
         # Garante o isolamento multitenant estrito ordenando por mais recentes e exibindo apenas itens pendentes de homologação completa
         return TransactionInbox.objects.filter(user=self.request.user, validated_transaction__isnull=True).order_by('-created_at')
