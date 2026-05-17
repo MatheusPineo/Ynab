@@ -6,6 +6,20 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.26.3] — 2026-05-17
+
+Esta versão corrige a falha na atualização de saldo de contas no ato de homologação/aprovação de comprovantes a partir da Caixa de Entrada Inteligente (Staging Inbox), garantindo o sincronismo real e imediato com o orçamento do YNAB.
+
+### Corrigido
+* **Atualização de Saldo e Integração Financeira no Inbox (`views.py`):**
+  - Correção na action `@action` `approve` do `TransactionInboxViewSet` para efetuar o cálculo de débito/crédito no saldo da conta correspondente à transação homologada.
+  - Ativação correta da flag `is_applied_to_balance=True` na transação criada a partir do inbox, sincronizando o fluxo com o comportamento nativo de lançamentos manuais do YNAB.
+  - Implementação de validações robustas com conversão defensiva de strings e floats para `Decimal` e formatação de datas.
+* **Validação Rigorosa da Suíte de Testes (`test_inbox.py`):**
+  - Inclusão de asserções nos testes unitários e de integração do inbox (`test_approve_single_transaction_legacy_format` e `test_approve_multi_transaction_batch_by_index`) para garantir que o saldo da conta e a flag `is_applied_to_balance` sejam recalculados e sincronizados perfeitamente.
+
+---
+
 ## [1.26.2] — 2026-05-17
 
 Esta versão realiza o upgrade tecnológico do motor de IA da Caixa de Entrada Inteligente (Staging Inbox) para o modelo **Gemini 2.5 Flash**, garantindo compatibilidade e resiliência com as novas cotas e deprecando as rotas da versão 1.5.

@@ -208,6 +208,10 @@ class TransactionInboxAPITests(TestCase):
         inbox.refresh_from_db()
         self.assertIsNotNone(inbox.validated_transaction)
         self.assertEqual(inbox.status, 'ready')
+        
+        # Verifica o saldo atualizado da conta
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, Decimal('349.50'))
 
     def test_approve_multi_transaction_batch_by_index(self) -> None:
         """Valida a aprovação de transações individuais por índice e finalização apenas quando todas são aprovadas."""
@@ -243,6 +247,10 @@ class TransactionInboxAPITests(TestCase):
         self.assertIsNone(inbox.validated_transaction) # Ainda não concluído
         self.assertTrue(inbox.ai_suggestions['transactions'][0]['approved'])
         self.assertFalse(inbox.ai_suggestions['transactions'][1]['approved'])
+        
+        # Verifica o saldo atualizado da conta após a primeira transação
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, Decimal('450.00'))
 
         # 2. Aprova a segunda transação (Restaurante, index=1)
         payload2 = {
@@ -265,6 +273,10 @@ class TransactionInboxAPITests(TestCase):
         self.assertIsNotNone(inbox.validated_transaction)
         self.assertTrue(inbox.ai_suggestions['transactions'][0]['approved'])
         self.assertTrue(inbox.ai_suggestions['transactions'][1]['approved'])
+        
+        # Verifica o saldo atualizado da conta após a segunda transação
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, Decimal('330.00'))
 
 
 from unittest.mock import MagicMock, mock_open, patch

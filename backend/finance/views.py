@@ -1462,7 +1462,7 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
         test_status = None
         test_response_body = None
         if env_key:
-            test_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={env_key}"
+            test_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={env_key}"
             test_payload = {
                 "contents": [{"parts": [{"text": "Diga OK."}]}]
             }
@@ -1527,16 +1527,40 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                 category = Category.objects.get(id=category_id, user=request.user)
 
             with transaction.atomic():
+                from decimal import Decimal
+                from datetime import datetime, date
+                
+                try:
+                    amount_dec = Decimal(str(amount))
+                except Exception:
+                    amount_dec = Decimal('0.00')
+
+                try:
+                    tx_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+                except Exception:
+                    tx_date = date.today()
+
                 # 1. Cria a transação real
                 transaction_obj = Transaction.objects.create(
                     account=account,
                     category=category,
-                    amount=amount,
+                    amount=amount_dec,
                     description=description,
-                    date=date_str,
+                    date=tx_date,
                     is_income=is_income,
-                    status='realized'
+                    status='realized',
+                    is_applied_to_balance=False
                 )
+
+                # Atualiza o saldo se aplicável
+                if transaction_obj.status == 'realized' and transaction_obj.date <= date.today():
+                    if transaction_obj.is_income:
+                        account.balance += transaction_obj.amount
+                    else:
+                        account.balance -= transaction_obj.amount
+                    account.save()
+                    transaction_obj.is_applied_to_balance = True
+                    transaction_obj.save()
 
                 # 2. Se for um lote de múltiplas transações, atualiza o status de aprovação do item específico
                 has_transactions = inbox.ai_suggestions and 'transactions' in inbox.ai_suggestions
