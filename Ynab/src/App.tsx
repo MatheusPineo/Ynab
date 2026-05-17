@@ -32,7 +32,7 @@ import { FinanceDataTab, FinanceTemplatesTab } from "@/modules/finance/component
 import { Database, LayoutGrid } from "lucide-react";
 import { useFeatureStore, type EnabledFeatures } from "@/shared/store/useFeatureStore";
 
-const queryClient = new QueryClient();
+export const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuthStore();

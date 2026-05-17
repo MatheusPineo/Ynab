@@ -1,6 +1,9 @@
 import { create } from "zustand";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
+import { queryClient } from "@/App";
+import { useAccountStore } from "@/modules/finance/store/useAccountStore";
+import { compressImage } from "@/shared/lib/image-utils";
 
 export interface TransactionInbox {
   id: string;
@@ -71,8 +74,14 @@ export const useInboxStore = create<InboxState>()((set, get) => ({
     set({ isLoading: true });
     try {
       const formData = new FormData();
-      // Adiciona todos os arquivos
-      Array.from(files).forEach((file) => {
+      
+      // Comprime concorrentemente todas as imagens do upload antes de despachar
+      const compressedFiles = await Promise.all(
+        Array.from(files).map((file) => compressImage(file))
+      );
+
+      // Adiciona todos os arquivos (sejam as imagens comprimidas ou os PDFs originais)
+      compressedFiles.forEach((file) => {
         formData.append("files", file);
       });
 
@@ -111,6 +120,12 @@ export const useInboxStore = create<InboxState>()((set, get) => ({
 
       toast.success("Comprovante homologado e transação criada com sucesso!");
       await get().fetchInboxItems();
+      
+      // Invalida o cache global para garantir que as transações apareçam na tabela imediatamente
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      // Atualiza os saldos das contas do dashboard em tempo real
+      await useAccountStore.getState().fetchAccounts();
+      
       return true;
     } catch (error: any) {
       toast.error(error.message || "Erro ao aprovar nota fiscal.");

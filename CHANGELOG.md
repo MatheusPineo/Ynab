@@ -6,6 +6,74 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.26.8] — 2026-05-17
+
+Esta versão corrige a homologação de transações em contas de cartão de crédito e a aprovação de lotes na Caixa de Entrada Inteligente (Staging Inbox).
+
+### Adicionado
+* **Integração do Inbox com Cartões de Crédito (`views.py`):**
+  - Implementada a integração direta da homologação com o motor de cartões de crédito YNAB (`process_credit_card_transaction`).
+  - Quando o usuário homologa uma transação selecionando uma conta de tipo `credit_card`, o sistema cria a transação de cartão (`CreditCardTransaction`) e suas respectivas parcelas (`Installment`), recalculando automaticamente a fatura correspondente e efetuando a transferência virtual de envelopes (do envelope de despesas para o de pagamento do cartão).
+  - Incluído fallback virtual inteligente e robusto para criar um registro `CoreTransaction` pendente com `is_applied_to_balance=False` caso o lote seja futuro ou não acione realocações imediatas, garantindo integridade com a chave estrangeira `validated_transaction` sem corromper saldos.
+
+### Corrigido
+* **Persistência de Status em Lotes Parciais (`views.py`):**
+  - Corrigido o bug na action `approve` onde o status do item da inbox era prematuramente alterado para `'ready'` mesmo quando restavam transações pendentes de homologação no lote.
+  - O status `'ready'` agora só é atribuído quando absolutamente todas as transações mapeadas pelo Gemini no comprovante forem devidamente homologadas pelo usuário, mantendo o comprovante visível na fila para as revisões subsequentes.
+
+## [1.26.7] — 2026-05-17
+
+Esta versão otimiza radicalmente a velocidade de carregamento e processamento de comprovantes fiscais na Caixa de Entrada Inteligente (Staging Inbox) via compressão nativa de imagem no lado do cliente.
+
+### Adicionado
+* **Compressão de Imagem Nativa no Cliente (`image-utils.ts`):**
+  - Implementada função `compressImage` baseada na API de HTML5 Canvas para redimensionar e compactar imagens proporcionalmente para largura/altura máxima de `1200px` (qualidade de `0.85` JPEG).
+  - Bypass inteligente instantâneo para arquivos não-imagem (como documentos PDF).
+* **Integração de Upload Otimizado (`useInboxStore.ts`):**
+  - Processamento concorrente via `Promise.all` e `compressImage` para compactar todas as imagens do lote antes de montar o payload `FormData`.
+  - Redução drástica do tamanho médio dos arquivos de ~8MB para ~300KB (economia de 96% de tráfego de rede) com upload e processamento da IA concluídos em menos de 7 segundos.
+
+## [1.26.6] — 2026-05-17
+
+Esta versão corrige um bug crítico de UX onde as transações homologadas na Staging Area não apareciam imediatamente na tabela e os saldos das contas não eram atualizados na tela sem um recarregamento da página (F5).
+
+### Corrigido
+* **Sincronização de Estado Global Pós-Homologação (`App.tsx` e `useInboxStore.ts`):**
+  - Exportado o `queryClient` instanciado no `App.tsx` para permitir acesso imperativo fora de hooks do React.
+  - Inclusão da invalidação forçada do cache `["transactions"]` do React Query e da execução de `useAccountStore.getState().fetchAccounts()` na store do Zustand após o término do `approveInboxItem`.
+  - Garantia de que a tabela de transações, gráficos e saldos do cabeçalho reajam em tempo real à inserção de novos lançamentos gerados pelo OCR da IA.
+
+## [1.26.5] — 2026-05-17
+
+Esta versão corrige a sincronização de estado do React na Caixa de Entrada Inteligente (Staging Inbox Area), garantindo que o painel de Revisão e Homologação seja atualizado de forma dinâmica e reativa e exiba instantaneamente os dados extraídos pelo Gemini 2.5 Flash assim que o status do processamento transicionar para "pronto".
+
+### Corrigido
+* **Reatividade do Painel de Revisão e Homologação (`Inbox.tsx`):**
+  - Substituição do estado local estático `selectedItem` (objeto) pelo estado de referência de ID única `selectedItemId` (string).
+  - Derivação inteligente e dinâmica do item selecionado por meio do React `useMemo` acoplado ao array reativo de `inboxItems` obtido da store do Zustand.
+  - Sincronização em tempo real das sugestões da inteligência artificial: quando o polling do OCR atualiza a lista de staging na store, o `selectedItem` deriva a referência do novo objeto atualizado, disparando os hooks de efeito para auto-preencher os inputs do formulário sem exigir recarregamento de página.
+  - Correção na seleção automática pós-homologação e no clique de itens da fila de staging para persistir `selectedItemId` corretamente.
+
+## [1.26.4] — 2026-05-17
+
+Esta versão aprimora a usabilidade, robustez e layout da Caixa de Entrada Inteligente (Staging Inbox Area) de comprovantes, resolvendo falhas na homologação de transações sem categoria e implementando atualizações reativas automáticas na tela.
+
+### Adicionado
+* **Polling Reativo de Status do Processamento (`Inbox.tsx`):**
+  - Implementação de um `useEffect` com polling de 3 segundos que atualiza automaticamente a listagem e os campos quando há transações com status `'pending'` ou `'processing'` sendo analisadas pela IA do Gemini, eliminando a necessidade de atualizar a página manualmente.
+* **Componente de Busca no Seletor de Contas (`Inbox.tsx`):**
+  - Integração do componente de alta performance `AccountCombobox` para a busca de contas no Inbox, fornecendo a mesma experiência com filtragem interativa por teclado e listagem hierárquica presente no cadastro manual de transações.
+  - Extensão da interface `AccountComboboxProps` e sua implementação para suportar o estado `disabled` de forma elegante quando o preenchimento automático de comprovante por IA estiver em andamento.
+* **Testes de Regressão no Django (`test_inbox.py`):**
+  - Inclusão do caso de teste `test_approve_transaction_with_none_category` na API para certificar o funcionamento correto de homologações sem categoria atrelada.
+
+### Corrigido
+* **Resiliência ao Homologar Transações sem Categoria (`views.py`):**
+  - Correção na action `approve` do `TransactionInboxViewSet` para tratar de forma defensiva strings de categoria como `'none'`, `''`, `'null'` e `'undefined'`, mapeando-as corretamente para `None` no banco em vez de disparar erros de formato UUID e interromper a homologação.
+* **Ergonometria Visual e Ajuste de Cards Estrangulados (`Inbox.tsx`):**
+  - Expansão da altura dos painéis laterais de split-screen para `min-h-[580px] lg:h-[620px]` e incorporação de rolagem vertical independente na div de formulário (`overflow-y-auto max-h-[490px]`), corrigindo o problema estético onde o botão de "Homologar Transação" encobria outras informações e apertava os inputs.
+  - Atualização do indicador de status da IA para Gemini 2.5 Flash.
+
 ## [1.26.3] — 2026-05-17
 
 Esta versão corrige a falha na atualização de saldo de contas no ato de homologação/aprovação de comprovantes a partir da Caixa de Entrada Inteligente (Staging Inbox), garantindo o sincronismo real e imediato com o orçamento do YNAB.

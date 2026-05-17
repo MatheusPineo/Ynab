@@ -213,6 +213,41 @@ class TransactionInboxAPITests(TestCase):
         self.account.refresh_from_db()
         self.assertEqual(self.account.balance, Decimal('349.50'))
 
+    def test_approve_transaction_with_none_category(self) -> None:
+        """Valida a aprovação tradicional quando a categoria informada é 'none'."""
+        inbox = TransactionInbox.objects.create(
+            user=self.user,
+            status='ready',
+            ai_suggestions={
+                'amount': 150.50,
+                'date': '2026-05-17',
+                'merchant': 'Posto de Gasolina',
+                'currency': 'BRL'
+            }
+        )
+        
+        payload = {
+            'account': str(self.account.id),
+            'category': 'none',
+            'amount': 150.50,
+            'description': 'Posto de Gasolina',
+            'date': '2026-05-17',
+            'is_income': True
+        }
+        
+        response = self.client.post(
+            reverse('inbox-approve', args=[inbox.id]),
+            payload,
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['all_approved'])
+        
+        # Verifica se o inbox foi atualizado no banco
+        inbox.refresh_from_db()
+        self.assertIsNotNone(inbox.validated_transaction)
+        self.assertIsNone(inbox.validated_transaction.category)
+
     def test_approve_multi_transaction_batch_by_index(self) -> None:
         """Valida a aprovação de transações individuais por índice e finalização apenas quando todas são aprovadas."""
         inbox = TransactionInbox.objects.create(

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
+import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
 import { useInboxStore, type TransactionInbox } from "@/modules/finance/store/useInboxStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { Button } from "@/shared/components/ui/button";
@@ -37,7 +38,12 @@ const Inbox = () => {
   const { inboxItems, isLoading, fetchInboxItems, uploadInboxFiles, approveInboxItem, deleteInboxItem } = useInboxStore();
   const { tree, categoryGroups, fetchAccounts, fetchCategoryGroups } = useAccountStore();
   
-  const [selectedItem, setSelectedItem] = useState<TransactionInbox | null>(null);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  
+  const selectedItem = useMemo(() => {
+    if (!selectedItemId) return null;
+    return inboxItems.find((item) => item.id === selectedItemId) || null;
+  }, [inboxItems, selectedItemId]);
   
   // Img Zoom & Rotate State
   const [zoom, setZoom] = useState(1);
@@ -62,6 +68,21 @@ const Inbox = () => {
     fetchAccounts();
     fetchCategoryGroups();
   }, [fetchInboxItems, fetchAccounts, fetchCategoryGroups]);
+
+  // Atualiza automaticamente o status quando houver itens processando ou pendentes
+  useEffect(() => {
+    const hasActiveProcessing = inboxItems.some(
+      (item) => item.status === "pending" || item.status === "processing"
+    );
+
+    if (!hasActiveProcessing) return;
+
+    const interval = setInterval(() => {
+      fetchInboxItems();
+    }, 3000); // Polling a cada 3 segundos
+
+    return () => clearInterval(interval);
+  }, [inboxItems, fetchInboxItems]);
 
   // Reset activeTxIndex to first unapproved when changing selectedItem
   useEffect(() => {
@@ -107,14 +128,16 @@ const Inbox = () => {
     }
   }, [selectedItem, activeTxIndex]);
 
-  // Auto-select first item if none selected
+  // Auto-select first item if none selected or if current selected is no longer in list
   useEffect(() => {
-    if (inboxItems.length > 0 && !selectedItem) {
-      setSelectedItem(inboxItems[0]);
+    const isCurrentStillInList = inboxItems.some(item => item.id === selectedItemId);
+    
+    if (inboxItems.length > 0 && (!selectedItemId || !isCurrentStillInList)) {
+      setSelectedItemId(inboxItems[0].id);
     } else if (inboxItems.length === 0) {
-      setSelectedItem(null);
+      setSelectedItemId(null);
     }
-  }, [inboxItems, selectedItem]);
+  }, [inboxItems, selectedItemId]);
 
   // Flatten accounts and categories for select options
   const allAccounts = useMemo(() => {
@@ -214,14 +237,14 @@ const Inbox = () => {
       const hasMoreUnapproved = remainingTxs.some(t => !t.approved);
       
       if (hasMoreUnapproved && updatedItem) {
-        setSelectedItem(updatedItem);
+        setSelectedItemId(updatedItem.id);
         const nextUnapproved = remainingTxs.findIndex(t => !t.approved);
         if (nextUnapproved !== -1) {
           setActiveTxIndex(nextUnapproved);
         }
         toast.info("Transação homologada! Próxima compra do lote carregada.");
       } else {
-        setSelectedItem(null);
+        setSelectedItemId(null);
         setSelectedAccountId("");
         setSelectedCategoryId("");
       }
@@ -305,7 +328,7 @@ const Inbox = () => {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setSelectedItem(item)}
+                    onClick={() => setSelectedItemId(item.id)}
                     className={`text-left p-3 rounded-xl border transition-all duration-200 flex flex-col gap-2 ${
                       isSelected
                         ? "bg-primary/5 border-primary shadow-soft"
@@ -383,7 +406,7 @@ const Inbox = () => {
             {selectedItem && (
               <>
                 {/* Left Side - Image/Document Viewer */}
-                <Card className="rounded-2xl border-border/60 bg-card/20 backdrop-blur-sm overflow-hidden flex flex-col h-[580px] shadow-soft">
+                <Card className="rounded-2xl border-border/60 bg-card/20 backdrop-blur-sm overflow-hidden flex flex-col min-h-[580px] lg:h-[620px] shadow-soft">
                   <div className="h-10 border-b border-border/40 bg-muted/20 px-4 flex items-center justify-between">
                     <span className="text-xs font-semibold text-muted-foreground truncate max-w-[180px]">
                       {selectedItem.file ? selectedItem.file.split("/").pop() : "cupom.jpg"}
@@ -432,7 +455,7 @@ const Inbox = () => {
                         <img
                           src={getMediaUrl(selectedItem.file)}
                           alt="Staging Document"
-                          className="max-w-[90%] max-h-[460px] object-contain rounded-lg border border-border/40 shadow-soft"
+                          className="max-w-[90%] max-h-[500px] object-contain rounded-lg border border-border/40 shadow-soft"
                           onError={(e) => {
                             (e.target as HTMLElement).style.display = "none";
                             toast.error("Erro ao carregar pré-visualização da imagem.");
@@ -449,8 +472,8 @@ const Inbox = () => {
                 </Card>
 
                 {/* Right Side - Form Validation Panel */}
-                <Card className="rounded-2xl border-border/60 bg-card/40 backdrop-blur-md p-6 flex flex-col h-[580px] shadow-soft justify-between">
-                  <div>
+                <Card className="rounded-2xl border-border/60 bg-card/40 backdrop-blur-md p-6 flex flex-col min-h-[580px] lg:h-[620px] shadow-soft justify-between">
+                  <div className="flex-1 overflow-y-auto pr-1.5 space-y-4 max-h-[490px] scrollbar-thin">
                     {/* Header Info */}
                     <div className="flex items-center justify-between pb-4 border-b border-border/40 mb-4">
                       <div>
@@ -483,7 +506,7 @@ const Inbox = () => {
                       <div className="mb-4 p-3 rounded-xl border border-blue-500/20 bg-blue-500/5 flex items-start gap-2 text-xs text-blue-500">
                         <Loader2 className="h-4 w-4 animate-spin shrink-0 mt-0.5" />
                         <div className="space-y-1">
-                          <p className="font-semibold">O Gemini 1.5 Flash está trabalhando...</p>
+                          <p className="font-semibold">O Gemini 2.5 Flash está trabalhando...</p>
                           <p className="opacity-80">A extração multimodal estruturada está ocorrendo na fila assíncrona. Os campos serão preenchidos automaticamente em instantes.</p>
                         </div>
                       </div>
@@ -601,23 +624,13 @@ const Inbox = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <Label htmlFor="account" className="text-xs font-semibold">Conta de Origem</Label>
-                          <Select
+                          <AccountCombobox
                             value={selectedAccountId}
                             onValueChange={setSelectedAccountId}
+                            placeholder="Selecione a conta..."
                             disabled={selectedItem.status === "processing"}
-                            required
-                          >
-                            <SelectTrigger id="account" className="bg-muted/10 border-border/40 rounded-xl text-xs h-10 shadow-soft focus:ring-0">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent className="glass border-border/60">
-                              {allAccounts.map((acc) => (
-                                <SelectItem key={acc.id} value={acc.id} className="text-xs">
-                                  {acc.name} ({acc.currency})
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                            className="bg-muted/10 border-border/40 rounded-xl text-xs h-10 shadow-soft focus:ring-0"
+                          />
                         </div>
 
                         <div className="space-y-1.5">

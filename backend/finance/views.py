@@ -1520,11 +1520,16 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
 
         try:
             from django.db import transaction
+            from django.core.exceptions import ValidationError
             from .models import Account, Category, Transaction
+            
             account = Account.objects.get(id=account_id, user=request.user)
             category = None
-            if category_id:
-                category = Category.objects.get(id=category_id, user=request.user)
+            if category_id and category_id not in ('none', '', 'null', 'undefined'):
+                try:
+                    category = Category.objects.get(id=category_id, user=request.user)
+                except (Category.DoesNotExist, ValidationError, ValueError):
+                    category = None
 
             with transaction.atomic():
                 from decimal import Decimal
@@ -1540,27 +1545,84 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                 except Exception:
                     tx_date = date.today()
 
-                # 1. Cria a transação real
-                transaction_obj = Transaction.objects.create(
-                    account=account,
-                    category=category,
-                    amount=amount_dec,
-                    description=description,
-                    date=tx_date,
-                    is_income=is_income,
-                    status='realized',
-                    is_applied_to_balance=False
-                )
-
-                # Atualiza o saldo se aplicável
-                if transaction_obj.status == 'realized' and transaction_obj.date <= date.today():
-                    if transaction_obj.is_income:
-                        account.balance += transaction_obj.amount
+                # 1. Cria a transação real ou compra de cartão de crédito
+                if account.account_type == 'credit_card':
+                    from .services import process_credit_card_transaction
+                    credit_card = getattr(account, 'credit_card_config', None)
+                    if not credit_card:
+                        # Fallback caso a configuração não esteja presente
+                        transaction_obj = Transaction.objects.create(
+                            account=account,
+                            category=category,
+                            amount=amount_dec,
+                            description=description,
+                            date=tx_date,
+                            is_income=is_income,
+                            status='realized',
+                            is_applied_to_balance=False
+                        )
+                        # Atualiza o saldo se aplicável
+                        if transaction_obj.status == 'realized' and transaction_obj.date <= date.today():
+                            if transaction_obj.is_income:
+                                account.balance += transaction_obj.amount
+                            else:
+                                account.balance -= transaction_obj.amount
+                            account.save()
+                            transaction_obj.is_applied_to_balance = True
+                            transaction_obj.save()
                     else:
-                        account.balance -= transaction_obj.amount
-                    account.save()
-                    transaction_obj.is_applied_to_balance = True
-                    transaction_obj.save()
+                        # Processa como compra de cartão oficial YNAB
+                        matrix_tx, installments = process_credit_card_transaction(
+                            credit_card_id=credit_card.id,
+                            description=description,
+                            date_tx=tx_date,
+                            total_amount=amount_dec,
+                            category_id=category.id if category else None,
+                            installment_count=1,
+                            original_currency=account.currency or 'BRL'
+                        )
+                        
+                        # Busca transação de envelope criada
+                        transaction_obj = Transaction.objects.filter(
+                            account__user=request.user,
+                            description__icontains=matrix_tx.description,
+                            amount=amount_dec,
+                            date=date.today()
+                        ).first()
+                        
+                        if not transaction_obj:
+                            # Fallback para associar com o inbox
+                            transaction_obj = Transaction.objects.create(
+                                account=account,
+                                category=category,
+                                amount=amount_dec,
+                                description=description,
+                                date=tx_date,
+                                is_income=is_income,
+                                status='pending',
+                                is_applied_to_balance=False
+                            )
+                else:
+                    transaction_obj = Transaction.objects.create(
+                        account=account,
+                        category=category,
+                        amount=amount_dec,
+                        description=description,
+                        date=tx_date,
+                        is_income=is_income,
+                        status='realized',
+                        is_applied_to_balance=False
+                    )
+
+                    # Atualiza o saldo se aplicável
+                    if transaction_obj.status == 'realized' and transaction_obj.date <= date.today():
+                        if transaction_obj.is_income:
+                            account.balance += transaction_obj.amount
+                        else:
+                            account.balance -= transaction_obj.amount
+                        account.save()
+                        transaction_obj.is_applied_to_balance = True
+                        transaction_obj.save()
 
                 # 2. Se for um lote de múltiplas transações, atualiza o status de aprovação do item específico
                 has_transactions = inbox.ai_suggestions and 'transactions' in inbox.ai_suggestions
@@ -1583,9 +1645,7 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                 if all_approved:
                     inbox.validated_transaction = transaction_obj
                     inbox.status = 'ready'
-                else:
-                    inbox.status = 'ready'
-                    
+                
                 inbox.save(update_fields=['validated_transaction', 'status', 'ai_suggestions', 'updated_at'])
 
             return Response(

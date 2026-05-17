@@ -14,6 +14,7 @@ interface AccountComboboxProps {
   required?: boolean;
   filterLeafOnly?: boolean; // Se true, lista apenas contas folha (sem filhos)
   showAllOption?: boolean;  // Se true, inclui a opção "Todas as Contas" com valor "all"
+  disabled?: boolean;
 }
 
 export const AccountCombobox = ({
@@ -24,6 +25,7 @@ export const AccountCombobox = ({
   className,
   filterLeafOnly = false,
   showAllOption = false,
+  disabled = false,
 }: AccountComboboxProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -92,12 +94,14 @@ export const AccountCombobox = ({
   }, [isOpen]);
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen && !disabled} onOpenChange={(open) => !disabled && setIsOpen(open)}>
       <PopoverTrigger asChild>
         <button
           type="button"
+          disabled={disabled}
           className={cn(
             "w-full h-10 px-3 bg-background/50 border border-border/60 hover:border-primary/50 rounded-xl flex items-center justify-between text-xs sm:text-sm font-medium transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-primary/40",
+            disabled && "opacity-50 cursor-not-allowed pointer-events-none",
             className
           )}
         >

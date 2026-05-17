@@ -50,7 +50,7 @@ def debug_key_view(request):
             list_models_response = str(list_err)
 
         # Chamada 2: generateContent
-        test_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={env_key}"
+        test_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={env_key}"
         test_payload = {
             "contents": [{"parts": [{"text": "Diga OK."}]}]
         }
