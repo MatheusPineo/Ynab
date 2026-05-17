@@ -17,6 +17,9 @@ Esta versão corrige a homologação de transações em contas de cartão de cr�
   - Incluído fallback virtual inteligente e robusto para criar um registro `CoreTransaction` pendente com `is_applied_to_balance=False` caso o lote seja futuro ou não acione realocações imediatas, garantindo integridade com a chave estrangeira `validated_transaction` sem corromper saldos.
 
 ### Corrigido
+* **Validação Robusta de IDs no Inbox (`views.py`):**
+  - Implementada uma barreira estrita de conversão de tipos em Python (via `int(str().strip())` e tratamento completo de exceções `ValueError`, `TypeError`, `ValidationError`) para `account_id` e `category_id` no endpoint `approve`.
+  - Isso impede de forma absoluta que valores string não numéricos enviados pelo frontend (como `'none'`, `'null'`, `'undefined'`, `''`) causem erros de validação da ORM do Django (`Field 'id' expected a number but got 'none'`), garantindo que a homologação sem categoria ou com contas corrompidas prossiga de forma segura.
 * **Persistência de Status em Lotes Parciais (`views.py`):**
   - Corrigido o bug na action `approve` onde o status do item da inbox era prematuramente alterado para `'ready'` mesmo quando restavam transações pendentes de homologação no lote.
   - O status `'ready'` agora só é atribuído quando absolutamente todas as transações mapeadas pelo Gemini no comprovante forem devidamente homologadas pelo usuário, mantendo o comprovante visível na fila para as revisões subsequentes.
