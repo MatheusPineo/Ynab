@@ -6,6 +6,22 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.26.9] — 2026-05-17
+
+Esta versão adiciona o lançamento real de despesas físicas de cartão de crédito e a atualização em tempo real de saldo devedor nas contas de cartão de crédito do motor YNAB, além de blindar a validação de categorias sem classificação.
+
+### Adicionado
+* **Lançamento de Despesa Real de Cartão de Crédito (`services.py`):**
+  - O processador YNAB (`process_installment_ynab`) agora registra uma transação real de despesa (`CoreTransaction`) sob a conta do cartão de crédito (`credit_card.account`) correspondente à parcela e subtrai o valor diretamente de seu saldo real (`credit_card.account.balance`), sincronizando perfeitamente os limites e faturas com o painel principal em tempo real.
+* **Antecipação Integrada ao YNAB (`views.py`):**
+  - Chamada à rotina YNAB `process_installment_ynab` injetada na action `anticipate_installment` de `CreditCardViewSet` para garantir que faturas futuras antecipadas pelo usuário deduzam imediatamente do envelope e do saldo real do cartão no ato da antecipação.
+
+### Corrigido
+* **Blindagem Total contra ID "none" no Backend (`views.py`):**
+  - Tratamento aprimorado no endpoint de homologação (`approve`) para ignorar explicitamente a string `"none"` (case-insensitive) como um ID de categoria inválido, atribuindo `None` à categoria de forma segura e elegante.
+* **Envio Limpo do Cliente (`Inbox.tsx`):**
+  - No frontend, a homologação de transações marcadas com "Sem Categoria (Receita)" substitui dinamicamente o valor `"none"` por `null` no payload JSON, assegurando conformidade absoluta cliente-servidor.
+
 ## [1.26.8] — 2026-05-17
 
 Esta versão corrige a homologação de transações em contas de cartão de crédito e a aprovação de lotes na Caixa de Entrada Inteligente (Staging Inbox).

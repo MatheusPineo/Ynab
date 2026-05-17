@@ -217,7 +217,7 @@ const Inbox = () => {
     setIsSubmitting(true);
     const payload = {
       account: selectedAccountId,
-      category: selectedCategoryId || null,
+      category: selectedCategoryId === "none" || !selectedCategoryId ? null : selectedCategoryId,
       amount: Math.abs(Number(amount)),
       description: merchant || "Cupom Fiscal",
       date,

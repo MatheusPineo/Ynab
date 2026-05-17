@@ -179,3 +179,17 @@ def process_installment_ynab(installment):
         )
         payment_envelope.balance += installment.amount
         payment_envelope.save()
+
+        # Registra a transação de despesa real sob a conta do cartão de crédito
+        CoreTransaction.objects.create(
+            account=credit_card.account,
+            category=category,
+            amount=installment.amount,
+            description=f"{matrix_tx.description} (Parcela {installment.number}/{matrix_tx.installment_count})" if matrix_tx.installment_count > 1 else matrix_tx.description,
+            date=matrix_tx.date,
+            is_income=False,
+            status='realized',
+            is_applied_to_balance=True
+        )
+        credit_card.account.balance -= installment.amount
+        credit_card.account.save()

@@ -362,6 +362,7 @@ Para suportar o complexo sistema brasileiro de parcelamento atrelado a faturas e
 * **Cálculo da Janela Estendida (Melhor Dia):** Cada cartão define um `closing_day` (dia de fechamento) e um `due_day` (vencimento). Se uma compra for executada no dia do fechamento ou depois ($D \ge closing\_day$), o algoritmo de alocação joga a primeira fatura automaticamente para o mês seguinte.
 * **Geração da Dívida Matriz (`CreditCardTransaction` vs `Installment`):** O montante total é mantido intacto na compra matriz. As parcelas (`Installment`) são fatiadas proporcionalmente e distribuídas para as faturas de meses subsequentes, permitindo antecipações futuras.
 * **Reserva de Liquidez YNAB (Passivo):** O cartão atua como uma Conta de Passivo. Ao postar uma parcela de despesa (ex: Alimentação), o sistema deduz o valor do envelope de Alimentação e transfere esse montante virtualmente para o envelope de `Pagamento do Cartão`, garantindo a provisão de fundos para a quitação.
+* **Lançamento de Despesa Física Real:** Para manter a consistência contábil e a conciliação do cartão de crédito, ao postar uma parcela, o processador YNAB (`process_installment_ynab`) cria paralelamente uma transação real de débito (`CoreTransaction`) vinculada à conta do cartão de crédito (`credit_card.account`) e deduz o valor do montante da parcela diretamente do saldo líquido da conta do cartão (`credit_card.account.balance`), sincronizando os saldos reais e virtuais.
 
 ---
 

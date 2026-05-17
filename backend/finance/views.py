@@ -1338,6 +1338,11 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                 
             inst.status = 'anticipated'
             inst.save()
+
+            # Executa a transferência de envelopes YNAB e registra transação/saldo se aplicável
+            from .services import process_installment_ynab
+            process_installment_ynab(inst)
+
             return Response({'message': f'Parcela {inst.number} antecipada com sucesso.'})
         except Installment.DoesNotExist:
             return Response({'error': 'Parcela não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
@@ -1530,7 +1535,7 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                 return Response({"error": "Conta selecionada inválida ou não encontrada."}, status=status.HTTP_400_BAD_REQUEST)
 
             category = None
-            if category_id:
+            if category_id and str(category_id).strip().lower() != 'none':
                 try:
                     category_id_int = int(str(category_id).strip())
                     category = Category.objects.get(id=category_id_int, user=request.user)
