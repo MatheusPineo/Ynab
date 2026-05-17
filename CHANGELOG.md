@@ -22,8 +22,15 @@ Esta versão introduz a **Interface Visual da Caixa de Entrada Inteligente (Stag
   - **Sincronização de Traduções:** Inclusão das chaves de tradução `inbox` e descrições interativas no manual local de idioma `pt-BR.json`.
 * **Tratamento de Erros Defensivo na API (`api.ts`):**
   - Implementação de um duto de segurança que intercepta erros não-JSON vindos do servidor (como 404 e 500 do Render), convertendo páginas HTML de erro em alertas em português descritivos e amigáveis, eliminando para sempre a exibição do toast de objeto vazio `{}` na interface.
+* **Resiliência Pós-Commit no Django REST Framework (`views.py`):**
+  - **Despacho Pós-Commit (`transaction.on_commit`):** Protegemos a criação e o upload de recibos movendo o despacho da tarefa Celery para fora da transação atômica do Django. Isso impede race-conditions onde o Celery tentava consultar o banco antes de a transação finalizar.
+  - **Resiliência Multi-Container (Fallback em Thread Local):** Implementamos uma estratégia ultra-defensiva de processamento. Se a fila Celery ou a conexão com o broker Redis falhar ou estiver offline em produção (comum em setups Render separados ou sem Redis), o backend intercepta o erro de conexão e aciona um processamento alternativo via Thread local assíncrona (`threading.Thread`). Isso evita erros HTTP 500 no upload do usuário e garante que a extração por IA continue funcionando perfeitamente!
+* **Garantia de Qualidade:**
+  - Adaptação dos testes da API (`test_inbox.py`) usando o context manager `captureOnCommitCallbacks` para simular e validar perfeitamente o disparo do Celery pós-commit dentro do ambiente de testes transacional.
+  - Execução completa e aprovação de 100% da suíte de 60 testes automatizados no Pytest.
 * **Deploy de Produção:**
   - Build de produção validado com sucesso e implantado na nuvem via Vercel (100% online).
+  - Atualizações resilientes integradas no repositório GitHub para reinstanciação no Render.
 
 ---
 

@@ -127,11 +127,12 @@ class TransactionInboxAPITests(TestCase):
         file1 = SimpleUploadedFile('recibo1.jpg', b'fake image 1', content_type='image/jpeg')
         file2 = SimpleUploadedFile('recibo2.png', b'fake image 2', content_type='image/png')
         
-        response = self.client.post(
-            reverse('inbox-bulk-upload'),
-            {'files': [file1, file2]},
-            format='multipart'
-        )
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(
+                reverse('inbox-bulk-upload'),
+                {'files': [file1, file2]},
+                format='multipart'
+            )
         
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         self.assertIn("message", response.data)

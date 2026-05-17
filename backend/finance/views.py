@@ -1,4 +1,7 @@
 import uuid
+import logging
+
+logger = logging.getLogger(__name__)
 import calendar
 import io
 import csv
@@ -1405,8 +1408,24 @@ class InboxUploadView(APIView):
                     status='pending'
                 )
                 
-                # Despacha a tarefa assíncrona no Celery em segundo plano
-                process_inbox_document.delay(inbox.id)
+                # Despacha a tarefa assíncrona pós-commit de forma extremamente resiliente
+                def dispatch_task(inbox_id=inbox.id):
+                    try:
+                        process_inbox_document.delay(inbox_id)
+                        logger.info(f"[Inbox] Tarefa Celery despachada pós-commit com sucesso para ID {inbox_id}")
+                    except Exception as celery_err:
+                        logger.warning(
+                            f"[Inbox] Falha ao despachar tarefa via Celery (Redis offline?). "
+                            f"Iniciando processamento alternativo via Thread local para ID {inbox_id}. Erro: {celery_err}"
+                        )
+                        import threading
+                        threading.Thread(
+                            target=process_inbox_document,
+                            args=(inbox_id,),
+                            daemon=True
+                        ).start()
+
+                transaction.on_commit(dispatch_task)
                 
                 created_items.append({
                     "id": str(inbox.id),
