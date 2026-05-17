@@ -1454,9 +1454,29 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny])
     def debug_key(self, request):
         import os
+        import requests
         from django.conf import settings
         env_key = os.environ.get('GEMINI_API_KEY', '')
         settings_key = getattr(settings, 'GEMINI_API_KEY', '')
+        
+        test_status = None
+        test_response_body = None
+        if env_key:
+            test_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={env_key}"
+            test_payload = {
+                "contents": [{"parts": [{"text": "Diga OK."}]}]
+            }
+            try:
+                res = requests.post(test_url, json=test_payload, headers={"Content-Type": "application/json"}, timeout=10)
+                test_status = res.status_code
+                try:
+                    test_response_body = res.json()
+                except Exception:
+                    test_response_body = res.text
+            except Exception as test_err:
+                test_status = "Erro de Conexão"
+                test_response_body = str(test_err)
+
         return Response({
             "env_key_configured": bool(env_key),
             "env_key_length": len(env_key),
@@ -1466,6 +1486,8 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
             "settings_key_length": len(settings_key),
             "settings_key_prefix": settings_key[:5] if settings_key else "",
             "settings_key_suffix": settings_key[-5:] if settings_key else "",
+            "gemini_test_status": test_status,
+            "gemini_test_response": test_response_body
         })
 
     def get_queryset(self):
