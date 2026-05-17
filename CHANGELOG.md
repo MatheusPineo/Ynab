@@ -6,6 +6,26 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.26.0] — 2026-05-17
+
+Esta versão introduz o suporte completo a **Detecção e Homologação Múltipla de Transações** na Caixa de Entrada Inteligente (Staging Inbox), permitindo extrair e aprovar de forma individualizada e granular múltiplas compras contidas em um único comprovante, nota fiscal ou captura de tela por meio da IA do Gemini 1.5 Flash.
+
+### Adicionado
+* **Extração de Múltiplas Transações por IA:**
+  - **Esquema JSON Estruturado de Array (`ai_services.py`):** Configuração refinada do prompt e do esquema JSON do Gemini para preencher um array de objetos `transactions` em vez de um objeto de transação única plana.
+  - **Resiliência e Fallback Coerentes:** Mecanismos de tolerância a falhas atualizados para empacotar respostas padrão e erros de falha de infraestrutura sob a nova estrutura orientada a listas.
+* **Pipeline de Homologação Granular por Índice no Backend:**
+  - **Aprovação Específica por Índice (`views.py`):** Atualização do endpoint `/api/finance/inbox/{id}/approve/` para receber o parâmetro opcional de query `index`. Ao recebê-lo, o backend realiza a criação da transação correspondente no banco e marca apenas aquele item do array como aprovado (`"approved": true`).
+  - **Arquivamento e Conclusão Progressivos:** O registro inbox só é considerado concluído (status transicionado para `'ready'` e `validated_transaction` vinculada) quando *todas* as transações contidas no recibo são homologadas e marcadas como aprovadas pelo usuário.
+* **Visualizador de Abas de Transações Múltiplas no Frontend (`Inbox.tsx`):**
+  - **Interface com Abas Dinâmicas:** Apresentação interativa em React que divide os dados retornados da IA em abas individuais para cada compra identificada no comprovante.
+  - **Edição e Envio Granular:** Permite ao usuário editar, ajustar contas/envelopes e aprovar cada item de forma independente sem recarregar ou perder o contexto visual do comprovante ao lado.
+* **Suite de Testes Unitários Completamente Atualizada:**
+  - **Testes Ajustados no Django (`test_inbox.py`):** Correção de todas as asserções de teste unitário da API e do Celery para validar a nova arquitetura orientada a array do inbox, garantindo 100% de cobertura verde em todos os 47 testes de backend.
+  - **Validação de Testes do Frontend (Vitest):** Garantia de funcionamento perfeito de todas as 30 rotinas de testes no frontend do React.
+
+---
+
 ## [1.25.0] — 2026-05-17
 
 Esta versão introduz a **Interface Visual da Caixa de Entrada Inteligente (Staging Inbox Area)** no frontend em React 18, permitindo que os usuários revisem e homologuem cupons e recibos side-by-side com as sugestões estruturadas pela IA do Gemini.

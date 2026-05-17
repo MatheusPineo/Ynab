@@ -118,6 +118,7 @@ from finance.tasks import process_inbox_document
 class TransactionInboxAPITests(TestCase):
     def setUp(self) -> None:
         self.user = User.objects.create_user(username='apiuser', password='apipassword')
+        self.account = Account.objects.create(user=self.user, name='Carteira Principal', balance=Decimal('500.00'))
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
         
@@ -172,7 +173,98 @@ class TransactionInboxAPITests(TestCase):
         inbox.refresh_from_db()
         self.assertEqual(inbox.status, 'ready')
         self.assertIsNotNone(inbox.processed_at)
-        self.assertIn("merchant", inbox.ai_suggestions)
+        self.assertIn("transactions", inbox.ai_suggestions)
+
+    def test_approve_single_transaction_legacy_format(self) -> None:
+        """Valida a aprovação tradicional (legada) sem o parâmetro index."""
+        inbox = TransactionInbox.objects.create(
+            user=self.user,
+            status='ready',
+            ai_suggestions={
+                'amount': 150.50,
+                'date': '2026-05-17',
+                'merchant': 'Posto de Gasolina',
+                'currency': 'BRL'
+            }
+        )
+        
+        payload = {
+            'account': str(self.account.id),
+            'amount': 150.50,
+            'description': 'Posto de Gasolina',
+            'date': '2026-05-17',
+            'is_income': False
+        }
+        
+        response = self.client.post(
+            reverse('inbox-approve', args=[inbox.id]),
+            payload,
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['all_approved'])
+        
+        # Verifica se o inbox foi atualizado no banco
+        inbox.refresh_from_db()
+        self.assertIsNotNone(inbox.validated_transaction)
+        self.assertEqual(inbox.status, 'ready')
+
+    def test_approve_multi_transaction_batch_by_index(self) -> None:
+        """Valida a aprovação de transações individuais por índice e finalização apenas quando todas são aprovadas."""
+        inbox = TransactionInbox.objects.create(
+            user=self.user,
+            status='ready',
+            ai_suggestions={
+                'transactions': [
+                    {'amount': 50.0, 'date': '2026-05-17', 'merchant': 'Uber', 'currency': 'BRL', 'approved': False},
+                    {'amount': 120.0, 'date': '2026-05-17', 'merchant': 'Restaurante', 'currency': 'BRL', 'approved': False}
+                ]
+            }
+        )
+
+        # 1. Aprova apenas a primeira transação (Uber, index=0)
+        payload1 = {
+            'account': str(self.account.id),
+            'amount': 50.0,
+            'description': 'Uber',
+            'date': '2026-05-17',
+            'is_income': False,
+            'index': 0
+        }
+        response1 = self.client.post(
+            reverse('inbox-approve', args=[inbox.id]),
+            payload1,
+            format='json'
+        )
+        self.assertEqual(response1.status_code, status.HTTP_201_CREATED)
+        self.assertFalse(response1.data['all_approved'])
+        
+        inbox.refresh_from_db()
+        self.assertIsNone(inbox.validated_transaction) # Ainda não concluído
+        self.assertTrue(inbox.ai_suggestions['transactions'][0]['approved'])
+        self.assertFalse(inbox.ai_suggestions['transactions'][1]['approved'])
+
+        # 2. Aprova a segunda transação (Restaurante, index=1)
+        payload2 = {
+            'account': str(self.account.id),
+            'amount': 120.0,
+            'description': 'Restaurante',
+            'date': '2026-05-17',
+            'is_income': False,
+            'index': 1
+        }
+        response2 = self.client.post(
+            reverse('inbox-approve', args=[inbox.id]),
+            payload2,
+            format='json'
+        )
+        self.assertEqual(response2.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response2.data['all_approved']) # Agora concluído!
+        
+        inbox.refresh_from_db()
+        self.assertIsNotNone(inbox.validated_transaction)
+        self.assertTrue(inbox.ai_suggestions['transactions'][0]['approved'])
+        self.assertTrue(inbox.ai_suggestions['transactions'][1]['approved'])
 
 
 from unittest.mock import MagicMock, mock_open, patch
@@ -186,15 +278,15 @@ class AIExtractionServiceTests(TestCase):
     def test_extract_without_api_key(self) -> None:
         """Garante que sem chave de API o serviço retorna dados de fallback com 'Sem Chave API'."""
         res = self.service_no_key.extract_receipt_data("caminho/qualquer.jpg")
-        self.assertEqual(res["merchant"], "Sem Chave API")
-        self.assertIsNone(res["amount"])
-        self.assertEqual(res["currency"], "BRL")
+        self.assertEqual(res["transactions"][0]["merchant"], "Sem Chave API")
+        self.assertIsNone(res["transactions"][0]["amount"])
+        self.assertEqual(res["transactions"][0]["currency"], "BRL")
 
     def test_extract_file_not_found(self) -> None:
         """Garante que se o arquivo não existe o serviço retorna fallback com 'Arquivo não Encontrado'."""
         res = self.service_with_key.extract_receipt_data("caminho/inexistente.jpg")
-        self.assertEqual(res["merchant"], "Arquivo não Encontrado")
-        self.assertIsNone(res["amount"])
+        self.assertEqual(res["transactions"][0]["merchant"], "Arquivo não Encontrado")
+        self.assertIsNone(res["transactions"][0]["amount"])
 
     @patch('requests.post')
     @patch('builtins.open', new_callable=mock_open, read_data=b"fake data")
@@ -203,7 +295,7 @@ class AIExtractionServiceTests(TestCase):
         """Garante que com resposta de sucesso o JSON estruturado do Gemini é parseado corretamente."""
         mock_exists.return_value = True
         
-        # Cria um mock response com JSON estruturado
+        # Cria um mock response com JSON estruturado contendo a chave root 'transactions'
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
@@ -212,7 +304,7 @@ class AIExtractionServiceTests(TestCase):
                     "content": {
                         "parts": [
                             {
-                                "text": '{"amount": 185.90, "date": "2026-05-17", "merchant": "Uber Brasil", "currency": "BRL"}'
+                                "text": '{"transactions": [{"amount": 185.90, "date": "2026-05-17", "merchant": "Uber Brasil", "currency": "BRL"}]}'
                             }
                         ]
                     }
@@ -224,10 +316,10 @@ class AIExtractionServiceTests(TestCase):
         # Executa a extração
         res = self.service_with_key.extract_receipt_data("caminho/fake.jpg")
         
-        self.assertEqual(res["amount"], 185.90)
-        self.assertEqual(res["date"], "2026-05-17")
-        self.assertEqual(res["merchant"], "Uber Brasil")
-        self.assertEqual(res["currency"], "BRL")
+        self.assertEqual(res["transactions"][0]["amount"], 185.90)
+        self.assertEqual(res["transactions"][0]["date"], "2026-05-17")
+        self.assertEqual(res["transactions"][0]["merchant"], "Uber Brasil")
+        self.assertEqual(res["transactions"][0]["currency"], "BRL")
 
     @patch('requests.post')
     @patch('builtins.open', new_callable=mock_open, read_data=b"fake data")
@@ -249,7 +341,7 @@ class AIExtractionServiceTests(TestCase):
                     "content": {
                         "parts": [
                             {
-                                "text": '{"amount": 50.00, "date": "2026-05-15", "merchant": "Amazon", "currency": "USD"}'
+                                "text": '{"transactions": [{"amount": 50.00, "date": "2026-05-15", "merchant": "Amazon", "currency": "USD"}]}'
                             }
                         ]
                     }
@@ -263,9 +355,9 @@ class AIExtractionServiceTests(TestCase):
         with patch('time.sleep'):
             res = self.service_with_key.extract_receipt_data("caminho/fake.jpg")
 
-        self.assertEqual(res["amount"], 50.00)
-        self.assertEqual(res["merchant"], "Amazon")
-        self.assertEqual(res["currency"], "USD")
+        self.assertEqual(res["transactions"][0]["amount"], 50.00)
+        self.assertEqual(res["transactions"][0]["merchant"], "Amazon")
+        self.assertEqual(res["transactions"][0]["currency"], "USD")
 
 
 

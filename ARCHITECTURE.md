@@ -903,7 +903,7 @@ A tarefa `process_inbox_document` gerencia de forma estritamente robusta o ciclo
 * **Consolidação dos Dados:** Após a extração dos metadados da transação via IA, os dados estruturados de sugestão são populados diretamente no banco de dados, transicionando o status final para `ready` e preenchendo o timestamp exato de processamento em `processed_at`.
 * **Resiliência contra Falhas:** Exceções imprevistas durante o parsing ou conexões de rede são capturadas pelo bloco `try-except` externo, transicionando o status do item para `failed` e populando a mensagem descritiva no campo `error_message`, executando em seguida tentativas de reprocessamento programado com backoff exponencial via Celery (`self.retry`).
 
-### 11.4 Integração Multimodal com Google Gemini 1.5 Flash (v1.24.0)
+### 11.4 Integração Multimodal com Google Gemini 1.5 Flash (v1.26.0)
 Para extrair com precisão absoluta as informações fiscais sem depender de OCRs locais rígidos ou expressões regulares quebradiças, o Vault Finance OS delega a análise de mídia para a API do **Google Gemini 1.5 Flash** através da classe utilitária `AIExtractionService` ([ai_services.py](file:///c:/Users/mathe/PROJETO-YNAB/backend/finance/ai_services.py)):
 
 #### 1. Structured Outputs (JSON Schema Estrito)
@@ -912,40 +912,50 @@ A chamada REST utiliza o recurso nativo de **Structured Outputs** da API do Gemi
 {
   "type": "OBJECT",
   "properties": {
-    "amount": { "type": "NUMBER", "description": "Valor total pago como float. Null se ausente." },
-    "date": { "type": "STRING", "description": "Data no formato YYYY-MM-DD. Null se ausente." },
-    "merchant": { "type": "STRING", "description": "Nome da loja ou empresa. 'Desconhecido' se ausente." },
-    "currency": { "type": "STRING", "description": "Código ISO 4217 de 3 letras. Default 'BRL'." }
+    "transactions": {
+      "type": "ARRAY",
+      "description": "List of transactions identified in the document/image. If there is only one transaction, return a list with one item.",
+      "items": {
+        "type": "OBJECT",
+        "properties": {
+          "amount": { "type": "NUMBER", "description": "Transaction amount as a numeric float value. Null if missing." },
+          "date": { "type": "STRING", "description": "Transaction date formatted strictly as YYYY-MM-DD. Use today's date if missing." },
+          "merchant": { "type": "STRING", "description": "Official store, supplier, or merchant name. 'Desconhecido' if missing." },
+          "currency": { "type": "STRING", "description": "3-letter ISO 4217 currency code. Default 'BRL' if missing." }
+        },
+        "required": ["amount", "date", "merchant", "currency"]
+      }
+    }
   },
-  "required": ["amount", "date", "merchant", "currency"]
+  "required": ["transactions"]
 }
 ```
-Isso garante deterministicamente que a resposta da IA será **exclusivamente** um objeto JSON plano contendo as chaves necessárias estruturadas de negócios, sem poluição de comentários, marcações markdown de blocos de código ou textos introdutórios.
+Isso garante deterministicamente que a resposta da IA será **exclusivamente** um objeto contendo um array `transactions`, suportando a extração precisa de múltiplas compras a partir de capturas de tela, notificações ou faturas compostas em uma mesma imagem.
 
 #### 2. Design Ultra-Defensivo e Tolerância a Falhas
 A classe utilitária foi desenhada para operar de forma blindada em produção:
 * **MIME Type Dinâmico:** Utiliza o módulo `mimetypes` para inferir em tempo de execução o tipo do arquivo (PNG, JPEG, PDF, etc.) e convertê-lo com precisão para envio Base64.
 * **Mitigação de Rate Limits (HTTP 429):** Caso o endpoint retorne estouro de cota (429), o serviço aplica de forma iterativa **retentativas automáticas sob backoff exponencial**, aguardando tempos progressivamente dobrados (`sleep(2s)`, `sleep(4s)`) antes de abortar.
 * **Timeout Estrito de Conexão:** Cada requisição HTTP tem um timeout severo de 15 segundos para evitar o enfileiramento infinito de conexões presas na fila de workers.
-* **Mecanismo de Fallback Seguro:** Se a chave de API não estiver configurada no ambiente ou ocorrer uma falha catastrófica de rede após as retentativas, o serviço silencia o erro e retorna uma estrutura JSON defensiva válida preenchida com valores nulos/padrões, permitindo que o ciclo do worker Celery conclua com sucesso sem quebras de execução.
+* **Mecanismo de Fallback Seguro:** Se a chave de API não estiver configurada no ambiente ou ocorrer uma falha catastrófica de rede após as retentativas, o serviço silencia o erro e retorna uma estrutura JSON de fallback contendo uma única transação padrão, permitindo que o ciclo do worker Celery conclua com sucesso sem quebras de execução.
 
-### 11.5 Interface Side-by-Side de Homologação e Staging Area (v1.25.0)
+### 11.5 Interface Side-by-Side de Homologação e Staging Area (v1.26.0)
 Para fechar o loop de controle e permitir a validação humana dos dados extraídos pela inteligência artificial, implementamos uma interface split-screen premium em React 18 acoplada ao gerenciador de estados **Zustand**:
 
 #### 1. Split-Screen Responsivo e Controles Visuais
 A tela de staging em [Inbox.tsx](file:///c:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/pages/Inbox.tsx) divide a área de trabalho em dois painéis principais:
 * **Painel Esquerdo (Visualizador de Comprovante):** Carrega a imagem do cupom fiscal original servido a partir do bucket/mídia do Django. Apresenta controles de visualização integrados (Zoom In/Out e Rotacionar 90°) para permitir que o usuário verifique letras miúdas ou documentos digitalizados na vertical ou de cabeça para baixo sem sair da tela.
-* **Painel Direito (Formulário Reativo e Inteligente):** Apresenta os campos editáveis preenchidos dinamicamente em tempo de execução a partir dos resultados estruturados sugeridos pela IA.
+* **Painel Direito (Abas de Transações e Formulário Reativo):** Apresenta abas interativas para cada transação identificada na imagem. Ao selecionar uma aba, exibe o formulário reativo e inteligente preenchido com os dados específicos sugeridos pela IA.
 
 #### 2. Integração com a Árvore de Contas YNAB e Categorias
 Para consolidar a transação real, o formulário realiza o mapeamento seguro com os recursos financeiros do usuário:
 * **Contas Financeiras:** Lista e achata de forma recursiva todas as contas e cartões ativos a partir da store `useAccountStore` (`tree`), validando moedas dinâmicas.
 * **Categorias de Orçamento (YNAB):** Achata recursivamente a árvore de categorias (`categoryGroups`) para exibir apenas as subcategorias ativas e envelopes de orçamento válidos para dedução de saldo, ocultando cabeçalhos de grupos principais para evitar vinculações incorretas.
 
-#### 3. Pipeline de Homologação Atômica
-Ao submeter o formulário aprovado, o fluxo de consolidação ocorre de forma transacional:
-* **Submissão Segura:** A store do Zustand [useInboxStore.ts](file:///c:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/store/useInboxStore.ts) dispara a action assíncrona `approveInboxItem(id, payload)` utilizando o utilitário `authenticatedFetch` que adiciona tokens de segurança Bearer de forma transparente.
-* **Consolidação no Django:** O endpoint `/api/finance/inbox/{id}/approve/` processa transacionalmente a criação da transação real, a dedução de envelopes correspondentes no YNAB, transiciona o status do comprovante para `'ready'` e o associa via Foreign Key `validated_transaction` para fins de auditoria, limpando em seguida o item da listagem de staging do usuário.
+#### 3. Pipeline de Homologação Granular por Índice
+Ao submeter o formulário de aprovação, a transação real é criada individualmente:
+* **Submissão Segura com Parâmetro Index:** A store do Zustand [useInboxStore.ts](file:///c:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/store/useInboxStore.ts) dispara a action assíncrona `approveInboxItem(id, payload, index)` que envia o parâmetro `index` na query URL para o backend.
+* **Consolidação e Arquivamento Progressivo no Django:** O endpoint `/api/finance/inbox/{id}/approve/` processa transacionalmente a criação da transação real, marca o item correspondente da lista de sugestões como aprovado (`"approved": true`) e recalcula o progresso. O comprovante inbox só é arquivado e transicionado para o status final concluído (associado a `validated_transaction`) quando *todas* as transações listadas na sugestão forem homologadas individualmente, limpando o item do staging apenas ao fim de toda a validação do documento.
 
 
 

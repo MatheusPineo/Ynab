@@ -278,7 +278,14 @@ class TransactionInbox(models.Model):
         """Retorna o valor sugerido como um objeto Decimal do Python para maior precisão financeira."""
         if not self.ai_suggestions:
             return None
-        amount = self.ai_suggestions.get('amount')
+        
+        # Suporte a múltiplas transações (v1.25.0+)
+        transactions = self.ai_suggestions.get('transactions', [])
+        if transactions:
+            amount = transactions[0].get('amount')
+        else:
+            amount = self.ai_suggestions.get('amount')
+            
         if amount is not None:
             from decimal import Decimal, InvalidOperation
             try:
@@ -292,7 +299,14 @@ class TransactionInbox(models.Model):
         """Retorna a data sugerida convertida para um objeto datetime.date."""
         if not self.ai_suggestions:
             return None
-        date_str = self.ai_suggestions.get('date')
+            
+        # Suporte a múltiplas transações (v1.25.0+)
+        transactions = self.ai_suggestions.get('transactions', [])
+        if transactions:
+            date_str = transactions[0].get('date')
+        else:
+            date_str = self.ai_suggestions.get('date')
+            
         if date_str:
             from datetime import date
             try:

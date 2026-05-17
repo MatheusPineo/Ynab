@@ -23,12 +23,17 @@ class AIExtractionService:
         self.api_url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
 
     def get_fallback_data(self, merchant_name: str = "Erro na Extração") -> dict:
-        """Retorna uma estrutura padrão defensiva de fallback."""
+        """Retorna uma estrutura padrão defensiva de fallback com suporte a múltiplas transações."""
         return {
-            "amount": None,
-            "date": str(date.today()),
-            "merchant": merchant_name,
-            "currency": "BRL"
+            "transactions": [
+                {
+                    "amount": None,
+                    "date": str(date.today()),
+                    "merchant": merchant_name,
+                    "currency": "BRL",
+                    "approved": False
+                }
+            ]
         }
 
     def extract_receipt_data(self, file_path: str, mime_type: str = None) -> dict:
@@ -61,40 +66,53 @@ class AIExtractionService:
             # 3. Construir o payload JSON de chamada do Gemini 1.5 Flash com Structured Outputs
             system_prompt = (
                 "You are an advanced, professional financial document parser designed to extract transactional metadata "
-                "from receipts, bills, invoices, and purchase confirmations. Your job is to analyze the document image or PDF "
-                "and strictly populate the requested JSON schema. Never include markdown formatting, backticks, "
-                "or extra conversational text in your response."
+                "from receipts, bills, invoices, notifications, and purchase confirmations. Your job is to analyze the document image or PDF "
+                "and identify all transactions (e.g. payments, purchases, debit notifications). If the document contains multiple transactions "
+                "(for example, a screenshot with multiple bank or payment app notifications), you must extract EACH of them as a separate item "
+                "in the 'transactions' array. If there is only a single transaction, return it as a list of size 1 in the 'transactions' array. "
+                "Never include markdown formatting, backticks, or extra conversational text in your response."
             )
 
             prompt_text = (
-                "Please extract the following information from this financial document: "
+                "Please extract all transactions from this financial document and return them inside the 'transactions' array. "
+                "Each transaction item in the list must contain: "
                 "1. Total transaction amount as a numeric float value. "
                 "2. Transaction date formatted strictly as YYYY-MM-DD. "
                 "3. Official merchant, business or store name (e.g. Uber, Amazon, McDonald's). "
-                "4. Currency code in ISO 4217 format (e.g. BRL, USD, EUR)."
+                "4. Currency code in ISO 4217 format (e.g. BRL, USD, EUR, GBP)."
             )
 
             schema = {
                 "type": "OBJECT",
                 "properties": {
-                    "amount": {
-                        "type": "NUMBER",
-                        "description": "Total purchase or transaction amount. Use float, e.g., 42.50. Null if completely missing."
-                    },
-                    "date": {
-                        "type": "STRING",
-                        "description": "Transaction date formatted strictly as YYYY-MM-DD. Null if completely missing."
-                    },
-                    "merchant": {
-                        "type": "STRING",
-                        "description": "Official store, supplier, or merchant name. 'Desconhecido' if completely missing."
-                    },
-                    "currency": {
-                        "type": "STRING",
-                        "description": "3-letter ISO 4217 currency code (e.g. BRL, USD, EUR, GBP). Default to 'BRL' if completely missing."
+                    "transactions": {
+                        "type": "ARRAY",
+                        "description": "List of transactions identified in the document/image. If there is only one transaction, return a list with one item.",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "amount": {
+                                    "type": "NUMBER",
+                                    "description": "Transaction amount as a numeric float value (e.g., 1.89). Null if missing."
+                                },
+                                "date": {
+                                    "type": "STRING",
+                                    "description": "Transaction date formatted strictly as YYYY-MM-DD. Use today's date if missing."
+                                },
+                                "merchant": {
+                                    "type": "STRING",
+                                    "description": "Official store, supplier, or merchant name. 'Desconhecido' if missing."
+                                },
+                                "currency": {
+                                    "type": "STRING",
+                                    "description": "3-letter ISO 4217 currency code (e.g., EUR, BRL, USD). Default to BRL if missing."
+                                }
+                            },
+                            "required": ["amount", "date", "merchant", "currency"]
+                        }
                     }
                 },
-                "required": ["amount", "date", "merchant", "currency"]
+                "required": ["transactions"]
             }
 
             payload = {
@@ -169,12 +187,21 @@ class AIExtractionService:
                     parsed_suggestions = json.loads(raw_text)
                     
                     # Sanitização final defensiva para garantir chaves obrigatórias
-                    return {
-                        "amount": parsed_suggestions.get("amount"),
-                        "date": parsed_suggestions.get("date"),
-                        "merchant": parsed_suggestions.get("merchant", "Desconhecido"),
-                        "currency": parsed_suggestions.get("currency", "BRL")
-                    }
+                    transactions = []
+                    for tx in parsed_suggestions.get("transactions", []):
+                        transactions.append({
+                            "amount": tx.get("amount"),
+                            "date": tx.get("date"),
+                            "merchant": tx.get("merchant", "Desconhecido"),
+                            "currency": tx.get("currency", "BRL"),
+                            "approved": False
+                        })
+                        
+                    if not transactions:
+                        fallback_tx = self.get_fallback_data("Desconhecido")["transactions"][0]
+                        transactions = [fallback_tx]
+                        
+                    return {"transactions": transactions}
 
                 except requests.exceptions.HTTPError as he:
                     logger.error(f"[AI Service] Erro HTTP na tentativa {attempt}: {str(he)}")

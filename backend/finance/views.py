@@ -1452,8 +1452,8 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Garante o isolamento multitenant estrito ordenando por mais recentes
-        return TransactionInbox.objects.filter(user=self.request.user).order_by('-created_at')
+        # Garante o isolamento multitenant estrito ordenando por mais recentes e exibindo apenas itens pendentes de homologação completa
+        return TransactionInbox.objects.filter(user=self.request.user, validated_transaction__isnull=True).order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -1471,6 +1471,7 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
         description = request.data.get('description', '')
         date_str = request.data.get('date')
         is_income = request.data.get('is_income', False)
+        index = request.data.get('index')  # Novo parâmetro (opcional)
 
         if not account_id or amount is None or not date_str:
             return Response(
@@ -1479,6 +1480,7 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
             )
 
         try:
+            from django.db import transaction
             from .models import Account, Category, Transaction
             account = Account.objects.get(id=account_id, user=request.user)
             category = None
@@ -1488,7 +1490,6 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
                 # 1. Cria a transação real
                 transaction_obj = Transaction.objects.create(
-                    user=request.user,
                     account=account,
                     category=category,
                     amount=amount,
@@ -1498,15 +1499,37 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                     status='realized'
                 )
 
-                # 2. Atualiza a referência e transiciona status no inbox para ready
-                inbox.validated_transaction = transaction_obj
-                inbox.status = 'ready'
-                inbox.save(update_fields=['validated_transaction', 'status', 'updated_at'])
+                # 2. Se for um lote de múltiplas transações, atualiza o status de aprovação do item específico
+                has_transactions = inbox.ai_suggestions and 'transactions' in inbox.ai_suggestions
+                all_approved = True
+                
+                if index is not None and has_transactions:
+                    try:
+                        idx = int(index)
+                        txs = inbox.ai_suggestions.get('transactions', [])
+                        if 0 <= idx < len(txs):
+                            txs[idx]['approved'] = True
+                            inbox.ai_suggestions['transactions'] = txs
+                            
+                        # Verifica se todas as transações do lote foram aprovadas
+                        all_approved = all(tx.get('approved', False) for tx in txs)
+                    except (ValueError, TypeError) as e:
+                        logger.error(f"[Inbox Approve] Erro ao processar o índice {index}: {str(e)}")
+
+                # 3. Transiciona status e vincula transação apenas se todas as transações do lote estiverem aprovadas
+                if all_approved:
+                    inbox.validated_transaction = transaction_obj
+                    inbox.status = 'ready'
+                else:
+                    inbox.status = 'ready'
+                    
+                inbox.save(update_fields=['validated_transaction', 'status', 'ai_suggestions', 'updated_at'])
 
             return Response(
                 {
                     "message": "Transação criada e comprovante homologado com sucesso!",
-                    "transaction_id": str(transaction_obj.id)
+                    "transaction_id": str(transaction_obj.id),
+                    "all_approved": all_approved
                 },
                 status=status.HTTP_201_CREATED
             )

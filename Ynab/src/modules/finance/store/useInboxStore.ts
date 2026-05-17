@@ -11,6 +11,13 @@ export interface TransactionInbox {
     date?: string | null;
     merchant?: string | null;
     currency?: string | null;
+    transactions?: Array<{
+      amount?: number | null;
+      date?: string | null;
+      merchant?: string | null;
+      currency?: string | null;
+      approved?: boolean;
+    }>;
   };
   error_message?: string | null;
   processed_at?: string | null;
@@ -35,6 +42,7 @@ interface InboxState {
       description: string; 
       date: string; 
       is_income: boolean; 
+      index?: number;
     }
   ) => Promise<boolean>;
   deleteInboxItem: (id: string) => Promise<void>;

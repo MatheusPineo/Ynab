@@ -54,6 +54,7 @@ const Inbox = () => {
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeTxIndex, setActiveTxIndex] = useState<number>(0);
 
   // Fetch initial data
   useEffect(() => {
@@ -62,13 +63,39 @@ const Inbox = () => {
     fetchCategoryGroups();
   }, [fetchInboxItems, fetchAccounts, fetchCategoryGroups]);
 
-  // Sync Form State when Selected Staging Item changes
+  // Reset activeTxIndex to first unapproved when changing selectedItem
+  useEffect(() => {
+    if (selectedItem) {
+      const txs = selectedItem.ai_suggestions?.transactions || [];
+      const firstUnapproved = txs.findIndex(t => !t.approved);
+      setActiveTxIndex(firstUnapproved !== -1 ? firstUnapproved : 0);
+    } else {
+      setActiveTxIndex(0);
+    }
+  }, [selectedItem?.id]);
+
+  // Sync Form State when Selected Staging Item or activeTxIndex changes
   useEffect(() => {
     if (selectedItem) {
       const suggestions = selectedItem.ai_suggestions || {};
-      setMerchant(suggestions.merchant || "Desconhecido");
-      setAmount(suggestions.amount !== undefined && suggestions.amount !== null ? String(suggestions.amount) : "");
-      setDate(suggestions.date || new Date().toISOString().split("T")[0]);
+      const txs = suggestions.transactions || [];
+      
+      if (txs.length > 0) {
+        let idx = activeTxIndex;
+        if (idx >= txs.length) {
+          idx = 0;
+        }
+        const currentTx = txs[idx];
+        if (currentTx) {
+          setMerchant(currentTx.merchant || "Desconhecido");
+          setAmount(currentTx.amount !== undefined && currentTx.amount !== null ? String(currentTx.amount) : "");
+          setDate(currentTx.date || new Date().toISOString().split("T")[0]);
+        }
+      } else {
+        setMerchant(suggestions.merchant || "Desconhecido");
+        setAmount(suggestions.amount !== undefined && suggestions.amount !== null ? String(suggestions.amount) : "");
+        setDate(suggestions.date || new Date().toISOString().split("T")[0]);
+      }
       setIsIncome(false); // Receitas são raras em cupons, default para Despesa
       setZoom(1);
       setRotation(0);
@@ -78,7 +105,7 @@ const Inbox = () => {
       setDate("");
       setIsIncome(false);
     }
-  }, [selectedItem]);
+  }, [selectedItem, activeTxIndex]);
 
   // Auto-select first item if none selected
   useEffect(() => {
@@ -172,16 +199,32 @@ const Inbox = () => {
       description: merchant || "Cupom Fiscal",
       date,
       is_income: isIncome,
+      index: selectedItem.ai_suggestions?.transactions ? activeTxIndex : undefined
     };
 
     const success = await approveInboxItem(selectedItem.id, payload);
     setIsSubmitting(false);
 
     if (success) {
-      // Invalida e limpa estados locais
-      setSelectedItem(null);
-      setSelectedAccountId("");
-      setSelectedCategoryId("");
+      // Encontra o item recém-atualizado do store para verificar se ainda restam transações pendentes no lote
+      const updatedItems = useInboxStore.getState().inboxItems;
+      const updatedItem = updatedItems.find(item => item.id === selectedItem.id);
+      
+      const remainingTxs = updatedItem?.ai_suggestions?.transactions || [];
+      const hasMoreUnapproved = remainingTxs.some(t => !t.approved);
+      
+      if (hasMoreUnapproved && updatedItem) {
+        setSelectedItem(updatedItem);
+        const nextUnapproved = remainingTxs.findIndex(t => !t.approved);
+        if (nextUnapproved !== -1) {
+          setActiveTxIndex(nextUnapproved);
+        }
+        toast.info("Transação homologada! Próxima compra do lote carregada.");
+      } else {
+        setSelectedItem(null);
+        setSelectedAccountId("");
+        setSelectedCategoryId("");
+      }
     }
   };
 
@@ -299,13 +342,33 @@ const Inbox = () => {
                       )}
                     </div>
 
-                    {item.status === "ready" && suggestions.merchant && (
+                    {item.status === "ready" && (
                       <div className="flex items-center justify-between w-full text-[10px] text-muted-foreground">
-                        <span className="truncate max-w-[100px] font-semibold">{suggestions.merchant}</span>
-                        {suggestions.amount !== undefined && (
-                          <span className="font-bold text-foreground tabular-nums">
-                            {formatMoney(Number(suggestions.amount), suggestions.currency || "BRL")}
-                          </span>
+                        {suggestions.transactions && suggestions.transactions.length > 0 ? (
+                          <>
+                            <span className="truncate max-w-[100px] font-semibold text-primary">
+                              Lote ({suggestions.transactions.filter(t => !t.approved).length} pendentes)
+                            </span>
+                            <span className="font-bold text-foreground tabular-nums shrink-0">
+                              {formatMoney(
+                                suggestions.transactions
+                                  .filter(t => !t.approved)
+                                  .reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0),
+                                suggestions.transactions[0]?.currency || "BRL"
+                              )}
+                            </span>
+                          </>
+                        ) : suggestions.merchant ? (
+                          <>
+                            <span className="truncate max-w-[100px] font-semibold">{suggestions.merchant}</span>
+                            {suggestions.amount !== undefined && (
+                              <span className="font-bold text-foreground tabular-nums shrink-0">
+                                {formatMoney(Number(suggestions.amount), suggestions.currency || "BRL")}
+                              </span>
+                            )}
+                          </>
+                        ) : (
+                          <span className="truncate max-w-[100px] font-semibold text-muted-foreground">Comprovante</span>
                         )}
                       </div>
                     )}
@@ -444,6 +507,43 @@ const Inbox = () => {
                         <div className="space-y-1">
                           <p className="font-semibold">Sugestão estruturada carregada</p>
                           <p className="opacity-80">Dados extraídos com alta confiabilidade via Structured Outputs.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Multi-transaction Selector Tabs if Lot is detected */}
+                    {selectedItem.status === "ready" && (selectedItem.ai_suggestions?.transactions?.length ?? 0) > 1 && (
+                      <div className="mb-4 space-y-1.5">
+                        <Label className="text-xs font-semibold text-muted-foreground block">
+                          Selecione a Transação do Lote ({selectedItem.ai_suggestions.transactions.filter(t => !t.approved).length} pendentes)
+                        </Label>
+                        <div className="flex flex-wrap gap-2 p-1.5 bg-muted/10 rounded-xl border border-border/40">
+                          {selectedItem.ai_suggestions.transactions.map((tx, idx) => {
+                            const isCurrent = idx === activeTxIndex;
+                            return (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setActiveTxIndex(idx)}
+                                className={`flex-1 min-w-[90px] py-1.5 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                                  isCurrent
+                                    ? "bg-primary text-white shadow-soft hover:scale-[1.02]"
+                                    : tx.approved
+                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
+                                    : "bg-muted/10 text-muted-foreground hover:bg-muted/20 hover:text-foreground"
+                                }`}
+                              >
+                                {tx.approved ? (
+                                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                ) : (
+                                  <span className="h-3.5 w-3.5 rounded-full border border-current flex items-center justify-center text-[9px] font-bold shrink-0">
+                                    {idx + 1}
+                                  </span>
+                                )}
+                                <span className="truncate max-w-[85px]">{tx.merchant || `Compra ${idx + 1}`}</span>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
