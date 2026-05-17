@@ -32,7 +32,24 @@ def debug_key_view(request):
     settings_key = getattr(settings, 'GEMINI_API_KEY', '')
     test_status = None
     test_response_body = None
+    list_models_status = None
+    list_models_response = None
+    
     if env_key:
+        # Chamada 1: ListModels
+        list_url = f"https://generativelanguage.googleapis.com/v1beta/models?key={env_key}"
+        try:
+            list_res = requests.get(list_url, timeout=10)
+            list_models_status = list_res.status_code
+            try:
+                list_models_response = list_res.json()
+            except Exception:
+                list_models_response = list_res.text
+        except Exception as list_err:
+            list_models_status = "Erro de Conexão"
+            list_models_response = str(list_err)
+
+        # Chamada 2: generateContent
         test_url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={env_key}"
         test_payload = {
             "contents": [{"parts": [{"text": "Diga OK."}]}]
@@ -58,7 +75,9 @@ def debug_key_view(request):
         "settings_key_prefix": settings_key[:5] if settings_key else "",
         "settings_key_suffix": settings_key[-5:] if settings_key else "",
         "gemini_test_status": test_status,
-        "gemini_test_response": test_response_body
+        "gemini_test_response": test_response_body,
+        "list_models_status": list_models_status,
+        "list_models_response": list_models_response,
     })
 
 urlpatterns = [
