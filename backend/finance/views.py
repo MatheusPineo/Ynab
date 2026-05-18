@@ -1609,6 +1609,85 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
             "gemini_test_response": test_response_body
         })
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.AllowAny], authentication_classes=[])
+    def debug_tx(self, request):
+        """Endpoint TEMPORÁRIO de diagnóstico para investigar transações sumidas. REMOVER após resolução."""
+        from django.contrib.auth.models import User
+        from .models import Transaction, Account, TransactionInbox
+        
+        email = request.query_params.get('email', 'matheuskrx@gmail.com')
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": f"Usuário {email} não encontrado"})
+        
+        # 1. Buscar transações com Aldi/Amanhecer/Continente no banco
+        search_terms = ['aldi', 'amanhecer', 'continente', 'poupança', 'poupanca', 'distribuição', 'distribuicao']
+        found_txs = []
+        for term in search_terms:
+            txs = Transaction.objects.filter(
+                account__user=user,
+                description__icontains=term
+            ).order_by('-date')
+            for t in txs:
+                found_txs.append({
+                    "id": t.id,
+                    "description": t.description,
+                    "amount": str(t.amount),
+                    "date": str(t.date),
+                    "account_id": t.account_id,
+                    "account_name": t.account.name,
+                    "is_income": t.is_income,
+                    "status": t.status,
+                    "is_applied_to_balance": t.is_applied_to_balance,
+                    "created_at": str(t.created_at),
+                    "matched_term": term,
+                })
+        
+        # 2. Buscar TODOS os items de inbox do usuário (aprovados e pendentes)
+        all_inbox = TransactionInbox.objects.filter(user=user).order_by('-created_at')[:20]
+        inbox_items = []
+        for item in all_inbox:
+            inbox_items.append({
+                "id": str(item.id),
+                "status": item.status,
+                "created_at": str(item.created_at),
+                "has_validated_tx": item.validated_transaction_id is not None,
+                "validated_tx_id": item.validated_transaction_id,
+                "ai_suggestions_keys": list(item.ai_suggestions.keys()) if item.ai_suggestions else [],
+                "ai_suggestions_tx_count": len(item.ai_suggestions.get('transactions', [])) if item.ai_suggestions else 0,
+                "ai_suggestions_preview": str(item.ai_suggestions)[:500] if item.ai_suggestions else None,
+                "error_message": item.error_message,
+            })
+        
+        # 3. Contas do usuário
+        accounts = []
+        for acc in Account.objects.filter(user=user).order_by('id'):
+            accounts.append({
+                "id": acc.id,
+                "name": acc.name,
+                "parent_id": acc.parent_id,
+                "balance": str(acc.balance),
+            })
+        
+        # 4. Total de transações maio 2026
+        may_count = Transaction.objects.filter(
+            account__user=user,
+            date__month=5,
+            date__year=2026
+        ).count()
+        
+        total_count = Transaction.objects.filter(account__user=user).count()
+        
+        return Response({
+            "user_id": user.id,
+            "user_email": user.email,
+            "total_transactions": total_count,
+            "may_2026_transactions": may_count,
+            "search_results": found_txs,
+            "inbox_items": inbox_items,
+            "accounts": accounts,
+        })
+
     def get_queryset(self):
         # Garante o isolamento multitenant estrito ordenando por mais recentes e exibindo apenas itens pendentes de homologação completa
         return TransactionInbox.objects.filter(user=self.request.user, validated_transaction__isnull=True).order_by('-created_at')
