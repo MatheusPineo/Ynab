@@ -1593,12 +1593,12 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                             original_currency=account.currency or 'BRL'
                         )
                         
-                        # Busca transação de envelope criada
+                        # Busca transação de envelope ou core criada no cartão
                         transaction_obj = Transaction.objects.filter(
-                            account__user=request.user,
+                            account=account,
                             description__icontains=matrix_tx.description,
                             amount=amount_dec,
-                            date=date.today()
+                            date=tx_date
                         ).first()
                         
                         if not transaction_obj:
@@ -1610,9 +1610,18 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                                 description=description,
                                 date=tx_date,
                                 is_income=is_income,
-                                status='pending',
+                                status='realized',
                                 is_applied_to_balance=False
                             )
+                            # Atualiza o saldo se aplicável
+                            if transaction_obj.status == 'realized' and transaction_obj.date <= date.today():
+                                if transaction_obj.is_income:
+                                    account.balance += transaction_obj.amount
+                                else:
+                                    account.balance -= transaction_obj.amount
+                                account.save()
+                                transaction_obj.is_applied_to_balance = True
+                                transaction_obj.save()
                 else:
                     transaction_obj = Transaction.objects.create(
                         account=account,

@@ -70,22 +70,23 @@ const CustomTooltip = ({ active, payload, label, baseCurrency }: any) => {
   }
   return null;
 };
-
 const Dashboard = () => {
-  const { fetchAccounts, fetchGoals, tree, getHistory, transactions, goals, updateTransaction } = useAccountStore();
+  const { fetchAccounts, fetchGoals, fetchTransactions, tree, getHistory, transactions, goals, updateTransaction } = useAccountStore();
   const { fetchRates, convert, baseCurrency, setBaseCurrency } = useCurrencyStore();
 
   useEffect(() => {
     fetchAccounts();
     fetchRates();
     fetchGoals();
-  }, [fetchAccounts, fetchRates, fetchGoals]);
+    fetchTransactions();
+  }, [fetchAccounts, fetchRates, fetchGoals, fetchTransactions]);
 
   const handleRefresh = async () => {
     await Promise.all([
       fetchAccounts(),
       fetchRates(),
       fetchGoals(),
+      fetchTransactions(),
     ]);
   };
 

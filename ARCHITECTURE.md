@@ -783,6 +783,7 @@ O Vault Finance OS implementa uma área de staging de alta segurança para inges
 3. **Sugestões Estruturadas por IA (Gemini 1.5 Flash API):** Um campo `ai_suggestions` do tipo `JSONField` armazena dados preditivos de `amount`, `date`, `merchant` e `currency`.
 4. **Resiliência e Parsing de Tipos:** A modelagem implementa propriedades defensivas no Python (`suggested_amount_decimal` e `suggested_date_object`) contendo tratamentos de erros de integridade (fallbacks com tratamento de exceções do tipo `InvalidOperation` e `ValueError`) para realizar a conversão segura de dados brutos e mutáveis do JSONField para tipos de alta precisão financeira (`Decimal`) e temporais (`date`).
 5. **Vinculação e Rastreabilidade pós-Validação:** Uma chave estrangeira opcional e segura conecta o registro do `TransactionInbox` à entidade consolidada de `Transaction` quando o usuário valida as sugestões de IA, permitindo auditar a origem e retroalimentar modelos preditivos de comportamento de gastos.
+6. **Efetivação Compulsória e Saldos de Homologação:** Toda e qualquer transação gerada pela homologação de comprovantes na Inbox Inteligente (incluindo o fallback de cartão de crédito para faturas futuras) é criada obrigatoriamente com o status Efetivada (`status='realized'`) e tem seu valor deduzido ou acrescido imediatamente do saldo da conta correspondente caso a data da transação seja igual ou anterior à data atual.
 
 ---
 

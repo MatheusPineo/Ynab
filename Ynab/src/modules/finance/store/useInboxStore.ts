@@ -123,8 +123,9 @@ export const useInboxStore = create<InboxState>()((set, get) => ({
       
       // Invalida o cache global para garantir que as transações apareçam na tabela imediatamente
       queryClient.invalidateQueries({ queryKey: ["transactions"] });
-      // Atualiza os saldos das contas do dashboard em tempo real
+       // Atualiza os saldos das contas do dashboard em tempo real
       await useAccountStore.getState().fetchAccounts();
+      await useAccountStore.getState().fetchTransactions();
       
       return true;
     } catch (error: any) {
