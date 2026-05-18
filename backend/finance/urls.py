@@ -4,7 +4,7 @@ from .views import (
     AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, 
     MonthlyBudgetViewSet, IconUploadView, DistributionTemplateViewSet, 
     DebtViewSet, DebtPaymentViewSet, ResetDataView, CreditCardViewSet,
-    InboxUploadView, TransactionInboxViewSet
+    InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet
 )
 
 router = DefaultRouter()
@@ -18,6 +18,8 @@ router.register(r'debts', DebtViewSet, basename='debt')
 router.register(r'debt-payments', DebtPaymentViewSet, basename='debt-payment')
 router.register(r'credit-cards', CreditCardViewSet, basename='credit-card')
 router.register(r'inbox', TransactionInboxViewSet, basename='inbox')
+router.register(r'category-goals', CategoryGoalViewSet, basename='category-goal')
+router.register(r'transaction-rules', TransactionRuleViewSet, basename='transaction-rule')
 
 
 urlpatterns = [

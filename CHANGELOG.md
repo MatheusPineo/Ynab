@@ -6,6 +6,78 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.30.0] — 2026-05-18
+
+Esta versão implementa a infraestrutura completa de **Reconciliação de Contas e Auditoria de Extratos (Statement Auditing)**, trazendo ao Vault Finance OS um controle contábil rígido com travamento de lote ACID físico de transações históricas e geração de ajustes automáticos de saldo, em perfeita paridade operacional com o *Actual Budget*.
+
+### Adicionado
+* **Motor Contábil de Reconciliação (`reconciliation.py`):**
+  - **Cálculo de Métricas Contábeis:** Retorna o saldo das transações liquidadas (`cleared_balance`), pendentes (`uncleared_balance`), saldo total (`total_balance`) e última data de conciliação.
+  - **Ajuste de Saldo Automático:** Se o saldo informado no extrato físico/digital do banco divergir do saldo contábil líquido compensado, o sistema cria automaticamente uma transação do tipo `"Ajuste automático de reconciliação de saldo"` com o valor exato da diferença.
+  - **Fechamento e Lock de Lote:** Atualização atômica direta em lote que marca as transações compensadas como reconciliadas (`reconciled=True`) e grava o timestamp em `last_reconciled` da conta.
+  - **Destravamento Administrativo:** Lógica segura de bypass para destravar individualmente transações reconciliadas em auditorias manuais específicas.
+* **Bloqueio Contábil Físico (`models.py`):**
+  - **Enriquecimento de Campos:** Adicionados campos `cleared` e `reconciled` em `Transaction` e `last_reconciled` em `Account`.
+  - **Mecanismo de Lock Compulsório:** Modificação dos hooks `clean()`, `save()` e `delete()` para barrarem fisicamente qualquer mutação ou exclusão se `reconciled=True`, prevenindo alterações históricas acidentais.
+* **API REST de Auditoria (`views.py`):**
+  - **Novos Endpoints em `AccountViewSet`:** Injeção das actions `reconcile_status`, `reconcile_adjust` e `reconcile_finalize`.
+  - **Novo Endpoint em `TransactionViewSet`:** Injeção da action `unlock` para destravamento controlado.
+* **Suíte de Testes Contábeis de Reconciliação (`test_reconciliation.py`):**
+  - Criação de suite rigorosa cobrindo todos os cenários contábeis de conciliação e travamento. Todos 100% verdes!
+
+### Alterado / Refatorado
+* **Versionamento do Frontend:** Sincronizada a versão da build estática para `v1.30.0`.
+
+---
+
+## [1.29.0] — 2026-05-18
+
+Esta versão implementa o robusto **Motor de Orçamento YNAB & Rollover Mensal (MoM)**, dotando o sistema de inteligência contábil de rollover de envelopes positivos e tratamento rigoroso de estouros (Cash vs. Credit Overspending), em perfeita paridade metodológica com o *Actual Budget*.
+
+### Adicionado
+* **Motor Contábil de Orçamento YNAB (`YNABBudgetService`):**
+  - **Rollover Mensal Acumulativo (MoM):** O saldo positivo disponível nos envelopes de categorias folha é transferido de forma cumulativa e automática para o mês seguinte como receita disponível para gastos.
+  - **Tratamento de Estouros de Envelopes (Overspending):**
+    - **Cash Overspending:** O estouro gerado por pagamentos em dinheiro (checking/cash) zera o envelope no mês seguinte e é deduzido diretamente do pool *Ready to Assign (RTA)* do próximo mês.
+    - **Credit Overspending:** O estouro gerado por compras em cartão de crédito (credit) zera o envelope no mês seguinte sem reduzir o RTA subsequente, convertendo-se de forma automática em dívida passiva na fatura do cartão.
+    - **Split Overspending:** Classificação híbrida proporcional que divide de forma exata a fatia de estouro em dinheiro (que deduz o RTA do mês subsequente) e em cartão (que gera dívida pura).
+  - **Pool Ready to Assign (RTA):** Cálculo retrospectivo dinâmico da renda líquida acumulada disponível para alocação.
+* **Nova Suíte de Testes Contábeis de Orçamento (`test_budget.py`):**
+  - Criação de suite abrangente de 4 testes rigorosos validando rollover positivo, estouros cash, estouros credit e cenários híbridos splits. Todos 100% aprovados!
+
+### Alterado / Refatorado
+* **Integração do ViewSet de Categorias (`views.py`):**
+  - Refatoração profunda na action `tree` para obter a malha contábil do `YNABBudgetService`, retornando a estrutura em árvore consolidada para o frontend com suporte a `rollover_amount` e `available_amount`.
+  - Injeção inteligente do valor do RTA no cabeçalho HTTP customizado `X-Ready-To-Assign` para manter compatibilidade com o formato de JSON bruto do React SPA.
+  - **Nova Action `ready_to_assign`:** Criação de endpoint dedicado para leitura isolada do RTA mensal do usuário ativo.
+
+---
+
+## [1.28.0] — 2026-05-18
+
+Esta versão promove uma reestruturação profunda e audaciosa do **Core Ledger Contábil** do Vault Finance OS, implementando paridade metodológica e técnica estrita com a engine padrão-ouro do **Actual Budget** (`actual-master`). O sistema de transferências foi inteiramente reformulado para garantir consistência ACID física de transações espelhadas e governança estrita de envelopes YNAB.
+
+### Adicionado
+* **Estrutura de Beneficiários e Contas do Ledger (`models.py`):**
+  - **Propriedade `is_on_budget` em `Account`:** Diferenciação nativa entre contas no orçamento (Checking, Cash, Savings) e fora do orçamento (Investimentos e Ativos de longo prazo).
+  - **Entidade `Payee` (Beneficiários):** Criação de tabela de beneficiários contendo FK opcional `transfer_acct` para mapear transferências físicas e `default_category` para otimizar lançamentos futuros.
+  - **Auto-criação de Payees de Transferência:** Hooks de ciclo de vida atômicos no `save()` de `Account` que criam ou atualizam automaticamente o `Payee` associado (ex: `"Transferência: Conta Corrente"`) sempre que uma conta é criada ou modificada.
+* **Integridade ACID com Sincronização e Espelhamento Atômico (`models.py`):**
+  - **Relacionamento Físico de Espelhamento (`linked_transfer`):** Introdução da coluna `linked_transfer = OneToOneField('self')` no modelo `Transaction`, garantindo o acoplamento físico bidirecional de ponta a ponta e abolindo dependências de strings UUID legacy.
+  - **Mecanismo Recursivo de Sincronização (`_syncing`):** Controle robusto via flag local `_syncing` na engine de `save()` e `delete()` de transações para prevenir loops de replicação infinitos, propagando edições de `amount`, `date`, `status` e inversão de direção financeira (`is_income = not is_income`) entre transações espelhadas.
+  - **Validação Estrita de Envelopes YNAB (`clean()`):** Injeção de validações de regras de negócio contábeis:
+    - Transferências internas On-Budget para On-Budget ou Off-Budget para Off-Budget zeram incondicionalmente a categoria, pois o capital permanece no mesmo lado da fronteira contábil.
+    - Transferências mistas On-to-Off e Off-to-On exigem preenchimento obrigatório da categoria de despesa, pois alteram a liquidez líquida do orçamento base-zero.
+* **Suite de Testes de Regressão Contábil (`test_ledger.py`):**
+  - Criação de suite robusta contendo testes específicos de integração para validação de `is_on_budget`, auto-criação de payees, restrições de categorias YNAB e propagação recursiva bidirecional de saldos.
+
+### Alterado / Refatorado
+* **Simplificação Radical das Views de Lançamento (`views.py`):**
+  - Refatoração dos métodos `perform_create`, `perform_update` e `perform_destroy` do `TransactionViewSet` para eliminar duplicidades manuais e redundâncias físicas de alteração de saldos de contas nas Views, delegando toda a governança transacional para os hooks ricos de domínio de `models.py`.
+  - **Simplificação de endpoints `transfer` e `bulk_transfer`:** Reescrevemos as ações para utilizarem a nova engine baseada em `Payee` e `linked_transfer`, com suporte inteligente a transferências multi-moedas com valores diferentes através de re-sincronização atômica do saldo da transação espelhada.
+
+---
+
 ## [1.27.3] — 2026-05-18
 
 Esta versão resolve em definitivo o sumiço silencioso visual de transações homologadas do Inbox com data do passado. Agora, ao homologar qualquer transação, o período ativo do dashboard é sincronizado automaticamente, e as páginas de listagem (`Transactions.tsx` e `AccountDetails.tsx`) mantêm sincronia reativa total com o período global da `useAccountStore`.

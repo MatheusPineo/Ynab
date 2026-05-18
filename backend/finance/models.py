@@ -1,5 +1,7 @@
-from django.db import models
+from django.db import models, transaction
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+from decimal import Decimal
 
 class Account(models.Model):
     ACCOUNT_TYPES = [
@@ -19,6 +21,7 @@ class Account(models.Model):
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     created_at = models.DateTimeField(auto_now_add=True)
     exclude_from_totals = models.BooleanField(default=False)
+    last_reconciled = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'core_account'
@@ -26,6 +29,29 @@ class Account(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.user.username})"
+
+    @property
+    def is_on_budget(self):
+        """
+        Retorna se a conta participa do orçamento ativo (envelopes).
+        Contas de investimento ou marcadas como excluídas de totais são consideradas Off-Budget (Tracking).
+        """
+        if self.account_type == 'investment':
+            return False
+        return not self.exclude_from_totals
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        
+        # Criação Automática do Payee de Transferência correspondente
+        if is_new:
+            Payee.objects.get_or_create(
+                user=self.user,
+                name=f"Transferência: {self.name}",
+                transfer_acct=self
+            )
+
 
 class Category(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='categories')
@@ -39,6 +65,35 @@ class Category(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Payee(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payees')
+    name = models.CharField(max_length=150)
+    transfer_acct = models.OneToOneField(
+        Account,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='transfer_payee'
+    )
+    default_category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='suggested_payees'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_payee'
+        unique_together = ('user', 'name')
+        app_label = 'core'
+
+    def __str__(self):
+        return self.name
+
 
 class MonthlyBudget(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='monthly_budgets')
@@ -54,11 +109,13 @@ class MonthlyBudget(models.Model):
     def __str__(self):
         return f"{self.category.name} - {self.month}/{self.year}: {self.amount}"
 
+
 class Transaction(models.Model):
     account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='transactions')
+    payee = models.ForeignKey(Payee, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    description = models.CharField(max_length=255)
+    description = models.CharField(max_length=255, blank=True)
     date = models.DateField()
     is_income = models.BooleanField(default=False)
     is_recurring = models.BooleanField(default=False)
@@ -70,19 +127,196 @@ class Transaction(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pendente'),
         ('realized', 'Efetivada'),
+        ('scheduled', 'Agendada'),
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='realized')
     is_applied_to_balance = models.BooleanField(default=False)
+    cleared = models.BooleanField(default=False)
+    reconciled = models.BooleanField(default=False)
     transfer_group = models.UUIDField(null=True, blank=True)
+    
+    # Campo de auto-referência para integridade referencial física de transferências espelhadas
+    linked_transfer = models.OneToOneField(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='mirrored_transfer'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'core_transaction'
         app_label = 'core'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._skip_balance_update = False  # Por padrão, transações recomputam o saldo automaticamente
+
     def __str__(self):
         type_str = "Receita" if self.is_income else "Despesa"
-        return f"{type_str}: {self.amount} - {self.description}"
+        payee_str = f" para {self.payee.name}" if self.payee else ""
+        return f"{type_str}: {self.amount} - {self.description or 'Sem descrição'}{payee_str}"
+
+    def clean(self):
+        """
+        Regras de Negócio de Categoria e Orçamento do YNAB/Actual Budget:
+        1. Se for uma transferência entre duas contas On-budget ou duas Off-budget, a categoria deve ser nula.
+        2. Se for uma transferência mista (On-to-Off ou Off-to-On), a categoria ou sinal de receita é obrigatório.
+        """
+        super().clean()
+        if self.pk:
+            original = Transaction.objects.get(pk=self.pk)
+            if original.reconciled and not getattr(self, '_skip_reconciliation_lock', False):
+                raise ValidationError("Transações reconciliadas estão travadas e não podem ser alteradas.")
+
+        if self.payee and self.payee.transfer_acct:
+            dest_account = self.payee.transfer_acct
+            
+            # Caso 1: Ambas On-budget ou ambas Off-budget -> categoria DEVE ser nula
+            if self.account.is_on_budget == dest_account.is_on_budget:
+                if self.category is not None:
+                    raise ValidationError(
+                        "Transferências entre contas do mesmo tipo de orçamento (ambas On-budget ou ambas Off-budget) "
+                        "não podem ter uma categoria alocada, pois o dinheiro não sai nem entra no orçamento."
+                    )
+            
+            # Caso 2: Transferência Mista (On-to-Off ou Off-to-On) -> Exige categoria (ou tratamento especial)
+            else:
+                # Se sai do orçamento (On-budget -> Off-budget), precisa de uma categoria de despesa
+                if self.account.is_on_budget and not dest_account.is_on_budget:
+                    if not self.category:
+                        raise ValidationError(
+                            "Transferências saindo do orçamento (On-budget para Off-budget) representam despesas reais "
+                            "e exigem uma categoria ativa para deduzir dos envelopes."
+                        )
+
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        # Validação de travamento de transação reconciliada antes de qualquer processamento
+        if self.pk:
+            original = Transaction.objects.get(pk=self.pk)
+            if original.reconciled and not getattr(self, '_skip_reconciliation_lock', False):
+                raise ValidationError("Transações reconciliadas estão travadas e não podem ser alteradas.")
+
+        # Aplica o motor de regras contábeis síncronamente antes de persistir e validar
+        from .services import TransactionRulesService
+        TransactionRulesService.apply_rules(self)
+
+        if self.is_recurring:
+            self.is_applied_to_balance = False
+        elif self.status == 'scheduled':
+            self.is_applied_to_balance = False
+        elif self.status == 'realized':
+            self.is_applied_to_balance = True
+
+        self.full_clean()
+        
+        # Evita loops de recursão infinita na sincronização espelhada
+        is_syncing = kwargs.pop('_syncing', False)
+        
+        # Antes de salvar, gerencia a aplicação do saldo da transação antiga se for uma edição
+        if self.pk:
+            old_self = Transaction.objects.get(pk=self.pk)
+            if old_self.is_applied_to_balance and not getattr(self, '_skip_balance_update', False):
+                # Reverte saldo antigo da conta
+                if old_self.is_income:
+                    old_self.account.balance = Decimal(str(old_self.account.balance)) - Decimal(str(old_self.amount))
+                else:
+                    old_self.account.balance = Decimal(str(old_self.account.balance)) + Decimal(str(old_self.amount))
+                old_self.account.save()
+                
+                # Sincroniza a instância de conta em memória com o saldo revertido
+                if self.account_id == old_self.account_id:
+                    self.account.balance = old_self.account.balance
+        
+        # 1. Salva a transação atual
+        super().save(*args, **kwargs)
+        
+        # Ajusta e aplica o HTML/novo saldo na conta
+        if self.is_applied_to_balance and not getattr(self, '_skip_balance_update', False):
+            if self.is_income:
+                self.account.balance = Decimal(str(self.account.balance)) + Decimal(str(self.amount))
+            else:
+                self.account.balance = Decimal(str(self.account.balance)) - Decimal(str(self.amount))
+            self.account.save()
+            
+        # 2. Lógica de Sincronização de Transferência Espelhada (semelhante ao loot-core/transfer.ts)
+        if not is_syncing and self.payee and self.payee.transfer_acct:
+            dest_account = self.payee.transfer_acct
+            
+            # Localiza o Payee de retorno (de volta para a conta de origem)
+            from_payee, _ = Payee.objects.get_or_create(
+                user=self.account.user,
+                name=f"Transferência: {self.account.name}",
+                transfer_acct=self.account
+            )
+            
+            # Se já existir uma transação espelhada vinculada, atualiza-a
+            if self.linked_transfer:
+                mirror = self.linked_transfer
+                
+                mirror.account = dest_account
+                mirror.payee = from_payee
+                mirror.amount = self.amount  # Valor positivo no nosso sistema
+                mirror.is_income = not self.is_income  # Inverte direção
+                mirror.date = self.date
+                mirror.status = self.status
+                mirror.is_applied_to_balance = self.is_applied_to_balance
+                mirror.description = self.description
+                mirror.transfer_group = self.transfer_group
+                
+                mirror._skip_balance_update = False  # Espelhos sempre atualizam saldo da conta de destino
+                mirror.save(_syncing=True)
+            
+            # Caso contrário, cria a nova transação espelhada do zero
+            else:
+                mirror = Transaction(
+                    account=dest_account,
+                    payee=from_payee,
+                    amount=self.amount,
+                    is_income=not self.is_income,
+                    date=self.date,
+                    status=self.status,
+                    is_applied_to_balance=self.is_applied_to_balance,
+                    description=self.description,
+                    category=None,
+                    transfer_group=self.transfer_group,
+                    linked_transfer=self  # Aponta de volta para esta transação
+                )
+                mirror._skip_balance_update = False  # Espelhos sempre atualizam saldo da conta de destino
+                mirror.save(_syncing=True)
+                
+                # Vincula bidirecionalmente e atualiza sem disparar sinais/save recursivos
+                self.linked_transfer = mirror
+                Transaction.objects.filter(pk=self.pk).update(linked_transfer=mirror)
+
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        # Validação de travamento contábil
+        if self.reconciled and not getattr(self, '_skip_reconciliation_lock', False):
+            raise ValidationError("Transações reconciliadas estão travadas e não podem ser excluídas.")
+
+        # Remove o impacto no saldo da conta
+        if self.is_applied_to_balance and not getattr(self, '_skip_balance_update', False):
+            if self.is_income:
+                self.account.balance = Decimal(str(self.account.balance)) - Decimal(str(self.amount))
+            else:
+                self.account.balance = Decimal(str(self.account.balance)) + Decimal(str(self.amount))
+            self.account.save()
+            
+        # Armazena a referência do espelho antes que a deleção quebre o vínculo
+        mirror = self.linked_transfer
+        
+        # Deleta a transação atual
+        super().delete(*args, **kwargs)
+        
+        # Deleta a transação espelhada correspondente de forma atômica
+        if mirror:
+            mirror.linked_transfer = None  # Evita loop de deleção
+            mirror._skip_balance_update = False  # Espelhos devem reverter saldo na deleção
+            mirror.delete()
+
 
 class Goal(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='goals')
@@ -314,4 +548,57 @@ class TransactionInbox(models.Model):
             except (ValueError, TypeError):
                 return None
         return None
+
+
+class CategoryGoal(models.Model):
+    GOAL_TYPE_CHOICES = [
+        ('target_builder', 'Target Savings Builder (Meta Mensal Fixa)'),
+        ('needed_spending_date', 'Needed for Spending por Prazo (Meta com Data Alvo)'),
+        ('needed_spending_freq', 'Needed for Spending Periódico (Meta por Frequência)'),
+    ]
+    
+    FREQUENCY_CHOICES = [
+        ('weekly', 'Semanal'),
+        ('monthly', 'Mensal'),
+        ('yearly', 'Anual'),
+    ]
+
+    category = models.OneToOneField(Category, on_delete=models.CASCADE, related_name='active_goal')
+    goal_type = models.CharField(max_length=30, choices=GOAL_TYPE_CHOICES)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    target_date = models.DateField(null=True, blank=True)
+    frequency = models.CharField(max_length=15, choices=FREQUENCY_CHOICES, default='monthly')
+    frequency_interval = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_categorygoal'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"Meta ({self.get_goal_type_display()}): {self.category.name} - {self.amount}"
+
+
+class TransactionRule(models.Model):
+    STAGE_CHOICES = [
+        ('pre', 'Pre-processamento (Limpeza/Categorização)'),
+        ('post', 'Post-processamento'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transaction_rules')
+    name = models.CharField(max_length=150)
+    stage = models.CharField(max_length=10, choices=STAGE_CHOICES, default='pre')
+    conditions_op = models.CharField(max_length=3, choices=[('and', 'AND'), ('or', 'OR')], default='and')
+    conditions = models.JSONField(default=list)
+    actions = models.JSONField(default=list)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_transactionrule'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"Regra: {self.name} ({self.stage})"
+
 

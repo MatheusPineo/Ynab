@@ -366,6 +366,50 @@ Para suportar o complexo sistema brasileiro de parcelamento atrelado a faturas e
 
 ---
 
+### 4.3 Paridade de Ledger e Consistência ACID de Transferências (Actual Budget Parity)
+Em alinhamento metodológico rígido com a engenharia padrão-ouro do **Actual Budget** (`actual-master`), o Vault Finance OS adota uma infraestrutura de **Core Ledger** robusta e à prova de falhas contábeis para gerenciar contas financeiras, beneficiários e transferências espelhadas de forma totalmente ACID.
+
+#### 1. Fronteira de Orçamento (`is_on_budget`)
+As contas financeiras no YNAB são classificadas de forma estrita em duas categorias operacionais regidas pela propriedade `@property` `is_on_budget` do modelo `Account`:
+* **On-Budget (Checking, Cash, Savings):** Contas altamente líquidas cujos saldos são ativamente distribuídos nos envelopes de categorias do orçamento base-zero.
+* **Off-Budget / Tracking (Investimentos, Dívidas):** Contas destinadas apenas a acompanhamento patrimonial (*tracking*). Seus saldos não participam do orçamento e são isolados dos envelopes de despesas.
+
+#### 2. Entidade de Beneficiário (`Payee`) e Automação de Transferência
+Substituindo o antigo sistema de strings soltas, cada transação no livro razão é vinculada a uma entidade estruturada `Payee`:
+* Um `Payee` pode possuir uma chave estrangeira opcional `transfer_acct` apontando para uma conta de destino.
+* **Auto-criação de Payees:** O ciclo de vida do modelo `Account` possui um hook `save()` que gera ou atualiza de forma automática e atômica um `Payee` correspondente para cada conta (ex: `"Transferência: Conta Corrente"`), assegurando consistência imediata em transferências.
+
+#### 3. Sincronização e Espelhamento ACID via `linked_transfer`
+Para evitar a perda de consistência contábil (como a exclusão de um lado da transferência mantendo o outro ativo), introduzimos a coluna física `linked_transfer = OneToOneField('self')` no modelo `Transaction`. O fluxo de sincronização e controle recursivo bidirecional funciona da seguinte forma:
+
+```mermaid
+graph TD
+    A[Chamada save() ou delete()] --> B{Transação possui Payee com transfer_acct?}
+    B -->|Não| C[Processa transação normal e ajusta saldo da conta]
+    B -->|Sim| D{Está sincronizando? _syncing == True}
+    D -->|Sim| E[Ignora loops recursivos e apenas persiste dados]
+    D -->|Não| F[Instancia / Recupera espelho linked_transfer]
+    F --> G[Sincroniza Amount, Date, Status e inverte is_income]
+    G --> H[Chama mirror.save(_syncing=True)]
+    H --> I[Aplica atômicamente o ajuste nos saldos de ambas as contas]
+```
+
+A flag interna de classe `_syncing = True` impede recursões infinitas no Django, garantindo que qualquer alteração de valor, data ou status, assim como a exclusão física de um lado da transferência, seja imediatamente propagada para o espelho de forma totalmente transacional e livre de race-conditions.
+
+#### 4. Consistência Contábil de Envelopes YNAB (`clean()`)
+A fronteira contábil estabelece regras rígidas de integridade para a distribuição de envelopes, validadas compulsoriamente no método `clean()` de `Transaction`:
+* **Transferência Interna (Mesmo Lado da Fronteira):** Se uma transferência ocorre entre duas contas On-Budget ou duas contas Off-Budget, ela **não afeta a liquidez total do orçamento**. Portanto, a categoria associada deve ser limpa e setada como `None` (a transferência é neutra para os envelopes).
+* **Transferência Mista (Cruzamento da Fronteira):** Se uma transferência move capital de uma conta On-Budget (Orçamento) para uma conta Off-Budget (Investimento/Gasto de longo prazo), ou vice-versa, ela **altera o montante líquido disponível no orçamento**. Portanto, o preenchimento de uma categoria de envelope de despesa é **obrigatório** para justificar o fluxo de caixa de saída.
+
+#### 5. Reconciliação de Contas e Auditoria de Extratos (Statement Auditing)
+Em perfeita paridade metodológica com a auditoria de saldos reais e conciliação bancária do YNAB/Actual Budget, introduzimos uma infraestrutura de controle ACID e controle de auditoria composta por:
+* **Métricas Contábeis Dual-Status:** As transações possuem os status de liquidez `cleared` (indica se o lançamento já foi compensado no banco real) e `reconciled` (indica se o lançamento já foi auditado e fechado contra o extrato oficial físico/PDF).
+* **Bloqueio Físico Contábil (Transaction Lock):** Para evitar qualquer alteração acidental de registros históricos já validados, o ciclo de vida do modelo `Transaction` possui validações rigorosas em `clean()`, `save()` e `delete()` que barram incondicionalmente qualquer edição ou deleção se `reconciled=True`. O sistema dispõe de um bypass administrativo controlado (`_skip_reconciliation_lock`) usado exclusivamente pela engine ou mediante endpoint de destravamento autorizado.
+* **Transação de Ajuste Automático:** O `AccountReconciliationService` calcula o saldo líquido das transações `cleared` na conta. Se a soma divergir do saldo informado pelo usuário no extrato do banco (`statement_balance`), o sistema insere automaticamente uma transação do tipo `"Ajuste automático de reconciliação de saldo"` com a diferença exata (positiva ou negativa) para ajustar o saldo compensado, marcada como `cleared=True` e `reconciled=False`.
+* **Fechamento e Lock de Lote:** Ao finalizar a conciliação (`finalize_reconciliation`), todas as transações da conta marcadas como compensadas (`cleared=True`) são atualizadas atômica e em lote para reconciliadas (`reconciled=True`) e a conta registra a data e hora do fechamento no campo `last_reconciled`.
+
+---
+
 ## 5. Arquitetura de Segurança: Pipeline JWT + 2FA
 
 Para blindar os dados financeiros dos clientes, o Vault Finance OS implementa uma política rígida de segurança em camadas para todas as conexões baseada no protocolo OAuth2 com autenticação multifator opcional (MFA/2FA).
@@ -981,3 +1025,29 @@ Na filtragem de transações por conta na tabela global (`Transactions.tsx`), a 
   const matchesAccount = selectedAccountId === "all" || String(t.account) === selectedAccountId;
   ```
 - **Resultado:** Elimina o bug silencioso em que a seleção de uma conta específica na tabela global ocultava incorretamente todos os registros da tela.
+
+#### 3. Mapeamento Estrito de Paridade Metodológica e Regras Contábeis YNAB (v1.29.0)
+Para alcançar paridade contábil absoluta com a engine padrão-ouro do **Actual Budget** (`actual-master`), implementamos um motor de orçamentação cumulativa retrospectiva que processa cronologicamente toda a história transacional e de alocações do usuário.
+
+##### 1. Arquitetura Retrospectiva da Engine Contábil (`YNABBudgetService`)
+O cálculo do saldo disponível em um envelope base-zero não pode ser feito de forma isolada para cada mês, pois o dinheiro não alocado ou os estouros de meses anteriores se propagam continuamente. O serviço `YNABBudgetService.calculate_envelope_states` processa:
+- **Janela de Processamento Dinâmica:** Identifica o início histórico de transações ou orçamentos do usuário e varre mês a mês de forma cumulativa e ordenada até o mês solicitado.
+- **RTA Consolidado (Ready to Assign):** O pool de renda não alocada é calculado de forma incremental:
+  $$RTA_M = RTA_{M-1} + Renda_M - Alocado_M - CashOverspending_{M-1}$$
+  Isso garante que toda a renda On-budget seja concentrada de forma contábil e distribuída fielmente.
+
+##### 2. Governança Contábil de Estouros (Cash vs. Credit Overspending)
+Uma das regras de ouro do YNAB é como os estouros de envelope (disponível negativo) são tratados no mês subsequente:
+- **Cash Overspending (Dinheiro):** Um estouro em dinheiro (deduzido de contas correntes/cash) representa um "buraco na realidade". Ele não rola como saldo negativo no envelope no mês seguinte (o envelope zera), mas é **subtraído diretamente do pool Ready to Assign (RTA) do próximo mês**, forçando o usuário a cobrir o rombo com renda futura.
+- **Credit Overspending (Cartão de Crédito):** Um estouro gerado por compras em cartão de crédito representa uma criação de dívida financeira. Ele não rola como saldo negativo no envelope no mês seguinte, e **não reduz o RTA do próximo mês**, transformando-se de forma automática em dívida passiva acumulada na fatura do cartão de crédito.
+- **Split Overspending (Híbrido):** Caso um envelope sofra despesas mistas (dinheiro e cartão) que gerem estouro, a engine calcula proporcionalmente a fatia creditícia e a fatia monetária do estouro:
+  $$CreditOverspent = \min(OverspentTotal, CreditSpent)$$
+  $$CashOverspent = OverspentTotal - CreditOverspent$$
+  Reduzindo o RTA do mês subsequente apenas pela fatia exata de estouro em dinheiro real.
+
+##### 3. Compatibilidade Híbrida de Apresentação (API & Frontend)
+Para evitar reestruturações complexas no layout do frontend SPA React que pudessem quebrar a renderização de grupos e subcategorias:
+- **Payload Raiz Preservado:** O endpoint `/api/finance/categories/tree/` continua retornando o array plano nativo que o React espera, garantindo compatibilidade imediata.
+- **Cabeçalho Customizado `X-Ready-To-Assign`:** O valor calculado do RTA mensal é enviado de forma transparente no cabeçalho HTTP customizado `X-Ready-To-Assign` da resposta da API.
+- **Propriedades Enriquecidas de Envelope:** Cada nó folha da árvore de categorias agora carrega no JSON as propriedades físicas calculadas pelo backend: `'rollover_amount'`, `'available_amount'` e `'overspending_type'`.
+

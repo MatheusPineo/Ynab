@@ -21,13 +21,14 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes,
 from rest_framework import serializers
 
 from .models import (
-    Account, Category, Transaction, Goal, MonthlyBudget, 
-    DistributionTemplate, Debt, DebtPayment
+    Account, Category, Payee, Transaction, Goal, MonthlyBudget, 
+    DistributionTemplate, Debt, DebtPayment, CategoryGoal, TransactionRule
 )
 from .serializers import (
     AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, 
     MonthlyBudgetSerializer, DistributionTemplateSerializer, DebtSerializer, DebtPaymentSerializer
 )
+from .reconciliation import AccountReconciliationService
 
 def sync_recurring_transactions(user, upto_date=None):
     def add_months(sourcedate, months):
@@ -46,6 +47,7 @@ def sync_recurring_transactions(user, upto_date=None):
         account__user=user,
         status='realized',
         is_applied_to_balance=False,
+        is_recurring=False,
         date__lte=today
     )
     for t in pending_current:
@@ -54,6 +56,7 @@ def sync_recurring_transactions(user, upto_date=None):
         else: acc.balance -= t.amount
         acc.save()
         t.is_applied_to_balance = True
+        t._skip_balance_update = True
         t.save()
 
     # 2. Criar novas instâncias de templates recorrentes
@@ -77,7 +80,7 @@ def sync_recurring_transactions(user, upto_date=None):
             
             if not exists:
                 applied = (new_date <= today)
-                new_t = Transaction.objects.create(
+                new_t = Transaction(
                     account=template.account,
                     category=template.category,
                     amount=template.amount,
@@ -87,6 +90,8 @@ def sync_recurring_transactions(user, upto_date=None):
                     is_recurring=False,
                     is_applied_to_balance=applied
                 )
+                new_t._skip_balance_update = True
+                new_t.save()
                 
                 if applied:
                     acc = new_t.account
@@ -119,7 +124,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         
         # Se possuir saldo (positivo ou negativo)
         if account.balance != 0:
-            Transaction.objects.create(
+            tx = Transaction(
                 account=account,
                 amount=abs(account.balance),
                 description=f"Saldo Inicial de {account.name}",
@@ -128,6 +133,8 @@ class AccountViewSet(viewsets.ModelViewSet):
                 status='realized',
                 is_applied_to_balance=True
             )
+            tx._skip_balance_update = True
+            tx.save()
 
     @transaction.atomic
     def perform_update(self, serializer):
@@ -140,7 +147,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         if account.balance != old_balance:
             diff = account.balance - old_balance
             if diff > 0:
-                Transaction.objects.create(
+                tx = Transaction(
                     account=account,
                     amount=diff,
                     description=f"Ajuste de Saldo (Aumento) de {account.name}",
@@ -149,8 +156,10 @@ class AccountViewSet(viewsets.ModelViewSet):
                     status='realized',
                     is_applied_to_balance=True
                 )
+                tx._skip_balance_update = True
+                tx.save()
             else:
-                Transaction.objects.create(
+                tx = Transaction(
                     account=account,
                     amount=abs(diff),
                     description=f"Ajuste de Saldo (Redução) de {account.name}",
@@ -159,6 +168,8 @@ class AccountViewSet(viewsets.ModelViewSet):
                     status='realized',
                     is_applied_to_balance=True
                 )
+                tx._skip_balance_update = True
+                tx.save()
 
     @extend_schema(
         summary="Retorna a árvore hierárquica de contas do usuário",
@@ -263,7 +274,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                 if amount_to_deduct <= 0:
                     continue
                     
-                Transaction.objects.create(
+                tx = Transaction(
                     account=s,
                     amount=amount_to_deduct,
                     description=f"Cobertura de saldo da conta {account.name}",
@@ -272,12 +283,14 @@ class AccountViewSet(viewsets.ModelViewSet):
                     is_applied_to_balance=True,
                     transfer_group=transfer_group_uuid
                 )
+                tx._skip_balance_update = True
+                tx.save()
                 s.balance -= amount_to_deduct
                 s.save()
                 total_covered += amount_to_deduct
             
             if total_covered > 0:
-                Transaction.objects.create(
+                tx_recv = Transaction(
                     account=account,
                     amount=total_covered,
                     description="Cobertura recebida das subcontas",
@@ -286,6 +299,8 @@ class AccountViewSet(viewsets.ModelViewSet):
                     is_applied_to_balance=True,
                     transfer_group=transfer_group_uuid
                 )
+                tx_recv._skip_balance_update = True
+                tx_recv.save()
                 account.balance += total_covered
                 account.save()
 
@@ -366,7 +381,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                 amount = deposits.get(s.id, Decimal('0.00'))
                 if amount <= 0:
                     continue
-                Transaction.objects.create(
+                tx_sib = Transaction(
                     account=s,
                     amount=amount,
                     description=f"Excedente recebido da conta {account.name}",
@@ -375,6 +390,8 @@ class AccountViewSet(viewsets.ModelViewSet):
                     is_applied_to_balance=True,
                     transfer_group=transfer_group_uuid
                 )
+                tx_sib._skip_balance_update = True
+                tx_sib.save()
                 s.balance += amount
                 s.save()
 
@@ -397,7 +414,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                         balance=Decimal('0.00'),
                     )
 
-                Transaction.objects.create(
+                tx_res = Transaction(
                     account=reserve,
                     amount=remaining,
                     description=f"Excedente recebido da conta {account.name}",
@@ -406,11 +423,13 @@ class AccountViewSet(viewsets.ModelViewSet):
                     is_applied_to_balance=True,
                     transfer_group=transfer_group_uuid
                 )
+                tx_res._skip_balance_update = True
+                tx_res.save()
                 reserve.balance += remaining
                 reserve.save()
 
             # Deduct total excess from source account
-            Transaction.objects.create(
+            tx_src = Transaction(
                 account=account,
                 amount=excess,
                 description="Distribuição do excedente para subcontas",
@@ -419,10 +438,67 @@ class AccountViewSet(viewsets.ModelViewSet):
                 is_applied_to_balance=True,
                 transfer_group=transfer_group_uuid
             )
+            tx_src._skip_balance_update = True
+            tx_src.save()
             account.balance -= excess
             account.save()
 
         return Response({"message": f"Excedente de {excess} distribuído com sucesso."})
+
+    @action(detail=True, methods=['get', 'post'])
+    def reconcile_status(self, request, pk=None):
+        """
+        Retorna as métricas contábeis da conta (soma das transações cleared vs uncleared vs total).
+        """
+        account = self.get_object()
+        metrics = AccountReconciliationService.get_reconciliation_status(account)
+        return Response({
+            "cleared_balance": float(metrics['cleared_balance']),
+            "uncleared_balance": float(metrics['uncleared_balance']),
+            "total_balance": float(metrics['total_balance']),
+            "last_reconciled": metrics['last_reconciled']
+        })
+
+    @action(detail=True, methods=['post'])
+    def reconcile_adjust(self, request, pk=None):
+        """
+        Gera uma transação de ajuste automático de reconciliação de saldo se a soma de transações cleared
+        for diferente do saldo informado no extrato físico/PDF real.
+        """
+        account = self.get_object()
+        statement_balance = request.data.get('statement_balance')
+        if statement_balance is None:
+            return Response({"error": "O campo 'statement_balance' é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            statement_balance_dec = Decimal(str(statement_balance))
+        except (TypeError, ValueError):
+            return Response({"error": "O campo 'statement_balance' deve ser um valor numérico válido."}, status=status.HTTP_400_BAD_REQUEST)
+
+        adjustment_tx = AccountReconciliationService.create_adjustment_transaction(
+            account=account,
+            user=request.user,
+            statement_balance=statement_balance_dec
+        )
+        if adjustment_tx:
+            return Response({
+                "message": "Transação de ajuste automático criada com sucesso.",
+                "transaction_id": adjustment_tx.id,
+                "amount": float(adjustment_tx.amount),
+                "is_income": adjustment_tx.is_income
+            })
+        return Response({"message": "Nenhum ajuste necessário, o saldo compensado já bate perfeitamente com o extrato."})
+
+    @action(detail=True, methods=['post'])
+    def reconcile_finalize(self, request, pk=None):
+        """
+        Fecha a reconciliação e trava todas as transações da conta que têm cleared=True de forma ACID.
+        """
+        account = self.get_object()
+        updated_count = AccountReconciliationService.finalize_reconciliation(account)
+        return Response({
+            "message": "Reconciliação finalizada com sucesso. Lote contábil travado contra alterações acidentais.",
+            "locked_transactions_count": updated_count
+        })
 
 class CategoryViewSet(viewsets.ModelViewSet):
     serializer_class = CategorySerializer
@@ -446,8 +522,11 @@ class CategoryViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def tree(self, request):
         """
-        Retorna a estrutura em árvore de categorias e subcategorias com dados orçamentários do período.
+        Retorna a estrutura em árvore de categorias e subcategorias com dados orçamentários do período,
+        integrando com o YNABBudgetService para computar rollover acumulado de envelopes e atividade líquida mensal.
         """
+        from .services import YNABBudgetService
+        
         now = datetime.now()
         month = int(request.query_params.get('month', now.month))
         year = int(request.query_params.get('year', now.year))
@@ -458,18 +537,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
         
         categories = self.get_queryset()
         
-        # Busca orçamentos e gastos do período
-        budgets = MonthlyBudget.objects.filter(category__user=self.request.user, month=month, year=year)
-        budget_map = {b.category_id: b.amount for b in budgets}
-        
-        transactions = Transaction.objects.filter(
-            category__user=self.request.user, 
-            date__month=month, 
-            date__year=year,
-            is_income=False # Apenas despesas contam contra o orçamento
-        ).values('category_id').annotate(total_spent=Sum('amount'))
-        
-        spent_map = {t['category_id']: t['total_spent'] for t in transactions}
+        # Calcula a malha contábil do orçamento usando o YNABBudgetService
+        budget_data = YNABBudgetService.calculate_envelope_states(self.request.user, month, year)
+        rta = budget_data['ready_to_assign']
+        envelope_states = budget_data['envelope_states']
         
         def build_tree(category_list, parent_id=None):
             branch = []
@@ -477,23 +548,91 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 if category.parent_id == parent_id:
                     children = build_tree(category_list, category.id)
                     
-                    assigned = budget_map.get(category.id, 0)
-                    spent = spent_map.get(category.id, 0)
+                    # Categoria folha (subcategoria de despesa)
+                    if not children:
+                        state = envelope_states.get(category.id, {
+                            'assigned': Decimal('0.00'),
+                            'spent': Decimal('0.00'),
+                            'rollover': Decimal('0.00'),
+                            'available': Decimal('0.00'),
+                            'overspending_type': None
+                        })
+                        assigned = state['assigned']
+                        spent = state['spent']
+                        rollover = state['rollover']
+                        available = state['available']
+                        overspending_type = state['overspending_type']
+                        
+                        # Computa a necessidade de metas (Goals) usando o YNABGoalService
+                        from .services import YNABGoalService
+                        underfunded = YNABGoalService.calculate_underfunded(category, month, year, available, assigned)
+                        
+                        # Obtém o Goal ativo se houver
+                        active_goal = getattr(category, 'active_goal', None)
+                        goal_type = active_goal.goal_type if active_goal else None
+                        goal_amount = float(active_goal.amount) if active_goal else 0.00
+                        
+                        cat_dict = {
+                            'id': str(category.id),
+                            'name': category.name,
+                            'assigned_amount': float(assigned),
+                            'spent_amount': float(spent),
+                            'rollover_amount': float(rollover),
+                            'available_amount': float(available),
+                            'overspending_type': overspending_type,
+                            'goal_type': goal_type,
+                            'goal_amount': goal_amount,
+                            'underfunded_amount': float(underfunded),
+                            'parent': str(category.parent_id) if category.parent_id else None,
+                        }
+                    # Categoria pai (grupo de categorias) -> consolida a soma das subcategorias
+                    else:
+                        sum_assigned = sum(child['assigned_amount'] for child in children)
+                        sum_spent = sum(child['spent_amount'] for child in children)
+                        sum_rollover = sum(child['rollover_amount'] for child in children)
+                        sum_available = sum(child['available_amount'] for child in children)
+                        sum_underfunded = sum(child.get('underfunded_amount', 0.00) for child in children)
+                        
+                        cat_dict = {
+                            'id': str(category.id),
+                            'name': category.name,
+                            'assigned_amount': float(sum_assigned),
+                            'spent_amount': float(sum_spent),
+                            'rollover_amount': float(sum_rollover),
+                            'available_amount': float(sum_available),
+                            'overspending_type': None,
+                            'goal_type': None,
+                            'goal_amount': 0.00,
+                            'underfunded_amount': float(sum_underfunded),
+                            'parent': str(category.parent_id) if category.parent_id else None,
+                            'children': children
+                        }
                     
-                    cat_dict = {
-                        'id': str(category.id),
-                        'name': category.name,
-                        'assigned_amount': float(assigned),
-                        'spent_amount': float(spent),
-                        'parent': str(category.parent_id) if category.parent_id else None,
-                    }
-                    if children:
-                        cat_dict['children'] = children
                     branch.append(cat_dict)
             return branch
         
         final_tree = build_tree(categories)
-        return Response(final_tree)
+        
+        # Para manter compatibilidade instantânea com o frontend React (que espera um array bruto raiz),
+        # nós retornamos a lista final_tree diretamente e injetamos o ready_to_assign
+        # através de um cabeçalho HTTP customizado 'X-Ready-To-Assign'.
+        response = Response(final_tree)
+        response['X-Ready-To-Assign'] = str(rta)
+        return response
+
+    @action(detail=False, methods=['get'])
+    def ready_to_assign(self, request):
+        """
+        Retorna o valor do Ready to Assign para o período solicitado.
+        """
+        from .services import YNABBudgetService
+        
+        now = datetime.now()
+        month = int(request.query_params.get('month', now.month))
+        year = int(request.query_params.get('year', now.year))
+        
+        budget_data = YNABBudgetService.calculate_envelope_states(self.request.user, month, year)
+        return Response({'ready_to_assign': float(budget_data['ready_to_assign'])})
 
     @extend_schema(
         summary="Executa alocação automática de orçamento (Auto-assign)",
@@ -644,8 +783,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
 
     @transaction.atomic
     def perform_create(self, serializer):
-        instance = serializer.save()
+        today = date.today()
+        status_data = serializer.validated_data.get('status', 'realized')
+        date_data = serializer.validated_data.get('date', today)
+        is_applied = (status_data == 'realized' and date_data <= today)
         
+        instance = serializer.save(is_applied_to_balance=is_applied)
+        
+        # Gerenciamento do agendamento recorrente
         if instance.is_recurring and not instance.next_recurrence_date:
             def add_months(sourcedate, months):
                 month = sourcedate.month - 1 + months
@@ -663,70 +808,22 @@ class TransactionViewSet(viewsets.ModelViewSet):
             elif instance.recurrence_interval == 'yearly':
                 instance.next_recurrence_date = add_months(instance.date, 12)
             instance.save()
-            
-        if instance.status == 'realized' and instance.date <= date.today():
-            account = instance.account
-            if instance.is_income:
-                account.balance += instance.amount
-            else:
-                account.balance -= instance.amount
-            account.save()
-            instance.is_applied_to_balance = True
-            instance.save()
 
     @transaction.atomic
     def perform_update(self, serializer):
-        old_instance = self.get_object()
-        old_amount = old_instance.amount
-        old_is_income = old_instance.is_income
-        old_account = old_instance.account
-        old_applied = old_instance.is_applied_to_balance
-
-        new_instance = serializer.save()
         today = date.today()
-
-        # Reverter antigo se aplicado
-        if old_applied:
-            if old_is_income:
-                old_account.balance -= old_amount
-            else:
-                old_account.balance += old_amount
-            old_account.save()
+        status_data = serializer.validated_data.get('status', 'realized')
+        date_data = serializer.validated_data.get('date', today)
+        is_applied = (status_data == 'realized' and date_data <= today)
         
-        # Aplicar novo se for atual/passado e realizado
-        if new_instance.status == 'realized' and new_instance.date <= today:
-            account = new_instance.account
-            if new_instance.is_income:
-                account.balance += new_instance.amount
-            else:
-                account.balance -= new_instance.amount
-            account.save()
-            new_instance.is_applied_to_balance = True
-        else:
-            new_instance.is_applied_to_balance = False
-        new_instance.save()
+        # O save() do modelo Transaction cuida automaticamente de ajustar
+        # e aplicar o novo saldo na conta e sincronizar a transferência
+        serializer.save(is_applied_to_balance=is_applied)
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        if instance.is_applied_to_balance:
-            account = instance.account
-            if instance.is_income:
-                account.balance -= instance.amount
-            else:
-                account.balance += instance.amount
-            account.save()
-        
-        if instance.transfer_group:
-            # Encontra todas as transações do grupo para exclusão coordenada
-            group_transactions = Transaction.objects.filter(transfer_group=instance.transfer_group).exclude(id=instance.id)
-            for t in group_transactions:
-                if t.is_applied_to_balance:
-                    acc = t.account
-                    if t.is_income: acc.balance -= t.amount
-                    else: acc.balance += t.amount
-                    acc.save()
-            group_transactions.delete()
-        
+        # O delete() do modelo Transaction reverte saldos
+        # e remove de forma atômica e cascateada qualquer espelho vinculado
         instance.delete()
 
     @extend_schema(
@@ -762,7 +859,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def transfer(self, request):
         """
-        Executa a transferência transacional em lote entre duas contas do usuário.
+        Executa a transferência transacional usando a nova engine robusta e atômica.
         """
         from_account_id = request.data.get('from_account')
         to_account_id = request.data.get('to_account')
@@ -771,7 +868,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         description = request.data.get('description', 'Transferência')
         date_str = request.data.get('date')
         
-        if not_from_account_id := (not from_account_id or not to_account_id or not amount or not date_str):
+        if not from_account_id or not to_account_id or not amount or not date_str:
             return Response({'error': 'Campos obrigatórios ausentes.'}, status=status.HTTP_400_BAD_REQUEST)
             
         try:
@@ -787,38 +884,44 @@ class TransactionViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Valores inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
 
         t_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-        group_id = uuid.uuid4()
         applied = (t_date <= date.today())
         
-        # 1. Transação de Saída (Origem)
-        Transaction.objects.create(
+        # Localiza ou cria o Payee de transferência
+        dest_payee, _ = Payee.objects.get_or_create(
+            user=request.user,
+            name=f"Transferência: {to_account.name}",
+            transfer_acct=to_account
+        )
+        
+        # Cria a transação de origem vinculada ao Payee de transferência.
+        # A engine do modelo Transaction cuida de todo o espelhamento de forma 100% ACID.
+        tx = Transaction.objects.create(
             account=from_account,
+            payee=dest_payee,
             description=f"{description} (Para {to_account.name})",
             amount=val_amount,
             date=t_date,
             is_income=False,
-            transfer_group=group_id,
             status='realized',
-            is_applied_to_balance=applied
+            is_applied_to_balance=applied,
+            transfer_group=uuid.uuid4()
         )
-        if applied:
-            from_account.balance -= val_amount
-            from_account.save()
         
-        # 2. Transação de Entrada (Destino)
-        Transaction.objects.create(
-            account=to_account,
-            description=f"{description} (De {from_account.name})",
-            amount=val_to_amount,
-            date=t_date,
-            is_income=True,
-            transfer_group=group_id,
-            status='realized',
-            is_applied_to_balance=applied
-        )
-        if applied:
-            to_account.balance += val_to_amount
-            to_account.save()
+        # Caso haja conversão de moeda com valor de destino diferente, ajusta a transação espelhada
+        if val_to_amount != val_amount and tx.linked_transfer:
+            mirror = tx.linked_transfer
+            if mirror.is_applied_to_balance:
+                # Reverte saldo com o valor antigo
+                mirror.account.balance -= mirror.amount
+                mirror.account.save()
+            
+            mirror.amount = val_to_amount
+            mirror.save(_syncing=True)
+            
+            if mirror.is_applied_to_balance:
+                # Aplica com o valor correto convertido
+                mirror.account.balance += val_to_amount
+                mirror.account.save()
         
         return Response({'message': 'Transferência concluída com sucesso!'})
 
@@ -895,7 +998,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
             except Transaction.DoesNotExist:
                 pass
         
-        # 1. Transação de Saída (Origem)
+        # 1. Transação de Saída (Origem) - O saldo é ajustado pelo hook do save()
         Transaction.objects.create(
             account=from_account,
             description="Distribuição Automática",
@@ -905,12 +1008,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
             transfer_group=group_id,
             is_applied_to_balance=applied
         )
-        if applied:
-            from_account.balance -= val_total
-            from_account.save()
         
-        # 2. Transações de Entrada (Destinos)
-        distributed_total = Decimal('0.00')
+        # 2. Transações de Entrada (Destinos) - Os saldos são ajustados pelos hooks do save()
         for dist in distributions:
             to_account_id = dist.get('to_account')
             amount = Decimal(str(dist.get('amount', 0)))
@@ -929,10 +1028,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 transfer_group=group_id,
                 is_applied_to_balance=applied
             )
-            if applied:
-                to_account.balance += amount
-                to_account.save()
-            distributed_total += amount
             
         return Response({'message': 'Distribuição concluída com sucesso!'})
 
@@ -978,7 +1073,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                         
                         applied = (t_date <= date.today())
                         
-                        Transaction.objects.create(
+                        tx = Transaction(
                             account=account,
                             description=desc[:255],
                             amount=abs(amount),
@@ -987,6 +1082,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
                             status='realized',
                             is_applied_to_balance=applied
                         )
+                        tx._skip_balance_update = True
+                        tx.save()
                         if applied:
                             if is_income:
                                 account.balance += abs(amount)
@@ -1013,7 +1110,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
                             
                             applied = (t_date <= date.today())
                             
-                            Transaction.objects.create(
+                            tx = Transaction(
                                 account=account,
                                 description=str(desc)[:255],
                                 amount=abs(amount),
@@ -1022,6 +1119,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
                                 status='realized',
                                 is_applied_to_balance=applied
                             )
+                            tx._skip_balance_update = True
+                            tx.save()
                             if applied:
                                 if is_income:
                                     account.balance += abs(amount)
@@ -1033,10 +1132,18 @@ class TransactionViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'A biblioteca ofxparse não está instalada.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             except Exception as e:
                 return Response({'error': f'Falha ao ler arquivo OFX: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            return Response({'error': 'Formato não suportado. Envie .csv ou .ofx'}, status=status.HTTP_400_BAD_REQUEST)
-            
         return Response({'message': f'{imported_count} transações importadas com sucesso!'})
+
+    @action(detail=True, methods=['post'])
+    def unlock(self, request, pk=None):
+        """
+        Destrava excepcionalmente uma transação que está reconciliada.
+        """
+        transaction_instance = self.get_object()
+        success = AccountReconciliationService.unlock_transaction(transaction_instance)
+        if success:
+            return Response({"message": "Transação destravada com sucesso para edições administrativas."})
+        return Response({"message": "Esta transação não estava reconciliada."}, status=status.HTTP_400_BAD_REQUEST)
 
 class GoalViewSet(viewsets.ModelViewSet):
     serializer_class = GoalSerializer
@@ -1116,7 +1223,7 @@ class DebtViewSet(viewsets.ModelViewSet):
                     is_income = False
 
                 # Cria a transação real
-                Transaction.objects.create(
+                tx = Transaction(
                     account=account,
                     amount=amount,
                     description=description,
@@ -1124,6 +1231,8 @@ class DebtViewSet(viewsets.ModelViewSet):
                     is_income=is_income,
                     is_applied_to_balance=True,
                 )
+                tx._skip_balance_update = True
+                tx.save()
 
                 # Aplica o ajuste de saldo
                 if is_income:
@@ -1167,7 +1276,7 @@ class DebtPaymentViewSet(viewsets.ModelViewSet):
                 description = f"Pagamento de dívida de {debt.counterparty_name}"
                 is_income = True
 
-            txn = Transaction.objects.create(
+            txn = Transaction(
                 account=account,
                 amount=amount,
                 description=description,
@@ -1175,6 +1284,8 @@ class DebtPaymentViewSet(viewsets.ModelViewSet):
                 is_income=is_income,
                 is_applied_to_balance=True,
             )
+            txn._skip_balance_update = True
+            txn.save()
 
             if is_income:
                 account.balance += amount
@@ -1192,6 +1303,9 @@ class DebtPaymentViewSet(viewsets.ModelViewSet):
             else:
                 payment.account.balance -= payment.amount
             payment.account.save()
+            
+            # Blindagem contábil: ativa a flag de bypass antes de deletar
+            payment.transaction._skip_balance_update = True
             payment.transaction.delete()
         return super().destroy(request, *args, **kwargs)
 
@@ -1570,17 +1684,8 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                             date=tx_date,
                             is_income=is_income,
                             status='realized',
-                            is_applied_to_balance=False
+                            is_applied_to_balance=(tx_date <= date.today())
                         )
-                        # Atualiza o saldo se aplicável
-                        if transaction_obj.status == 'realized' and transaction_obj.date <= date.today():
-                            if transaction_obj.is_income:
-                                account.balance += transaction_obj.amount
-                            else:
-                                account.balance -= transaction_obj.amount
-                            account.save()
-                            transaction_obj.is_applied_to_balance = True
-                            transaction_obj.save()
                     else:
                         # Processa como compra de cartão oficial YNAB
                         matrix_tx, installments = process_credit_card_transaction(
@@ -1611,17 +1716,8 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                                 date=tx_date,
                                 is_income=is_income,
                                 status='realized',
-                                is_applied_to_balance=False
+                                is_applied_to_balance=(tx_date <= date.today())
                             )
-                            # Atualiza o saldo se aplicável
-                            if transaction_obj.status == 'realized' and transaction_obj.date <= date.today():
-                                if transaction_obj.is_income:
-                                    account.balance += transaction_obj.amount
-                                else:
-                                    account.balance -= transaction_obj.amount
-                                account.save()
-                                transaction_obj.is_applied_to_balance = True
-                                transaction_obj.save()
                 else:
                     transaction_obj = Transaction.objects.create(
                         account=account,
@@ -1631,18 +1727,8 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                         date=tx_date,
                         is_income=is_income,
                         status='realized',
-                        is_applied_to_balance=False
+                        is_applied_to_balance=(tx_date <= date.today())
                     )
-
-                    # Atualiza o saldo se aplicável
-                    if transaction_obj.status == 'realized' and transaction_obj.date <= date.today():
-                        if transaction_obj.is_income:
-                            account.balance += transaction_obj.amount
-                        else:
-                            account.balance -= transaction_obj.amount
-                        account.save()
-                        transaction_obj.is_applied_to_balance = True
-                        transaction_obj.save()
 
                 # 2. Se for um lote de múltiplas transações, atualiza o status de aprovação do item específico
                 has_transactions = inbox.ai_suggestions and 'transactions' in inbox.ai_suggestions
@@ -1683,5 +1769,47 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
             return Response({"error": "Categoria selecionada inválida ou não encontrada."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": f"Erro ao processar aprovação: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class CategoryGoalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CategoryGoal
+        fields = ['id', 'category', 'goal_type', 'amount', 'target_date', 'frequency', 'frequency_interval', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+class CategoryGoalViewSet(viewsets.ModelViewSet):
+    serializer_class = CategoryGoalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return CategoryGoal.objects.filter(category__user=self.request.user)
+
+    def perform_create(self, serializer):
+        # Garante que a categoria pertence ao usuário ativo
+        category_id = self.request.data.get('category')
+        if category_id:
+            try:
+                category = Category.objects.get(id=category_id, user=self.request.user)
+            except Category.DoesNotExist:
+                raise serializers.ValidationError("A categoria fornecida não existe ou não pertence a este usuário.")
+        serializer.save()
+
+
+class TransactionRuleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TransactionRule
+        fields = ['id', 'name', 'stage', 'conditions_op', 'conditions', 'actions', 'is_active', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+class TransactionRuleViewSet(viewsets.ModelViewSet):
+    serializer_class = TransactionRuleSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return TransactionRule.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
 
 
