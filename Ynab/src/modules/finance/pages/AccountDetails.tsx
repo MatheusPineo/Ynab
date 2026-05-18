@@ -43,11 +43,12 @@ import { Badge } from "@/shared/components/ui/badge";
 const AccountDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAccount, fetchAccounts, getCategoryName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
+  const { tree, getAccount, fetchAccounts, getCategoryName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
   
   const [selectedMonth, setSelectedMonth] = useState(currentMonth - 1);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
 
@@ -63,16 +64,26 @@ const AccountDetails = () => {
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
-  const account = id ? getAccount(id) : null;
+  // Assina tree diretamente para garantir reatividade ao carregar contas
+  const account = useMemo(() => (id ? getAccount(id) : null), [id, getAccount, tree]);
 
   useEffect(() => {
-    fetchAccounts();
+    fetchAccounts().then(() => setIsInitialLoad(false));
   }, [fetchAccounts]);
+
+  // Enquanto o store está carregando as contas pela primeira vez, mostra loading
+  if (!account && isInitialLoad) {
+    return (
+      <div className="p-6">
+        <TableSkeleton />
+      </div>
+    );
+  }
 
   if (!account) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground mt-20">
-        <p>Procurando conta ou conta não encontrada...</p>
+        <p>Conta não encontrada.</p>
         <Button variant="outline" onClick={() => navigate("/dashboard")}>
           <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Dashboard
         </Button>
