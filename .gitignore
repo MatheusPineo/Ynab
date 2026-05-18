@@ -35,3 +35,7 @@ backend/media/
 *.jpg
 *.jpeg
 *.pdf
+
+# Reference repositories (clean room)
+111111---eng_rev/
+
