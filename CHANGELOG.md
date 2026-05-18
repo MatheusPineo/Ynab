@@ -6,6 +6,16 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.27.3] — 2026-05-18
+
+Esta versão resolve em definitivo o sumiço silencioso visual de transações homologadas do Inbox com data do passado. Agora, ao homologar qualquer transação, o período ativo do dashboard é sincronizado automaticamente, e as páginas de listagem (`Transactions.tsx` e `AccountDetails.tsx`) mantêm sincronia reativa total com o período global da `useAccountStore`.
+
+### Adicionado
+* **Sincronização de Período Automática no Homologar (`Inbox.tsx`):**
+  - Adicionado ajuste automático do período global (`currentMonth`, `currentYear` no `useAccountStore`) ao homologar com sucesso uma transação. Se o comprovante possuir uma data fora do período visualizado atual, o dashboard é atualizado instantaneamente para o mês e ano da transação e emite uma notificação informativa elegante sobre a mudança.
+* **Filtro de Período Sincronizado e Reativo (`Transactions.tsx` & `AccountDetails.tsx`):**
+  - Modificadas as páginas de listagem global e detalhes de conta para inicializarem seus períodos locais com base no `useAccountStore` global e reagirem em tempo real a qualquer mudança de período (como a auto-seleção após homologação), assegurando que o usuário veja as transações no mesmo instante em que a homologação é efetuada.
+
 ## [1.27.2] — 2026-05-18
 
 Esta versão resolve em definitivo a visualização e consistência na listagem de transações, corrigindo o rastreamento recursivo de transações de subcontas sob contas pai e ajustando a conversão de tipos para a filtragem por conta na tabela global de transações.

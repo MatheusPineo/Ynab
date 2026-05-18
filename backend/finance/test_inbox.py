@@ -313,6 +313,81 @@ class TransactionInboxAPITests(TestCase):
         self.account.refresh_from_db()
         self.assertEqual(self.account.balance, Decimal('330.00'))
 
+    def test_approve_inbox_with_null_category_and_verify_all_endpoints(self) -> None:
+        """
+        Teste ultra-completo e detalhado para buscar cada milímetro do sistema:
+        - Cria um item de inbox com uma data do passado (3 meses atrás).
+        - Envia aprovação sem categoria (category = None).
+        - Valida que a transação correspondente é criada, está efetivada e o saldo da conta está atualizado.
+        - Valida que a transação é retornada quando o filtro de mês/ano do endpoint de transações é o correto.
+        - Valida que a transação NÃO é retornada quando o filtro de mês/ano é diferente (evitando o sumiço silencioso).
+        """
+        past_date = "2026-02-15" # Fevereiro de 2026
+        inbox = TransactionInbox.objects.create(
+            user=self.user,
+            status='ready',
+            ai_suggestions={
+                'amount': 75.30,
+                'date': past_date,
+                'merchant': 'Supermercado Local',
+                'currency': 'BRL'
+            }
+        )
+        
+        # Payload com categoria nula (None) simulando o comportamento exato do frontend
+        payload = {
+            'account': str(self.account.id),
+            'category': None,
+            'amount': 75.30,
+            'description': 'Supermercado Local',
+            'date': past_date,
+            'is_income': False
+        }
+        
+        # Envia a homologação
+        response = self.client.post(
+            reverse('inbox-approve', args=[inbox.id]),
+            payload,
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(response.data['all_approved'])
+        
+        # 1. Verifica integridade do Inbox
+        inbox.refresh_from_db()
+        self.assertIsNotNone(inbox.validated_transaction)
+        self.assertEqual(inbox.status, 'ready')
+        
+        # 2. Verifica a transação criada
+        tx = inbox.validated_transaction
+        self.assertIsNone(tx.category)
+        self.assertEqual(tx.amount, Decimal('75.30'))
+        self.assertEqual(tx.description, 'Supermercado Local')
+        self.assertEqual(str(tx.date), past_date)
+        self.assertFalse(tx.is_income)
+        self.assertEqual(tx.status, 'realized')
+        self.assertTrue(tx.is_applied_to_balance)
+        
+        # 3. Verifica o saldo atualizado da conta
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, Decimal('424.70')) # 500 - 75.30
+        
+        # 4. Busca as transações filtrando pelo mês correto (Fevereiro de 2026)
+        tx_list_url = reverse('transaction-list')
+        res_correct_month = self.client.get(f"{tx_list_url}?month=2&year=2026")
+        self.assertEqual(res_correct_month.status_code, status.HTTP_200_OK)
+        
+        # Garante que a transação criada está na lista
+        tx_ids = [tx_item['id'] for tx_item in res_correct_month.data]
+        self.assertIn(tx.id, tx_ids)
+        
+        # 5. Busca as transações filtrando por outro mês (Maio de 2026)
+        res_wrong_month = self.client.get(f"{tx_list_url}?month=5&year=2026")
+        self.assertEqual(res_wrong_month.status_code, status.HTTP_200_OK)
+        tx_ids_wrong = [tx_item['id'] for tx_item in res_wrong_month.data]
+        self.assertNotIn(tx.id, tx_ids_wrong)
+
+
 
 from unittest.mock import MagicMock, mock_open, patch
 from finance.ai_services import AIExtractionService

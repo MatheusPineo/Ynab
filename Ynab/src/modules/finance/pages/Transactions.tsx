@@ -42,14 +42,19 @@ import { SwipeableTransactionCard } from "@/modules/finance/components/Swipeable
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
 const Transactions = () => {
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const { tree, fetchAccounts, getAccountName, getCategoryName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth - 1);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState("all");
 
   const queryClient = useQueryClient();
-  const { tree, fetchAccounts, getAccountName, getCategoryName } = useAccountStore();
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
+
+  useEffect(() => {
+    setSelectedMonth(currentMonth - 1);
+    setSelectedYear(currentYear);
+  }, [currentMonth, currentYear]);
 
   const handleRefresh = async () => {
     const store = useAccountStore.getState();
@@ -134,7 +139,14 @@ const Transactions = () => {
 
         {/* Period + Account filters */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+          <Select 
+            value={String(selectedMonth)} 
+            onValueChange={(v) => {
+              const m = Number(v);
+              setSelectedMonth(m);
+              setCurrentPeriod(m + 1, selectedYear);
+            }}
+          >
             <SelectTrigger className="w-[115px] sm:w-[135px] glass border-border/40 rounded-xl h-9 sm:h-10 text-xs sm:text-sm shadow-soft focus:ring-0">
               <SelectValue placeholder="Mês" />
             </SelectTrigger>
@@ -145,7 +157,14 @@ const Transactions = () => {
             </SelectContent>
           </Select>
 
-          <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+          <Select 
+            value={String(selectedYear)} 
+            onValueChange={(v) => {
+              const y = Number(v);
+              setSelectedYear(y);
+              setCurrentPeriod(selectedMonth + 1, y);
+            }}
+          >
             <SelectTrigger className="w-[80px] sm:w-[95px] glass border-border/40 rounded-xl h-9 sm:h-10 text-xs sm:text-sm shadow-soft focus:ring-0">
               <SelectValue placeholder="Ano" />
             </SelectTrigger>

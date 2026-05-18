@@ -229,6 +229,20 @@ const Inbox = () => {
     setIsSubmitting(false);
 
     if (success) {
+      // Ajusta o período do dashboard se a data da transação for diferente do período ativo
+      const [txYear, txMonth] = date.split('-').map(Number);
+      if (txYear && txMonth) {
+        const store = useAccountStore.getState();
+        if (store.currentMonth !== txMonth || store.currentYear !== txYear) {
+          store.setCurrentPeriod(txMonth, txYear);
+          const monthName = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+          ][txMonth - 1];
+          toast.info(`Período ativo atualizado para ${monthName} de ${txYear} para visualização.`);
+        }
+      }
+
       // Encontra o item recém-atualizado do store para verificar se ainda restam transações pendentes no lote
       const updatedItems = useInboxStore.getState().inboxItems;
       const updatedItem = updatedItems.find(item => item.id === selectedItem.id);

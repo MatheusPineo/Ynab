@@ -43,13 +43,18 @@ import { Badge } from "@/shared/components/ui/badge";
 const AccountDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getAccount, fetchAccounts, getCategoryName } = useAccountStore();
+  const { getAccount, fetchAccounts, getCategoryName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
   
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth - 1);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
 
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
+
+  useEffect(() => {
+    setSelectedMonth(currentMonth - 1);
+    setSelectedYear(currentYear);
+  }, [currentMonth, currentYear]);
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -232,7 +237,14 @@ const AccountDetails = () => {
 
       {/* Period Filters */}
       <div className="flex flex-wrap items-center gap-2 pl-0">
-        <Select value={String(selectedMonth)} onValueChange={(v) => setSelectedMonth(Number(v))}>
+        <Select 
+          value={String(selectedMonth)} 
+          onValueChange={(v) => {
+            const m = Number(v);
+            setSelectedMonth(m);
+            setCurrentPeriod(m + 1, selectedYear);
+          }}
+        >
           <SelectTrigger className="w-[130px] sm:w-[135px] glass border-border/40 rounded-xl h-10 shadow-soft focus:ring-0">
             <SelectValue placeholder="Mês" />
           </SelectTrigger>
@@ -243,7 +255,14 @@ const AccountDetails = () => {
           </SelectContent>
         </Select>
 
-        <Select value={String(selectedYear)} onValueChange={(v) => setSelectedYear(Number(v))}>
+        <Select 
+          value={String(selectedYear)} 
+          onValueChange={(v) => {
+            const y = Number(v);
+            setSelectedYear(y);
+            setCurrentPeriod(selectedMonth + 1, y);
+          }}
+        >
           <SelectTrigger className="w-[90px] sm:w-[95px] glass border-border/40 rounded-xl h-10 shadow-soft focus:ring-0">
             <SelectValue placeholder="Ano" />
           </SelectTrigger>
