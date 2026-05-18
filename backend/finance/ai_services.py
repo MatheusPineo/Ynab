@@ -3,7 +3,7 @@ import base64
 import logging
 import time
 import mimetypes
-from datetime import date
+from datetime import date, datetime
 import requests
 from django.conf import settings
 
@@ -64,20 +64,27 @@ class AIExtractionService:
                 base64_data = base64.b64encode(file_bytes).decode('utf-8')
 
             # 3. Construir o payload JSON de chamada do Gemini 1.5 Flash com Structured Outputs
+            today_str = date.today().strftime('%Y-%m-%d')
+            current_year = date.today().year
             system_prompt = (
                 "You are an advanced, professional financial document parser designed to extract transactional metadata "
                 "from receipts, bills, invoices, notifications, and purchase confirmations. Your job is to analyze the document image or PDF "
                 "and identify all transactions (e.g. payments, purchases, debit notifications). If the document contains multiple transactions "
                 "(for example, a screenshot with multiple bank or payment app notifications), you must extract EACH of them as a separate item "
                 "in the 'transactions' array. If there is only a single transaction, return it as a list of size 1 in the 'transactions' array. "
-                "Never include markdown formatting, backticks, or extra conversational text in your response."
+                "Never include markdown formatting, backticks, or extra conversational text in your response. "
+                f"CRITICAL CONTEXT: Today's date is {today_str}. The current year is {current_year}. "
+                f"When a document shows a date without an explicit year (e.g. '17 de mai', 'May 17', '17/05'), "
+                f"you MUST assume the year is {current_year} unless there is explicit evidence otherwise. "
+                f"NEVER use years in the past (like 2024 or 2025) unless the document explicitly shows that year."
             )
 
             prompt_text = (
+                f"IMPORTANT: Today is {today_str} (year {current_year}). "
                 "Please extract all transactions from this financial document and return them inside the 'transactions' array. "
                 "Each transaction item in the list must contain: "
                 "1. Total transaction amount as a numeric float value. "
-                "2. Transaction date formatted strictly as YYYY-MM-DD. "
+                f"2. Transaction date formatted strictly as YYYY-MM-DD. If the year is not visible, use {current_year}. "
                 "3. Official merchant, business or store name (e.g. Uber, Amazon, McDonald's). "
                 "4. Currency code in ISO 4217 format (e.g. BRL, USD, EUR, GBP)."
             )
@@ -97,7 +104,7 @@ class AIExtractionService:
                                 },
                                 "date": {
                                     "type": "STRING",
-                                    "description": "Transaction date formatted strictly as YYYY-MM-DD. Use today's date if missing."
+                                    "description": f"Transaction date formatted strictly as YYYY-MM-DD. If the year is ambiguous or missing, default to {current_year}. Use today's date ({today_str}) if date is completely missing."
                                 },
                                 "merchant": {
                                     "type": "STRING",

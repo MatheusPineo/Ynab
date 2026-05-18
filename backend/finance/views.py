@@ -1688,6 +1688,84 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
             "accounts": accounts,
         })
 
+    @action(detail=False, methods=['post'], permission_classes=[permissions.AllowAny], authentication_classes=[])
+    def fix_dates(self, request):
+        """Endpoint TEMPORÁRIO para corrigir datas erradas (2024→2026) e duplicatas da IA. REMOVER após uso."""
+        from django.contrib.auth.models import User
+        from .models import Transaction
+        from datetime import date as dt_date
+        from decimal import Decimal
+        
+        email = request.data.get('email', 'matheuskrx@gmail.com')
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return Response({"error": f"Usuário {email} não encontrado"})
+        
+        fixed = []
+        deleted = []
+        
+        # 1. Buscar transações com ano 2024 que foram criadas em 2026 (bug da IA)
+        wrong_year_txs = Transaction.objects.filter(
+            account__user=user,
+            date__year=2024,
+            created_at__year=2026
+        ).order_by('description', 'date', 'created_at')
+        
+        # 2. Agrupar por (description, amount, account_id) para encontrar duplicatas
+        groups = {}
+        for t in wrong_year_txs:
+            key = (t.description.strip().upper(), str(t.amount), t.account_id)
+            if key not in groups:
+                groups[key] = []
+            groups[key].append(t)
+        
+        for key, txs in groups.items():
+            # Manter apenas a primeira (mais antiga), deletar as outras
+            keeper = txs[0]
+            
+            # Corrigir a data: 2024 → 2026
+            old_date = keeper.date
+            new_date = dt_date(2026, old_date.month, old_date.day)
+            keeper.date = new_date
+            keeper._skip_balance_update = True
+            keeper._skip_reconciliation_lock = True
+            keeper.save()
+            
+            fixed.append({
+                "id": keeper.id,
+                "description": keeper.description,
+                "old_date": str(old_date),
+                "new_date": str(new_date),
+                "amount": str(keeper.amount),
+            })
+            
+            # Deletar duplicatas (todas exceto a keeper)
+            for dup in txs[1:]:
+                # Reverter o saldo se a duplicata estava aplicada
+                if dup.is_applied_to_balance:
+                    acc = dup.account
+                    if dup.is_income:
+                        acc.balance -= dup.amount
+                    else:
+                        acc.balance += dup.amount
+                    acc.save()
+                
+                deleted.append({
+                    "id": dup.id,
+                    "description": dup.description,
+                    "amount": str(dup.amount),
+                    "date": str(dup.date),
+                    "account_name": dup.account.name,
+                })
+                dup.delete()
+        
+        return Response({
+            "fixed_dates": fixed,
+            "deleted_duplicates": deleted,
+            "total_fixed": len(fixed),
+            "total_deleted": len(deleted),
+        })
+
     def get_queryset(self):
         # Garante o isolamento multitenant estrito ordenando por mais recentes e exibindo apenas itens pendentes de homologação completa
         return TransactionInbox.objects.filter(user=self.request.user, validated_transaction__isnull=True).order_by('-created_at')
