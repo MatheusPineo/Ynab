@@ -77,10 +77,25 @@ const AccountDetails = () => {
 
   const currency = account.currency || "EUR";
 
+  const accountIds = useMemo(() => {
+    if (!account) return [];
+    const ids: string[] = [String(account.id)];
+    const collectIds = (node: any) => {
+      if (Array.isArray(node.children)) {
+        node.children.forEach((child: any) => {
+          ids.push(String(child.id));
+          collectIds(child);
+        });
+      }
+    };
+    collectIds(account);
+    return ids;
+  }, [account]);
+
   const accountTransactions = useMemo(() => {
     const txs = Array.isArray(transactions) ? transactions : [];
-    return txs.filter(t => String(t.account) === id);
-  }, [transactions, id]);
+    return txs.filter(t => accountIds.includes(String(t.account)));
+  }, [transactions, accountIds]);
 
   const filteredTransactions = useMemo(() => {
     return accountTransactions.filter((t) => {

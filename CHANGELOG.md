@@ -6,6 +6,16 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ---
 
+## [1.27.2] — 2026-05-18
+
+Esta versão resolve em definitivo a visualização e consistência na listagem de transações, corrigindo o rastreamento recursivo de transações de subcontas sob contas pai e ajustando a conversão de tipos para a filtragem por conta na tabela global de transações.
+
+### Corrigido
+* **Agregação Recursiva de Subcontas (`AccountDetails.tsx`):**
+  - Implementada a busca e agregação recursiva de todos os IDs de subcontas a partir da conta selecionada, de modo que clicar em uma conta pai no menu exiba todas as transações das subcontas que receberam os lançamentos (ex.: "Crunchyroll" sob "Nubank"), permitindo que o usuário veja as transações no mesmo momento em que os saldos são deduzidos.
+* **Correta Tipagem na Filtragem de Transações (`Transactions.tsx`):**
+  - Correção na comparação estrita `t.account === selectedAccountId` que impedia a exibição de transações ao aplicar qualquer filtro por conta na tela global (comparação de número vs string). Agora usa `String(t.account)` para garantir compatibilidade e exibição correta dos registros.
+
 ## [1.27.1] — 2026-05-18
 
 Esta versão garante que toda e qualquer transação gerada pela homologação de comprovantes na Inbox Inteligente (incluindo o fallback de cartão de crédito para faturas futuras) seja criada diretamente com o status **Efetivada ("realized")** e deduza imediatamente o valor correspondente do saldo real da conta.

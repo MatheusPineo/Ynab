@@ -959,5 +959,25 @@ Ao submeter o formulário de aprovação, a transação real é criada individua
 * **Submissão Segura com Parâmetro Index:** A store do Zustand [useInboxStore.ts](file:///c:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/store/useInboxStore.ts) dispara a action assíncrona `approveInboxItem(id, payload, index)` que envia o parâmetro `index` na query URL para o backend.
 * **Consolidação e Arquivamento Progressivo no Django:** O endpoint `/api/finance/inbox/{id}/approve/` processa transacionalmente a criação da transação real, marca o item correspondente da lista de sugestões como aprovado (`"approved": true`) e recalcula o progresso. O comprovante inbox só é arquivado e transicionado para o status final concluído (associado a `validated_transaction`) quando *todas* as transações listadas na sugestão forem homologadas individualmente, limpando o item do staging apenas ao fim de toda a validação do documento.
 
+### 11.6 Rastreabilidade e Agregação Recursiva de Subcontas na Listagem (v1.27.2)
+Para assegurar a perfeita experiência do usuário ao gerenciar contas e faturas de envelopes digitais YNAB, a arquitetura de apresentação foi aprimorada no que tange à consolidação e exibição de lançamentos financeiros:
 
+#### 1. Consolidação de Transações de Subcontas (Parent-Child Aggregation)
+Em sistemas que utilizam subcontas ou envelopes de limites virtuais sob uma conta pai unificada (ex.: envelope "Crunchyroll" ou "Mercado" sob a conta corrente/cartão "Nubank"), a dedução de saldo ocorre em nível de nó folha. No entanto, ao visualizar a conta pai, o usuário espera ver o extrato unificado de todas as transações sob aquele grupo.
+- **Implementação (`AccountDetails.tsx`):** Desenvolvemos um pipeline reativo que mapeia recursivamente a subárvore da conta ativa (`collectIds`), gerando um array plano contendo o ID da conta pai e todos os IDs de suas subcontas descendentes. 
+- A listagem final de transações consome esse array consolidado, realizando uma filtragem inclusiva no cache local:
+  ```typescript
+  const accountTransactions = useMemo(() => {
+    const txs = Array.isArray(transactions) ? transactions : [];
+    return txs.filter(t => accountIds.includes(String(t.account)));
+  }, [transactions, accountIds]);
+  ```
+- **Resultado:** Garante que o extrato exiba instantaneamente a transação homologada pela IA no exato momento em que os saldos consolidados da conta pai são deduzidos, mantendo a coerência visual completa da interface.
 
+#### 2. Correção de Incompatibilidade de Tipos (String vs Number Casting)
+Na filtragem de transações por conta na tabela global (`Transactions.tsx`), a comparação estrita era efetuada entre `t.account` (recebido do backend como um inteiro numérico) e `selectedAccountId` (recebido da UI como string).
+- **Correção:** Ajustamos a condicional de filtragem para converter explicitamente o ID da transação em string via `String(t.account)` antes de efetuar a comparação com o estado selecionado:
+  ```typescript
+  const matchesAccount = selectedAccountId === "all" || String(t.account) === selectedAccountId;
+  ```
+- **Resultado:** Elimina o bug silencioso em que a seleção de uma conta específica na tabela global ocultava incorretamente todos os registros da tela.

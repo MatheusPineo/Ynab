@@ -86,7 +86,7 @@ const Transactions = () => {
 
   const filteredTransactions = transactions.filter((t) => {
     const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
-    const matchesAccount = selectedAccountId === "all" || t.account === selectedAccountId;
+    const matchesAccount = selectedAccountId === "all" || String(t.account) === selectedAccountId;
     return matchesSearch && matchesAccount;
   });
 
