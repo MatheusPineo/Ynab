@@ -4,6 +4,46 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
+## [1.30.3] — 2026-05-19
+
+Esta versão corrige um bug crítico de renderização (tela em branco/criação de loops de erro) que ocorria ao atualizar (F5) ou carregar diretamente a página de detalhes da conta (`AccountDetails.tsx`). Refatoramos o fluxo e o posicionamento das declarações de hooks do React de modo a cumprir rigorosamente as "Rules of Hooks", garantindo estabilidade e reatividade na montagem inicial dos dados assíncronos. Além disso, enriquecemos os guias operacionais documentando o ecossistema de investimentos.
+
+### Corrigido
+* **Estabilização de Estado e Cumprimento das Regras de Hooks (`AccountDetails.tsx`):**
+  - **Posicionamento de Hooks:** Movimentação de todos os blocos de hooks `useMemo` (`accountIds`, `accountTransactions`, `filteredTransactions`, `stats`) para antes de quaisquer retornos condicionais (`if (!account)`). Isso impede a variação na ordem e no número de hooks executados pelo React entre os renders, eliminando o erro fatal `Rendered more hooks than during the previous render`.
+  - **Correção de Alinhamento HTML e Acessibilidade:** Mudança na renderização do `TableSkeleton` de carregamento inicial, que agora é encapsulado dentro das tags semânticas corretas (`<table>` e `<tbody>`) para sanar alertas de DOM nesting nos consoles dos navegadores.
+
+### Alterado
+* **Enriquecimento da Documentação Contábil de Investimentos (`manual_actual_budget.md`):**
+  - Inserção de uma seção dedicada (`### 📈 Acompanhando a Evolução dos Investimentos e Patrimônio`) explicando de forma prática como utilizar a tela de **Relatórios** (`/reports`) para acompanhar a evolução histórica do Net Worth, distribuição proporcional (Treemap), Projeção e Impacto Cambial das contas Off-Budget (Investimentos).
+
+---
+
+## [1.30.2] — 2026-05-18
+
+Esta versão resolve a inconsistência visual do filtro de contas na listagem global de transações (`Transactions.tsx`). Implementamos a filtragem recursiva de subcontas, garantindo que ao selecionar uma conta pai (como "Nubank") no filtro, todas as transações de suas respectivas subcontas (como "Crunchyroll") sejam exibidas de forma transparente, eliminando a contradição visual onde transações da IA consumiam saldo na barra lateral mas pareciam "desaparecer" da tabela.
+
+### Corrigido
+* **Filtro Recursivo de Contas na Listagem Global (`Transactions.tsx`):**
+  - Refatoração do filtro de contas para usar o hook `useMemo` com busca recursiva em profundidade (`findAndCollect`) a partir da árvore de contas (`tree`). Isso coleta todos os IDs de subcontas atreladas à conta selecionada.
+  - Alinhamento da listagem global com a tela de detalhes (`AccountDetails.tsx`), que já contava com essa agregação recursiva, estabelecendo paridade visual e eliminando o falso bug de desaparecimento de registros contábeis.
+
+---
+
+## [1.30.1] — 2026-05-18
+
+Esta versão resolve em definitivo a atualização do Dashboard e visualização de transações homologadas a partir do staging do Inbox Inteligente com datas retroativas ou futuras. O Dashboard principal foi inteiramente refatorado para ser reativo ao período selecionado global da `useAccountStore` no Zustand, adicionando seletores interativos de Mês e Ano idênticos aos da tela global de transações e garantindo que os painéis de fluxo de caixa, despesas por categoria e transações pendentes reflitam instantaneamente qualquer homologação histórica.
+
+### Adicionado
+* **Painel do Dashboard Histórico e Reativo (`Dashboard.tsx`):**
+  - **Seletores de Mês e Ano:** Injeção de seletores dinâmicos de período no cabeçalho do Dashboard, permitindo a navegação retroativa e futura completa pelas métricas da aplicação.
+  - **Sincronização reativa com Zustand:** O Dashboard agora destrutura e consome `currentMonth` e `currentYear` do `useAccountStore`, re-executando as rotinas de fetch e re-calculando todos os dados sempre que o período ativo global é modificado (inclusive de forma automática pós-homologação na staging area do Inbox).
+  - **Cálculos e Estatísticas Dinâmicos:** Refatoração de `monthlyStats`, `pendingTransactionsData`, `topCategories`, `monthName` e do gráfico de `Evolução do Fluxo` para calcularem suas respectivas estatísticas com base no período ativo dinâmico em vez do relógio estático do sistema (`new Date()`).
+
+### Corrigido
+* **Fim do Sumiço Visual de Transações do Passado:**
+  - Como a homologação de comprovantes do passado atualiza automaticamente o período do Zustand para o mês da transação, e o Dashboard agora é reativo a esse período, os dados contábeis e gráficos mudam na mesma hora para exibir a nova transação homologada, eliminando por completo a sensação de desaparecimento silencioso do registro contábil físico.
+
 ---
 
 ## [1.30.0] — 2026-05-18

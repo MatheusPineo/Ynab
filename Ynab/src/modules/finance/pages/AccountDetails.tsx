@@ -43,12 +43,12 @@ import { Badge } from "@/shared/components/ui/badge";
 const AccountDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { tree, getAccount, fetchAccounts, getCategoryName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
+  const { tree, fetchAccounts, getCategoryName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
   
   const [selectedMonth, setSelectedMonth] = useState(currentMonth - 1);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
 
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
 
@@ -64,34 +64,28 @@ const AccountDetails = () => {
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
-  // Assina tree diretamente para garantir reatividade ao carregar contas
-  const account = useMemo(() => (id ? getAccount(id) : null), [id, getAccount, tree]);
+  // Busca direta no tree subscrito (reativo) em vez de getAccount (referência estável)
+  const account = useMemo(() => {
+    if (!id || !Array.isArray(tree)) return null;
+    const idStr = String(id);
+    const find = (nodes: any[]): any => {
+      for (const node of nodes) {
+        if (node && String(node.id) === idStr) return node;
+        if (node?.children && Array.isArray(node.children)) {
+          const found = find(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return find(tree);
+  }, [id, tree]);
 
   useEffect(() => {
-    fetchAccounts().then(() => setIsInitialLoad(false));
+    fetchAccounts().finally(() => setAccountsLoaded(true));
   }, [fetchAccounts]);
 
-  // Enquanto o store está carregando as contas pela primeira vez, mostra loading
-  if (!account && isInitialLoad) {
-    return (
-      <div className="p-6">
-        <TableSkeleton />
-      </div>
-    );
-  }
-
-  if (!account) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground mt-20">
-        <p>Conta não encontrada.</p>
-        <Button variant="outline" onClick={() => navigate("/dashboard")}>
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Dashboard
-        </Button>
-      </div>
-    );
-  }
-
-  const currency = account.currency || "EUR";
+  const currency = account?.currency || "EUR";
 
   const accountIds = useMemo(() => {
     if (!account) return [];
@@ -157,6 +151,33 @@ const AccountDetails = () => {
       projectedBalance: (account?.balance || 0) + pendingAmount
     };
   }, [accountTransactions, selectedMonth, selectedYear, account?.balance]);
+
+  // Mostra loading enquanto as contas ainda não foram carregadas da API
+  if (!account && !accountsLoaded) {
+    return (
+      <div className="p-6 space-y-4">
+        <div className="h-8 w-48 rounded bg-muted/20 animate-pulse mb-4" />
+        <div className="rounded-2xl border border-border/60 overflow-hidden bg-card/40 backdrop-blur-sm">
+          <table className="w-full">
+            <tbody>
+              <TableSkeleton rows={5} />
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  }
+
+  if (!account) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground mt-20">
+        <p>Conta não encontrada.</p>
+        <Button variant="outline" onClick={() => navigate("/dashboard")}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Dashboard
+        </Button>
+      </div>
+    );
+  }
 
   const handleDelete = async (tId: string) => {
     if (window.confirm("Tem certeza que deseja excluir esta transação?")) {

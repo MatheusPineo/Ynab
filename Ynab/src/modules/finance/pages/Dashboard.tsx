@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -13,6 +13,13 @@ import {
   Target,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/shared/components/ui/select";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
@@ -71,15 +78,42 @@ const CustomTooltip = ({ active, payload, label, baseCurrency }: any) => {
   return null;
 };
 const Dashboard = () => {
-  const { fetchAccounts, fetchGoals, fetchTransactions, tree, getHistory, transactions, goals, updateTransaction } = useAccountStore();
+  const { 
+    fetchAccounts, 
+    fetchGoals, 
+    fetchTransactions, 
+    tree, 
+    getHistory, 
+    transactions, 
+    goals, 
+    updateTransaction,
+    currentMonth,
+    currentYear,
+    setCurrentPeriod
+  } = useAccountStore();
   const { fetchRates, convert, baseCurrency, setBaseCurrency } = useCurrencyStore();
+
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth - 1);
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+
+  useEffect(() => {
+    setSelectedMonth(currentMonth - 1);
+    setSelectedYear(currentYear);
+  }, [currentMonth, currentYear]);
 
   useEffect(() => {
     fetchAccounts();
     fetchRates();
     fetchGoals();
     fetchTransactions();
-  }, [fetchAccounts, fetchRates, fetchGoals, fetchTransactions]);
+  }, [fetchAccounts, fetchRates, fetchGoals, fetchTransactions, currentMonth, currentYear]);
+
+  const months = [
+    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+  ];
+
+  const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
 
   const handleRefresh = async () => {
     await Promise.all([
@@ -101,8 +135,7 @@ const Dashboard = () => {
   }, [tree, convert, baseCurrency]);
 
   const monthlyStats = useMemo(() => {
-    const now = new Date();
-    const currentMonth = format(now, "yyyy-MM");
+    const targetPeriod = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
     let income = 0;
     let expense = 0;
     let pendingCount = 0;
@@ -111,7 +144,7 @@ const Dashboard = () => {
     txs.forEach((t) => {
       if (!t.date) return;
       const period = t.date.substring(0, 7);
-      if (period === currentMonth) {
+      if (period === targetPeriod) {
         if (t.status === "pending") pendingCount++;
         if (t.is_income) income += Number(t.amount);
         else expense += Math.abs(Number(t.amount));
@@ -122,15 +155,14 @@ const Dashboard = () => {
     const savingsRate = income > 0 ? Math.min(100, (savings / income) * 100) : 0;
 
     return { income, expense, savings, savingsRate, pendingCount };
-  }, [transactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   const pendingTransactionsData = useMemo(() => {
-    const now = new Date();
-    const currentMonth = format(now, "yyyy-MM");
+    const targetPeriod = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
     const txs = Array.isArray(transactions) ? transactions : [];
     
     const filtered = txs.filter(
-      (t) => t.status === "pending" && t.date && t.date.substring(0, 7) === currentMonth
+      (t) => t.status === "pending" && t.date && t.date.substring(0, 7) === targetPeriod
     );
 
     let totalIncome = 0;
@@ -146,7 +178,7 @@ const Dashboard = () => {
       totalExpense,
       balance: totalIncome - totalExpense
     };
-  }, [transactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   const recentTransactions = useMemo(() => {
     const txs = Array.isArray(transactions) ? transactions : [];
@@ -160,13 +192,12 @@ const Dashboard = () => {
 
   const topCategories = useMemo(() => {
     const categories: Record<string, number> = {};
-    const now = new Date();
-    const currentMonth = format(now, "yyyy-MM");
+    const targetPeriod = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
     const txs = Array.isArray(transactions) ? transactions : [];
     txs.forEach((t) => {
       if (!t.date) return;
       const period = t.date.substring(0, 7);
-      if (!t.is_income && period === currentMonth) {
+      if (!t.is_income && period === targetPeriod) {
         const catName = (t as any).category_name || "Sem Categoria";
         categories[catName] = (categories[catName] || 0) + Math.abs(Number(t.amount));
       }
@@ -177,7 +208,7 @@ const Dashboard = () => {
       .slice(0, 5);
     const max = sorted[0]?.value || 1;
     return sorted.map((c) => ({ ...c, pct: (c.value / max) * 100 }));
-  }, [transactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   const topGoals = useMemo(() => {
     const gs = Array.isArray(goals) ? goals : [];
@@ -195,7 +226,10 @@ const Dashboard = () => {
     await updateTransaction(t.id, { status: newStatus });
   };
 
-  const monthName = format(new Date(), "MMMM 'de' yyyy", { locale: ptBR });
+  const monthName = useMemo(() => {
+    const dateObj = new Date(currentYear, currentMonth - 1, 1);
+    return format(dateObj, "MMMM 'de' yyyy", { locale: ptBR });
+  }, [currentMonth, currentYear]);
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -230,7 +264,43 @@ const Dashboard = () => {
             Acompanhe o fluxo de caixa, receitas e despesas efetivadas no período.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+          <Select 
+            value={String(selectedMonth)} 
+            onValueChange={(v) => {
+              const m = Number(v);
+              setSelectedMonth(m);
+              setCurrentPeriod(m + 1, selectedYear);
+            }}
+          >
+            <SelectTrigger className="w-[115px] sm:w-[130px] glass border-border/40 rounded-xl h-9 text-xs sm:text-sm shadow-soft focus:ring-0">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
+            <SelectContent className="glass border-border/60">
+              {months.map((m, i) => (
+                <SelectItem key={m} value={String(i)} className="text-xs sm:text-sm">{m}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select 
+            value={String(selectedYear)} 
+            onValueChange={(v) => {
+              const y = Number(v);
+              setSelectedYear(y);
+              setCurrentPeriod(selectedMonth + 1, y);
+            }}
+          >
+            <SelectTrigger className="w-[80px] sm:w-[90px] glass border-border/40 rounded-xl h-9 text-xs sm:text-sm shadow-soft focus:ring-0">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
+            <SelectContent className="glass border-border/60">
+              {years.map(y => (
+                <SelectItem key={y} value={String(y)} className="text-xs sm:text-sm">{y}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
           <AddTransactionModal>
             <Button className="gradient-primary text-primary-foreground rounded-xl shadow-glow hover:scale-[1.03] transition-transform h-9 sm:hidden">
               <Plus className="h-4 w-4 mr-1" strokeWidth={2.5} />

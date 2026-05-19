@@ -51,6 +51,11 @@ const Transactions = () => {
   const queryClient = useQueryClient();
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
 
+  // Garante dados frescos ao montar a página de transações (corrige bug de cache stale)
+  useEffect(() => {
+    queryClient.invalidateQueries({ queryKey: ["transactions"] });
+  }, [queryClient]);
+
   useEffect(() => {
     setSelectedMonth(currentMonth - 1);
     setSelectedYear(currentYear);
@@ -89,11 +94,46 @@ const Transactions = () => {
     return flatten(tree);
   }, [tree]);
 
-  const filteredTransactions = transactions.filter((t) => {
-    const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
-    const matchesAccount = selectedAccountId === "all" || String(t.account) === selectedAccountId;
-    return matchesSearch && matchesAccount;
-  });
+  const targetAccountIds = useMemo(() => {
+    if (selectedAccountId === "all") return [];
+    const ids: string[] = [selectedAccountId];
+    const findAndCollect = (nodes: any[]): boolean => {
+      for (const node of nodes) {
+        if (String(node.id) === selectedAccountId) {
+          const collect = (n: any) => {
+            if (n.children && Array.isArray(n.children)) {
+              n.children.forEach((child: any) => {
+                ids.push(String(child.id));
+                collect(child);
+              });
+            }
+          };
+          collect(node);
+          return true;
+        }
+        if (node.children && node.children.length > 0) {
+          if (findAndCollect(node.children)) return true;
+        }
+      }
+      return false;
+    };
+    findAndCollect(tree);
+    return ids;
+  }, [selectedAccountId, tree]);
+
+  const filteredTransactions = useMemo(() => {
+    const result = (Array.isArray(transactions) ? transactions : []).filter((t) => {
+      if (!t || !t.description || !t.date) return false;
+      const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
+      const matchesAccount = selectedAccountId === "all" || targetAccountIds.includes(String(t.account));
+      return matchesSearch && matchesAccount;
+    });
+    // Log de diagnóstico para rastrear bug de transações sumidas
+    if (typeof console !== 'undefined') {
+      console.log(`[Transactions] API retornou ${Array.isArray(transactions) ? transactions.length : 0} transações | Após filtro: ${result.length} | Conta: ${selectedAccountId} | Mês: ${selectedMonth + 1}/${selectedYear}`);
+    }
+    return result;
+  }, [transactions, search, selectedAccountId, targetAccountIds, selectedMonth, selectedYear]);
 
   const handleDelete = async (id: string) => {
     if (window.confirm("Tem certeza que deseja excluir esta transação?")) {

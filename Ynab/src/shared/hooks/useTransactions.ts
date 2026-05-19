@@ -14,7 +14,10 @@ export const useTransactions = (month?: number, year?: number) => {
         ? `/transactions/?month=${month}&year=${year}` 
         : "/transactions/";
       const response = await authenticatedFetch(url);
-      return response.json();
+      const data = await response.json();
+      // Log de diagnóstico para rastrear bug de transações sumidas
+      console.log(`[useTransactions] API ${url} retornou ${Array.isArray(data) ? data.length : 'NÃO-ARRAY'} transações`, Array.isArray(data) ? data.map((t: any) => ({ id: t.id, desc: t.description, acc: t.account, date: t.date })) : data);
+      return data;
     },
   });
 

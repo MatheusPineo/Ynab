@@ -64,6 +64,17 @@ Quando você traz o dinheiro de volta dos Investimentos (Off-Budget) para a Cont
 
 ---
 
+### 📈 Acompanhando a Evolução dos Investimentos e Patrimônio
+
+Tanto as contas On-Budget quanto as contas Off-Budget (Investimentos, Previdência, Ações) alimentam de forma automática a base de dados do módulo de **Relatórios** (`/reports`), onde é possível auditar e gerenciar a evolução do seu patrimônio:
+
+1. **Evolução do Patrimônio Líquido (Net Worth):** No menu de relatórios (painéis *Iniciante* e *Intermediário*), o gráfico de **Patrimônio Líquido** exibe de forma consolidada a soma dos saldos de todas as suas contas de ativos (Corrente + Investimentos) menos seus passivos (faturas de cartão e dívidas) ao longo do tempo.
+2. **Distribuição de Ativos (Treemap):** Na aba **Avançado**, o gráfico de Treemap exibe a distribuição percentual física dos seus investimentos. Cada bloco representa uma carteira ou corretora (ex: *XP*, *Wise*, *Binance*), facilitando a visualização da alocação de ativos.
+3. **Projeções Futuras (Forecasting):** Também na aba **Avançado**, o painel de projeção calcula a velocidade de crescimento do seu patrimônio com base nos seus aportes históricos de investimentos.
+4. **Impacto Cambial e Multimoedas:** Se você possui investimentos internacionais (contas em USD, EUR, etc.), o relatório de **Volatilidade Cambial** calcula o impacto da oscilação de mercado e taxas de câmbio sobre a sua carteira global.
+
+---
+
 ## 2. A Aba Cartão de Crédito e Controle de Parcelamentos (Credit Cards & Installments)
 
 Diferente do método antigo de tratar o cartão de crédito como uma conta de despesa comum, o padrão YNAB/Actual trata o cartão com uma **mecanica de reserva de pagamento**.
