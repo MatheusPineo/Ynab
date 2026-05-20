@@ -80,8 +80,9 @@ def sync_recurring_transactions(user, upto_date=None):
             ).filter(Q(recurring_parent=template) | Q(recurring_parent__isnull=True)).exists()
             
             if not exists:
-                # Herda o status do template: pendentes continuam pendentes
-                inherited_status = template.status if template.status in ('pending', 'realized', 'scheduled') else 'realized'
+                # Herda o status do template, mas força para 'pending' se for no futuro
+                base_status = template.status if template.status in ('pending', 'realized', 'scheduled') else 'realized'
+                inherited_status = 'pending' if new_date > today else base_status
                 applied = (new_date <= today and inherited_status == 'realized')
                 new_t = Transaction(
                     account=template.account,
