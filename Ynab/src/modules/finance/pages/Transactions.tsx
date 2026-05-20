@@ -267,7 +267,7 @@ const Transactions = () => {
 
                   <SwipeableTransactionCard
                     onEdit={() => document.getElementById(`edit-trigger-${t.id}`)?.click()}
-                    onDelete={() => handleDelete(t.id)}
+                    onDelete={() => handleDeleteClick(t)}
                   >
                     <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm hover:border-border/80 transition-all group">
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -335,7 +335,7 @@ const Transactions = () => {
                                 Editar
                               </DropdownMenuItem>
                             </AddTransactionModal>
-                            <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400 text-xs" onClick={() => handleDelete(t.id)}>
+                            <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400 text-xs" onClick={() => handleDeleteClick(t)}>
                               <Trash2 className="mr-2 h-3.5 w-3.5" />
                               Excluir
                             </DropdownMenuItem>
