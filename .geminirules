@@ -7,12 +7,14 @@
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
 
-### Status Atual (Versão 1.30.3)
-- **Marco:** Correção do Bug de F5 na Visualização de Detalhes da Conta (`AccountDetails.tsx`) e Enriquecimento do Guia de Investimentos (`manual_actual_budget.md`).
-- **Estado:** 100% estável, compilado com TypeScript estrito, testado com Vitest (`30 passed`), manuais atualizados e implantado de forma contínua em produção via Vercel na URL https://ynab-five.vercel.app.
-- **Arquitetura:** Correção de DOM nesting no loading skeleton de tabela e documentação contábil para acompanhamento de investimentos e patrimônio líquido nos painéis de relatórios.
+### Status Atual (Versão 1.30.5)
+- **Marco:** Correção do bug de propagação de status pendente em transações recorrentes (`sync_recurring_transactions`).
+- **Estado:** 100% estável, compilado com TypeScript estrito, testado com Pytest (`37 passed`) e Vitest (`30 passed`), manuais atualizados e implantado de forma contínua em produção via Vercel na URL https://ynab-five.vercel.app.
+- **Arquitetura:** Função `sync_recurring_transactions` em `views.py` agora herda o campo `status` do template recorrente ao gerar instâncias filhas, garantindo que transações pendentes não sejam efetivadas automaticamente.
 
 ### Últimas Alterações Relevantes
+- [v1.30.5] Propagação de Status em Transações Recorrentes: Correção na função `sync_recurring_transactions` para herdar o campo `status` do template recorrente ao criar instâncias filhas automáticas. Transações pendentes agora permanecem pendentes nos meses seguintes sem afetar o saldo da conta. Novo teste `test_recurring_transactions_pending_status` adicionado.
+- [v1.30.4] Correção de Crash no Modal de Nova Transação: Adicionado import ausente de `cn()` em `AddTransactionModal.tsx` que causava ReferenceError e crash completo do React ao digitar no campo de descrição (as sugestões de histórico usavam `cn()` sem importá-lo). Removidas chamadas orphans a `setShowAccountSuggestions`/`setShowToAccountSuggestions` que eram resquícios de refactor anterior para `AccountCombobox`.
 - [v1.30.3] Correções Estéticas, Acessibilidade e Documentação Contábil: Estabilização do F5 na tela de Detalhes de Contas (`AccountDetails.tsx`) movendo early returns para depois de todos os hooks, correção de DOM nesting no TableSkeleton, e adição de guia operacional detalhando a evolução proporcional (Treemap), cambial e preditiva de contas de investimentos/Off-Budget no manual `manual_actual_budget.md`.
 - [v1.30.2] Filtro de Contas Recursivo e Consistente na Listagem Global: Adição da coleta recursiva de subcontas via profundidade no seletor de contas de `Transactions.tsx` para exibição de transações de subcontas profundas quando a conta pai for filtrada, igualando o comportamento ao de `AccountDetails.tsx` e finalizando o bug visual pós-homologação IA.
 - [v1.30.1] Dashboard Histórico e Reativo ao Zustand: Correção de bug visual de transações homologadas do passado que "sumiam" do Dashboard. Adicionados seletores interativos de Mês e Ano no cabeçalho do Dashboard principal, e refatoração de todos os widgets e hooks para computarem dados com base no período selecionado globalmente no Zustand do YNAB.

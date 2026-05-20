@@ -79,7 +79,9 @@ def sync_recurring_transactions(user, upto_date=None):
             ).exists()
             
             if not exists:
-                applied = (new_date <= today)
+                # Herda o status do template: pendentes continuam pendentes
+                inherited_status = template.status if template.status in ('pending', 'realized', 'scheduled') else 'realized'
+                applied = (new_date <= today and inherited_status == 'realized')
                 new_t = Transaction(
                     account=template.account,
                     category=template.category,
@@ -88,6 +90,7 @@ def sync_recurring_transactions(user, upto_date=None):
                     date=new_date,
                     is_income=template.is_income,
                     is_recurring=False,
+                    status=inherited_status,
                     is_applied_to_balance=applied
                 )
                 new_t._skip_balance_update = True

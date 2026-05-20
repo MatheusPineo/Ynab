@@ -20,6 +20,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock, ChevronDown } from "lucide-react";
+import { cn } from "@/shared/lib/utils";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { type Transaction } from "@/types";
@@ -99,15 +100,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
         setShowSuggestions(false);
       }
       
-      const accContainer = document.getElementById("account-container");
-      if (accContainer && !accContainer.contains(e.target as Node)) {
-        setShowAccountSuggestions(false);
-      }
 
-      const toAccContainer = document.getElementById("to-account-container");
-      if (toAccContainer && !toAccContainer.contains(e.target as Node)) {
-        setShowToAccountSuggestions(false);
-      }
     };
     
     document.addEventListener("mousedown", handleOutsideClick);

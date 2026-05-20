@@ -75,6 +75,53 @@ class FinanceAppTests(TestCase):
         self.account.refresh_from_db()
         self.assertEqual(self.account.balance, Decimal('950.00'))
 
+    def test_recurring_transactions_pending_status(self):
+        """
+        Verifica que transações recorrentes com status 'pending' geram
+        instâncias filhas também com status 'pending', sem afetar o saldo.
+        """
+        today = date.today()
+        yesterday = today - timedelta(days=1)
+        
+        # Guarda o balanço original
+        original_balance = self.account.balance  # 1000.00
+        
+        # Cria um template recorrente com status pendente
+        template_tx = Transaction.objects.create(
+            account=self.account,
+            category=self.category,
+            amount=Decimal('8.05'),
+            description='Asisa-Seguro Dentes Egberto',
+            date=yesterday,
+            is_income=False,
+            is_recurring=True,
+            recurrence_interval='monthly',
+            next_recurrence_date=yesterday,
+            status='pending',
+            is_applied_to_balance=False
+        )
+        
+        # Dispara a sincronização via GET
+        url = reverse('transaction-list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # Verifica se o modelo foi avançado
+        template_tx.refresh_from_db()
+        self.assertTrue(template_tx.next_recurrence_date > today)
+        
+        # Verifica se a nova transação foi criada com status pending
+        new_tx = Transaction.objects.filter(is_recurring=False).first()
+        self.assertIsNotNone(new_tx)
+        self.assertEqual(new_tx.description, 'Asisa-Seguro Dentes Egberto')
+        self.assertEqual(new_tx.amount, Decimal('8.05'))
+        self.assertEqual(new_tx.status, 'pending')
+        self.assertFalse(new_tx.is_applied_to_balance)
+        
+        # O saldo NÃO deve ter sido alterado
+        self.account.refresh_from_db()
+        self.assertEqual(self.account.balance, original_balance)
+
     def test_auto_assign(self):
         """
         Verifica a lógica de Auto-Assign baseada no mês passado.

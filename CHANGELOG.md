@@ -4,6 +4,32 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
+## [1.30.5] — 2026-05-20
+
+Esta versão corrige um bug crítico de regra de negócio onde transações recorrentes criadas com status **Pendente** geravam instâncias filhas nos meses seguintes automaticamente efetivadas (`realized`), em vez de preservarem o status original do template.
+
+### Corrigido
+* **Propagação de Status em Transações Recorrentes (`views.py`):**
+  - Correção na função `sync_recurring_transactions` para herdar o campo `status` do template recorrente ao criar instâncias filhas automáticas. Anteriormente, o status não era propagado e assumia o valor padrão `'realized'`, fazendo transações que deveriam estar pendentes aparecerem como efetivadas.
+  - Ajuste na lógica de `is_applied_to_balance` para considerar o status herdado: transações com status `'pending'` **nunca** afetam o saldo da conta, independentemente da data.
+
+### Adicionado
+* **Teste de Regressão (`test_general_finance.py`):**
+  - Novo teste `test_recurring_transactions_pending_status` validando que um template recorrente com status `'pending'` gera instâncias filhas também pendentes, sem alterar o saldo da conta.
+
+---
+
+## [1.30.4] — 2026-05-19
+
+Esta versão corrige um bug crítico que causava crash (tela em branco/piscar) ao abrir o modal de "Nova Transação" e começar a digitar no campo de descrição. O componente `AddTransactionModal` utilizava a função utilitária `cn()` na renderização das sugestões do histórico sem importá-la, além de referenciar setters de estado inexistentes (`setShowAccountSuggestions`/`setShowToAccountSuggestions`) que eram resquícios de um refactor anterior para `AccountCombobox`.
+
+### Corrigido
+* **Crash de Renderização no Modal de Nova Transação (`AddTransactionModal.tsx`):**
+  - **Import Ausente:** Adicionada a importação da função `cn` de `@/shared/lib/utils`, que era utilizada na linha de renderização das sugestões do autocomplete mas nunca foi importada, causando `ReferenceError: cn is not defined` e crash completo do React.
+  - **Setters Orphans Removidos:** Removidas as chamadas a `setShowAccountSuggestions(false)` e `setShowToAccountSuggestions(false)` dentro do `useEffect` de clique externo, que eram referências mortas de código legado pré-`AccountCombobox` e causariam erro adicional se executadas.
+
+---
+
 ## [1.30.3] — 2026-05-19
 
 Esta versão corrige um bug crítico de renderização (tela em branco/criação de loops de erro) que ocorria ao atualizar (F5) ou carregar diretamente a página de detalhes da conta (`AccountDetails.tsx`). Refatoramos o fluxo e o posicionamento das declarações de hooks do React de modo a cumprir rigorosamente as "Rules of Hooks", garantindo estabilidade e reatividade na montagem inicial dos dados assíncronos. Além disso, enriquecemos os guias operacionais documentando o ecossistema de investimentos.
