@@ -85,6 +85,7 @@ const Dashboard = () => {
     tree, 
     getHistory, 
     transactions, 
+    globalPendingTransactions,
     goals, 
     updateTransaction,
     currentMonth,
@@ -158,12 +159,10 @@ const Dashboard = () => {
   }, [transactions, currentMonth, currentYear]);
 
   const pendingTransactionsData = useMemo(() => {
-    const targetPeriod = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
-    const txs = Array.isArray(transactions) ? transactions : [];
+    const txs = Array.isArray(globalPendingTransactions) ? globalPendingTransactions : [];
     
-    const filtered = txs.filter(
-      (t) => t.status === "pending" && t.date && t.date.substring(0, 7) === targetPeriod
-    );
+    // Filtramos apenas as pendentes caso venham com status errado do backend, mas em teoria a store já garante
+    const filtered = txs.filter((t) => t.status === "pending" && t.date);
 
     let totalIncome = 0;
     let totalExpense = 0;
@@ -173,12 +172,28 @@ const Dashboard = () => {
     });
 
     return {
-      list: filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
+      // Ordena por data (mais antigas / vencidas primeiro)
+      list: filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
       totalIncome,
       totalExpense,
       balance: totalIncome - totalExpense
     };
-  }, [transactions, currentMonth, currentYear]);
+  }, [globalPendingTransactions]);
+
+  const getPendingStatusLabel = (dateStr: string) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const txDate = new Date(dateStr);
+    txDate.setHours(0, 0, 0, 0);
+    
+    const diffTime = txDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return { label: "Vencido", color: "text-rose-500 bg-rose-500/10 border-rose-500/20" };
+    if (diffDays === 0) return { label: "Vence hoje", color: "text-amber-500 bg-amber-500/10 border-amber-500/20" };
+    if (diffDays === 1) return { label: "Vence amanhã", color: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20" };
+    return { label: `Vence em ${diffDays} dias`, color: "text-muted-foreground bg-muted/20 border-border/40" };
+  };
 
   const recentTransactions = useMemo(() => {
     const txs = Array.isArray(transactions) ? transactions : [];
@@ -521,10 +536,10 @@ const Dashboard = () => {
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Clock className="h-4 w-4 text-amber-500" />
-                  <h2 className="text-sm font-semibold text-foreground">Transações Pendentes</h2>
+                  <h2 className="text-sm font-semibold text-foreground">Pendências Globais</h2>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Planejadas para o mês de {monthName.toLowerCase()}
+                  Todas as suas transações agendadas não efetivadas
                 </p>
               </div>
               <HelpTooltip content="Lançamentos futuros que ainda não foram marcados como efetivados na conta." side="right" />
@@ -572,9 +587,19 @@ const Dashboard = () => {
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">{t.description}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {format(parseISO(t.date), "dd 'de' MMM", { locale: ptBR })}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-[10px] text-muted-foreground">
+                        {format(parseISO(t.date), "dd 'de' MMM", { locale: ptBR })}
+                      </p>
+                      {(() => {
+                        const statusBadge = getPendingStatusLabel(t.date);
+                        return (
+                          <span className={cn("text-[9px] px-1.5 py-0.5 rounded border", statusBadge.color)}>
+                            {statusBadge.label}
+                          </span>
+                        );
+                      })()}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">

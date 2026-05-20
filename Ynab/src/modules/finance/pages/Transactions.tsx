@@ -48,6 +48,8 @@ const Transactions = () => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   const queryClient = useQueryClient();
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
@@ -127,14 +129,16 @@ const Transactions = () => {
       if (!t || !t.description || !t.date) return false;
       const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
       const matchesAccount = selectedAccountId === "all" || targetAccountIds.includes(String(t.account));
-      return matchesSearch && matchesAccount;
+      const matchesStatus = statusFilter === "all" || t.status === statusFilter;
+      const matchesType = typeFilter === "all" || (typeFilter === "recurring" && t.is_recurring);
+      return matchesSearch && matchesAccount && matchesStatus && matchesType;
     });
     // Log de diagnóstico para rastrear bug de transações sumidas
     if (typeof console !== 'undefined') {
       console.log(`[Transactions] API retornou ${Array.isArray(transactions) ? transactions.length : 0} transações | Após filtro: ${result.length} | Conta: ${selectedAccountId} | Mês: ${selectedMonth + 1}/${selectedYear}`);
     }
     return result;
-  }, [transactions, search, selectedAccountId, targetAccountIds, selectedMonth, selectedYear]);
+  }, [transactions, search, selectedAccountId, targetAccountIds, selectedMonth, selectedYear, statusFilter, typeFilter]);
 
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
@@ -239,6 +243,27 @@ const Transactions = () => {
             showAllOption
             className="flex-1 min-w-[120px] sm:w-[180px] h-9 sm:h-10"
           />
+          
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[110px] sm:w-[130px] glass border-border/40 rounded-xl h-9 sm:h-10 text-xs sm:text-sm shadow-soft focus:ring-0">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent className="glass border-border/60">
+              <SelectItem value="all" className="text-xs sm:text-sm">Todos</SelectItem>
+              <SelectItem value="realized" className="text-xs sm:text-sm">Efetivadas</SelectItem>
+              <SelectItem value="pending" className="text-xs sm:text-sm">Pendentes</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-[110px] sm:w-[130px] glass border-border/40 rounded-xl h-9 sm:h-10 text-xs sm:text-sm shadow-soft focus:ring-0">
+              <SelectValue placeholder="Tipo" />
+            </SelectTrigger>
+            <SelectContent className="glass border-border/60">
+              <SelectItem value="all" className="text-xs sm:text-sm">Todos</SelectItem>
+              <SelectItem value="recurring" className="text-xs sm:text-sm">Recorrentes</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

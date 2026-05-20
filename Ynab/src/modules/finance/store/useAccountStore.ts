@@ -47,6 +47,7 @@ const initialGoals: Goal[] = [];
 interface AccountState {
   tree: AccountNode[];
   transactions: Transaction[];
+  globalPendingTransactions: Transaction[];
   categoryGroups: CategoryGroup[];
   goals: Goal[];
   currentMonth: number;
@@ -75,6 +76,7 @@ interface AccountState {
   
   // Transactions Actions
   fetchTransactions: () => Promise<void>;
+  fetchGlobalPendingTransactions: () => Promise<void>;
   addTransaction: (transaction: Omit<Transaction, "id">) => Promise<void>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
@@ -111,6 +113,7 @@ export const useAccountStore = create<AccountState>()(
     (set, get) => ({
       tree: [],
       transactions: [],
+      globalPendingTransactions: [],
       categoryGroups: [],
       goals: initialGoals,
       pendingIcons: {},
@@ -263,6 +266,21 @@ export const useAccountStore = create<AccountState>()(
         } catch (error) {
           console.error("Erro ao buscar transações:", error);
           set({ transactions: [] });
+        }
+        
+        // Sempre buscar as pendências globais junto
+        get().fetchGlobalPendingTransactions();
+      },
+
+      fetchGlobalPendingTransactions: async () => {
+        try {
+          const response = await authenticatedFetch(`/transactions/?status=pending`);
+          if (!response.ok) throw new Error("Falha ao buscar pendências globais");
+          const data = await response.json();
+          set({ globalPendingTransactions: Array.isArray(data) ? data : [] });
+        } catch (error) {
+          console.error("Erro ao buscar pendências globais:", error);
+          set({ globalPendingTransactions: [] });
         }
       },
 

@@ -7,12 +7,14 @@
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
 
-### Status Atual (Versão 1.31.0)
-- **Marco:** Refatoração Estrutural de Dívidas (DebtCharge) e Busca Inteligente.
-- **Estado:** 100% estável, compilado com TypeScript estrito, testado com Pytest (`37 passed`) e Vitest (`30 passed`), manuais atualizados e implantado de forma contínua em produção via Vercel na URL https://ynab-five.vercel.app.
-- **Arquitetura:** Adicionado suporte granular para `DebtCharge` (débitos/acréscimos) em dívidas, mantendo histórico de amortizações. Busca inteligente agnóstica a acentos implementada via `NFD` Normalize.
+### Status Atual (Versão 1.32.0)
+- **Marco:** Painel de Pendências Globais e Filtros Avançados de Transações.
+- **Estado:** 100% estável, testado e em produção via Vercel.
+- **Arquitetura:** Inserido `globalPendingTransactions` no Zustand para rastrear agendamentos órfãos em todo o ciclo de vida. O ViewSet do Django agora expõe filtros atômicos (`status`, `is_recurring`) por query param bypassando o limite mensal.
 
 ### Histórico de Sprints Recentes
+- [v1.32.0] Pendências Globais no Dashboard: O Card de Transações Pendentes agora lista todos os boletos/agendamentos pendentes sem filtro de mês (indicando "Vencido", "Vence hoje", etc).
+- [v1.32.0] Filtros Avançados na Tela de Transações: Adição dos Dropdowns de filtragem nativos (Pendentes vs Efetivadas, Todas vs Recorrentes) complementando a busca por texto e conta.
 - [v1.31.0] Refatoração Estrutural de Dívidas (`DebtCharge`): Implementado suporte granular para registrar, editar e excluir débitos individuais associados a uma dívida em aberto. Substituiu a antiga rotina que mutava passivamente o `original_amount`.
 - [v1.31.0] Suporte Híbrido de Timeline em Dívidas: A interface `DebtCard` (em `Debts.tsx`) unifica na mesma listagem expansível tanto os pagamentos (amortizações) quanto os débitos/acréscimos contraídos, com controle total de CRUD individual e ordenação por data.
 - [v1.31.0] Busca Inteligente Agnóstica a Acentos (`NFD` Normalize): Os formulários de autocomplete de transações passadas (`AddTransactionModal.tsx`) e o filtro de contas (`AccountCombobox.tsx`) foram atualizados para ignorar acentos diacríticos (ex: "agua" acha "Água" sem fricção).

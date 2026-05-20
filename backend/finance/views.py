@@ -767,6 +767,8 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         month = self.request.query_params.get('month')
         year = self.request.query_params.get('year')
+        status_param = self.request.query_params.get('status')
+        is_recurring_param = self.request.query_params.get('is_recurring')
         
         if month and year:
             try:
@@ -780,11 +782,22 @@ class TransactionViewSet(viewsets.ModelViewSet):
             sync_recurring_transactions(self.request.user)
             
         qs = Transaction.objects.filter(account__user=self.request.user, is_recurrence_exception=False)
+        
+        if status_param:
+            qs = qs.filter(status=status_param)
+            
+        if is_recurring_param is not None:
+            if is_recurring_param.lower() in ['true', '1', 't']:
+                qs = qs.filter(is_recurring=True)
+            elif is_recurring_param.lower() in ['false', '0', 'f']:
+                qs = qs.filter(is_recurring=False)
+                
         if month and year:
             try:
                 qs = qs.filter(date__month=int(month), date__year=int(year))
             except (ValueError, TypeError):
                 pass
+                
         return qs.order_by('-date', '-created_at')
 
     @transaction.atomic

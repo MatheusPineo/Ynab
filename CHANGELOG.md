@@ -4,6 +4,17 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
+## [1.32.0] — 2026-05-20
+
+Esta versão traz controle e visibilidade globais para as pendências financeiras, além de filtros avançados para mineração de transações passadas.
+
+### Adicionado
+* **Painel de Pendências Globais no Dashboard:** A seção de Transações Pendentes do Dashboard agora busca e exibe **todas** as pendências agendadas do sistema (independentemente de estarem no mês passado, atual ou futuro), categorizando visualmente por badges coloridas ("Vencido", "Vence hoje", "Vence amanhã").
+* **Filtros Avançados de Transações (`Transactions.tsx`):** Adicionados dois novos menus dropdown lado-a-lado à barra de busca:
+  - Filtro por **Status** (Todas, Pendentes, Efetivadas).
+  - Filtro por **Tipo** (Todas, Recorrentes).
+* **Parâmetros de Filtro no Backend (`TransactionViewSet`):** O backend agora aceita `status=pending|realized` e `is_recurring=true|false` nativamente na querystring.
+
 ## [1.31.0] — 2026-05-20
 
 Esta versão foca na melhoria da gestão de Dívidas, adicionando a capacidade de registrar, nomear, editar e excluir débitos individuais associados a uma dívida (DebtCharge). Também foram aplicadas melhorias na busca, ignorando acentos em sugestões de transações e contas.
