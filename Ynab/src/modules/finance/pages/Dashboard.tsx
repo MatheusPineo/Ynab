@@ -254,14 +254,6 @@ const Dashboard = () => {
       {/* ── PAINEL CENTRAL DE PATRIMÔNIO & CÂMBIO ──────────── */}
       <div className="relative">
         <NetWorthHeader base={baseCurrency} onBaseChange={setBaseCurrency} customTotal={netWorth} />
-        <div className="absolute top-4 right-4 sm:top-8 sm:right-8 z-10 hidden sm:block">
-          <AddTransactionModal>
-            <Button className="gradient-primary text-primary-foreground rounded-xl shadow-glow hover:scale-[1.03] transition-transform h-10 px-5">
-              <Plus className="h-4 w-4 mr-1.5" strokeWidth={2.5} />
-              Nova Transação
-            </Button>
-          </AddTransactionModal>
-        </div>
       </div>
 
       {/* ── HEADER DE VISÃO GERAL ──────────────────────────── */}
@@ -317,12 +309,7 @@ const Dashboard = () => {
             </SelectContent>
           </Select>
 
-          <AddTransactionModal>
-            <Button className="gradient-primary text-primary-foreground rounded-xl shadow-glow hover:scale-[1.03] transition-transform h-9 sm:hidden">
-              <Plus className="h-4 w-4 mr-1" strokeWidth={2.5} />
-              Nova Transação
-            </Button>
-          </AddTransactionModal>
+
           <Button asChild variant="outline" className="glass border-border/60 rounded-xl text-sm h-9">
             <Link to="/transactions" className="flex items-center gap-2">
               <span className="hidden sm:inline">Ver Transações</span>
