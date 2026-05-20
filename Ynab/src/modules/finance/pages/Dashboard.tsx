@@ -159,10 +159,12 @@ const Dashboard = () => {
   }, [transactions, currentMonth, currentYear]);
 
   const pendingTransactionsData = useMemo(() => {
-    const txs = Array.isArray(globalPendingTransactions) ? globalPendingTransactions : [];
+    const targetPeriod = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;
+    const txs = Array.isArray(transactions) ? transactions : [];
     
-    // Filtramos apenas as pendentes caso venham com status errado do backend, mas em teoria a store já garante
-    const filtered = txs.filter((t) => t.status === "pending" && t.date);
+    const filtered = txs.filter(
+      (t) => t.status === "pending" && t.date && t.date.substring(0, 7) === targetPeriod
+    );
 
     let totalIncome = 0;
     let totalExpense = 0;
@@ -172,13 +174,12 @@ const Dashboard = () => {
     });
 
     return {
-      // Ordena por data (mais antigas / vencidas primeiro)
       list: filtered.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
       totalIncome,
       totalExpense,
       balance: totalIncome - totalExpense
     };
-  }, [globalPendingTransactions]);
+  }, [transactions, currentMonth, currentYear]);
 
   const getPendingStatusLabel = (dateStr: string) => {
     const today = new Date();
@@ -529,20 +530,19 @@ const Dashboard = () => {
       </div>
 
       {/* ── PENDING TRANSACTIONS CARD ─────────────────────── */}
-      {pendingTransactionsData.list.length > 0 && (
-        <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-card/60 to-card/30 backdrop-blur-sm p-5 shadow-soft animate-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
+      <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 via-card/60 to-card/30 backdrop-blur-sm p-5 shadow-soft animate-in slide-in-from-bottom-4 duration-500">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
             <div className="flex items-center gap-2">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Clock className="h-4 w-4 text-amber-500" />
-                  <h2 className="text-sm font-semibold text-foreground">Pendências Globais</h2>
+                  <h2 className="text-sm font-semibold text-foreground">Transações Pendentes</h2>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Todas as suas transações agendadas não efetivadas
+                  Planejadas para o mês de {monthName.toLowerCase()}
                 </p>
               </div>
-              <HelpTooltip content="Lançamentos futuros que ainda não foram marcados como efetivados na conta." side="right" />
+              <HelpTooltip content="Lançamentos futuros deste mês que ainda não foram marcados como efetivados na conta." side="right" />
             </div>
             <div className="flex items-center gap-3 sm:gap-4 flex-wrap mt-2 sm:mt-0">
               <div className="text-right">
@@ -572,65 +572,76 @@ const Dashboard = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-            {pendingTransactionsData.list.slice(0, 6).map((t) => (
-              <div key={t.id} className="flex items-center justify-between p-3 rounded-xl bg-background/40 border border-border/40 hover:border-amber-500/30 transition-all group">
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className={cn(
-                    "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                    t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
-                  )}>
-                    {t.is_income 
-                      ? <TrendingUp className="h-3.5 w-3.5 text-emerald-500" /> 
-                      : <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
-                    }
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{t.description}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <p className="text-[10px] text-muted-foreground">
-                        {format(parseISO(t.date), "dd 'de' MMM", { locale: ptBR })}
-                      </p>
-                      {(() => {
-                        const statusBadge = getPendingStatusLabel(t.date);
-                        return (
-                          <span className={cn("text-[9px] px-1.5 py-0.5 rounded border", statusBadge.color)}>
-                            {statusBadge.label}
-                          </span>
-                        );
-                      })()}
+        {pendingTransactionsData.list.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
+              {pendingTransactionsData.list.slice(0, 6).map((t) => (
+                <div key={t.id} className="flex items-center justify-between p-3 rounded-xl bg-background/40 border border-border/40 hover:border-amber-500/30 transition-all group">
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    <div className={cn(
+                      "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                      t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
+                    )}>
+                      {t.is_income 
+                        ? <TrendingUp className="h-3.5 w-3.5 text-emerald-500" /> 
+                        : <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
+                      }
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-foreground truncate">{t.description}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[10px] text-muted-foreground">
+                          {format(parseISO(t.date), "dd 'de' MMM", { locale: ptBR })}
+                        </p>
+                        {(() => {
+                          const statusBadge = getPendingStatusLabel(t.date);
+                          return (
+                            <span className={cn("text-[9px] px-1.5 py-0.5 rounded border", statusBadge.color)}>
+                              {statusBadge.label}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-3">
+                    <p className={cn(
+                      "text-xs font-bold tabular-nums",
+                      t.is_income ? "text-emerald-400" : "text-rose-400"
+                    )}>
+                      {t.is_income ? "+" : "-"}{formatMoney(Math.abs(Number(t.amount)), baseCurrency)}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleStatusToggle(t)}
+                      className="h-8 w-8 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
+                      title="Marcar como efetivada"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <p className={cn(
-                    "text-xs font-bold tabular-nums",
-                    t.is_income ? "text-emerald-400" : "text-rose-400"
-                  )}>
-                    {t.is_income ? "+" : "-"}{formatMoney(Math.abs(Number(t.amount)), baseCurrency)}
-                  </p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleStatusToggle(t)}
-                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-emerald-500 hover:bg-emerald-500/10 transition-colors"
-                    title="Marcar como efetivada"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-          {pendingTransactionsData.list.length > 6 && (
-            <div className="mt-4 text-center">
-              <Button variant="ghost" size="sm" asChild className="text-[10px] h-6 text-muted-foreground hover:text-amber-500">
-                <Link to="/transactions">Ver mais {pendingTransactionsData.list.length - 6} pendências</Link>
-              </Button>
+              ))}
             </div>
-          )}
-        </div>
-      )}
+            {pendingTransactionsData.list.length > 6 && (
+              <div className="mt-4 text-center">
+                <Button variant="ghost" size="sm" asChild className="text-[10px] h-6 text-muted-foreground hover:text-amber-500">
+                  <Link to="/transactions">Ver mais {pendingTransactionsData.list.length - 6} pendências</Link>
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center p-6 sm:p-8 bg-emerald-500/5 rounded-xl border border-emerald-500/20">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-2" />
+            <h3 className="text-sm font-semibold text-emerald-500 mb-1">Tudo em dia! 🎉</h3>
+            <p className="text-xs text-muted-foreground text-center">
+              Você não possui nenhuma transação pendente para {monthName.toLowerCase()}.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* ── BOTTOM GRID ───────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
