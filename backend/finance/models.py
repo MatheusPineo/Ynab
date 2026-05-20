@@ -404,6 +404,23 @@ class DebtPayment(models.Model):
         return f"Pagamento de {self.amount} em {self.date} - {self.debt.counterparty_name}"
 
 
+class DebtCharge(models.Model):
+    debt = models.ForeignKey(Debt, on_delete=models.CASCADE, related_name='charges')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    description = models.CharField(max_length=200)
+    date = models.DateField()
+    account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='debt_charges')
+    transaction = models.OneToOneField(Transaction, on_delete=models.SET_NULL, null=True, blank=True, related_name='debt_charge')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_debtcharge'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"Acréscimo de {self.amount} ({self.description}) em {self.date} - {self.debt.counterparty_name}"
+
+
 class CreditCard(models.Model):
     account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='credit_card_config')
     closing_day = models.PositiveSmallIntegerField()  # 1-31

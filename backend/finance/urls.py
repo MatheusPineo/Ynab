@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, 
     MonthlyBudgetViewSet, IconUploadView, DistributionTemplateViewSet, 
-    DebtViewSet, DebtPaymentViewSet, ResetDataView, CreditCardViewSet,
+    DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet
 )
 
@@ -16,6 +16,7 @@ router.register(r'monthly-budgets', MonthlyBudgetViewSet, basename='monthly-budg
 router.register(r'distribution-templates', DistributionTemplateViewSet, basename='distribution-template')
 router.register(r'debts', DebtViewSet, basename='debt')
 router.register(r'debt-payments', DebtPaymentViewSet, basename='debt-payment')
+router.register(r'debt-charges', DebtChargeViewSet, basename='debt-charge')
 router.register(r'credit-cards', CreditCardViewSet, basename='credit-card')
 router.register(r'inbox', TransactionInboxViewSet, basename='inbox')
 router.register(r'category-goals', CategoryGoalViewSet, basename='category-goal')

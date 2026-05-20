@@ -110,17 +110,41 @@ class DebtPaymentSerializer(serializers.ModelSerializer):
             return obj.account.name
         return None
 
+from .models import DebtCharge
+
+class DebtChargeSerializer(serializers.ModelSerializer):
+    account_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DebtCharge
+        fields = ['id', 'debt', 'amount', 'description', 'date', 'account', 'account_name', 'transaction', 'created_at']
+        extra_kwargs = {
+            'transaction': {'read_only': True},
+            'debt': {'required': False},
+        }
+
+    def get_account_name(self, obj):
+        if obj.account:
+            return obj.account.name
+        return None
+
 class DebtSerializer(serializers.ModelSerializer):
     amount_paid = serializers.SerializerMethodField()
     amount_remaining = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()
     payments = DebtPaymentSerializer(many=True, read_only=True)
+    charges = DebtChargeSerializer(many=True, read_only=True)
 
     class Meta:
         model = Debt
-        fields = ['id', 'user', 'counterparty_name', 'original_amount', 'currency', 'is_mine', 'notes', 'created_at', 'amount_paid', 'amount_remaining', 'payments']
+        fields = ['id', 'user', 'counterparty_name', 'original_amount', 'currency', 'is_mine', 'notes', 'created_at', 'amount_paid', 'amount_remaining', 'total_amount', 'payments', 'charges']
         extra_kwargs = {
             'user': {'read_only': True},
         }
+
+    def get_total_amount(self, obj):
+        total_charges = sum(c.amount for c in obj.charges.all())
+        return float(obj.original_amount + total_charges)
 
     def get_amount_paid(self, obj):
         total = sum(p.amount for p in obj.payments.all())
@@ -129,7 +153,8 @@ class DebtSerializer(serializers.ModelSerializer):
     def get_amount_remaining(self, obj):
         from decimal import Decimal
         total_paid = sum(p.amount for p in obj.payments.all())
-        remaining = obj.original_amount - total_paid
+        total_charges = sum(c.amount for c in obj.charges.all())
+        remaining = (obj.original_amount + total_charges) - total_paid
         return float(max(remaining, Decimal('0.00')))
 
 from .models import CreditCard, CreditCardBill, CreditCardTransaction, Installment, Account

@@ -139,22 +139,24 @@ class DebtTests(TestCase):
 
         response = self.client.post(reverse('debt-add-debt-amount', args=[debt.id]), {
             'amount': '150.00',
+            'description': 'Lanche extra',
             'date': datetime.date.today().isoformat(),
             'account': self.account.id,
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Original amount should be 450.00
+        # Original amount stays the same, but total_amount should be 450.00
         debt.refresh_from_db()
-        self.assertEqual(float(debt.original_amount), 450.00)
-        self.assertIn("Acréscimo de 150.00", debt.notes)
+        self.assertEqual(float(debt.original_amount), 300.00)
+        self.assertEqual(debt.charges.count(), 1)
+        self.assertEqual(float(debt.charges.first().amount), 150.00)
 
         # Check transaction was created (expense)
         txn = Transaction.objects.filter(account=self.account, description__icontains='Carlos').first()
         self.assertIsNotNone(txn)
         self.assertFalse(txn.is_income)
         self.assertEqual(float(txn.amount), 150.00)
-        self.assertEqual(txn.description, 'Acréscimo de dívida (dinheiro emprestado para Carlos)')
+        self.assertEqual(txn.description, 'Lanche extra (emprestado para Carlos)')
 
         # Balance should have decreased
         self.account.refresh_from_db()
@@ -170,21 +172,23 @@ class DebtTests(TestCase):
 
         response = self.client.post(reverse('debt-add-debt-amount', args=[debt.id]), {
             'amount': '100.00',
+            'description': 'Juros atraso',
             'date': datetime.date.today().isoformat(),
             'account': self.account.id,
         }, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Original amount should be 300.00
+        # Original amount stays the same
         debt.refresh_from_db()
-        self.assertEqual(float(debt.original_amount), 300.00)
+        self.assertEqual(float(debt.original_amount), 200.00)
+        self.assertEqual(debt.charges.count(), 1)
 
         # Check transaction was created (income)
         txn = Transaction.objects.filter(account=self.account, description__icontains='Ana').first()
         self.assertIsNotNone(txn)
         self.assertTrue(txn.is_income)
         self.assertEqual(float(txn.amount), 100.00)
-        self.assertEqual(txn.description, 'Acréscimo de dívida (empréstimo de Ana)')
+        self.assertEqual(txn.description, 'Juros atraso (empréstimo de Ana)')
 
         # Balance should have increased
         self.account.refresh_from_db()

@@ -4,6 +4,21 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
+## [1.31.0] — 2026-05-20
+
+Esta versão foca na melhoria da gestão de Dívidas, adicionando a capacidade de registrar, nomear, editar e excluir débitos individuais associados a uma dívida (DebtCharge). Também foram aplicadas melhorias na busca, ignorando acentos em sugestões de transações e contas.
+
+### Adicionado
+* **Histórico Granular de Débitos em Dívidas (`Debts.tsx` e `models.py`):**
+  - Implementação do modelo `DebtCharge` para tratar os acréscimos de dívida como instâncias independentes em vez de apenas incrementar o `original_amount`.
+  - Inclusão do campo **Nome/Descrição** para especificar do que se trata cada novo débito gerado numa dívida ativa.
+  - Implementação de Timeline híbrida unificando o histórico de "Pagamentos" e "Acréscimos" de forma cronológica na UI.
+  - Adição da função de **edição de nome** e **exclusão** individual de débitos já lançados.
+
+### Corrigido
+* **Busca Agnóstica a Acentos e Maiúsculas:**
+  - `AccountCombobox` e modal `AddTransactionModal` agora aplicam normalização via `NFD` para desconsiderar acentos e caracteres especiais, permitindo buscar "agua" e encontrar "água" com sucesso.
+
 ## [1.30.5] — 2026-05-20
 
 Esta versão corrige um bug crítico de regra de negócio onde transações recorrentes criadas com status **Pendente** geravam instâncias filhas nos meses seguintes automaticamente efetivadas (`realized`), em vez de preservarem o status original do template.

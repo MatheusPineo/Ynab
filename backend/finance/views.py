@@ -1275,6 +1275,7 @@ class DebtViewSet(viewsets.ModelViewSet):
     def add_debt_amount(self, request, pk=None):
         debt = self.get_object()
         amount = Decimal(str(request.data.get('amount', '0')))
+        description = request.data.get('description', 'Acréscimo de débito')
         account_id = request.data.get('account')
         pay_date = request.data.get('date') or date.today().isoformat()
 
@@ -1282,26 +1283,24 @@ class DebtViewSet(viewsets.ModelViewSet):
             return Response({"detail": "O valor do débito deve ser maior que zero."}, status=status.HTTP_400_BAD_REQUEST)
 
         with transaction.atomic():
-            # Atualiza o original_amount somando o acréscimo
-            debt.original_amount += amount
-            
             # Cria a transação correspondente caso seja vinculada a uma conta
             account = Account.objects.get(id=account_id) if account_id else None
+            tx = None
             if account:
                 if debt.is_mine:
                     # Minha dívida: recebi mais dinheiro (empréstimo contraído) -> Receita (is_income = True)
-                    description = f"Acréscimo de dívida (empréstimo de {debt.counterparty_name})"
+                    tx_desc = f"{description} (empréstimo de {debt.counterparty_name})"
                     is_income = True
                 else:
                     # Eles me devem: emprestei mais dinheiro -> Despesa (is_income = False)
-                    description = f"Acréscimo de dívida (dinheiro emprestado para {debt.counterparty_name})"
+                    tx_desc = f"{description} (emprestado para {debt.counterparty_name})"
                     is_income = False
 
                 # Cria a transação real
                 tx = Transaction(
                     account=account,
                     amount=amount,
-                    description=description,
+                    description=tx_desc,
                     date=pay_date,
                     is_income=is_income,
                     is_applied_to_balance=True,
@@ -1316,11 +1315,16 @@ class DebtViewSet(viewsets.ModelViewSet):
                     account.balance -= amount
                 account.save()
 
-                # Adiciona notas explicativas para auditoria
-                notes_append = f"\n[Acréscimo de {amount} {debt.currency} em {pay_date} via {account.name}]"
-                debt.notes = (debt.notes + notes_append).strip()
-
-            debt.save()
+            # Cria o registro do encargo (DebtCharge)
+            from .models import DebtCharge
+            DebtCharge.objects.create(
+                debt=debt,
+                amount=amount,
+                description=description,
+                date=pay_date,
+                account=account,
+                transaction=tx
+            )
 
         # Retornar o serializer atualizado
         serializer = self.get_serializer(debt)
@@ -1382,6 +1386,32 @@ class DebtPaymentViewSet(viewsets.ModelViewSet):
             # Blindagem contábil: ativa a flag de bypass antes de deletar
             payment.transaction._skip_balance_update = True
             payment.transaction.delete()
+        return super().destroy(request, *args, **kwargs)
+
+from .serializers import DebtChargeSerializer
+from .models import DebtCharge
+
+class DebtChargeViewSet(viewsets.ModelViewSet):
+    serializer_class = DebtChargeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return DebtCharge.objects.filter(debt__user=self.request.user)
+
+    def destroy(self, request, *args, **kwargs):
+        charge = self.get_object()
+        if charge.transaction and charge.account:
+            # Reverte o saldo (charge fez a dívida aumentar)
+            # Se is_mine, o charge foi uma Receita (emprestou pra mim). Reverter = diminuir saldo
+            if charge.debt.is_mine:
+                charge.account.balance -= charge.amount
+            else:
+                charge.account.balance += charge.amount
+            charge.account.save()
+            
+            # Apaga a transação bancária
+            charge.transaction._skip_balance_update = True
+            charge.transaction.delete()
         return super().destroy(request, *args, **kwargs)
 
 class ResetDataView(APIView):

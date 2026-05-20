@@ -13,6 +13,18 @@ export interface DebtPayment {
   created_at: string;
 }
 
+export interface DebtCharge {
+  id: string;
+  debt: string;
+  amount: number;
+  description: string;
+  date: string;
+  account: string | null;
+  account_name: string | null;
+  transaction: string | null;
+  created_at: string;
+}
+
 export interface Debt {
   id: string;
   counterparty_name: string;
@@ -23,7 +35,9 @@ export interface Debt {
   created_at: string;
   amount_paid: number;
   amount_remaining: number;
+  total_amount: number;
   payments: DebtPayment[];
+  charges: DebtCharge[];
 }
 
 interface DebtState {
@@ -35,7 +49,9 @@ interface DebtState {
   deleteDebt: (id: string) => Promise<void>;
   addPayment: (data: { debt: string; amount: number; date: string; account: string | null }) => Promise<void>;
   deletePayment: (paymentId: string) => Promise<void>;
-  addDebtAmount: (id: string, data: { amount: number; date: string; account: string | null }) => Promise<void>;
+  addDebtAmount: (id: string, data: { amount: number; description: string; date: string; account: string | null }) => Promise<void>;
+  updateCharge: (chargeId: string, data: Partial<DebtCharge>) => Promise<void>;
+  deleteCharge: (chargeId: string) => Promise<void>;
 }
 
 export const useDebtStore = create<DebtState>((set, get) => ({
@@ -147,6 +163,32 @@ export const useDebtStore = create<DebtState>((set, get) => ({
     } catch (error: any) {
       toast.error(error.message);
       throw error;
+    }
+  },
+
+  updateCharge: async (chargeId, data) => {
+    try {
+      const res = await authenticatedFetch(`/debt-charges/${chargeId}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error("Falha ao atualizar débito");
+      await get().fetchDebts();
+      toast.success("Débito atualizado!");
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  },
+
+  deleteCharge: async (chargeId) => {
+    try {
+      const res = await authenticatedFetch(`/debt-charges/${chargeId}/`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Falha ao remover débito");
+      await get().fetchDebts();
+      toast.success("Débito removido.");
+    } catch (error: any) {
+      toast.error(error.message);
     }
   },
 }));

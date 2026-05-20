@@ -28,9 +28,11 @@ const DebtCard = ({
   onAddDebtAmount: (d: Debt) => void; 
 }) => {
   const [showHistory, setShowHistory] = useState(false);
-  const { deleteDebt, deletePayment } = useDebtStore();
+  const { deleteDebt, deletePayment, deleteCharge, updateCharge } = useDebtStore();
   
-  const progress = Math.min(100, Math.round((debt.amount_paid / debt.original_amount) * 100)) || 0;
+  // Use total_amount instead of original_amount if available, fallback to original_amount
+  const totalDebt = debt.total_amount || debt.original_amount;
+  const progress = Math.min(100, Math.round((debt.amount_paid / totalDebt) * 100)) || 0;
   const isPaid = progress >= 100;
 
   const handleDelete = async () => {
@@ -44,6 +46,24 @@ const DebtCard = ({
       await deletePayment(paymentId);
     }
   };
+
+  const handleDeleteCharge = async (chargeId: string) => {
+    if (window.confirm("Tem certeza que deseja remover este débito? O valor será descontado da dívida e a transação revertida.")) {
+      await deleteCharge(chargeId);
+    }
+  };
+
+  const handleEditChargeName = async (charge: any) => {
+    const newName = window.prompt("Novo nome do débito:", charge.description);
+    if (newName && newName.trim() !== charge.description) {
+      await updateCharge(charge.id, { description: newName.trim() });
+    }
+  };
+
+  const timeline = [
+    ...(debt.payments || []).map(p => ({ ...p, type: 'payment' as const })),
+    ...(debt.charges || []).map(c => ({ ...c, type: 'charge' as const }))
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <Card className="overflow-hidden border-sidebar-border bg-sidebar/50 shadow-sm transition-all hover:shadow-md">
@@ -74,9 +94,9 @@ const DebtCard = ({
       <CardContent className="pb-4 space-y-4">
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Valor Original</span>
+            <span className="text-xs font-medium text-muted-foreground">Valor Total</span>
             <div className="font-semibold text-foreground">
-              {formatMoney(debt.original_amount, debt.currency)}
+              {formatMoney(totalDebt, debt.currency)}
             </div>
           </div>
           <div className="space-y-1">
@@ -104,7 +124,7 @@ const DebtCard = ({
           onClick={() => setShowHistory(!showHistory)}
         >
           <History className="mr-1.5 h-3.5 w-3.5" />
-          {debt.payments.length} Pagamento{debt.payments.length !== 1 && 's'}
+          {timeline.length} Lançamento{timeline.length !== 1 && 's'}
           {showHistory ? <ChevronUp className="ml-1 h-3.5 w-3.5" /> : <ChevronDown className="ml-1 h-3.5 w-3.5" />}
         </Button>
         
@@ -128,29 +148,48 @@ const DebtCard = ({
         </div>
       </div>
 
-      {/* Payment History Expandable */}
+      {/* Timeline History Expandable */}
       {showHistory && (
         <div className="bg-background/50 border-t border-sidebar-border p-4 text-sm animate-in slide-in-from-top-2 duration-200">
-          {debt.payments.length === 0 ? (
-            <div className="text-center text-muted-foreground text-xs py-2">Nenhum pagamento registrado.</div>
+          {timeline.length === 0 ? (
+            <div className="text-center text-muted-foreground text-xs py-2">Nenhum lançamento registrado.</div>
           ) : (
             <div className="space-y-3">
-              {debt.payments.map((p) => (
-                <div key={p.id} className="flex items-center justify-between group">
+              {timeline.map((item) => (
+                <div key={`${item.type}-${item.id}`} className="flex items-center justify-between group">
                   <div className="flex flex-col">
-                    <span className="font-medium text-foreground">{formatMoney(p.amount, debt.currency)}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={cn("font-medium", item.type === 'payment' ? "text-emerald-500" : "text-rose-500")}>
+                        {item.type === 'payment' ? '-' : '+'}{formatMoney(item.amount, debt.currency)}
+                      </span>
+                      {item.type === 'charge' && (
+                        <span className="text-xs text-foreground font-medium">({(item as any).description})</span>
+                      )}
+                    </div>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(p.date).toLocaleDateString('pt-BR')} • {p.account_name || 'Sem conta'}
+                      {new Date(item.date).toLocaleDateString('pt-BR')} {item.account_name ? `• ${item.account_name}` : ''}
                     </span>
                   </div>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500 transition-opacity"
-                    onClick={() => handleDeletePayment(p.id)}
-                  >
-                    <Trash className="h-3 w-3" />
-                  </Button>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {item.type === 'charge' && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-6 w-6 text-muted-foreground hover:text-primary"
+                        onClick={() => handleEditChargeName(item)}
+                      >
+                        <span className="text-[10px]">✏️</span>
+                      </Button>
+                    )}
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-muted-foreground hover:text-red-500"
+                      onClick={() => item.type === 'payment' ? handleDeletePayment(item.id) : handleDeleteCharge(item.id)}
+                    >
+                      <Trash className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -186,6 +225,7 @@ export const Debts = () => {
   // Add Debt Amount Form State
   const [isAddAmountOpen, setIsAddAmountOpen] = useState(false);
   const [addAmountValue, setAddAmountValue] = useState("");
+  const [addAmountDescription, setAddAmountDescription] = useState("");
   const [addAmountDate, setAddAmountDate] = useState(new Date().toISOString().split('T')[0]);
   const [addAmountAccount, setAddAmountAccount] = useState("");
 
@@ -250,7 +290,7 @@ export const Debts = () => {
 
   const handleAddDebtAmountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedDebt || !addAmountValue || !addAmountDate) {
+    if (!selectedDebt || !addAmountValue || !addAmountDate || !addAmountDescription) {
       toast.error("Preencha todos os campos.");
       return;
     }
@@ -259,11 +299,13 @@ export const Debts = () => {
     try {
       await addDebtAmount(selectedDebt.id, {
         amount: Number(addAmountValue),
+        description: addAmountDescription,
         date: addAmountDate,
         account: (addAmountAccount && addAmountAccount !== "none") ? addAmountAccount : null
       });
       setIsAddAmountOpen(false);
       setAddAmountValue("");
+      setAddAmountDescription("");
       setAddAmountAccount("");
     } finally {
       setIsSubmitting(false);
@@ -280,6 +322,7 @@ export const Debts = () => {
   const openAddAmountModal = (debt: Debt) => {
     setSelectedDebt(debt);
     setAddAmountValue("");
+    setAddAmountDescription("");
     setAddAmountAccount("");
     setIsAddAmountOpen(true);
   };
@@ -577,6 +620,19 @@ export const Debts = () => {
                     value={addAmountValue}
                     onChange={(e) => setAddAmountValue(e.target.value)}
                     placeholder="0.00"
+                    required
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="addAmountDescription" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Descrição do Débito</Label>
+                  <Input
+                    id="addAmountDescription"
+                    type="text"
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11"
+                    value={addAmountDescription}
+                    onChange={(e) => setAddAmountDescription(e.target.value)}
+                    placeholder="Ex: Lanche, Ingresso..."
                     required
                   />
                 </div>
