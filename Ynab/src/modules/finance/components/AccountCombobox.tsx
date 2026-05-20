@@ -58,15 +58,17 @@ export const AccountCombobox = ({
   const allAccounts = getAllAccounts(tree);
 
   // Filtragem das contas com base na busca e exclusões
+  const normalizeStr = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  
   const filteredAccounts = allAccounts
     .filter((acc) => {
       if (excludeAccountId && String(acc.id) === String(excludeAccountId)) return false;
       if (filterLeafOnly && !acc.isLeaf) return false;
-      return acc.name.toLowerCase().includes(search.toLowerCase());
+      return normalizeStr(acc.name).includes(normalizeStr(search));
     });
 
   // Se showAllOption for ativo, incluímos o item virtual "Todas as Contas"
-  const showVirtualAll = showAllOption && ("todas as contas".includes(search.toLowerCase()) || search === "");
+  const showVirtualAll = showAllOption && (normalizeStr("todas as contas").includes(normalizeStr(search)) || search === "");
 
   const displayItems = showVirtualAll
     ? [{ id: "all", name: "Todas as Contas", displayName: "Todas as Contas", currency: "", isLeaf: true }, ...filteredAccounts]

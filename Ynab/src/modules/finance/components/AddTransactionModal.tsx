@@ -129,12 +129,13 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       return [];
     }
     
-    const term = description.toLowerCase();
+    const normalizeStr = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const term = normalizeStr(description);
     
     const matching = transactions.filter(t => 
       t &&
       typeof t.description === "string" && 
-      t.description.toLowerCase().includes(term) &&
+      normalizeStr(t.description).includes(term) &&
       !t.transfer_group
     );
     
