@@ -140,6 +140,10 @@ export interface Transaction {
   recurrence_interval?: RecurrenceInterval | null;
   /** Próxima data agendada para criação automática da transação */
   next_recurrence_date?: string | null;
+  /** Vínculo para a transação "template" que gerou esta ocorrência */
+  recurring_parent?: string | null;
+  /** Marca se esta ocorrência específica foi "pulada" ou "excluída" */
+  is_recurrence_exception?: boolean;
   status: TransactionStatus;
   /** Indica se a transação já alterou o saldo real da conta associada */
   is_applied_to_balance: boolean;

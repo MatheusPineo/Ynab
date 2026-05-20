@@ -40,8 +40,8 @@ export const useTransactions = (month?: number, year?: number) => {
   });
 
   const updateTransaction = useMutation({
-    mutationFn: async ({ id, updates }: { id: string, updates: Partial<Transaction> }) => {
-      const response = await authenticatedFetch(`/transactions/${id}/`, {
+    mutationFn: async ({ id, updates, scope = 'single' }: { id: string; updates: Partial<Transaction>; scope?: 'single' | 'future' | 'all' }) => {
+      const response = await authenticatedFetch(`/transactions/${id}/?scope=${scope}`, {
         method: "PATCH",
         body: JSON.stringify(updates),
       });
@@ -58,8 +58,8 @@ export const useTransactions = (month?: number, year?: number) => {
   });
 
   const deleteTransaction = useMutation({
-    mutationFn: async (id: string) => {
-      await authenticatedFetch(`/transactions/${id}/`, {
+    mutationFn: async ({ id, scope = 'single' }: { id: string; scope?: 'single' | 'future' | 'all' }) => {
+      await authenticatedFetch(`/transactions/${id}/?scope=${scope}`, {
         method: "DELETE",
       });
     },

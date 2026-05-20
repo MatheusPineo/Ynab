@@ -70,13 +70,14 @@ def sync_recurring_transactions(user, upto_date=None):
         while template.next_recurrence_date and template.next_recurrence_date <= upto_date:
             new_date = template.next_recurrence_date
             
+            # Procura por uma transação filha existente ou exceção para esta data
             exists = Transaction.objects.filter(
                 account=template.account,
                 description=template.description,
                 amount=template.amount,
                 date=new_date,
                 is_recurring=False
-            ).exists()
+            ).filter(Q(recurring_parent=template) | Q(recurring_parent__isnull=True)).exists()
             
             if not exists:
                 # Herda o status do template: pendentes continuam pendentes
@@ -91,7 +92,8 @@ def sync_recurring_transactions(user, upto_date=None):
                     is_income=template.is_income,
                     is_recurring=False,
                     status=inherited_status,
-                    is_applied_to_balance=applied
+                    is_applied_to_balance=applied,
+                    recurring_parent=template
                 )
                 new_t._skip_balance_update = True
                 new_t.save()
@@ -776,7 +778,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         else:
             sync_recurring_transactions(self.request.user)
             
-        qs = Transaction.objects.filter(account__user=self.request.user)
+        qs = Transaction.objects.filter(account__user=self.request.user, is_recurrence_exception=False)
         if month and year:
             try:
                 qs = qs.filter(date__month=int(month), date__year=int(year))
@@ -819,15 +821,84 @@ class TransactionViewSet(viewsets.ModelViewSet):
         date_data = serializer.validated_data.get('date', today)
         is_applied = (status_data == 'realized' and date_data <= today)
         
+        scope = self.request.query_params.get('scope', 'single')
+        instance = serializer.instance
+        
+        if instance.recurring_parent and scope != 'single':
+            template = instance.recurring_parent
+            
+            if scope == 'future':
+                children = template.recurring_children.filter(date__gte=instance.date, is_recurrence_exception=False).exclude(id=instance.id)
+                for child in children:
+                    child.description = instance.description
+                    child.amount = instance.amount
+                    child.category = instance.category
+                    child.is_income = instance.is_income
+                    child._skip_balance_update = False
+                    child.save()
+                
+                template.description = instance.description
+                template.amount = instance.amount
+                template.category = instance.category
+                template.is_income = instance.is_income
+                template.save()
+                
+            elif scope == 'all':
+                children = template.recurring_children.filter(is_recurrence_exception=False).exclude(id=instance.id)
+                for child in children:
+                    child.description = instance.description
+                    child.amount = instance.amount
+                    child.category = instance.category
+                    child.is_income = instance.is_income
+                    child._skip_balance_update = False
+                    child.save()
+                
+                template.description = instance.description
+                template.amount = instance.amount
+                template.category = instance.category
+                template.is_income = instance.is_income
+                template.save()
+
         # O save() do modelo Transaction cuida automaticamente de ajustar
         # e aplicar o novo saldo na conta e sincronizar a transferência
         serializer.save(is_applied_to_balance=is_applied)
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        # O delete() do modelo Transaction reverte saldos
-        # e remove de forma atômica e cascateada qualquer espelho vinculado
-        instance.delete()
+        scope = self.request.query_params.get('scope', 'single')
+        
+        if instance.is_recurring:
+            # É o template original
+            if scope == 'all':
+                instance.recurring_children.all().delete()
+                instance.delete()
+            else:
+                instance.delete()
+        else:
+            # É uma instância gerada
+            if scope == 'single' and instance.recurring_parent:
+                instance.is_recurrence_exception = True
+                if instance.is_applied_to_balance:
+                    if instance.is_income:
+                        instance.account.balance -= instance.amount
+                    else:
+                        instance.account.balance += instance.amount
+                    instance.account.save()
+                    instance.is_applied_to_balance = False
+                instance._skip_balance_update = True
+                instance.save()
+            elif scope == 'future' and instance.recurring_parent:
+                template = instance.recurring_parent
+                template.recurring_children.filter(date__gte=instance.date).delete()
+                template.is_recurring = False
+                template.next_recurrence_date = None
+                template.save()
+            elif scope == 'all' and instance.recurring_parent:
+                template = instance.recurring_parent
+                template.recurring_children.all().delete()
+                template.delete()
+            else:
+                instance.delete()
 
     @extend_schema(
         summary="Transfere fundos entre duas contas",
@@ -1465,6 +1536,8 @@ class CreditCardViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Parcela não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
 from rest_framework.parsers import MultiPartParser, FormParser
+from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from .models import TransactionInbox
 from .serializers import TransactionInboxSerializer
 from .tasks import process_inbox_document

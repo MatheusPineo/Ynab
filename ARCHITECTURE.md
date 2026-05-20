@@ -131,7 +131,9 @@ Um pilar central da metodologia de orçamento YNAB é a precisão dos saldos. O 
 ### Processador de Agendamento Recorrente (Engine)
 A sincronização e criação de transações agendadas/recorrentes é acionada de forma transparente sempre que o usuário carrega sua árvore de categorias ou lista suas transações. 
 
-A função `sync_recurring_transactions` varre os templates de transação recorrentes (`is_recurring=True`) pertencentes ao usuário e projeta as novas instâncias de transação até o final do período visualizado:
+A função `sync_recurring_transactions` varre os templates de transação recorrentes (`is_recurring=True`) pertencentes ao usuário e projeta as novas instâncias de transação até o final do período visualizado.
+
+**Regra de Herança de Status (v1.30.5):** Cada instância filha gerada automaticamente herda o campo `status` do template recorrente original (`pending`, `realized` ou `scheduled`). Transações com status `pending` **nunca** afetam o saldo da conta, independentemente da data. Apenas transações com status `realized` e data ≤ hoje são aplicadas ao saldo.
 
 ```mermaid
 flowchart TD
@@ -143,8 +145,8 @@ flowchart TD
     C -->|Não| F
     
     F -->|Sim| G{A transação real para esta data já foi gerada?}
-    G -->|Não| H[Criar nova transação real vinculada à conta]
-    H --> I{Nova data é menor ou igual a hoje?}
+    G -->|Não| H["Criar nova transação herdando status do template (pending/realized/scheduled)"]
+    H --> I{Nova data é menor ou igual a hoje E status herdado é realized?}
     I -->|Sim| J[Aplicar imediatamente ao saldo da conta ativa]
     J --> K[Marcar nova transação como aplicada]
     K --> L[Calcular nova data de próxima execução do template]
@@ -326,7 +328,9 @@ Isso garante que o usuário tenha um histórico de evolução patrimonial perfei
 ### Processador de Agendamento Recorrente (Engine)
 A sincronização e criação de transações agendadas/recorrentes é acionada de forma transparente sempre que o usuário carrega sua árvore de categorias ou lista suas transações. 
 
-A função `sync_recurring_transactions` varre os templates de transação recorrentes (`is_recurring=True`) pertencentes ao usuário e projeta as novas instâncias de transação até o final do período visualizado:
+A função `sync_recurring_transactions` varre os templates de transação recorrentes (`is_recurring=True`) pertencentes ao usuário e projeta as novas instâncias de transação até o final do período visualizado.
+
+**Regra de Herança de Status (v1.30.5):** Cada instância filha gerada automaticamente herda o campo `status` do template recorrente original (`pending`, `realized` ou `scheduled`). Transações com status `pending` **nunca** afetam o saldo da conta, independentemente da data. Apenas transações com status `realized` e data ≤ hoje são aplicadas ao saldo.
 
 ```mermaid
 flowchart TD
@@ -338,8 +342,8 @@ flowchart TD
     C -->|Não| F
     
     F -->|Sim| G{A transação real para esta data já foi gerada?}
-    G -->|Não| H[Criar nova transação real vinculada à conta]
-    H --> I{Nova data é menor ou igual a hoje?}
+    G -->|Não| H["Criar nova transação herdando status do template (pending/realized/scheduled)"]
+    H --> I{Nova data é menor ou igual a hoje E status herdado é realized?}
     I -->|Sim| J[Aplicar imediatamente ao saldo da conta ativa]
     J --> K[Marcar nova transação como aplicada]
     K --> L[Calcular nova data de próxima execução do template]

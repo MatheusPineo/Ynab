@@ -35,6 +35,7 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { AddTransactionModal } from "@/modules/finance/components/AddTransactionModal";
 import { ImportModal } from "@/modules/finance/components/ImportModal";
+import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
 import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
 import { useQueryClient } from "@tanstack/react-query";
 import { PullToRefresh } from "@/shared/components/dashboard/PullToRefresh";
@@ -135,9 +136,25 @@ const Transactions = () => {
     return result;
   }, [transactions, search, selectedAccountId, targetAccountIds, selectedMonth, selectedYear]);
 
-  const handleDelete = async (id: string) => {
-    if (window.confirm("Tem certeza que deseja excluir esta transação?")) {
-      await deleteTransaction.mutateAsync(id);
+  const [scopeModalOpen, setScopeModalOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
+
+  const handleDeleteClick = (t: any) => {
+    if (t.recurring_parent || t.is_recurring) {
+      setTransactionToDelete(t);
+      setScopeModalOpen(true);
+    } else {
+      if (window.confirm("Tem certeza que deseja excluir esta transação?")) {
+        deleteTransaction.mutateAsync({ id: t.id });
+      }
+    }
+  };
+
+  const handleConfirmDeleteScope = async (scope: "single" | "future" | "all") => {
+    if (transactionToDelete) {
+      await deleteTransaction.mutateAsync({ id: transactionToDelete.id, scope });
+      setScopeModalOpen(false);
+      setTransactionToDelete(null);
     }
   };
 
@@ -430,7 +447,7 @@ const Transactions = () => {
                           </DropdownMenuItem>
                         </AddTransactionModal>
 
-                        <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDelete(t.id)}>
+                        <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
                           <Trash2 className="mr-2 h-4 w-4" />
                           Excluir
                         </DropdownMenuItem>
@@ -443,6 +460,13 @@ const Transactions = () => {
           </TableBody>
         </Table>
       </div>
+
+      <RecurringScopeModal
+        open={scopeModalOpen}
+        onOpenChange={setScopeModalOpen}
+        actionType="delete"
+        onConfirm={handleConfirmDeleteScope}
+      />
     </div>
   );
 };

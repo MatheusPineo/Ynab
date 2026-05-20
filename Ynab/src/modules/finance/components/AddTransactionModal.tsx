@@ -25,6 +25,7 @@ import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { type Transaction } from "@/types";
 import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
 
 
 interface Props {
@@ -77,6 +78,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [amount, setAmount] = useState<string>(transaction ? String(Math.abs(transaction.amount)) : "");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
+  const [scopeModalOpen, setScopeModalOpen] = useState(false);
 
 
 
@@ -223,12 +225,40 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
         description: formData.get("description") as string,
         date: formData.get("date") as string || new Date().toISOString().split('T')[0],
       });
+      setOpen(false);
+      if (onClose) onClose();
     } else if (isEdit && transaction) {
-      await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData });
+      if (transaction.recurring_parent || transaction.is_recurring) {
+        setScopeModalOpen(true);
+        return; // Retorna para aguardar escolha no modal
+      } else {
+        await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData });
+        setOpen(false);
+        if (onClose) onClose();
+      }
     } else {
       await addTransaction.mutateAsync(transactionData as any);
+      setOpen(false);
+      if (onClose) onClose();
     }
+  };
 
+  const handleConfirmEditScope = async (scope: "single" | "future" | "all") => {
+    if (!transaction) return;
+    
+    const amountValue = parseFloat(amount);
+    const transactionData = {
+      account: accountId,
+      description: description,
+      amount: amountValue,
+      is_income: type === "income",
+      date: (document.getElementById("date") as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
+      category: (!useCategory || categoryId === "none") ? null : categoryId,
+      status: status,
+    };
+
+    await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData, scope });
+    setScopeModalOpen(false);
     setOpen(false);
     if (onClose) onClose();
   };
@@ -556,6 +586,12 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           </DialogFooter>
         </form>
       </DialogContent>
+      <RecurringScopeModal
+        open={scopeModalOpen}
+        onOpenChange={setScopeModalOpen}
+        actionType="edit"
+        onConfirm={handleConfirmEditScope}
+      />
     </Dialog>
   );
 };

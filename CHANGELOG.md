@@ -14,6 +14,9 @@ Esta versão corrige um bug crítico de regra de negócio onde transações reco
   - Ajuste na lógica de `is_applied_to_balance` para considerar o status herdado: transações com status `'pending'` **nunca** afetam o saldo da conta, independentemente da data.
 
 ### Adicionado
+* **Edição e Deleção Granular de Recorrências (Backend & Frontend):**
+  - Adicionado suporte completo para deletar ou editar transações recorrentes escolhendo o escopo ("apenas esta", "esta e futuras", "todas").
+  - O sistema utiliza as flags `recurring_parent` e `is_recurrence_exception` para isolamento histórico e integridade do balanço contábil em tempo real.
 * **Teste de Regressão (`test_general_finance.py`):**
   - Novo teste `test_recurring_transactions_pending_status` validando que um template recorrente com status `'pending'` gera instâncias filhas também pendentes, sem alterar o saldo da conta.
 

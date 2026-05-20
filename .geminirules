@@ -8,11 +8,12 @@
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
 
 ### Status Atual (Versão 1.30.5)
-- **Marco:** Correção do bug de propagação de status pendente em transações recorrentes (`sync_recurring_transactions`).
+- **Marco:** Edição e Deleção Granular de Recorrências e Correção de propagação de status pendente.
 - **Estado:** 100% estável, compilado com TypeScript estrito, testado com Pytest (`37 passed`) e Vitest (`30 passed`), manuais atualizados e implantado de forma contínua em produção via Vercel na URL https://ynab-five.vercel.app.
-- **Arquitetura:** Função `sync_recurring_transactions` em `views.py` agora herda o campo `status` do template recorrente ao gerar instâncias filhas, garantindo que transações pendentes não sejam efetivadas automaticamente.
+- **Arquitetura:** Adicionado suporte a escopo em recorrências ("apenas esta", "esta e futuras", "todas") utilizando `recurring_parent` e `is_recurrence_exception`. Função `sync_recurring_transactions` agora herda corretamente o status de templates pendentes.
 
 ### Últimas Alterações Relevantes
+- [v1.30.5] Edição e Deleção Granular de Recorrências (Backend & Frontend): Adicionado suporte completo para deletar ou editar transações recorrentes escolhendo o escopo ("apenas esta", "esta e futuras", "todas"). O sistema utiliza as flags `recurring_parent` e `is_recurrence_exception` para isolamento histórico e integridade do balanço contábil em tempo real.
 - [v1.30.5] Propagação de Status em Transações Recorrentes: Correção na função `sync_recurring_transactions` para herdar o campo `status` do template recorrente ao criar instâncias filhas automáticas. Transações pendentes agora permanecem pendentes nos meses seguintes sem afetar o saldo da conta. Novo teste `test_recurring_transactions_pending_status` adicionado.
 - [v1.30.4] Correção de Crash no Modal de Nova Transação: Adicionado import ausente de `cn()` em `AddTransactionModal.tsx` que causava ReferenceError e crash completo do React ao digitar no campo de descrição (as sugestões de histórico usavam `cn()` sem importá-lo). Removidas chamadas orphans a `setShowAccountSuggestions`/`setShowToAccountSuggestions` que eram resquícios de refactor anterior para `AccountCombobox`.
 - [v1.30.3] Correções Estéticas, Acessibilidade e Documentação Contábil: Estabilização do F5 na tela de Detalhes de Contas (`AccountDetails.tsx`) movendo early returns para depois de todos os hooks, correção de DOM nesting no TableSkeleton, e adição de guia operacional detalhando a evolução proporcional (Treemap), cambial e preditiva de contas de investimentos/Off-Budget no manual `manual_actual_budget.md`.

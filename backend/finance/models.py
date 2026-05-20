@@ -135,6 +135,17 @@ class Transaction(models.Model):
     reconciled = models.BooleanField(default=False)
     transfer_group = models.UUIDField(null=True, blank=True)
     
+    # Vínculo para a transação "template" que gerou esta ocorrência
+    recurring_parent = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='recurring_children'
+    )
+    # Marca se esta ocorrência específica foi "pulada" ou "excluída"
+    is_recurrence_exception = models.BooleanField(default=False)
+    
     # Campo de auto-referência para integridade referencial física de transferências espelhadas
     linked_transfer = models.OneToOneField(
         'self',
