@@ -1301,7 +1301,13 @@ class DebtViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
             # Cria a transação correspondente caso seja vinculada a uma conta
-            account = Account.objects.get(id=account_id, user=request.user) if account_id else None
+            account = None
+            if account_id:
+                try:
+                    account = Account.objects.get(id=account_id, user=request.user)
+                except Account.DoesNotExist:
+                    return Response({"error": "Conta não encontrada ou acesso negado."}, status=status.HTTP_404_NOT_FOUND)
+
             tx = None
             if account:
                 if debt.is_mine:
@@ -1360,8 +1366,17 @@ class DebtPaymentViewSet(viewsets.ModelViewSet):
         account_id = self.request.data.get('account')
         pay_date = self.request.data.get('date') or date.today().isoformat()
 
-        debt = Debt.objects.get(id=debt_id, user=self.request.user)
-        account = Account.objects.get(id=account_id, user=self.request.user) if account_id else None
+        try:
+            debt = Debt.objects.get(id=debt_id, user=self.request.user)
+        except Debt.DoesNotExist:
+            raise serializers.ValidationError({"debt": "Dívida não encontrada ou acesso negado."})
+
+        account = None
+        if account_id:
+            try:
+                account = Account.objects.get(id=account_id, user=self.request.user)
+            except Account.DoesNotExist:
+                raise serializers.ValidationError({"account": "Conta não encontrada ou acesso negado."})
 
         txn = None
         if account:
