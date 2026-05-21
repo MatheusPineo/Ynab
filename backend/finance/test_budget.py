@@ -19,7 +19,7 @@ class YNABBudgetEngineTests(TestCase):
         self.credit_card = Account.objects.create(
             user=self.user,
             name='Cartão de Crédito',
-            account_type='credit',
+            account_type='credit_card',
             balance=Decimal('0.00')
         )
         

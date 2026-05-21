@@ -313,7 +313,7 @@ class YNABBudgetService:
                 amount = tx.amount
                 if not tx.is_income:
                     activity_map[tx.category_id] -= amount
-                    if tx.account.account_type == 'credit':
+                    if tx.account.account_type == 'credit_card':
                         credit_spent_map[tx.category_id] += amount
                 else:
                     activity_map[tx.category_id] += amount
@@ -376,7 +376,7 @@ class YNABBudgetService:
             amount = tx.amount
             if not tx.is_income:
                 activity_target[tx.category_id] -= amount
-                if tx.account.account_type == 'credit':
+                if tx.account.account_type == 'credit_card':
                     credit_spent_target[tx.category_id] += amount
             else:
                 activity_target[tx.category_id] += amount
