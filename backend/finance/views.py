@@ -11,7 +11,7 @@ from decimal import Decimal, ROUND_DOWN
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -750,6 +750,10 @@ class MonthlyBudgetViewSet(viewsets.ModelViewSet):
         month = request.data.get('month')
         year = request.data.get('year')
         amount = request.data.get('amount')
+
+        # Proteção anti-IDOR: verifica se a categoria pertence ao usuário
+        if not Category.objects.filter(id=category_id, user=request.user).exists():
+            return Response({'error': 'Categoria não encontrada ou acesso negado.'}, status=status.HTTP_404_NOT_FOUND)
         
         budget, created = MonthlyBudget.objects.update_or_create(
             category_id=category_id,
@@ -1297,7 +1301,7 @@ class DebtViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
             # Cria a transação correspondente caso seja vinculada a uma conta
-            account = Account.objects.get(id=account_id) if account_id else None
+            account = Account.objects.get(id=account_id, user=request.user) if account_id else None
             tx = None
             if account:
                 if debt.is_mine:
@@ -1357,7 +1361,7 @@ class DebtPaymentViewSet(viewsets.ModelViewSet):
         pay_date = self.request.data.get('date') or date.today().isoformat()
 
         debt = Debt.objects.get(id=debt_id, user=self.request.user)
-        account = Account.objects.get(id=account_id) if account_id else None
+        account = Account.objects.get(id=account_id, user=self.request.user) if account_id else None
 
         txn = None
         if account:
@@ -1581,7 +1585,6 @@ class CreditCardViewSet(viewsets.ModelViewSet):
 
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
 from .models import TransactionInbox
 from .serializers import TransactionInboxSerializer
 from .tasks import process_inbox_document
