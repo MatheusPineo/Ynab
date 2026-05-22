@@ -32,7 +32,7 @@ import {
   Info,
   Briefcase
 } from 'lucide-react';
-import { formatMoney } from "@/shared/utils/formatMoney";
+import { formatMoney } from "@/shared/lib/currency-utils";
 import { useWealthStore, InvestmentActivity, InvestmentAsset } from "../store/useWealthStore";
 import { format } from "date-fns";
 
