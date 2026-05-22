@@ -644,6 +644,15 @@ class InvestmentAsset(models.Model):
     name = models.CharField(max_length=150)
     asset_type = models.CharField(max_length=50, choices=ASSET_TYPES) # Ex: STOCK, CRYPTO, FII, BOND
     currency = models.CharField(max_length=3, default='BRL')
+    
+    # Renda Fixa / Tesouro Fields
+    issuer = models.CharField(max_length=150, null=True, blank=True)
+    title_type = models.CharField(max_length=50, null=True, blank=True)
+    indexer = models.CharField(max_length=50, null=True, blank=True)
+    rate_type = models.CharField(max_length=50, null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    liquidity_daily = models.BooleanField(default=False)
+    
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

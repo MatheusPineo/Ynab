@@ -848,8 +848,20 @@ class PortfolioEvolutionEngine:
         Uses the Brazilian 252-day convention with daily CDI rates.
         """
         activity = InvestmentActivity.objects.get(id=activity_id)
-        if not activity.principal_amount or not activity.cdi_percentage:
-            return activity.principal_amount or Decimal('0.00')
+        
+        principal = activity.principal_amount
+        if not principal:
+            qty = activity.quantity or Decimal('0.00')
+            price = activity.unit_price or Decimal('0.00')
+            fees = activity.fees or Decimal('0.00')
+            principal = (qty * price) + fees
+            
+        cdi_perc = activity.cdi_percentage
+        if not cdi_perc:
+            cdi_perc = Decimal('100.00')
+
+        if principal <= Decimal('0.00'):
+            return Decimal('0.00')
 
         # Get all CDI rates between purchase date and target date
         cdi_rates = DailyCDIRate.objects.filter(
@@ -857,8 +869,8 @@ class PortfolioEvolutionEngine:
             date__lte=target_date
         ).order_by('date')
 
-        current_amount = activity.principal_amount
-        cdi_multiplier = activity.cdi_percentage / Decimal('100.0')
+        current_amount = principal
+        cdi_multiplier = cdi_perc / Decimal('100.0')
 
         for rate in cdi_rates:
             # Formula: A_t = A_{t-1} * (1 + daily_rate * (CDI% / 100))
