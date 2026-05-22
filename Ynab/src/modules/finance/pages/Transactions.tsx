@@ -127,7 +127,8 @@ const Transactions = () => {
   const filteredTransactions = useMemo(() => {
     const result = (Array.isArray(transactions) ? transactions : []).filter((t) => {
       if (!t || !t.description || !t.date) return false;
-      const matchesSearch = t.description.toLowerCase().includes(search.toLowerCase());
+      const searchLower = search.toLowerCase();
+      const matchesSearch = t.description.toLowerCase().includes(searchLower) || String(t.amount).includes(searchLower.replace(',', '.'));
       const matchesAccount = selectedAccountId === "all" || targetAccountIds.includes(String(t.account));
       const matchesStatus = statusFilter === "all" || t.status === statusFilter;
       const matchesType = typeFilter === "all" || (typeFilter === "recurring" && t.is_recurring);

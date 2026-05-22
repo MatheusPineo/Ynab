@@ -5,7 +5,7 @@ import { useTransactions } from "@/shared/hooks/useTransactions";
 import { formatMoney, CURRENCY_SYMBOL } from "@/shared/lib/currency-utils";
 import { TableSkeleton } from "@/shared/components/dashboard/TableSkeleton";
 import { EmptyState } from "@/shared/components/dashboard/EmptyState";
-import { Receipt, ArrowLeft, TrendingUp, TrendingDown, Wallet, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, Gauge } from "lucide-react";
+import { Receipt, ArrowLeft, TrendingUp, TrendingDown, Wallet, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, Target } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -254,11 +254,11 @@ const AccountDetails = () => {
                     "flex items-center gap-1.5 ml-2.5 px-3 py-1 rounded-xl text-[10px] sm:text-xs font-black select-none shrink-0 transition-all border shadow-sm",
                     colorClasses
                   )}>
-                    <Gauge className={cn("h-3.5 w-3.5 shrink-0", pct >= 100 ? "text-zinc-950" : "")} />
+                    <Target className={cn("h-3.5 w-3.5 shrink-0", pct >= 100 ? "text-zinc-950" : "")} />
                     <span>
-                      {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
+                      Teto: {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
                       {" / "}
-                      {pct}%
+                      {pct}% do limite
                     </span>
                   </div>
                 );

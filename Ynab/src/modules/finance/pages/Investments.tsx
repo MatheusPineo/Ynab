@@ -53,7 +53,7 @@ export default function Investments() {
                   <TrendingUp className="h-3 w-3 mr-1" />
                   Yield Saudável
                 </Badge>
-                <span className="text-xs text-zinc-500">Deduzido de IR/IOF</span>
+                <span className="text-xs text-zinc-500">Valor Bruto (Sem dedução de IR)</span>
               </div>
             </div>
           </CardContent>
@@ -117,6 +117,7 @@ export default function Investments() {
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{formatMoney(getNetValue(asset), asset.currency)}</div>
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Valor Bruto</div>
                       <div className="text-xs text-muted-foreground mt-1 flex justify-between items-center">
                         <span>Aportado: {formatMoney(asset.total_cost_basis, asset.currency)}</span>
                         {asset.percentage_yield !== undefined && (
@@ -159,6 +160,7 @@ export default function Investments() {
                               </Badge>
                           )}
                       </div>
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2 mt-1">Valor Bruto</div>
                       <div className="text-xs text-muted-foreground mt-1 flex justify-between">
                         <span>Cota Atual: {formatMoney(asset.current_price || asset.average_cost, asset.currency)}</span>
                         <span>PM: {formatMoney(asset.average_cost, asset.currency)}</span>

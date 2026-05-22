@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Plus, GripVertical, Gauge, Move, ArrowDownAZ, EyeOff } from "lucide-react";
+import { ChevronRight, Plus, GripVertical, Target, Move, ArrowDownAZ, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import {
   type AccountNode,
@@ -275,9 +275,9 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
                 "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs sm:text-[13px] font-bold border transition-all shadow-sm",
                 colorClasses
               )}>
-                <Gauge className={cn("h-3.5 w-3.5 shrink-0", pct >= 100 ? "text-zinc-950 animate-pulse" : "opacity-90")} />
+                <Target className={cn("h-3.5 w-3.5 shrink-0", pct >= 100 ? "text-zinc-950 animate-pulse" : "opacity-90")} />
                 <span>
-                  {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
+                  Teto: {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
                 </span>
               </div>
               
@@ -286,7 +286,7 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
                 "px-2.5 py-1 rounded-full text-xs sm:text-[13px] font-bold border transition-all shadow-sm",
                 colorClasses
               )}>
-                <span>{pct}%</span>
+                <span>{pct}% do limite</span>
               </div>
             </div>
           );

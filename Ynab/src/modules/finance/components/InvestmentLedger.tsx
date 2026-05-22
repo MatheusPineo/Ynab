@@ -17,6 +17,14 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { Input } from "@/shared/components/ui/input";
 import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from "@/shared/components/ui/dialog";
+import { Label } from "@/shared/components/ui/label";
+import { 
   Accordion, 
   AccordionContent, 
   AccordionItem, 
@@ -89,10 +97,38 @@ export const InvestmentLedger: React.FC = () => {
     }
   };
 
+  const [editingActivity, setEditingActivity] = useState<InvestmentActivity | null>(null);
+  const [editForm, setEditForm] = useState({ quantity: 0, unit_price: 0, date: '' });
+
   const handleEdit = (activity: InvestmentActivity) => {
-    // Para simplificar no momento, podemos exibir um alerta
-    // O ideal é reabrir o modal AddInvestmentActivityModal preenchido com estes dados
-    alert(`Editar funcionalidade para ${activity.asset_ticker} em breve!`);
+    setEditingActivity(activity);
+    setEditForm({
+      quantity: activity.quantity,
+      unit_price: activity.unit_price,
+      date: new Date(activity.date).toISOString().split('T')[0]
+    });
+  };
+
+  const submitEdit = async () => {
+    if (!editingActivity) return;
+    try {
+      // Assuming useWealthStore has an updateActivity method or we can implement it
+      // For now we will emulate it or call the actual api
+      const res = await fetch(`/api/wealth/activities/${editingActivity.id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+        body: JSON.stringify(editForm)
+      });
+      if(res.ok) {
+        alert("Lançamento atualizado com sucesso!");
+        setEditingActivity(null);
+        window.location.reload(); // Quick refresh to update state
+      } else {
+        alert("Erro ao atualizar lançamento.");
+      }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -130,7 +166,7 @@ export const InvestmentLedger: React.FC = () => {
               </div>
               
               <AccordionContent className="p-0">
-                <div className="overflow-x-auto">
+                <div className="w-full">
                   <Table>
                     <TableHeader className="bg-muted/20">
                       <TableRow className="border-b">
@@ -232,6 +268,49 @@ export const InvestmentLedger: React.FC = () => {
             </AccordionItem>
           ))}
         </Accordion>
+      )}
+
+      {/* Edit Modal */}
+      {editingActivity && (
+        <Dialog open={!!editingActivity} onOpenChange={(open) => !open && setEditingActivity(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Lançamento: {editingActivity.asset_ticker}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Quantidade</Label>
+                <Input 
+                  type="number" 
+                  step="0.00000001" 
+                  value={editForm.quantity} 
+                  onChange={e => setEditForm({...editForm, quantity: parseFloat(e.target.value)})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Preço Unitário (R$)</Label>
+                <Input 
+                  type="number" 
+                  step="0.01" 
+                  value={editForm.unit_price} 
+                  onChange={e => setEditForm({...editForm, unit_price: parseFloat(e.target.value)})} 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Data do Lançamento</Label>
+                <Input 
+                  type="date" 
+                  value={editForm.date} 
+                  onChange={e => setEditForm({...editForm, date: e.target.value})} 
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditingActivity(null)}>Cancelar</Button>
+              <Button onClick={submitEdit}>Salvar Alterações</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );
