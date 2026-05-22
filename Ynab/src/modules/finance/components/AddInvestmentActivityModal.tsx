@@ -132,6 +132,7 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
                             <SelectContent className="glass border-border/60">
                                 <SelectItem value="STOCK">Ações</SelectItem>
                                 <SelectItem value="FIXED_INCOME">Renda Fixa</SelectItem>
+                                <SelectItem value="TREASURY">Tesouro Direto</SelectItem>
                                 <SelectItem value="FII">FIIs</SelectItem>
                                 <SelectItem value="CRYPTO">Criptomoedas</SelectItem>
                                 <SelectItem value="ETF">ETF</SelectItem>

@@ -19,9 +19,11 @@ export default function Investments() {
   const totalNetWorth = summary?.total_net_worth || 0;
   
   // Agrupar holdings
-  const fixedIncomeHoldings = summary?.holdings.filter(h => h.asset_type === 'FIXED_INCOME') || [];
+  const fixedIncomeHoldings = summary?.holdings.filter(h => h.asset_type === 'FIXED_INCOME' || h.asset_type === 'TREASURY') || [];
   const stockHoldings = summary?.holdings.filter(h => h.asset_type === 'STOCK') || [];
-  const otherHoldings = summary?.holdings.filter(h => !['FIXED_INCOME', 'STOCK'].includes(h.asset_type)) || [];
+  const otherHoldings = summary?.holdings.filter(h => !['FIXED_INCOME', 'TREASURY', 'STOCK'].includes(h.asset_type)) || [];
+
+  const getNetValue = (h: any) => h.net_value ?? (h.quantity * h.average_cost);
 
   return (
     <div className="flex flex-col gap-6 p-4 md:p-8 max-w-7xl mx-auto w-full animate-in fade-in">
@@ -64,23 +66,23 @@ export default function Investments() {
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Landmark className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm font-medium">Renda Fixa</span>
+                  <span className="text-sm font-medium">Renda Fixa & Tesouro</span>
                 </div>
-                <span className="text-sm">{formatMoney(fixedIncomeHoldings.reduce((acc, h) => acc + (h.quantity * h.average_cost), 0), 'BRL')}</span>
+                <span className="text-sm">{formatMoney(fixedIncomeHoldings.reduce((acc, h) => acc + getNetValue(h), 0), 'BRL')}</span>
              </div>
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-emerald-500" />
                   <span className="text-sm font-medium">Renda Variável</span>
                 </div>
-                <span className="text-sm">{formatMoney(stockHoldings.reduce((acc, h) => acc + (h.quantity * h.average_cost), 0), 'BRL')}</span>
+                <span className="text-sm">{formatMoney(stockHoldings.reduce((acc, h) => acc + getNetValue(h), 0), 'BRL')}</span>
              </div>
              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Briefcase className="h-4 w-4 text-purple-500" />
                   <span className="text-sm font-medium">Outros / Cripto</span>
                 </div>
-                <span className="text-sm">{formatMoney(otherHoldings.reduce((acc, h) => acc + (h.quantity * h.average_cost), 0), 'BRL')}</span>
+                <span className="text-sm">{formatMoney(otherHoldings.reduce((acc, h) => acc + getNetValue(h), 0), 'BRL')}</span>
              </div>
           </CardContent>
         </Card>
@@ -113,10 +115,14 @@ export default function Investments() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatMoney(asset.quantity * asset.average_cost, asset.currency)}</div>
-                      <div className="text-xs text-muted-foreground mt-1 flex justify-between">
-                        <span>Aportado: {formatMoney(asset.total_invested, asset.currency)}</span>
-                        <span className="text-emerald-500">Líquido (Pós-IR)</span>
+                      <div className="text-2xl font-bold">{formatMoney(getNetValue(asset), asset.currency)}</div>
+                      <div className="text-xs text-muted-foreground mt-1 flex justify-between items-center">
+                        <span>Aportado: {formatMoney(asset.total_cost_basis, asset.currency)}</span>
+                        {asset.percentage_yield !== undefined && (
+                            <span className={asset.percentage_yield >= 0 ? "text-emerald-500" : "text-red-500"}>
+                                {asset.percentage_yield >= 0 ? '+' : ''}{asset.percentage_yield}%
+                            </span>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
@@ -143,9 +149,18 @@ export default function Investments() {
                       </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-2xl font-bold">{formatMoney(asset.quantity * asset.average_cost, asset.currency)}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Preço Médio: {formatMoney(asset.average_cost, asset.currency)}
+                      <div className="flex items-end justify-between">
+                          <div className="text-2xl font-bold">{formatMoney(getNetValue(asset), asset.currency)}</div>
+                          {asset.percentage_yield !== undefined && (
+                              <Badge variant="outline" className={asset.percentage_yield >= 0 ? "text-emerald-500 border-emerald-500/30" : "text-red-500 border-red-500/30"}>
+                                  {asset.percentage_yield >= 0 ? <TrendingUp className="h-3 w-3 mr-1"/> : <TrendingDown className="h-3 w-3 mr-1"/>}
+                                  {asset.percentage_yield}%
+                              </Badge>
+                          )}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1 flex justify-between">
+                        <span>Cota Atual: {formatMoney(asset.current_price || asset.average_cost, asset.currency)}</span>
+                        <span>PM: {formatMoney(asset.average_cost, asset.currency)}</span>
                       </div>
                     </CardContent>
                   </Card>

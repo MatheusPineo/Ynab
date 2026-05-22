@@ -2127,7 +2127,7 @@ class WealthSummaryView(APIView):
     )
     def get(self, request):
         holdings = NetWorthCalculator.calculate_holdings(request.user)
-        total_net_worth = sum((h['quantity'] * h['average_cost'] for h in holdings), Decimal('0.00'))
+        total_net_worth = sum((h.get('net_value', h['quantity'] * h['average_cost']) for h in holdings), Decimal('0.00'))
         return Response({
             'holdings': holdings,
             'total_net_worth': round(total_net_worth, 2)

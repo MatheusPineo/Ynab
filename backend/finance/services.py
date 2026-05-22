@@ -612,57 +612,82 @@ class NetWorthCalculator:
         holdings = []
         
         for asset in assets:
-            total_quantity = Decimal('0.00000000')
-            total_cost_basis = Decimal('0.00')
-            
-            # Ordena do mais antigo para o mais recente para calcular preço médio cronologicamente
-            activities = asset.activities.all().order_by('date', 'created_at')
-            
-            for act in activities:
-                qty = Decimal(str(act.quantity))
-                price = Decimal(str(act.unit_price))
-                fees = Decimal(str(act.fees))
-                
-                if act.activity_type == 'BUY':
-                    # Aumenta quantidade e aumenta custo total (incluindo taxas)
-                    total_quantity += qty
-                    total_cost_basis += (qty * price) + fees
-                
-                elif act.activity_type == 'SELL':
-                    # Diminui quantidade. O custo base reduz proporcionalmente.
-                    if total_quantity > Decimal('0.00000000'):
-                        average_price = total_cost_basis / total_quantity
-                        total_cost_basis -= (qty * average_price)
-                    total_quantity -= qty
-                    # Taxas de venda são despesas, mas não afetam o custo médio do estoque remanescente
-                    
-                elif act.activity_type == 'SPLIT':
-                    # Em um desdobramento (SPLIT), a quantidade se multiplica pela proporção `qty`.
-                    # Se qty for 2, significa um split 2:1. O custo base total se mantém.
-                    total_quantity *= qty
-                    
-                elif act.activity_type == 'DIVIDEND':
-                    # Dividendos em dinheiro não afetam quantidade nem o preço médio das ações.
-                    pass
-            
-            # Se a quantidade final for zero ou muito próxima de zero (erros de float de cripto)
-            if total_quantity <= Decimal('0.00000001'):
-                total_quantity = Decimal('0.00000000')
+            # Substituindo por uso do PortfolioEvolutionEngine
+            if asset.asset_type in ['STOCK', 'FII', 'ETF', 'CRYPTO']:
+                position = PortfolioEvolutionEngine.calculate_stock_position(asset.id)
+                holdings.append({
+                    'asset_id': position['asset_id'],
+                    'ticker': position['ticker'],
+                    'name': asset.name,
+                    'currency': asset.currency,
+                    'asset_type': asset.asset_type,
+                    'quantity': position['quantity'],
+                    'average_cost': position['average_cost'],
+                    'total_cost_basis': position['total_cost_basis'],
+                    'current_price': position['current_price'],
+                    'net_value': position['net_value'],
+                    'total_profit_loss': position['total_profit_loss'],
+                    'percentage_yield': position['percentage_yield'],
+                })
+            elif asset.asset_type in ['FIXED_INCOME', 'TREASURY']:
+                from datetime import date
+                activities = asset.activities.all().order_by('date', 'created_at')
+                total_quantity = Decimal('0.00')
                 total_cost_basis = Decimal('0.00')
+                net_value = Decimal('0.00')
+
+                # Assegura que temos o CDI atualizado para a evolução
+                MarketDataService.get_cdi_rate()
+
+                for act in activities:
+                    qty = act.quantity or Decimal('0.00')
+                    price = act.unit_price or Decimal('0.00')
+                    fees = act.fees or Decimal('0.00')
+                    
+                    if act.activity_type == 'BUY':
+                        total_quantity += qty
+                        total_cost_basis += (qty * price) + fees
+                        # Calcula a evolução desta tranche
+                        tranche_value = PortfolioEvolutionEngine.calculate_fixed_income_evolution(act.id, date.today())
+                        net_value += tranche_value
+                    elif act.activity_type == 'SELL':
+                        if total_quantity > Decimal('0.00'):
+                            average_price = total_cost_basis / total_quantity
+                            total_cost_basis -= (qty * average_price)
+                        total_quantity -= qty
+                        # Simplificação para venda: remove da cotação proporcional
+                        if total_cost_basis <= Decimal('0.00'):
+                            net_value = Decimal('0.00')
+                        else:
+                            # A aproximação para venda não debita cota exata (necessitaria motor mais complexo)
+                            # Deduzimos o custo proporcional do net_value
+                            net_value -= (qty * average_price)
+                
+                total_profit_loss = net_value - total_cost_basis
+                percentage_yield = Decimal('0.00')
+                if total_cost_basis > Decimal('0.00'):
+                    percentage_yield = (total_profit_loss / total_cost_basis) * Decimal('100.0')
+
                 average_cost = Decimal('0.00')
-            else:
-                average_cost = total_cost_basis / total_quantity
-            
-            holdings.append({
-                'asset_id': asset.id,
-                'ticker': asset.ticker,
-                'name': asset.name,
-                'currency': asset.currency,
-                'asset_type': asset.asset_type,
-                'quantity': total_quantity,
-                'average_cost': round(average_cost, 4),
-                'total_cost_basis': round(total_cost_basis, 2)
-            })
+                current_price = Decimal('0.00')
+                if total_quantity > Decimal('0.00'):
+                    average_cost = total_cost_basis / total_quantity
+                    current_price = net_value / total_quantity
+
+                holdings.append({
+                    'asset_id': asset.id,
+                    'ticker': asset.ticker,
+                    'name': asset.name,
+                    'currency': asset.currency,
+                    'asset_type': asset.asset_type,
+                    'quantity': total_quantity,
+                    'average_cost': round(average_cost, 4),
+                    'total_cost_basis': round(total_cost_basis, 2),
+                    'current_price': round(current_price, 4),
+                    'net_value': round(net_value, 2),
+                    'total_profit_loss': round(total_profit_loss, 2),
+                    'percentage_yield': round(percentage_yield, 2),
+                })
             
         return holdings
 
@@ -674,6 +699,49 @@ from .models import DailyAssetPrice
 logger = logging.getLogger(__name__)
 
 class MarketDataService:
+    @staticmethod
+    def get_cdi_rate() -> Decimal | None:
+        """
+        Retrieves the current CDI annual rate from HG Brasil.
+        Saves it automatically to DailyCDIRate cache.
+        """
+        from datetime import date
+        from decimal import Decimal
+        from .models import DailyCDIRate
+
+        today = date.today()
+        # Check cache first
+        cached = DailyCDIRate.objects.filter(date=today).first()
+        if cached:
+            return cached.annual_rate
+
+        hg_brasil_key = getattr(settings, 'HG_BRASIL_API_KEY', '')
+        try:
+            response = requests.get(
+                'https://api.hgbrasil.com/finance/taxes',
+                params={'key': hg_brasil_key},
+                timeout=4
+            )
+            response.raise_for_status()
+            data = response.json()
+            if 'results' in data and data['results']:
+                results = data['results'][0]
+                if 'cdi' in results:
+                    cdi_annual = Decimal(str(results['cdi']))
+                    DailyCDIRate.objects.update_or_create(
+                        date=today,
+                        defaults={'annual_rate': cdi_annual}
+                    )
+                    return cdi_annual
+        except Exception as e:
+            logger.warning(f"HG Brasil CDI fetch failed: {e}")
+        
+        # Fallback to the latest available
+        latest = DailyCDIRate.objects.order_by('-date').first()
+        if latest:
+            return latest.annual_rate
+        return None
+
     @staticmethod
     def get_asset_price(ticker: str, is_brazilian: bool = False) -> Decimal | None:
         """

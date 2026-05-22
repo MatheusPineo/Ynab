@@ -27,12 +27,15 @@ export interface AssetHolding {
   asset_id: number;
   ticker: string;
   name: string;
-  asset_type: string;
+  currency: string;
+  asset_type: 'STOCK' | 'FIXED_INCOME' | 'TREASURY' | 'FII' | 'ETF' | 'CRYPTO';
   quantity: number;
   average_cost: number;
-  total_invested: number;
-  currency: string;
-  net_yield?: any; 
+  total_cost_basis: number;
+  current_price?: number;
+  net_value?: number;
+  total_profit_loss?: number;
+  percentage_yield?: number;
 }
 
 export interface WealthSummary {

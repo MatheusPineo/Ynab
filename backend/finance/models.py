@@ -634,6 +634,7 @@ class InvestmentAsset(models.Model):
     ASSET_TYPES = [
         ('STOCK', 'Stock'),
         ('FIXED_INCOME', 'Fixed Income'),
+        ('TREASURY', 'Tesouro Direto'),
         ('FII', 'FII'),
         ('ETF', 'ETF'),
         ('CRYPTO', 'Crypto'),

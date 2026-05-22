@@ -4,7 +4,12 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
-## [1.35.1] - 2026-05-22
+## [1.35.2] - 2026-05-22
+
+### 🚀 Features & Integrations
+- **Motor de Cotações em Tempo Real (Wealth):** Refatoração do `NetWorthCalculator` (`views.py`) para utilizar o `PortfolioEvolutionEngine`. O sistema agora se conecta automaticamente ao Alpha Vantage e HG Brasil via `MarketDataService` para baixar a cotação real de Ações, FIIs e ETFs a cada carregamento, atualizando o Patrimônio Líquido em tempo real.
+- **Renda Fixa e Tesouro Direto Automatizados:** Integração com a API do Banco Central via HG Brasil para baixar a taxa CDI diária automaticamente. O motor agora projeta o valor de resgate futuro cota-a-cota para contratos pós-fixados baseados em dias úteis (Base-252).
+- **Novo Ativo:** Adicionada a classe de ativo `TREASURY` (Tesouro Direto) na interface de usuário e banco de dados.
 
 ### 🐛 Bug Fixes & Improvements
 - **Modal Novo Aporte (Wealth):** Criação e integração do componente `AddInvestmentActivityModal.tsx` na tela de Investimentos, permitindo o registro de operações (Compra, Venda, Dividendos) e cadastro dinâmico rápido de novos ativos.
