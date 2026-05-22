@@ -4,6 +4,12 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
+## [1.35.0] - 2026-05-22
+### Added
+- **Central de Ajuda (VitePress):** Inicialização do sistema isolado de documentação dentro de `docs/`.
+- **Manuais Operacionais:** Criação massiva de guias e manuais passo-a-passo para usuários cobrindo: Metodologia de Envelopes YNAB, Cartões e Faturas, Inbox Inteligente e Auditoria, Gestão de Patrimônio, Configurações de Assinatura, Relatórios Analíticos e um módulo nativo de FAQ para casos isolados.
+- **Wikis de Engenharia:** Expansão e refinamento do `wiki_seguranca.md` com manuais operacionais do fluxo de acesso Híbrido, configuração de Autenticação Multifator (2FA) e Gestão de Privacidade (LGPD/ConsentStore).
+
 ## [1.34.3] - 2026-05-22
 ### Added
 - **Backend API (Wealth):** Adição da `PortfolioEvolutionEngine` em `services.py` contendo algoritmos matemáticos para evolução de patrimônio:
