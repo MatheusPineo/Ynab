@@ -4,6 +4,12 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
+## [1.35.1] - 2026-05-22
+
+### 🐛 Bug Fixes
+- **Patrimônio & Investimentos (Wealth):** Correção crítica no endpoint `WealthSummaryView` (`views.py`) que estava retornando um array de posições em vez do objeto esperado pelo frontend (`{ holdings: [...], total_net_worth: ... }`). Isso causava um crash no React e acionava o fallback de erro 404 (Erro de conexão com o servidor) da UI.
+- **Tradução de Menus (i18n):** Adicionada a chave `navigation.investments` em `pt-BR.json`, mapeando para "Patrimônio & Investimentos", corrigindo a exibição de atalhos errôneos no Sidebar.
+
 ## [1.35.0] - 2026-05-22
 ### Added
 - **Central de Ajuda (VitePress):** Inicialização do sistema isolado de documentação dentro de `docs/`.
