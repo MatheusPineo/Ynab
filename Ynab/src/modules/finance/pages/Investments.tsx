@@ -7,6 +7,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { TrendingUp, TrendingDown, Landmark, Briefcase, Plus } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { AddInvestmentActivityModal } from "../components/AddInvestmentActivityModal";
+import { InvestmentLedger } from "../components/InvestmentLedger";
 
 export default function Investments() {
   const { summary, activities, fetchSummary, fetchActivities, isLoading } = useWealthStore();
@@ -91,7 +92,7 @@ export default function Investments() {
       <Tabs defaultValue="inventory" className="w-full mt-4">
         <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
           <TabsTrigger value="inventory">Inventário de Ativos</TabsTrigger>
-          <TabsTrigger value="ledger">Histórico (Ledger)</TabsTrigger>
+          <TabsTrigger value="ledger">Histórico</TabsTrigger>
         </TabsList>
         
         {/* TABS: ASSET INVENTORY LIST */}
@@ -173,39 +174,7 @@ export default function Investments() {
 
         {/* TABS: ACTIVITY LEDGER */}
         <TabsContent value="ledger" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Histórico de Transações</CardTitle>
-              <CardDescription>Livro-razão de todas as compras, vendas e proventos.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {activities.length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground">
-                  Nenhuma atividade registrada ainda.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {activities.map((activity) => (
-                    <div key={activity.id} className="flex items-center justify-between p-4 border rounded-lg bg-card">
-                      <div className="flex items-center gap-4">
-                        <div className={`p-2 rounded-full ${activity.activity_type === 'BUY' ? 'bg-blue-500/10 text-blue-500' : activity.activity_type === 'SELL' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-purple-500/10 text-purple-500'}`}>
-                          {activity.activity_type === 'BUY' ? <TrendingDown className="h-4 w-4" /> : <TrendingUp className="h-4 w-4" />}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{activity.asset_ticker} <span className="text-muted-foreground font-normal ml-1">({activity.activity_type})</span></p>
-                          <p className="text-xs text-muted-foreground">{new Date(activity.date).toLocaleDateString('pt-BR')}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-medium text-sm">{formatMoney(activity.quantity * activity.unit_price, 'BRL')}</p>
-                        <p className="text-xs text-muted-foreground">{activity.quantity} cotas a {formatMoney(activity.unit_price, 'BRL')}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <InvestmentLedger />
         </TabsContent>
       </Tabs>
     </div>

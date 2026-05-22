@@ -91,3 +91,4 @@
 - **Processamento Assíncrono:** Chamadas de IA jamais podem travar a thread HTTP principal do Django; uso obrigatório da fila assíncrona com status 202 Accepted e conclusão via Celery.
 - **Consistência:** Sincronização automática de versões entre Changelog e Rodapé.
 - **Portabilidade:** Boilerplate preparado para inicialização rápida via `npm/bun install` e `pip install`.
+- [v1.27.1] Script automatizado (sync_market_data.py) para buscar o indice CDI da API do SGS 4389 do Banco Central do Brasil.

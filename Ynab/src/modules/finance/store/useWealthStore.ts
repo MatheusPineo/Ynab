@@ -7,6 +7,11 @@ export interface InvestmentAsset {
   name: string;
   asset_type: 'FIXED_INCOME' | 'STOCK' | 'FII' | 'CRYPTO' | 'OTHER';
   currency: string;
+  due_date?: string;
+  indexer?: string;
+  title_type?: string;
+  rate_type?: string;
+  issuer?: string;
   created_at: string;
 }
 
@@ -55,6 +60,8 @@ interface WealthStore {
   fetchSummary: () => Promise<void>;
   createAsset: (data: Partial<InvestmentAsset>) => Promise<InvestmentAsset | void>;
   createActivity: (data: Partial<InvestmentActivity>) => Promise<void>;
+  updateActivity: (id: number, data: Partial<InvestmentActivity>) => Promise<void>;
+  deleteActivity: (id: number) => Promise<void>;
 }
 
 export const useWealthStore = create<WealthStore>((set) => ({
@@ -142,10 +149,53 @@ export const useWealthStore = create<WealthStore>((set) => ({
           activities: [newActivity, ...state.activities], 
           isLoading: false 
         }));
-        // Atualiza o summary após uma nova atividade
         useWealthStore.getState().fetchSummary();
       } else {
         throw new Error("Erro ao registrar atividade");
+      }
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
+
+  updateActivity: async (id: number, data: Partial<InvestmentActivity>) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authenticatedFetch(`/wealth/activities/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data)
+      });
+      if (response.ok) {
+        const updatedActivity = await response.json();
+        set((state) => ({
+          activities: state.activities.map(a => a.id === id ? updatedActivity : a),
+          isLoading: false
+        }));
+        useWealthStore.getState().fetchSummary();
+      } else {
+        throw new Error("Erro ao atualizar atividade");
+      }
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
+
+  deleteActivity: async (id: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authenticatedFetch(`/wealth/activities/${id}/`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        set((state) => ({
+          activities: state.activities.filter(a => a.id !== id),
+          isLoading: false
+        }));
+        useWealthStore.getState().fetchSummary();
+      } else {
+        throw new Error("Erro ao deletar atividade");
       }
     } catch (err: any) {
       set({ error: err.message, isLoading: false });
