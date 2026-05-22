@@ -123,7 +123,7 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
                 quantity: 1, // Representa 1 contrato inteiro de RF
                 unit_price: principal,
                 principal_amount: principal,
-                cdi_percentage: indexer === "CDI" ? cdiPercentage : null,
+                cdi_percentage: formData.get("indexer") === "CDI" ? cdiPercentage : null,
                 fees: 0
             });
         } else {
