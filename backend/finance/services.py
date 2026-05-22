@@ -838,7 +838,7 @@ class MarketDataService:
             
         return None
 
-from .models import DailyCDIRate
+from .models import DailyCDIRate, InvestmentActivity, InvestmentAsset
 
 class PortfolioEvolutionEngine:
     @staticmethod
