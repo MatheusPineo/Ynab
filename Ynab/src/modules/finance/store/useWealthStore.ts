@@ -50,7 +50,7 @@ interface WealthStore {
   fetchAssets: () => Promise<void>;
   fetchActivities: () => Promise<void>;
   fetchSummary: () => Promise<void>;
-  createAsset: (data: Partial<InvestmentAsset>) => Promise<void>;
+  createAsset: (data: Partial<InvestmentAsset>) => Promise<InvestmentAsset | void>;
   createActivity: (data: Partial<InvestmentActivity>) => Promise<void>;
 }
 
@@ -116,6 +116,7 @@ export const useWealthStore = create<WealthStore>((set) => ({
       if (response.ok) {
         const newAsset = await response.json();
         set((state) => ({ assets: [...state.assets, newAsset], isLoading: false }));
+        return newAsset;
       } else {
         throw new Error("Erro ao criar ativo");
       }

@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui
 import { Badge } from "@/shared/components/ui/badge";
 import { TrendingUp, TrendingDown, Landmark, Briefcase, Plus } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { AddInvestmentActivityModal } from "../components/AddInvestmentActivityModal";
 
 export default function Investments() {
   const { summary, activities, fetchSummary, fetchActivities, isLoading } = useWealthStore();
@@ -28,12 +29,10 @@ export default function Investments() {
       {/* HEADER: PORTFOLIO SUMMARY */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Patrimônio & Investimentos</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Investimentos</h1>
           <p className="text-muted-foreground mt-1">Gestão inteligente de portfólio e custódia.</p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" /> Novo Aporte
-        </Button>
+        <AddInvestmentActivityModal />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

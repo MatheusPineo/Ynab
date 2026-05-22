@@ -6,9 +6,10 @@ A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do hist�
 
 ## [1.35.1] - 2026-05-22
 
-### 🐛 Bug Fixes
+### 🐛 Bug Fixes & Improvements
+- **Modal Novo Aporte (Wealth):** Criação e integração do componente `AddInvestmentActivityModal.tsx` na tela de Investimentos, permitindo o registro de operações (Compra, Venda, Dividendos) e cadastro dinâmico rápido de novos ativos.
 - **Patrimônio & Investimentos (Wealth):** Correção crítica no endpoint `WealthSummaryView` (`views.py`) que estava retornando um array de posições em vez do objeto esperado pelo frontend (`{ holdings: [...], total_net_worth: ... }`). Isso causava um crash no React e acionava o fallback de erro 404 (Erro de conexão com o servidor) da UI.
-- **Tradução de Menus (i18n):** Adicionada a chave `navigation.investments` em `pt-BR.json`, mapeando para "Patrimônio & Investimentos", corrigindo a exibição de atalhos errôneos no Sidebar.
+- **Tradução de Menus (i18n):** Simplificada a chave `navigation.investments` em `pt-BR.json` para exibir apenas "Investimentos", corrigindo a redundância na Sidebar.
 
 ## [1.35.0] - 2026-05-22
 ### Added
