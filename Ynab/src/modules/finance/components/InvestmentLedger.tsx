@@ -178,8 +178,7 @@ export const InvestmentLedger: React.FC = () => {
                         <TableHead className="font-medium text-muted-foreground text-right">Preço unitário</TableHead>
                         <TableHead className="font-medium text-muted-foreground text-right">Total</TableHead>
                         <TableHead className="font-medium text-muted-foreground">Data do lançamento</TableHead>
-                        <TableHead className="font-medium text-muted-foreground">Fonte</TableHead>
-                        <TableHead className="font-medium text-muted-foreground text-center pr-6">Opções</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -225,19 +224,13 @@ export const InvestmentLedger: React.FC = () => {
                             <TableCell className="text-muted-foreground">{dueDateStr}</TableCell>
                             <TableCell className="text-right">
                               <span className="flex items-center justify-end gap-1">
-                                {item.quantity.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })}
-                                <Info className="h-3 w-3 text-muted-foreground opacity-50" />
+                                {Number(item.quantity).toLocaleString('pt-BR', { maximumFractionDigits: 6 })}
                               </span>
                             </TableCell>
                             <TableCell className="text-right">{formatMoney(item.unit_price, 'BRL')}</TableCell>
                             <TableCell className="text-right font-medium">{formatMoney(total, 'BRL')}</TableCell>
                             <TableCell className="text-muted-foreground">
                               {format(new Date(item.date), 'dd/MM/yyyy')}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-muted-foreground bg-muted/20 font-normal rounded-sm">
-                                Manual
-                              </Badge>
                             </TableCell>
                             <TableCell className="text-center pr-6">
                               <DropdownMenu>

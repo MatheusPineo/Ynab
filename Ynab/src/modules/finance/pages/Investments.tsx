@@ -39,25 +39,30 @@ export default function Investments() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="col-span-1 md:col-span-2 bg-gradient-to-br from-zinc-900 to-zinc-950 text-white border-zinc-800 shadow-xl dark:from-zinc-950 dark:to-black">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-zinc-400 font-medium text-sm">Patrimônio Líquido Total</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-2">
-              <span className="text-5xl font-bold tracking-tighter">
-                {formatMoney(totalNetWorth, 'BRL')}
-              </span>
-              <div className="flex items-center gap-2 mt-2">
-                <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  Yield Saudável
-                </Badge>
-                <span className="text-xs text-zinc-500">Valor Bruto (Sem dedução de IR)</span>
-              </div>
+        <section className="col-span-1 md:col-span-2 relative overflow-hidden rounded-2xl sm:rounded-3xl gradient-card border border-border/60 p-4 sm:p-8 shadow-elevated transition-all">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -top-24 -right-24 h-64 w-64 rounded-full"
+            style={{ background: "var(--gradient-glow)" }}
+          />
+          <div className="relative flex flex-col gap-4">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs uppercase tracking-[0.15em] sm:tracking-[0.18em] text-muted-foreground">
+              <Landmark className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
+              Patrimônio Líquido Total
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="mt-2 flex items-baseline gap-2 flex-wrap">
+              <h1 className="text-2xl xs:text-3xl sm:text-5xl font-bold tabular tracking-tight text-gradient-mixed transition-all duration-500">
+                {formatMoney(totalNetWorth, 'BRL')}
+              </h1>
+              <span className="inline-flex items-center gap-1 text-[9px] sm:text-xs font-medium text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-md sm:rounded-lg">
+                <TrendingUp className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                Yield Saudável
+              </span>
+              <span className="text-[10px] sm:text-xs text-muted-foreground ml-2">Valor Bruto (Sem dedução de IR)</span>
+            </div>
+          </div>
+        </section>
 
         <Card className="shadow-sm">
           <CardHeader className="pb-2">

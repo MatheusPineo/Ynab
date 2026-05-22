@@ -1168,3 +1168,4 @@ Nascimento do Vault Finance OS.
 * **Estrutura Base Multireposit√≥rio:** Configura√ß√£o inicial do Django REST Framework (Backend) e do React + Vite + TypeScript + TailwindCSS (Frontend).
 * **Autentica√ß√£o Baseada em JSON Web Tokens (JWT):** Implementa√ß√£o inicial de fluxo seguro de tokens com SimpleJWT (Access e Refresh tokens).
 * **Initial Commit:** Envio inicial do reposit√≥rio contendo as bases l√≥gicas para o modelo relacional de transa√ß√µes.
+- feat(ui): Ajustes na tabela do HistÛrico (sem rolagem), ediÁ„o r·pida de lanÁamentos, pesquisa por valores, alteraÁ„o do Ìcone de velocÌmetro para alvo e aviso explicativo de 'Valor Bruto'.

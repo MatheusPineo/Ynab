@@ -131,6 +131,18 @@ export const AddRootAccountModal = () => {
                 <TrendingUp className="h-4 w-4" /> Investimento
               </button>
             </div>
+            {accountType === "checking" && (
+              <div className="text-[11px] text-muted-foreground bg-primary/10 border border-primary/20 p-3 rounded-xl mt-1">
+                <strong className="text-primary font-bold text-xs block mb-1">O que é Conta Corrente?</strong>
+                Esta conta é <strong className="text-foreground">On-Budget</strong> (Dentro do Orçamento). O saldo dela estará totalmente disponível para você planejar e alocar nas suas categorias de despesas do dia a dia. Ideal para contas salário, carteiras ou contas de uso contínuo.
+              </div>
+            )}
+            {accountType === "credit_card" && (
+              <div className="text-[11px] text-muted-foreground bg-primary/10 border border-primary/20 p-3 rounded-xl mt-1">
+                <strong className="text-primary font-bold text-xs block mb-1">Como funciona o Cartão?</strong>
+                Os gastos realizados aqui geram uma <strong className="text-foreground">Fatura</strong>. Ao gastar em uma categoria usando o cartão, o sistema reserva o dinheiro dessa categoria para garantir que você tenha fundos para pagar a fatura no vencimento.
+              </div>
+            )}
             {accountType === "investment" && (
               <div className="text-[11px] text-muted-foreground bg-primary/10 border border-primary/20 p-3 rounded-xl mt-1">
                 <strong className="text-primary font-bold text-xs block mb-1">O que é Conta de Investimento?</strong>
