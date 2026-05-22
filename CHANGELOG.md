@@ -1169,3 +1169,4 @@ Nascimento do Vault Finance OS.
 * **AutenticaÃ§Ã£o Baseada em JSON Web Tokens (JWT):** ImplementaÃ§Ã£o inicial de fluxo seguro de tokens com SimpleJWT (Access e Refresh tokens).
 * **Initial Commit:** Envio inicial do repositÃ³rio contendo as bases lÃ³gicas para o modelo relacional de transaÃ§Ãµes.
 - feat(ui): Ajustes na tabela do Histórico (sem rolagem), edição rápida de lançamentos, pesquisa por valores, alteração do ícone de velocímetro para alvo e aviso explicativo de 'Valor Bruto'.
+- feat(ui): Ajustes no card de Patrimônio Líquido em Investimentos, adição de balões informativos no cadastro de contas e formatação simplificada do histórico de ativos.
