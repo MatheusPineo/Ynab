@@ -11,7 +11,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
-import { Plus, CreditCard, Landmark } from "lucide-react";
+import { Plus, CreditCard, Landmark, TrendingUp } from "lucide-react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
@@ -19,7 +19,7 @@ import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
 export const AddRootAccountModal = () => {
   const [open, setOpen] = useState(false);
-  const [accountType, setAccountType] = useState<"checking" | "credit_card">("checking");
+  const [accountType, setAccountType] = useState<"checking" | "credit_card" | "investment">("checking");
   const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { addNode, fetchAccounts } = useAccountStore();
@@ -60,9 +60,10 @@ export const AddRootAccountModal = () => {
         await addNode("root", {
           name: formData.get("name") as string,
           balance: balance,
+          account_type: accountType === "investment" ? "investment" : "checking",
           currency: formData.get("currency") as any,
           ceiling: ceiling,
-          exclude_from_totals: excludeFromTotals,
+          exclude_from_totals: accountType === "investment" ? false : excludeFromTotals,
         });
 
         toast.success(`🏦 Conta "${formData.get("name") as string}" criada!`);
@@ -95,38 +96,55 @@ export const AddRootAccountModal = () => {
         <form onSubmit={handleSubmit} className="grid gap-4 py-2 relative">
           <div className="grid gap-2">
             <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Tipo da Conta</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={() => setAccountType("checking")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-[11px] font-bold transition-all ${
                   accountType === "checking"
                     ? "bg-primary/10 border-primary text-primary shadow-soft"
                     : "bg-muted/15 border-border/40 text-muted-foreground hover:bg-muted/30"
                 }`}
               >
-                <Landmark className="h-4 w-4" /> Corrente / Poupança
+                <Landmark className="h-4 w-4" /> Corrente
               </button>
               <button
                 type="button"
                 onClick={() => setAccountType("credit_card")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-xs font-bold transition-all ${
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-[11px] font-bold transition-all ${
                   accountType === "credit_card"
                     ? "bg-primary/10 border-primary text-primary shadow-soft"
                     : "bg-muted/15 border-border/40 text-muted-foreground hover:bg-muted/30"
                 }`}
               >
-                <CreditCard className="h-4 w-4" /> Cartão de Crédito
+                <CreditCard className="h-4 w-4" /> Cartão
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountType("investment")}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-[11px] font-bold transition-all ${
+                  accountType === "investment"
+                    ? "bg-primary/10 border-primary text-primary shadow-soft"
+                    : "bg-muted/15 border-border/40 text-muted-foreground hover:bg-muted/30"
+                }`}
+              >
+                <TrendingUp className="h-4 w-4" /> Investimento
               </button>
             </div>
+            {accountType === "investment" && (
+              <div className="text-[11px] text-muted-foreground bg-primary/10 border border-primary/20 p-3 rounded-xl mt-1">
+                <strong className="text-primary font-bold text-xs block mb-1">O que é Conta de Investimento?</strong>
+                Esta conta é <strong className="text-foreground">Off-Budget</strong> (Fora do Orçamento). O dinheiro dela será somado ao seu Patrimônio Líquido, mas não ficará disponível para você orçar nas categorias diárias. Ideal para Corretoras e Reservas.
+              </div>
+            )}
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="name" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Nome da Conta / Cartão</Label>
-            <Input id="name" name="name" placeholder={accountType === "checking" ? "Ex: Conta Corrente, Investimentos..." : "Ex: Nubank Ultravioleta, Itaú Black..."} required className="bg-muted/15 border-border/40 rounded-xl h-11 text-sm font-medium" />
+            <Input id="name" name="name" placeholder={accountType === "checking" ? "Ex: Itaú, Caixa..." : accountType === "investment" ? "Ex: XP, Rico, Tesouro..." : "Ex: Nubank Ultravioleta..."} required className="bg-muted/15 border-border/40 rounded-xl h-11 text-sm font-medium" />
           </div>
 
-          {accountType === "checking" ? (
+          {accountType === "checking" || accountType === "investment" ? (
             <>
               <div className="grid gap-2">
                 <Label htmlFor="balance" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Saldo Inicial</Label>

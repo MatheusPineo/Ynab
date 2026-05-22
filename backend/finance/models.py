@@ -630,3 +630,86 @@ class TransactionRule(models.Model):
         return f"Regra: {self.name} ({self.stage})"
 
 
+class InvestmentAsset(models.Model):
+    ASSET_TYPES = [
+        ('STOCK', 'Stock'),
+        ('FIXED_INCOME', 'Fixed Income'),
+        ('FII', 'FII'),
+        ('ETF', 'ETF'),
+        ('CRYPTO', 'Crypto'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='investment_assets')
+    ticker = models.CharField(max_length=50) # Ex: AAPL, BOVA11
+    name = models.CharField(max_length=150)
+    asset_type = models.CharField(max_length=50, choices=ASSET_TYPES) # Ex: STOCK, CRYPTO, FII, BOND
+    currency = models.CharField(max_length=3, default='BRL')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_investmentasset'
+        app_label = 'core'
+
+    def __str__(self) -> str:
+        return f"{self.ticker} - {self.name}"
+
+
+class InvestmentActivity(models.Model):
+    ACTIVITY_TYPES = [
+        ('BUY', 'Compra'),
+        ('SELL', 'Venda'),
+        ('DIVIDEND', 'Dividendo'),
+        ('SPLIT', 'Desdobramento')
+    ]
+    asset = models.ForeignKey(InvestmentAsset, on_delete=models.CASCADE, related_name='activities')
+    account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True)
+    activity_type = models.CharField(max_length=20, choices=ACTIVITY_TYPES)
+    date = models.DateField()
+    quantity = models.DecimalField(max_digits=18, decimal_places=8, null=True, blank=True) # 8 casas para suportar cripto
+    unit_price = models.DecimalField(max_digits=18, decimal_places=8, null=True, blank=True)
+    principal_amount = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
+    cdi_percentage = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    fees = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_investmentactivity'
+        app_label = 'core'
+
+    def __str__(self) -> str:
+        return f"{self.get_activity_type_display()} - {self.asset.ticker}"
+
+
+class DailyAssetPrice(models.Model):
+    asset = models.ForeignKey(InvestmentAsset, on_delete=models.CASCADE, related_name='daily_prices')
+    date = models.DateField()
+    price = models.DecimalField(max_digits=18, decimal_places=8)
+
+    class Meta:
+        db_table = 'core_dailyassetprice'
+        app_label = 'core'
+        unique_together = ('asset', 'date')
+
+    def __str__(self) -> str:
+        return f"{self.asset.ticker} at {self.date}: {self.price}"
+
+
+class DailyCDIRate(models.Model):
+    date = models.DateField(unique=True)
+    annual_rate = models.DecimalField(max_digits=7, decimal_places=4)
+    daily_rate = models.DecimalField(max_digits=18, decimal_places=10, blank=True)
+
+    class Meta:
+        db_table = 'core_dailycdirate'
+        app_label = 'core'
+
+    def save(self, *args, **kwargs) -> None:
+        from decimal import Decimal
+        if self.annual_rate is not None:
+            annual = float(self.annual_rate) / 100.0
+            daily = ((1.0 + annual) ** (1.0 / 252.0)) - 1.0
+            self.daily_rate = Decimal(str(daily))
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"CDI {self.date}: {self.annual_rate}% a.a."
+

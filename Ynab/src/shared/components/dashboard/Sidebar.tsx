@@ -17,12 +17,16 @@ import {
   HelpCircle,
   BarChart3,
   CreditCard,
-  Inbox as InboxIcon
+  Inbox as InboxIcon,
+  SlidersHorizontal,
+  Pencil,
+  Briefcase
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
-import { useFeatureStore } from "@/shared/store/useFeatureStore";
+import { useSidebarStore } from "@/shared/store/useSidebarStore";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
+import { EditSidebarModal } from "./EditSidebarModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,10 +38,11 @@ import {
 import { toast } from "sonner";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
-const navItems = [
+export const navItems = [
   { icon: LayoutDashboard, key: "dashboard", to: "/dashboard" },
   { icon: Wallet, key: "accounts", to: "/accounts" },
   { icon: CreditCard, key: "credit_cards", featureKey: "credit_cards", to: "/credit-cards" },
+  { icon: Briefcase, key: "investments", featureKey: "investments", to: "/investments" },
   { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
   { icon: InboxIcon, key: "inbox", to: "/inbox" },
   { icon: PieChart, key: "budget", to: "/budget" },
@@ -50,12 +55,13 @@ const navItems = [
 
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const { user, logout } = useAuthStore();
-  const { features } = useFeatureStore();
+  const { hiddenItems } = useSidebarStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const activeNavItems = navItems.filter(item => features[(item.featureKey || item.key) as keyof typeof features] !== false);
+  const activeNavItems = navItems.filter((item) => !hiddenItems.includes(item.key));
 
   const handleLogout = () => {
     logout();
@@ -71,7 +77,7 @@ export const Sidebar = () => {
       )}
     >
       {/* Brand */}
-      <div className="flex h-16 items-center gap-3 px-5 border-b border-sidebar-border">
+      <div className="flex h-16 items-center gap-3 px-5 border-b border-sidebar-border shrink-0">
         <div className="flex h-9 w-9 items-center justify-center rounded-xl gradient-primary shadow-glow shrink-0">
           <Sparkles className="h-4 w-4 text-primary-foreground" strokeWidth={2.5} />
         </div>
@@ -88,7 +94,7 @@ export const Sidebar = () => {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-6 space-y-1">
+      <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto scrollbar-hide">
         {activeNavItems.map((item) => {
           const Icon = item.icon;
           const label = t(`navigation.${item.key}`);
@@ -119,6 +125,20 @@ export const Sidebar = () => {
             </HelpTooltip>
           );
         })}
+
+        {/* Edit Sidebar Button */}
+        <HelpTooltip content={t("navigation.edit_sidebar", "Editar Atalhos")} side="right">
+          <button
+            onClick={() => setIsEditModalOpen(true)}
+            className={cn(
+              "group relative flex flex-row items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 mt-2",
+              "text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground"
+            )}
+          >
+            <Pencil className="h-[18px] w-[18px] shrink-0" strokeWidth={2} />
+            {!collapsed && <span className="truncate">{t("navigation.edit_sidebar", "Editar Menu")}</span>}
+          </button>
+        </HelpTooltip>
       </nav>
 
       {/* Footer / User Profile */}
@@ -167,6 +187,8 @@ export const Sidebar = () => {
           </NavLink>
         </HelpTooltip>
 
+
+
         <div className={cn(
           "mt-3 flex w-full items-center gap-3 rounded-xl bg-sidebar-accent/50 p-2.5",
           collapsed && "justify-center"
@@ -206,6 +228,8 @@ export const Sidebar = () => {
           />
         </button>
       </HelpTooltip>
+
+      <EditSidebarModal open={isEditModalOpen} onOpenChange={setIsEditModalOpen} />
     </aside>
   );
 };

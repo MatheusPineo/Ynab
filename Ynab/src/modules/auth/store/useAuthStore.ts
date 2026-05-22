@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
+import { useSidebarStore } from "@/shared/store/useSidebarStore";
 
 interface User {
   id: string;
@@ -82,6 +83,10 @@ export const useAuthStore = create<AuthState>()(
         if (data.user.profile?.preferred_currency) {
           useCurrencyStore.getState().setBaseCurrency(data.user.profile.preferred_currency as any);
         }
+        
+        if (data.user.profile?.hidden_sidebar_items) {
+          useSidebarStore.getState().setHiddenItems(data.user.profile.hidden_sidebar_items);
+        }
       },
 
 
@@ -128,6 +133,10 @@ export const useAuthStore = create<AuthState>()(
         if (data.user.profile?.preferred_currency) {
           useCurrencyStore.getState().setBaseCurrency(data.user.profile.preferred_currency as any);
         }
+        
+        if (data.user.profile?.hidden_sidebar_items) {
+          useSidebarStore.getState().setHiddenItems(data.user.profile.hidden_sidebar_items);
+        }
       },
 
 
@@ -172,6 +181,10 @@ export const useAuthStore = create<AuthState>()(
 
         if (data.user.profile?.preferred_currency) {
           useCurrencyStore.getState().setBaseCurrency(data.user.profile.preferred_currency as any);
+        }
+        
+        if (data.user.profile?.hidden_sidebar_items) {
+          useSidebarStore.getState().setHiddenItems(data.user.profile.hidden_sidebar_items);
         }
       },
 

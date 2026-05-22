@@ -598,4 +598,262 @@ class TransactionRulesService:
         return tx.payee_id, tx.category_id
 
 
+class NetWorthCalculator:
+    @staticmethod
+    def calculate_holdings(user):
+        """
+        Calcula as posições atuais e o Preço Médio (Weighted Average Cost)
+        para todos os ativos baseando-se estritamente no ledger (InvestmentActivity).
+        """
+        from .models import InvestmentAsset
+        from decimal import Decimal
+        
+        assets = InvestmentAsset.objects.filter(user=user).prefetch_related('activities')
+        holdings = []
+        
+        for asset in assets:
+            total_quantity = Decimal('0.00000000')
+            total_cost_basis = Decimal('0.00')
+            
+            # Ordena do mais antigo para o mais recente para calcular preço médio cronologicamente
+            activities = asset.activities.all().order_by('date', 'created_at')
+            
+            for act in activities:
+                qty = Decimal(str(act.quantity))
+                price = Decimal(str(act.unit_price))
+                fees = Decimal(str(act.fees))
+                
+                if act.activity_type == 'BUY':
+                    # Aumenta quantidade e aumenta custo total (incluindo taxas)
+                    total_quantity += qty
+                    total_cost_basis += (qty * price) + fees
+                
+                elif act.activity_type == 'SELL':
+                    # Diminui quantidade. O custo base reduz proporcionalmente.
+                    if total_quantity > Decimal('0.00000000'):
+                        average_price = total_cost_basis / total_quantity
+                        total_cost_basis -= (qty * average_price)
+                    total_quantity -= qty
+                    # Taxas de venda são despesas, mas não afetam o custo médio do estoque remanescente
+                    
+                elif act.activity_type == 'SPLIT':
+                    # Em um desdobramento (SPLIT), a quantidade se multiplica pela proporção `qty`.
+                    # Se qty for 2, significa um split 2:1. O custo base total se mantém.
+                    total_quantity *= qty
+                    
+                elif act.activity_type == 'DIVIDEND':
+                    # Dividendos em dinheiro não afetam quantidade nem o preço médio das ações.
+                    pass
+            
+            # Se a quantidade final for zero ou muito próxima de zero (erros de float de cripto)
+            if total_quantity <= Decimal('0.00000001'):
+                total_quantity = Decimal('0.00000000')
+                total_cost_basis = Decimal('0.00')
+                average_cost = Decimal('0.00')
+            else:
+                average_cost = total_cost_basis / total_quantity
+            
+            holdings.append({
+                'asset_id': asset.id,
+                'ticker': asset.ticker,
+                'name': asset.name,
+                'currency': asset.currency,
+                'asset_type': asset.asset_type,
+                'quantity': total_quantity,
+                'average_cost': round(average_cost, 4),
+                'total_cost_basis': round(total_cost_basis, 2)
+            })
+            
+        return holdings
 
+import logging
+import requests
+from django.conf import settings
+from .models import DailyAssetPrice
+
+logger = logging.getLogger(__name__)
+
+class MarketDataService:
+    @staticmethod
+    def get_asset_price(ticker: str, is_brazilian: bool = False) -> Decimal | None:
+        """
+        Retrieves the current market price for an asset using multi-tier failover logic.
+        """
+        alpha_vantage_key = getattr(settings, 'ALPHA_VANTAGE_API_KEY', '')
+        twelve_data_key = getattr(settings, 'TWELVE_DATA_API_KEY', '')
+        hg_brasil_key = getattr(settings, 'HG_BRASIL_API_KEY', '')
+        
+        timeout_sec = 4
+
+        if is_brazilian:
+            # 1. Alpha Vantage (Master) - uses .SA
+            av_ticker = f"{ticker}.SA" if not ticker.endswith('.SA') else ticker
+            try:
+                response = requests.get(
+                    'https://www.alphavantage.co/query',
+                    params={
+                        'function': 'GLOBAL_QUOTE',
+                        'symbol': av_ticker,
+                        'apikey': alpha_vantage_key
+                    },
+                    timeout=timeout_sec
+                )
+                response.raise_for_status()
+                data = response.json()
+                if 'Global Quote' in data and '05. price' in data['Global Quote']:
+                    return Decimal(str(data['Global Quote']['05. price']))
+            except Exception as e:
+                logger.warning(f"Alpha Vantage failed for {av_ticker}: {e}. Failing over to HG Brasil.")
+
+            # 2. HG Brasil (Fallback Nacional)
+            hg_ticker = ticker.replace('.SA', '')
+            try:
+                response = requests.get(
+                    'https://api.hgbrasil.com/finance/stock_price',
+                    params={
+                        'key': hg_brasil_key,
+                        'symbol': hg_ticker
+                    },
+                    timeout=timeout_sec
+                )
+                response.raise_for_status()
+                data = response.json()
+                if 'results' in data and hg_ticker.upper() in data['results']:
+                    return Decimal(str(data['results'][hg_ticker.upper()]['price']))
+            except Exception as e:
+                logger.warning(f"HG Brasil failed for {hg_ticker}: {e}.")
+
+        else:
+            # 1. Alpha Vantage (Master)
+            try:
+                response = requests.get(
+                    'https://www.alphavantage.co/query',
+                    params={
+                        'function': 'GLOBAL_QUOTE',
+                        'symbol': ticker,
+                        'apikey': alpha_vantage_key
+                    },
+                    timeout=timeout_sec
+                )
+                response.raise_for_status()
+                data = response.json()
+                if 'Global Quote' in data and '05. price' in data['Global Quote']:
+                    return Decimal(str(data['Global Quote']['05. price']))
+            except Exception as e:
+                logger.warning(f"Alpha Vantage failed for {ticker}: {e}. Failing over to Twelve Data.")
+
+            # 2. Twelve Data (Fallback Internacional)
+            try:
+                response = requests.get(
+                    'https://api.twelvedata.com/price',
+                    params={
+                        'symbol': ticker,
+                        'apikey': twelve_data_key
+                    },
+                    timeout=timeout_sec
+                )
+                response.raise_for_status()
+                data = response.json()
+                if 'price' in data:
+                    return Decimal(str(data['price']))
+            except Exception as e:
+                logger.warning(f"Twelve Data failed for {ticker}: {e}.")
+
+        # 3. Last Line of Defense: Local Cache
+        logger.warning(f"All external APIs failed for {ticker}. Fetching from DailyAssetPrice cache.")
+        try:
+            last_price = DailyAssetPrice.objects.filter(asset__ticker=ticker).order_by('-date').first()
+            if last_price:
+                return last_price.price
+        except Exception as e:
+            logger.error(f"Failed to fetch local cache for {ticker}: {e}")
+            
+        return None
+
+from .models import DailyCDIRate
+
+class PortfolioEvolutionEngine:
+    @staticmethod
+    def calculate_fixed_income_evolution(activity_id: int, target_date: date) -> Decimal:
+        """
+        Calculates the compounded value of a fixed income investment up to the target date.
+        Uses the Brazilian 252-day convention with daily CDI rates.
+        """
+        activity = InvestmentActivity.objects.get(id=activity_id)
+        if not activity.principal_amount or not activity.cdi_percentage:
+            return activity.principal_amount or Decimal('0.00')
+
+        # Get all CDI rates between purchase date and target date
+        cdi_rates = DailyCDIRate.objects.filter(
+            date__gte=activity.date,
+            date__lte=target_date
+        ).order_by('date')
+
+        current_amount = activity.principal_amount
+        cdi_multiplier = activity.cdi_percentage / Decimal('100.0')
+
+        for rate in cdi_rates:
+            # Formula: A_t = A_{t-1} * (1 + daily_rate * (CDI% / 100))
+            if rate.daily_rate is not None:
+                current_amount *= (Decimal('1.0') + (rate.daily_rate * cdi_multiplier))
+
+        return current_amount
+
+    @staticmethod
+    def calculate_stock_position(asset_id: int) -> dict:
+        """
+        Processes the InvestmentActivity ledger for a given stock asset 
+        to determine current holdings and weighted average cost.
+        """
+        asset = InvestmentAsset.objects.get(id=asset_id)
+        activities = asset.activities.all().order_by('date', 'created_at')
+
+        total_quantity = Decimal('0.00000000')
+        total_cost_basis = Decimal('0.00')
+
+        for act in activities:
+            qty = act.quantity or Decimal('0.00')
+            price = act.unit_price or Decimal('0.00')
+            fees = act.fees or Decimal('0.00')
+
+            if act.activity_type == 'BUY':
+                total_quantity += qty
+                total_cost_basis += (qty * price) + fees
+            elif act.activity_type == 'SELL':
+                if total_quantity > Decimal('0.00000000'):
+                    average_price = total_cost_basis / total_quantity
+                    total_cost_basis -= (qty * average_price)
+                total_quantity -= qty
+            elif act.activity_type == 'SPLIT':
+                total_quantity *= qty
+
+        if total_quantity <= Decimal('0.00000001'):
+            total_quantity = Decimal('0.00000000')
+            average_cost = Decimal('0.00')
+        else:
+            average_cost = total_cost_basis / total_quantity
+
+        # Cross-reference with the latest cached price
+        # Assumes the ticker might be brazilian, defaults to True for general use case or adapt if currency == 'BRL'
+        is_brazilian = asset.currency == 'BRL'
+        current_price_value = MarketDataService.get_asset_price(asset.ticker, is_brazilian=is_brazilian)
+        if current_price_value is None:
+            current_price_value = Decimal('0.00')
+
+        net_value = total_quantity * current_price_value
+        total_profit_loss = net_value - total_cost_basis
+        percentage_yield = Decimal('0.00')
+        if total_cost_basis > Decimal('0.00'):
+            percentage_yield = (total_profit_loss / total_cost_basis) * Decimal('100.0')
+
+        return {
+            'asset_id': asset.id,
+            'ticker': asset.ticker,
+            'quantity': total_quantity,
+            'average_cost': round(average_cost, 4),
+            'total_cost_basis': round(total_cost_basis, 2),
+            'current_price': current_price_value,
+            'net_value': round(net_value, 2),
+            'total_profit_loss': round(total_profit_loss, 2),
+            'percentage_yield': round(percentage_yield, 2),
+        }

@@ -4,7 +4,8 @@ from .views import (
     AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, 
     MonthlyBudgetViewSet, IconUploadView, DistributionTemplateViewSet, 
     DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
-    InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet
+    InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
+    InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView
 )
 
 router = DefaultRouter()
@@ -21,11 +22,13 @@ router.register(r'credit-cards', CreditCardViewSet, basename='credit-card')
 router.register(r'inbox', TransactionInboxViewSet, basename='inbox')
 router.register(r'category-goals', CategoryGoalViewSet, basename='category-goal')
 router.register(r'transaction-rules', TransactionRuleViewSet, basename='transaction-rule')
-
+router.register(r'wealth/assets', InvestmentAssetViewSet, basename='wealth-asset')
+router.register(r'wealth/activities', InvestmentActivityViewSet, basename='wealth-activity')
 
 urlpatterns = [
     path('icons/upload/', IconUploadView.as_view(), name='account-upload-icon'),
     path('auth/profile/reset-data/', ResetDataView.as_view(), name='profile-reset-data'),
     path('inbox/upload/', InboxUploadView.as_view(), name='inbox-bulk-upload'),
+    path('wealth/summary/', WealthSummaryView.as_view(), name='wealth-summary'),
     path('', include(router.urls)),
 ]

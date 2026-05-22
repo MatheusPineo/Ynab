@@ -17,7 +17,7 @@ import {
   Info, CheckCircle2, AlertTriangle, XCircle, Wallet, Link2, Unlink2,
 } from "lucide-react";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
-import { useFeatureStore } from "@/shared/store/useFeatureStore";
+import { useSidebarStore } from "@/shared/store/useSidebarStore";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -94,7 +94,8 @@ function StatusIcon({ pct, target }: { pct: number; target: number }) {
 // ---- Componente principal ----
 const Rule503020 = () => {
   const { transactions, categoryGroups, currentMonth, currentYear, setCurrentPeriod, fetchTransactions, fetchCategoryGroups } = useAccountStore();
-  const { features } = useFeatureStore();
+  const { hiddenItems } = useSidebarStore();
+  const hasBudget = !hiddenItems.includes('budget');
   const {
     monthlyIncome, setMonthlyIncome,
     connectedToBudget, toggleConnectedToBudget,
@@ -119,11 +120,11 @@ const Rule503020 = () => {
   }, [transactions, currentMonth, currentYear]);
 
   const effectiveIncome = useMemo(() => {
-    if (connectedToBudget && features.budget) {
+    if (connectedToBudget && hasBudget) {
       return periodIncomes.reduce((sum, t) => sum + Number(t.amount), 0);
     }
     return monthlyIncome;
-  }, [connectedToBudget, features.budget, periodIncomes, monthlyIncome]);
+  }, [connectedToBudget, hasBudget, periodIncomes, monthlyIncome]);
 
   // Despesas reais do período por balde (via mapeamento de categoria)
   const spentByBucket = useMemo(() => {
@@ -142,7 +143,7 @@ const Rule503020 = () => {
     });
 
     // Se conectado ao orçamento, usa também o spent_amount das categorias mapeadas
-    if (connectedToBudget && features.budget) {
+    if (connectedToBudget && hasBudget) {
       const processNodes = (nodes: any[]) => {
         nodes.forEach(node => {
           if (node.children && node.children.length > 0) {
@@ -154,7 +155,7 @@ const Rule503020 = () => {
     }
 
     return result;
-  }, [transactions, categoryMapping, currentMonth, currentYear, connectedToBudget, features.budget, categoryGroups]);
+  }, [transactions, categoryMapping, currentMonth, currentYear, connectedToBudget, hasBudget, categoryGroups]);
 
   // Alvos
   const targets = useMemo(() => ({
@@ -245,7 +246,7 @@ const Rule503020 = () => {
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-4 items-start sm:items-end">
           {/* Toggle orçamento */}
-          {features.budget && (
+          {hasBudget && (
             <div className="flex flex-col gap-2">
               <Label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Fonte da Renda</Label>
               <Button
@@ -265,7 +266,7 @@ const Rule503020 = () => {
           )}
 
           {/* Input manual */}
-          {(!connectedToBudget || !features.budget) && (
+          {(!connectedToBudget || !hasBudget) && (
             <div className="flex flex-col gap-2 min-w-[200px]">
               <Label htmlFor="income-input" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 Renda Mensal Líquida
@@ -287,7 +288,7 @@ const Rule503020 = () => {
             <span className="text-2xl font-black text-primary">
               {formatMoney(effectiveIncome, "BRL")}
             </span>
-            {connectedToBudget && features.budget && (
+            {connectedToBudget && hasBudget && (
               <span className="text-[10px] text-muted-foreground">Soma das receitas de {monthNames[currentMonth - 1]}</span>
             )}
           </div>

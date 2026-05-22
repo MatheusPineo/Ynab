@@ -2093,3 +2093,38 @@ class TransactionRuleViewSet(viewsets.ModelViewSet):
 
 
 
+from .models import InvestmentAsset, InvestmentActivity
+from .serializers import InvestmentAssetSerializer, InvestmentActivitySerializer
+from .services import NetWorthCalculator
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, OpenApiTypes
+
+class InvestmentAssetViewSet(viewsets.ModelViewSet):
+    serializer_class = InvestmentAssetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return InvestmentAsset.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class InvestmentActivityViewSet(viewsets.ModelViewSet):
+    serializer_class = InvestmentActivitySerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return InvestmentActivity.objects.filter(asset__user=self.request.user).select_related('asset').order_by('-date', '-id')
+
+class WealthSummaryView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        summary="Retorna o resumo do portfólio de investimentos",
+        description="Calcula o patrimônio líquido total e detalhado",
+        responses={200: OpenApiTypes.OBJECT}
+    )
+    def get(self, request):
+        data = NetWorthCalculator.calculate_holdings(request.user)
+        return Response(data)

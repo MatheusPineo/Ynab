@@ -222,3 +222,20 @@ class TransactionInboxSerializer(serializers.ModelSerializer):
             'file': {'required': True},
         }
 
+from .models import InvestmentAsset, InvestmentActivity
+
+class InvestmentAssetSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvestmentAsset
+        fields = '__all__'
+        extra_kwargs = {
+            'user': {'read_only': True},
+        }
+
+class InvestmentActivitySerializer(serializers.ModelSerializer):
+    asset_ticker = serializers.CharField(source='asset.ticker', read_only=True)
+    asset_name = serializers.CharField(source='asset.name', read_only=True)
+    
+    class Meta:
+        model = InvestmentActivity
+        fields = '__all__'

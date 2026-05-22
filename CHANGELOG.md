@@ -4,16 +4,72 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
+## [1.34.3] - 2026-05-22
+### Added
+- **Backend API (Wealth):** Adição da `PortfolioEvolutionEngine` em `services.py` contendo algoritmos matemáticos para evolução de patrimônio:
+  - `calculate_fixed_income_evolution`: Capitalização diária de juros (CDI sobre base 252) sobre o `principal_amount` cruzando com a tabela `DailyCDIRate`.
+  - `calculate_stock_position`: Processamento sequencial do *Ledger* de Ativos de Renda Variável (`BUY`, `SELL`, `SPLIT`) cruzando os estoques locais com o `MarketDataService` para aferir lucros, perdas e yield real-time.
+
+## [1.34.2] - 2026-05-22
+### Added
+- **Backend API (Wealth):** Adição do `MarketDataService` em `services.py`, que implementa uma lógica robusta de *Failover* Multi-Tier para resgatar cotações em tempo real:
+  - Alpha Vantage (Master) -> Twelve Data (Fallback) para ativos internacionais.
+  - Alpha Vantage (Master) -> HG Brasil Finance (Fallback) para ativos da B3.
+  - Local Cache (`DailyAssetPrice`) como última linha de defesa em caso de pane das APIs externas.
+
+## [1.34.1] - 2026-05-22
+### Added
+- **Backend API (Wealth):** Atualização dos models `InvestmentAsset` e `InvestmentActivity` para adicionar novos campos (`principal_amount`, `cdi_percentage`).
+- **Backend API (Wealth):** Criação dos novos models `DailyAssetPrice` (cache de cotas diárias de ações) e `DailyCDIRate` (taxa diária e anual de CDI, com cálculo automático da fração em dias úteis).
+
+## [1.34.0] - 2026-05-22
+### Added
+- **Interface de Wealth & Investments (Fase 4):** Construção da tela principal de Investimentos (`Investments.tsx`) contendo Dashboard de Patrimônio Líquido com Sparklines, agrupamento de inventário (Renda Fixa, Ações, Cripto) e Livro-Razão (Ledger) histórico de atividades.
+- **Backend API (Wealth):** Criação dos ViewSets (`InvestmentAssetViewSet`, `InvestmentActivityViewSet`) e do endpoint `/api/finance/wealth/summary/` conectando o frontend ao motor de cálculo de rendimentos. Integração via Zustand na store `useWealthStore.ts`.
+
+## [1.33.1] - 2026-05-22
+### Added
+- **Motor Matemático de Renda Fixa Brasileira (Fase 3):** Implementada a classe matemática `BrazilianFixedIncomeEngine` em `backend/finance/brazilian_fixed_income.py`. A engine conta com cálculo autônomo da data da Páscoa para deduzir feriados nacionais (Sexta Santa, Carnaval, Corpus Christi) e calcula dias úteis na Base 252 da ANBIMA/B3. Também foi integrado o simulador de rentabilidade para ativos pós-fixados, capaz de deduzir exata e automaticamente as tabelas regressivas de IOF (0 a 30 dias) e de Imposto de Renda.
+
+## [1.33.0] - 2026-05-22
+### Added
+- **Arquitetura de Portfólio de Investimentos (Fase 2):** Modelagem do livro-razão de custódia inspirada no Ghostfolio/Maybe. Foram criadas no backend (Django) as entidades `InvestmentAsset` e `InvestmentActivity` para rastreamento de compras, vendas, dividendos e desdobramentos de ativos financeiros, bem como o motor inteligente `NetWorthCalculator` capaz de calcular o Preço Médio e as posições exatas em tempo real de forma blindada contra erros de float (suporte até 8 casas decimais para Criptomoedas).
+
+## [1.32.2] - 2026-05-22
+### Changed
+- Adicionada opção explícita de "Conta de Investimento" no Modal de Criação de Contas Raiz. Essa opção cria a conta nativamente como `account_type: 'investment'`, o que injeta a flag "Off-Budget" de forma transparente, blindando o orçamento diário. Um quadro explicativo com o conceito de Off-Budget e Patrimônio Líquido foi adicionado no modal para orientar o usuário durante a criação.
+
+## [1.32.1] — 2026-05-22
+
+Esta versão foca na unificação da gestão de visibilidade de abas (módulos), consolidando o poder de ocultar/exibir abas inteiramente na ferramenta da Sidebar e removendo a seção de "Módulos" de Configurações, garantindo uma fonte única de verdade (Single Source of Truth).
+
+### Removido
+* **Aba de Módulos nas Configurações:** Remoção completa do painel "Módulos Ativos do Sistema" de dentro da página de Configurações.
+* **Store de Features (`useFeatureStore`):** Deleção completa da arquitetura paralela de gerenciamento de módulos, pois toda a visibilidade das ferramentas do Vault agora é estritamente definida através do array de `hiddenItems` da `useSidebarStore`.
+
+### Alterado
+* **Sidebar como Fonte Única de Verdade:** Todas as 11 áreas vitais do sistema (Visão Geral, Contas, Cartões, Transações, Inbox, Orçamento, Regra 50/30/20, Dívidas, Metas, Insights, e Relatórios) agora são controladas direta e unicamente pelo modal "Editar Menu" na própria barra lateral.
+* **Rotas Dinâmicas (FeatureProtectedRoute):** A rota de proteção das ferramentas do sistema (`App.tsx`) foi refatorada para ler diretamente do array de atalhos da sidebar (`hiddenItems`), redirecionando o usuário de volta se ele tentar acessar uma aba que ele próprio ocultou do menu.
+* **Botões de Nível em Relatórios:** Como as abas agora são controladas globalmente, todas as 9 sub-categorias (Iniciante, Intermediário, Avançado, etc.) de relatórios passam a estar permanentemente liberadas assim que o usuário habilita a aba pai de "Relatórios" na sidebar, descomplicando o uso.
+
 ## [1.32.0] — 2026-05-20
 
 Esta versão traz controle e visibilidade globais para as pendências financeiras, além de filtros avançados para mineração de transações passadas.
 
 ### Adicionado
-* **Painel de Pendências Globais no Dashboard:** A seção de Transações Pendentes do Dashboard agora busca e exibe **todas** as pendências agendadas do sistema (independentemente de estarem no mês passado, atual ou futuro), categorizando visualmente por badges coloridas ("Vencido", "Vence hoje", "Vence amanhã").
+* **Layout e Abas Editáveis na Sidebar:**
+  - Correção do alinhamento horizontal milimétrico da borda inferior entre a `Topbar` e o `Brand` da `Sidebar` pela unificação do uso da classe de cor `border-sidebar-border`, em conjunto com as classes `shrink-0` e `overflow-y-auto` na navegação.
+  - Adição da ferramenta de "Editar Menu" na sidebar, movendo o ícone e botão de lápis para o fim do menu de navegação.
+  - Sincronização persistente dos atalhos no Banco de Dados (Django `UserProfile` / `hidden_sidebar_items`), mantendo estado global sincronizado entre web e app Android.
+* **Painel de Pendências Globais no Dashboard:** A seção de Transações Pendentes do Dashboard agora busca e exibe **todas** as pendências agendadas do sistema, categorizando visualmente por badges coloridas ("Vencido", "Vence hoje", "Vence amanhã").
+* **Empty State de Elogio:** Quando todas as transações pendentes do mês selecionado forem pagas/efetivadas, o painel exibe uma mensagem de sucesso ("Tudo em dia!").
 * **Filtros Avançados de Transações (`Transactions.tsx`):** Adicionados dois novos menus dropdown lado-a-lado à barra de busca:
   - Filtro por **Status** (Todas, Pendentes, Efetivadas).
   - Filtro por **Tipo** (Todas, Recorrentes).
 * **Parâmetros de Filtro no Backend (`TransactionViewSet`):** O backend agora aceita `status=pending|realized` e `is_recurring=true|false` nativamente na querystring.
+
+### Removido
+* **Botão Duplicado:** O botão de "Nova Transação" avulso dentro do Dashboard (que ficava flutuando sobre o NetWorth) foi removido para priorizar a ação principal contida no cabeçalho.
 
 ## [1.31.0] — 2026-05-20
 

@@ -7,13 +7,22 @@
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
 
-### Status Atual (Versão 1.32.0)
-- **Marco:** Painel de Pendências Globais e Filtros Avançados de Transações.
-- **Estado:** 100% estável, testado e em produção via Vercel.
-- **Arquitetura:** Inserido `globalPendingTransactions` no Zustand para rastrear agendamentos órfãos em todo o ciclo de vida. O ViewSet do Django agora expõe filtros atômicos (`status`, `is_recurring`) por query param bypassando o limite mensal.
+### Status Atual (Versão 1.34.3)
+- **Marco:** Arquitetura de Custódia e Módulo de Wealth & Investments (Fase 4).
+- **Estado:** 100% estável, APIs e Engines Matemáticas implementadas e em produção via Vercel.
+- **Arquitetura:** Concluída a esteira de Wealth, contendo `InvestmentAsset`, `InvestmentActivity`, e as engines matemáticas avançadas (`MarketDataService` com failover de 3 níveis e `PortfolioEvolutionEngine` rodando matemática de Renda Fixa Brasileira e Preço Médio). O frontend já opera o dashboard de inventário em `Investments.tsx` alimentado por `useWealthStore.ts`. Testes de CI/CD unitários 100% no verde.
 
 ### Histórico de Sprints Recentes
-- [v1.32.0] Pendências Globais no Dashboard: O Card de Transações Pendentes agora lista todos os boletos/agendamentos pendentes sem filtro de mês (indicando "Vencido", "Vence hoje", etc).
+- [v1.34.3] Motor de Evolução de Portfólio (Wealth): Implementação da `PortfolioEvolutionEngine` em `services.py`, capaz de compor juros diários base-252 sobre contratos de Renda Fixa e varrer ledgers de Renda Variável (`BUY`/`SELL`/`SPLIT`) para apurar Preço Médio, Lucro/Prejuízo e Yield dinâmico.
+- [v1.34.2] Integradão de Dados (Wealth): Criação do `MarketDataService` em `services.py` com arquitetura de fallback em três camadas (Alpha Vantage -> HG Brasil/Twelve Data -> Cache Local `DailyAssetPrice`) visando tolerância a falhas na extração de cotações de mercado.
+- [v1.34.1] Modelagem da Custódia: Criação dos novos models `DailyAssetPrice` e `DailyCDIRate` no `models.py` da API, além de atualização do ledger `InvestmentActivity` para suportar `principal_amount` e `cdi_percentage` de ativos de Renda Fixa Brasileira, utilizando sempre `DecimalField` rigoroso.
+- [v1.34.0] Interface de Wealth & Investments (Fase 4): Construção da tela principal de Investimentos (`Investments.tsx`) contendo Dashboard de Patrimônio Líquido com Sparklines, agrupamento de inventário (Renda Fixa, Ações, Cripto) e Livro-Razão (Ledger) histórico de atividades. Criação das rotas REST em `views.py` e da bridge de estado `useWealthStore.ts`.
+- [v1.33.1] Motor de Renda Fixa Brasileira (Fase 3): Implementação da classe matemática `BrazilianFixedIncomeEngine` em `backend/finance/brazilian_fixed_income.py`. A engine utiliza o algoritmo de Gauss/Meeus para calcular a Páscoa e deduzir feriados móveis nacionais (Carnaval, Sexta Santa, Corpus Christi), calculando Dias Úteis base 252. Contém também o cálculo de marcação a mercado para ativos pós-fixados deduzindo tabelas regressivas exatas de IOF e Imposto de Renda.
+- [v1.33.0] Arquitetura de Portfólio de Investimentos (Fase 2): Modelagem do livro-razão de custódia inspirada no Ghostfolio/Maybe. Foram criadas no backend (Django) as entidades `InvestmentAsset` e `InvestmentActivity` para rastreamento de compras, vendas, dividendos e desdobramentos de ativos (ações, FIIs, cripto), bem como o motor inteligente `NetWorthCalculator` no arquivo `services.py`, capaz de calcular o Preço Médio e as posições exatas em tempo real.
+- [v1.32.2] Conta de Investimento Nativa: Adição de botão explícito no Modal de Nova Conta Raiz para "Conta de Investimento". Essa opção aplica nativamente a flag Off-Budget (fora do orçamento) blindando o orçamento, além de incluir um texto didático em tela para o usuário.
+- [v1.32.1] Gestão de Módulos Unificada: Toda a gestão de "Ocultar/Exibir Abas" antes fragmentada entre Configurações e Sidebar foi consolidada unicamente no Modal de Edição (Lápis) da Sidebar. O Zustand `useFeatureStore` foi deletado. Os componentes que o consumiam (`BottomNav`, `Reports`, `Rule503020`, `Sidebar`, `Settings`, `App`) foram cirurgicamente refatorados para ler unicamente os atalhos invisíveis da Sidebar (`hiddenItems`).
+- [v1.32.0] Layout e Abas Editáveis na Sidebar: Correção do alinhamento milimétrico do Topbar com a Sidebar e adição da funcionalidade de Abas Editáveis (persistida no banco de dados, `hidden_sidebar_items`). A barra de rolagem na Sidebar impede distorções de tamanho, e o botão de editar (Lápis) agora fica no fim da seção de atalhos.
+- [v1.32.0] Pendências Globais no Dashboard: O Card de Transações Pendentes agora lista todos os boletos/agendamentos pendentes restrito ao mês selecionado, exibindo um empty state ("Tudo em dia!") quando quitado, e com tags ("Vencido", "Vence hoje"). O botão duplicado "Nova Transação" no header do Dashboard foi removido.
 - [v1.32.0] Filtros Avançados na Tela de Transações: Adição dos Dropdowns de filtragem nativos (Pendentes vs Efetivadas, Todas vs Recorrentes) complementando a busca por texto e conta.
 - [v1.31.0] Refatoração Estrutural de Dívidas (`DebtCharge`): Implementado suporte granular para registrar, editar e excluir débitos individuais associados a uma dívida em aberto. Substituiu a antiga rotina que mutava passivamente o `original_amount`.
 - [v1.31.0] Suporte Híbrido de Timeline em Dívidas: A interface `DebtCard` (em `Debts.tsx`) unifica na mesma listagem expansível tanto os pagamentos (amortizações) quanto os débitos/acréscimos contraídos, com controle total de CRUD individual e ordenação por data.

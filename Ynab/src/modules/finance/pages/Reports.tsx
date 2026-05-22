@@ -55,7 +55,7 @@ import {
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { useGoals } from "@/shared/hooks/useGoals";
-import { useFeatureStore } from "@/shared/store/useFeatureStore";
+
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { toast } from "sonner";
@@ -74,7 +74,7 @@ const COLORS = [
 export default function Reports() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { features } = useFeatureStore();
+
 
   // Consumindo dados reais da store
   const { tree, transactions, categoryGroups, fetchAccounts, fetchTransactions, fetchCategoryGroups, getAccountName, getCategoryName } = useAccountStore();
@@ -86,29 +86,18 @@ export default function Reports() {
   // Estados locais para filtros e controle de abas de nivel
   const [activeLevel, setActiveLevel] = useState<"beginner" | "intermediate" | "advanced" | "compliance" | "performance" | "risk" | "audit" | "business" | "integrity">("beginner");
 
-  // Mapear abas de relatórios para as chaves de features correspondentes
+  // Mapear abas de relatórios
   const reportTabsConfig = useMemo(() => [
-    { value: "beginner", featureKey: "report_beginner" },
-    { value: "intermediate", featureKey: "report_intermediate" },
-    { value: "advanced", featureKey: "report_advanced" },
-    { value: "compliance", featureKey: "report_compliance" },
-    { value: "performance", featureKey: "report_performance" },
-    { value: "risk", featureKey: "report_risk" },
-    { value: "audit", featureKey: "report_audit" },
-    { value: "business", featureKey: "report_business" },
-    { value: "integrity", featureKey: "report_integrity" }
+    { value: "beginner" },
+    { value: "intermediate" },
+    { value: "advanced" },
+    { value: "compliance" },
+    { value: "performance" },
+    { value: "risk" },
+    { value: "audit" },
+    { value: "business" },
+    { value: "integrity" }
   ] as const, []);
-
-  // Redireciona para a primeira aba ativa de relatórios se a atual for desabilitada
-  useEffect(() => {
-    const isCurrentActive = features[reportTabsConfig.find(t => t.value === activeLevel)?.featureKey as keyof typeof features] ?? true;
-    if (!isCurrentActive) {
-      const firstEnabled = reportTabsConfig.find(tab => features[tab.featureKey as keyof typeof features]);
-      if (firstEnabled) {
-        setActiveLevel(firstEnabled.value);
-      }
-    }
-  }, [features, activeLevel, reportTabsConfig]);
   const [selectedRegressionAccount, setSelectedRegressionAccount] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<"current" | "3months" | "6months" | "year">("current");
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
@@ -3620,7 +3609,7 @@ export default function Reports() {
 
       {/* SELETOR DE NIVEL PILL TABS (Ocultado ao imprimir) */}
       <div className="flex p-1 bg-slate-950 border border-slate-900 rounded-2xl max-w-5xl overflow-x-auto no-print">
-        {features.report_beginner !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("beginner")}
@@ -3631,7 +3620,7 @@ export default function Reports() {
             <span className="sm:hidden">Inic.</span>
           </button>
         )}
-        {features.report_intermediate !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("intermediate")}
@@ -3642,7 +3631,7 @@ export default function Reports() {
             <span className="sm:hidden">Interm.</span>
           </button>
         )}
-        {features.report_advanced !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("advanced")}
@@ -3653,7 +3642,7 @@ export default function Reports() {
             <span className="sm:hidden">Avanç.</span>
           </button>
         )}
-        {features.report_compliance !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("compliance")}
@@ -3664,7 +3653,7 @@ export default function Reports() {
             <span className="sm:hidden">Contáb.</span>
           </button>
         )}
-        {features.report_performance !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("performance")}
@@ -3675,7 +3664,7 @@ export default function Reports() {
             <span className="sm:hidden">Efic.</span>
           </button>
         )}
-        {features.report_risk !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("risk")}
@@ -3686,7 +3675,7 @@ export default function Reports() {
             <span className="sm:hidden">Risco</span>
           </button>
         )}
-        {features.report_audit !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("audit")}
@@ -3697,7 +3686,7 @@ export default function Reports() {
             <span className="sm:hidden">Audit.</span>
           </button>
         )}
-        {features.report_business !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("business")}
@@ -3708,7 +3697,7 @@ export default function Reports() {
             <span className="sm:hidden">B2B</span>
           </button>
         )}
-        {features.report_integrity !== false && (
+        {true && (
           <button
             type="button"
             onClick={() => setActiveLevel("integrity")}

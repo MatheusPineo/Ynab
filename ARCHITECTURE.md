@@ -325,6 +325,24 @@ Isso garante que o usuário tenha um histórico de evolução patrimonial perfei
 
 ---
 
+## 9. Módulo de Custódia e Evolução de Portfólio (Wealth & Investments)
+
+Para atender carteiras de investimento avançadas com ativos híbridos (Renda Fixa Brasileira e Mercado de Capitais), o sistema dispõe de motores matemáticos desacoplados da arquitetura transacional comum.
+
+### 9.1 Engenharia de Falha Tolerante (MarketDataService)
+A coleta de dados diários (`DailyAssetPrice`) implementa um fluxo ativo de _Multi-Tier Failover_ (Tolerância a Falhas em Múltiplas Camadas):
+1. **Master (Alpha Vantage):** Tentativa primária de coleta.
+2. **Fallback Internacional (Twelve Data):** Ativado imediatamente se o Alpha Vantage apresentar timeout ou cota atingida.
+3. **Fallback B3 (HG Brasil Finance):** Alternativa específica para mercado nacional.
+4. **Resiliência Máxima (Cache Local):** Se todos os nós falharem, o sistema absorve o erro e retorna o último preço conhecido salvo no banco de dados (`DailyAssetPrice`).
+
+### 9.2 Motor de Composição de Portfólio (PortfolioEvolutionEngine)
+Desacoplado do ledger YNAB, este motor calcula dinamicamente a rentabilidade do patrimônio:
+* **Renda Fixa Brasileira (CDI 252 Dias Úteis):** Lê o `principal_amount` e o percentual de mercado (`cdi_percentage`). Em seguida, varre a tabela `DailyCDIRate` multiplicando e capitalizando o montante dia a dia através do fator de base 252 (excluindo feriados nacionais com o motor de Páscoa e Carnaval).
+* **Renda Variável e Estoque:** Lê sequencialmente o ledger de `InvestmentActivity` (Compras, Vendas, Desdobramentos). Recalcula progressivamente o **Preço Médio (Weighted Average Cost)** ponderado após cada evento, abatendo saídas proporcionais. Por fim, cruza a cota com a cotação ativa do `MarketDataService` para apontar o Yield dinâmico atual.
+
+---
+
 ### Processador de Agendamento Recorrente (Engine)
 A sincronização e criação de transações agendadas/recorrentes é acionada de forma transparente sempre que o usuário carrega sua árvore de categorias ou lista suas transações. 
 

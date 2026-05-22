@@ -1,7 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { useSettingsStore } from "@/modules/auth/store/useSettingsStore";
-import { useFeatureStore, EnabledFeatures } from "@/shared/store/useFeatureStore";
+
 import { formatMoney, getCurrencySymbol } from "@/shared/lib/currency-utils";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/shared/lib/utils";
@@ -73,7 +73,7 @@ interface SettingsProps {
 const Settings = ({ extraTabs = [] }: SettingsProps) => {
   const { user, logout, accessToken } = useAuthStore();
   const { isPrivateMode, showDecimals, togglePrivateMode, toggleDecimals } = useSettingsStore();
-  const { features, toggleFeature } = useFeatureStore();
+
   const { t, i18n } = useTranslation();
 
   // Preferências Regionais de Moeda (Mockadas no Boilerplate se não houver cotações ou lendo do Settings se necessário)
@@ -370,10 +370,7 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
               <Globe className="h-4 w-4 shrink-0" />
               <span>Preferências</span>
             </TabsTrigger>
-            <TabsTrigger value="features" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
-              <SettingsIcon className="h-4 w-4 shrink-0" />
-              <span>Módulos</span>
-            </TabsTrigger>
+
             <TabsTrigger value="subscription" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
               <CreditCard className="h-4 w-4 shrink-0" />
               <span>Assinatura</span>
@@ -786,106 +783,7 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
               </div>
            </Card>
         </TabsContent>
-         {/* Features Tab */}
-         <TabsContent value="features" className="space-y-6 animate-in fade-in duration-300">
-            <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm p-8">
-               <div className="space-y-6">
-                 <div className="space-y-2">
-                   <h3 className="font-bold text-lg flex items-center gap-2">
-                     <SettingsIcon className="h-5 w-5 text-primary animate-pulse-subtle" /> Módulos Ativos do Sistema
-                   </h3>
-                   <p className="text-sm text-muted-foreground">
-                     Ative ou remova funções e páginas inteiras do seu painel de controle de forma 100% dinâmica. As seções desativadas serão instantaneamente removidas da barra lateral e do menu móvel de celular, dando total controle do seu sistema.
-                   </p>
-                 </div>
 
-                 <div className="grid gap-4 max-w-2xl">
-                   {Object.keys(features).map((featureKey) => {
-                     const key = featureKey as keyof EnabledFeatures;
-                     const isEnabled = features[key];
-                     
-                     // Fornece títulos legíveis e amigáveis em português
-                     const featureNames: Record<keyof EnabledFeatures, string> = {
-                       dashboard: "Visão Geral (Dashboard)",
-                       accounts: "Árvore de Contas",
-                       transactions: "Extrato de Transações",
-                       budget: "Orçamento Base-Zero",
-                       debts: "Controle de Dívidas",
-                       goals: "Metas Financeiras",
-                       insights: "Insights Inteligentes",
-                       rule503020: "Regra 50-30-20",
-                       credit_cards: "Cartões de Crédito",
-                       report_beginner: "Relatório: Iniciante (\"Onde estou agora?\")",
-                       report_intermediate: "Relatório: Intermediário (\"Estou progredindo?\")",
-                       report_advanced: "Relatório: Avançado (\"Como otimizar meu capital?\")",
-                       report_compliance: "Relatório: Contábil & Fiscal (DRE / Balancete)",
-                       report_performance: "Relatório: Eficiência & Performance",
-                       report_risk: "Relatório: Estatística & Risco",
-                       report_audit: "Relatório: Auditoria & OFX",
-                       report_business: "Relatório: Corporativo (B2B & Startups)",
-                       report_integrity: "Relatório: Integridade de Dados & Hashes",
-                     };
-
-                     const featureDescriptions: Record<keyof EnabledFeatures, string> = {
-                       dashboard: "Painel principal com Net Worth consolidado, gráficos de despesas, distribuição de saldos e atividades recentes.",
-                       accounts: "Visualização hierárquica e controle de contas mestre, subcontas, saldos e transferência de valores.",
-                       transactions: "Lançamento de receitas, despesas, transferências e histórico completo de movimentações com busca avançada.",
-                       budget: "Alocação inteligente e controle de categorias por envelopes base-zero para o mês e ano correspondentes.",
-                       debts: "Gerenciamento de devedores, credores, acréscimos e abatimento de empréstimos com histórico de auditoria.",
-                       goals: "Criação de objetivos de poupança inteligente e acompanhamento percentual com prazos e emojis customizáveis.",
-                       insights: "Relatórios de desempenho e analítica avançada sobre o comportamento e distribuição de seus recursos.",
-                       rule503020: "Painel integrado de planejamento orçamentário e divisão percentual de renda baseada no modelo 50-30-20.",
-                       credit_cards: "Central dedicada ao controle de crédito rotativo, faturas mensais, antecipação de parcelas e conciliação YNAB.",
-                       report_beginner: "Análise atômica de Patrimônio Líquido, fluxo diário de caixa, status de envelopes e distribuição de despesas.",
-                       report_intermediate: "Acompanhamento de metas de longo prazo, custos fixos recorrentes, histórico de categorias e balanço orçado vs. realizado.",
-                       report_advanced: "Módulo avançado contendo TreeMap recursivo, simulação de projeções de fluxo (Forecasting) e eficiência cambial de portfólio.",
-                       report_compliance: "Balancete de Verificação (Trial Balance), Demonstrativo de Resultados (DRE) e análise cambial Realized vs. Unrealized.",
-                       report_performance: "Indicadores de sobrevivência financeira (Survival Metrics), taxa de poupança marginal e análise de variância de orçamento.",
-                       report_risk: "Estudo de tendência linear de contas, mapa de calor cronológico de vazamentos e simulação estocástica de Monte Carlo.",
-                       report_audit: "Trilha completa de auditoria de logs de operadores e duto reativo de reconciliação bancária contra arquivos OFX.",
-                       report_business: "Relatório financeiro para startups, contendo OPEX vs. CAPEX, Burn Rate mensal, Runway projetado e centros de custos.",
-                       report_integrity: "Análise de integridade de hashes de transações, conciliação consolidada multi-entidade e análise de discrepância OFX por conta.",
-                     };
-
-                     const label = featureNames[key] || key;
-                     const description = featureDescriptions[key] || "";
-                     
-                     return (
-                       <div 
-                         key={key} 
-                         className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/30 transition-all duration-300"
-                       >
-                         <div className="space-y-1">
-                           <p className="text-sm font-bold text-foreground">
-                             {label}
-                           </p>
-                           <p className="text-xs text-muted-foreground leading-relaxed pr-2">
-                             {description}
-                           </p>
-                         </div>
-                         <Button 
-                           variant={isEnabled ? "outline" : "destructive"}
-                           type="button"
-                           onClick={() => {
-                             toggleFeature(key);
-                             toast.success(`Módulo "${label}" ${isEnabled ? "desativado" : "ativado"}!`);
-                           }}
-                           className={cn(
-                             "rounded-xl px-5 h-10 font-bold shrink-0 shadow-sm transition-all text-xs border border-border/50",
-                             isEnabled 
-                               ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20" 
-                               : "bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/20"
-                           )}
-                         >
-                           {isEnabled ? "✓ Habilitado" : "✗ Desabilitado"}
-                         </Button>
-                       </div>
-                     );
-                   })}
-                 </div>
-               </div>
-            </Card>
-         </TabsContent>
 
         {extraTabs.map((tab) => (
           <TabsContent key={tab.value} value={tab.value} className="space-y-6">

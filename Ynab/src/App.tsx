@@ -20,6 +20,7 @@ import Debts from "@/modules/finance/pages/Debts";
 import Rule503020 from "@/modules/finance/pages/Rule503020";
 import Reports from "@/modules/finance/pages/Reports";
 import CreditCards from "@/modules/finance/pages/CreditCards";
+import Investments from "@/modules/finance/pages/Investments";
 import Inbox from "@/modules/finance/pages/Inbox";
 import Auth from "@/modules/auth/pages/Auth";
 import Landing from "@/modules/auth/pages/Landing";
@@ -30,7 +31,7 @@ import CookieBanner from "@/modules/auth/components/CookieBanner";
 import { useConsentTracker } from "@/shared/hooks/useConsentTracker";
 import { FinanceDataTab, FinanceTemplatesTab } from "@/modules/finance/components/FinanceSettingsTab";
 import { Database, LayoutGrid } from "lucide-react";
-import { useFeatureStore, type EnabledFeatures } from "@/shared/store/useFeatureStore";
+import { useSidebarStore } from "@/shared/store/useSidebarStore";
 
 export const queryClient = new QueryClient();
 
@@ -40,12 +41,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const FeatureProtectedRoute = ({ children, featureKey }: { children: React.ReactNode; featureKey: keyof EnabledFeatures }) => {
-  const { features } = useFeatureStore();
-  const isEnabled = features[featureKey] !== false;
+const FeatureProtectedRoute = ({ children, featureKey }: { children: React.ReactNode; featureKey: string }) => {
+  const { hiddenItems } = useSidebarStore();
+  const isHidden = hiddenItems.includes(featureKey);
   
-  if (!isEnabled) {
-    if (featureKey !== "dashboard" && features.dashboard !== false) {
+  if (isHidden) {
+    if (featureKey !== "dashboard" && !hiddenItems.includes("dashboard")) {
       return <Navigate to="/dashboard" replace />;
     }
     return <Navigate to="/settings" replace />;
@@ -133,6 +134,7 @@ const App = () => {
                 <Route path="reports" element={<FeatureProtectedRoute featureKey="insights"><Reports /></FeatureProtectedRoute>} />
                 <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
                 <Route path="credit-cards" element={<FeatureProtectedRoute featureKey="credit_cards"><CreditCards /></FeatureProtectedRoute>} />
+                <Route path="investments" element={<FeatureProtectedRoute featureKey="investments"><Investments /></FeatureProtectedRoute>} />
                 <Route 
                   path="settings" 
                   element={

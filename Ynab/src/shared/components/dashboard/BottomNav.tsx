@@ -24,7 +24,7 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
-import { useFeatureStore } from "@/shared/store/useFeatureStore";
+import { useSidebarStore } from "@/shared/store/useSidebarStore";
 
 const primaryNavItems = [
   { icon: LayoutDashboard, key: "dashboard", to: "/dashboard" },
@@ -46,10 +46,10 @@ const moreNavItems = [
 export const BottomNav = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { features } = useFeatureStore();
+  const { hiddenItems } = useSidebarStore();
 
-  const activePrimaryNavItems = primaryNavItems.filter(item => features[item.key as keyof typeof features] !== false);
-  const activeMoreNavItems = moreNavItems.filter(item => features[item.key as keyof typeof features] !== false);
+  const activePrimaryNavItems = primaryNavItems.filter((item) => !hiddenItems.includes(item.key));
+  const activeMoreNavItems = moreNavItems.filter((item) => !hiddenItems.includes(item.key));
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-sidebar-border bg-sidebar/95 backdrop-blur-xl">

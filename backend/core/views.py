@@ -195,6 +195,7 @@ class UpdateProfileView(APIView):
         bio = request.data.get('bio')
         preferred_currency = request.data.get('preferred_currency')
         language = request.data.get('language')
+        hidden_sidebar_items = request.data.get('hidden_sidebar_items')
         
         if name:
             parts = name.split(' ', 1)
@@ -209,6 +210,8 @@ class UpdateProfileView(APIView):
             profile.preferred_currency = preferred_currency
         if language:
             profile.language = language
+        if hidden_sidebar_items is not None:
+            profile.hidden_sidebar_items = hidden_sidebar_items
             
         profile.save()
             
