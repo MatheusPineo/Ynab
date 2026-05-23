@@ -433,6 +433,7 @@ class CreditCard(models.Model):
     closing_day = models.PositiveSmallIntegerField()  # 1-31
     due_day = models.PositiveSmallIntegerField()      # 1-31
     credit_limit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    brand = models.CharField(max_length=50, null=True, blank=True)
 
     class Meta:
         db_table = 'core_creditcard'

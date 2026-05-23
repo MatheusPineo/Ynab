@@ -1,4 +1,4 @@
-- [v1.35.5] Agrupamento de Faturas de Cartão e Validação (Invoice Packaging): A tela de Transações agora empacota transações de crédito num Master Row. Implementado `noValidate` nativo e a nova nomenclatura 'Subconta de Despesa' nas interfaces de Cartões.
+- [v1.35.6 (Atual: Adicionado suporte para bandeiras de cartão de crédito no backend e frontend. Adicionado Edit/Delete de cartões. Substituído Select nativo por CategoryCombobox hierárquico no modal de lançamento de compras com cartão para consertar o visualizador de Subcontas de despesa.)
 - [v1.35.4] Formatação de Moeda Global RTL: Auditoria global finalizada. Inputs nativos 	ype="number" para valores monetários foram completamente substituídos pelo CurrencyInput da direita para a esquerda. Removidos os spinners up/down no CSS (index.css). Módulos afetados: Orçamento, Contas, Cartões, Investimentos, Dívidas, Metas e Inbox.
 # REGRAS GLOBAIS DE ENGENHARIA (NUNCA IGNORE)
 1. **Idioma:** Sempre me responda estritamente em PortuguÃªs do Brasil (pt-BR).
@@ -121,7 +121,7 @@
 - **Arquitetura:** CriaÃ§Ã£o completa da biblioteca de `docs/` operada sob `vitepress`. Todos os fluxos transacionais, motor YNAB, CartÃµes, IA, Auditoria de Ledgers, Investimentos e ConfiguraÃ§Ãµes foram exaustivamente mapeados e documentados com roteamento central na barra lateral `config.js` do VitePress.
 
 ### HistÃ³rico de Sprints Recentes
-- [v1.35.5] Agrupamento de Faturas de Cartão e Validação (Invoice Packaging): A tela de Transações agora empacota transações de crédito num Master Row. Implementado `noValidate` nativo e a nova nomenclatura 'Subconta de Despesa' nas interfaces de Cartões.
+- [v1.35.6 (Atual: Adicionado suporte para bandeiras de cartão de crédito no backend e frontend. Adicionado Edit/Delete de cartões. Substituído Select nativo por CategoryCombobox hierárquico no modal de lançamento de compras com cartão para consertar o visualizador de Subcontas de despesa.)
 - [v1.35.4] Formatação de Moeda Global RTL: Auditoria global finalizada. Inputs nativos 	ype="number" para valores monetários foram completamente substituídos pelo CurrencyInput da direita para a esquerda. Removidos os spinners up/down no CSS (index.css). Módulos afetados: Orçamento, Contas, Cartões, Investimentos, Dívidas, Metas e Inbox.
 - [v1.35.3] UI Premium de Investimentos e Contas: AtualizaÃ§Ã£o do card de PatrimÃ´nio LÃ­quido com gradient-glow, melhoria nos badges informativos de teto e On/Off-budget, formataÃ§Ã£o simplificada e expansÃ£o horizontal da tabela do Ledger (Livro-RazÃ£o) e inclusÃ£o da traduÃ§Ã£o do tooltip.
 - [v1.35.2] AutomaÃ§Ã£o de CotaÃ§Ãµes em Tempo Real: O backend agora delega a responsabilidade de composiÃ§Ã£o de valor para o `PortfolioEvolutionEngine`. Renda VariÃ¡vel consome da API Alpha Vantage / HG Brasil dinamicamente; Renda Fixa e a nova classe Tesouro Direto (`TREASURY`) consultam o CDI oficial diÃ¡rio do Banco Central, rendendo na tela de Investimentos.

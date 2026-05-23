@@ -12,10 +12,12 @@ import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/shared/components/ui/select";
 import { Badge } from "@/shared/components/ui/badge";
 import { Progress } from "@/shared/components/ui/progress";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
-import { CreditCard as CreditCardIcon, Plus, Calendar, Clock, CheckCircle2, Sparkles, Zap, Tag, DollarSign, Wallet } from "lucide-react";
+import { CreditCard as CreditCardIcon, Plus, Calendar, Clock, CheckCircle2, Sparkles, Zap, Tag, DollarSign, Wallet, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { CategoryCombobox } from "@/modules/finance/components/CategoryCombobox";
 
 interface CreditCardModel {
   id: string;
@@ -26,6 +28,7 @@ interface CreditCardModel {
   available_limit: number;
   currency: string;
   account_id: string;
+  brand?: string | null;
 }
 
 interface InstallmentModel {
@@ -75,6 +78,8 @@ export const CreditCards = () => {
 
   // Modal de Nova Transação (Compra Matriz)
   const [isNewTxOpen, setIsNewTxOpen] = useState(false);
+  const [isEditCardOpen, setIsEditCardOpen] = useState(false);
+  const [cardToEdit, setCardToEdit] = useState<CreditCardModel | null>(null);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [totalInstallments, setTotalInstallments] = useState("1");
@@ -157,7 +162,8 @@ export const CreditCards = () => {
         credit_limit: Number(creditLimit),
         closing_day: Number(closingDay),
         due_day: Number(dueDay),
-        currency: cardCurrency
+        currency: cardCurrency,
+        brand: cardBrand
       };
 
       const response = await authenticatedFetch("/credit-cards/", {
@@ -175,6 +181,49 @@ export const CreditCards = () => {
       setCreditLimit("");
       await fetchCreditCards();
       await fetchAccounts();
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateCard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cardToEdit) return;
+    if (!cardName || !creditLimit) {
+      toast.error("Preencha o nome do cartão e o limite.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const payload = {
+        name: cardName,
+        credit_limit: Number(creditLimit),
+        closing_day: Number(closingDay),
+        due_day: Number(dueDay),
+        currency: cardCurrency,
+        brand: cardBrand
+      };
+
+      const response = await authenticatedFetch(`/credit-cards/${cardToEdit.id}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || JSON.stringify(result));
+
+      toast.success("✨ Cartão atualizado com sucesso!");
+      setIsEditCardOpen(false);
+      setCardToEdit(null);
+      await fetchCreditCards();
+      await fetchAccounts();
+      if (selectedCard?.id === cardToEdit.id) {
+        setSelectedCard({ ...selectedCard, ...payload } as any);
+      }
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -362,14 +411,65 @@ export const CreditCards = () => {
 
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-1">
-                      <span className="text-[10px] uppercase font-mono tracking-widest opacity-70">Cartão de Crédito</span>
+                      <span className="text-[10px] uppercase font-mono tracking-widest opacity-70">
+                        {card.brand ? `Cartão ${card.brand}` : "Cartão de Crédito"}
+                      </span>
                       <h3 className="text-xl font-extrabold truncate">{card.name}</h3>
                     </div>
-                    <div className={cn(
-                      "p-2.5 rounded-2xl backdrop-blur-md border",
-                      isSelected ? "bg-white/10 border-white/20 text-primary" : "bg-primary/10 border-primary/20 text-primary"
-                    )}>
-                      <Sparkles className="h-5 w-5" />
+                    
+                    <div className="flex items-center gap-1 z-10">
+                      <div className={cn(
+                        "p-2.5 rounded-2xl backdrop-blur-md border mr-1",
+                        isSelected ? "bg-white/10 border-white/20 text-primary" : "bg-primary/10 border-primary/20 text-primary"
+                      )}>
+                        {card.brand === "Visa" && <span className="font-extrabold italic text-sm">VISA</span>}
+                        {card.brand === "Mastercard" && <div className="flex -space-x-1.5"><div className="w-3.5 h-3.5 rounded-full bg-red-500 opacity-80 mix-blend-multiply"></div><div className="w-3.5 h-3.5 rounded-full bg-yellow-400 opacity-80 mix-blend-multiply"></div></div>}
+                        {card.brand === "Elo" && <span className="font-bold text-sm tracking-tighter">elo</span>}
+                        {card.brand === "American Express" && <span className="font-bold text-xs">AMEX</span>}
+                        {(!card.brand || !["Visa", "Mastercard", "Elo", "American Express"].includes(card.brand)) && <Sparkles className="h-5 w-5" />}
+                      </div>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className={cn("h-8 w-8 rounded-full", isSelected ? "text-white/80 hover:text-white hover:bg-white/10" : "text-muted-foreground hover:bg-muted/50")}>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40 bg-card border-border/60">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            setCardToEdit(card);
+                            setCardName(card.name);
+                            setCreditLimit(String(card.credit_limit));
+                            setClosingDay(String(card.closing_day));
+                            setDueDay(String(card.due_day));
+                            setCardCurrency(card.currency);
+                            setCardBrand(card.brand || "");
+                            setIsEditCardOpen(true);
+                          }}>
+                            <Edit2 className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={async (e) => {
+                            e.stopPropagation();
+                            if (window.confirm("Deseja realmente excluir este cartão?")) {
+                              try {
+                                const response = await authenticatedFetch(`/credit-cards/${card.id}/`, { method: "DELETE" });
+                                if (!response.ok) throw new Error("Erro ao excluir cartão");
+                                toast.success("Cartão excluído com sucesso");
+                                if (selectedCard?.id === card.id) setSelectedCard(null);
+                                fetchCreditCards();
+                                fetchAccounts();
+                              } catch (err: any) {
+                                toast.error(err.message);
+                              }
+                            }
+                          }} className="text-red-500 focus:text-red-500">
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
@@ -672,6 +772,116 @@ export const CreditCards = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Modal Editar Cartão */}
+      <Dialog open={isEditCardOpen} onOpenChange={setIsEditCardOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl shadow-glow overflow-hidden p-0 gap-0">
+          <DialogHeader className="p-6 pb-2 relative z-10">
+            <DialogTitle className="text-xl font-extrabold flex items-center gap-2">
+              <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                <Edit2 className="h-5 w-5" />
+              </div>
+              Editar Cartão
+            </DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdateCard} className="flex flex-col relative z-10">
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 gap-1.5">
+                <Label htmlFor="editCardName" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Nome do Cartão e Subconta</Label>
+                <Input
+                  id="editCardName"
+                  value={cardName}
+                  onChange={(e) => setCardName(e.target.value)}
+                  placeholder="Ex: Nubank, Itaú..."
+                  className="rounded-xl bg-muted/15 border-border/40 h-11 text-base font-semibold placeholder:font-normal"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="editCreditLimit" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Limite de Crédito</Label>
+                  <CurrencyInput
+                    id="editCreditLimit"
+                    value={creditLimit}
+                    onValueChange={(val) => setCreditLimit(val)}
+                    className="rounded-xl bg-muted/15 border-border/40 h-11 text-base font-semibold"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Moeda</Label>
+                  <Select value={cardCurrency} onValueChange={setCardCurrency}>
+                    <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border/60">
+                      <SelectItem value="BRL">Real (BRL)</SelectItem>
+                      <SelectItem value="USD">Dólar (USD)</SelectItem>
+                      <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Bandeira do Cartão</Label>
+                  <Select value={cardBrand} onValueChange={setCardBrand}>
+                    <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium">
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border-border/60">
+                      <SelectItem value="Mastercard">Mastercard</SelectItem>
+                      <SelectItem value="Visa">Visa</SelectItem>
+                      <SelectItem value="American Express">American Express</SelectItem>
+                      <SelectItem value="Elo">Elo</SelectItem>
+                      <SelectItem value="Outro">Outra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="editClosingDay" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Dia Fechamento</Label>
+                  <Input
+                    id="editClosingDay"
+                    type="number"
+                    min={1} max={31}
+                    value={closingDay}
+                    onChange={(e) => setClosingDay(e.target.value)}
+                    className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium"
+                    required
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="editDueDay" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Dia Vencimento</Label>
+                  <Input
+                    id="editDueDay"
+                    type="number"
+                    min={1} max={31}
+                    value={dueDay}
+                    onChange={(e) => setDueDay(e.target.value)}
+                    className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="px-6 py-4 gap-2 sm:gap-0 border-t border-border/20 bg-muted/5">
+              <Button type="button" variant="outline" onClick={() => setIsEditCardOpen(false)} className="rounded-xl border-border/60 text-xs font-bold h-11">
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting} className="gradient-primary rounded-xl font-bold shadow-glow text-xs h-11">
+                {isSubmitting ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       {/* Modal de Lançamento de Compra Matriz */}
       <Dialog open={isNewTxOpen} onOpenChange={setIsNewTxOpen}>
         <DialogContent className="sm:max-w-[480px] rounded-3xl border-border/60 bg-gradient-to-br from-card/95 via-card/80 to-primary/5 backdrop-blur-xl overflow-hidden p-6 shadow-glow">
@@ -759,34 +969,18 @@ export const CreditCards = () => {
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-1.5" id="category-container">
                   <Label htmlFor="category" className={cn("text-[10px] font-bold uppercase tracking-wider font-mono", categoryError ? "text-red-500" : "text-muted-foreground")}>Subconta de despesa</Label>
-                  <Select 
+                  <CategoryCombobox 
                     value={categoryId} 
                     onValueChange={(val) => {
                       setCategoryId(val);
                       setCategoryError(false);
                     }} 
-                    required
-                  >
-                    <SelectTrigger className={cn("rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium truncate", categoryError && "border-red-500 ring-1 ring-red-500/50")}>
-                      <SelectValue placeholder="Selecione a subconta" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border/60 max-h-60">
-                      {categoryGroups.map(group => (
-                        <SelectGroup key={group.id}>
-                          <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
-                            {group.name}
-                          </SelectLabel>
-                          {(group.children || []).map(cat => (
-                            <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    placeholder="Selecione a subconta"
+                    filterLeafOnly={true}
+                    className={categoryError ? "border-red-500 ring-1 ring-red-500/50" : ""}
+                  />
                   {categoryError && <span className="text-[10px] text-red-500 font-medium ml-1">Campo obrigatório. Selecione onde deduzir esta despesa.</span>}
                 </div>
               </div>

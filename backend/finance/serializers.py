@@ -176,7 +176,7 @@ class CreditCardSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = CreditCard
-        fields = ['id', 'name', 'closing_day', 'due_day', 'credit_limit', 'available_limit', 'currency', 'account_id', 'account']
+        fields = ['id', 'name', 'closing_day', 'due_day', 'credit_limit', 'available_limit', 'currency', 'account_id', 'account', 'brand']
 
     def get_name(self, obj):
         return obj.account.name if obj.account else "Cartão"

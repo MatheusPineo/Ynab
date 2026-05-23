@@ -1,3 +1,8 @@
+## v1.35.6
+- **Cartões de Crédito Mais Inteligentes:** Reformulamos a experiência de uso de Cartões de Crédito! Agora, ao cadastrar um novo cartão, você poderá escolher a Bandeira exata (Visa, Mastercard, Elo, Amex) e visualizá-la lindamente no seu painel. 
+- **Seleção de Subconta Precisa:** Corrigimos o visualizador de Subcontas no painel de compras no cartão, garantindo que você visualize a árvore completa hierárquica na hora de deduzir sua despesa!
+- **Edição e Exclusão:** Agora é possível editar ou excluir um cartão de crédito livremente com um clique no botão de 3 pontinhos na tela de Cartões!
+
 ﻿## v1.35.5
 - **Digitação Monetária Global Premium:** Substituímos em todo o sistema a caixa de digitação nativa do navegador por uma caixa de formatação dinâmica. Ao digitar valores no Orçamento, Cartões, Metas ou Dívidas, a digitação ocorre fluidamente da Direita para a Esquerda (Ex: ao digitar 100, aparece 1,00), reproduzindo a experiência perfeita de aplicativos bancários. As horrorosas setas de incremento/decremento nativas também foram removidas permanentemente!
 # Novidades e AtualizaÃ§Ãµes

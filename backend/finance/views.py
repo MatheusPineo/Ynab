@@ -1498,6 +1498,24 @@ class CreditCardViewSet(viewsets.ModelViewSet):
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Se 'name' foi enviado, atualiza o Account relacionado
+        if 'name' in request.data and instance.account:
+            instance.account.name = request.data['name']
+            instance.account.save()
+            
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
+
     @extend_schema(
         summary="Retorna as faturas de um cartão de crédito específico",
         description="Lista todas as faturas geradas para o cartão informado, incluindo suas respectivas parcelas e montante total.",

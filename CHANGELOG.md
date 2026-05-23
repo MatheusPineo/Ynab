@@ -1,3 +1,13 @@
+## [1.35.6] - 2026-05-23
+### Added
+- Frontend: CategoryCombobox component for hierarchical category selection in credit card purchases.
+- Backend & Frontend: Added rand field to CreditCard model and updated views/serializers to store and return the brand.
+- Frontend: UI edit and delete features for Credit Cards.
+- Frontend: Credit card brand visual rendering on the frontend card UI.
+
+### Changed
+- Frontend: Replaced native Select with CategoryCombobox for category selection in the Credit Card Purchase Modal.
+
 # Registro de Alterações — Vault Finance OS (Changelog)
 
 Todas as alterações notáveis, correções de bugs, novas funcionalidades e marcos estéticos aplicados ao **Vault Finance OS** são registrados de forma cronológica neste documento. Ele segue rigorosamente o padrão internacional do [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/) e adota o Versionamento Semântico (**SemVer**): `MAJOR.MINOR.PATCH`.
