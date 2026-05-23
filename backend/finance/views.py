@@ -1436,7 +1436,7 @@ class ResetDataView(APIView):
 
     @extend_schema(
         summary="Zera todos os dados financeiros do usuário logado",
-        description="Exclui de forma permanente todas as transações, contas, categorias, metas, dívidas e modelos de distribuição do usuário autenticado, mantendo apenas o seu cadastro e perfil de acesso.",
+        description="Exclui de forma permanente todas as transações, contas, categorias, metas, dívidas e modelos de distribuição do usuário autenticado e reseta as categorias padrão.",
         responses={
             200: inline_serializer(
                 name="ResetDataSuccessResponse",
@@ -1444,18 +1444,28 @@ class ResetDataView(APIView):
             )
         }
     )
-    @transaction.atomic
-    def post(self, request):
-        user = request.user
-        
-        Debt.objects.filter(user=user).delete()
-        DistributionTemplate.objects.filter(user=user).delete()
-        Goal.objects.filter(user=user).delete()
-        Transaction.objects.filter(account__user=user).delete()
-        Account.objects.filter(user=user).delete()
-        Category.objects.filter(user=user).delete()
-        
+    def delete(self, request):
+        from .seeding import reset_user_data
+        reset_user_data(request.user)
         return Response({"message": "Todos os seus dados financeiros foram excluídos com sucesso. Você pode recomeçar do zero agora!"}, status=status.HTTP_200_OK)
+
+class DemoModeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        summary="Cria um ambiente de testes",
+        description="Gera massa de dados fictícios para demonstração",
+        responses={
+            200: inline_serializer(
+                name="DemoModeSuccessResponse",
+                fields={"message": serializers.CharField()}
+            )
+        }
+    )
+    def post(self, request):
+        from .seeding import seed_demo_environment
+        seed_demo_environment(request.user)
+        return Response({"message": "Modo de Demonstração ativado com sucesso!"}, status=status.HTTP_200_OK)
 
 from .models import CreditCard, CreditCardBill, CreditCardTransaction, Installment
 from .serializers import CreditCardSerializer, CreditCardBillSerializer, CreditCardTransactionSerializer, InstallmentSerializer
@@ -1511,6 +1521,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                 "total_amount": serializers.DecimalField(max_digits=12, decimal_places=2, help_text="Valor total."),
                 "category_id": serializers.IntegerField(required=False, allow_null=True, help_text="ID da Categoria."),
                 "installment_count": serializers.IntegerField(default=1, help_text="Número de parcelas."),
+                "starting_installment": serializers.IntegerField(default=1, help_text="A partir de qual parcela gerar."),
                 "original_currency": serializers.CharField(default='BRL', help_text="Moeda original da transação."),
                 "original_amount": serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True),
                 "exchange_rate": serializers.DecimalField(max_digits=10, decimal_places=4, default=1.0000, help_text="Taxa de conversão / Spread."),
@@ -1533,6 +1544,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                 total_amount=Decimal(str(data['total_amount'])),
                 category_id=data.get('category_id'),
                 installment_count=int(data.get('installment_count', 1)),
+                starting_installment=int(data.get('starting_installment', 1)),
                 original_currency=data.get('original_currency', 'BRL'),
                 original_amount=Decimal(str(data['original_amount'])) if data.get('original_amount') else None,
                 exchange_rate=Decimal(str(data.get('exchange_rate', '1.0000'))),

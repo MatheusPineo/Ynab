@@ -5,7 +5,7 @@ from .views import (
     MonthlyBudgetViewSet, IconUploadView, DistributionTemplateViewSet, 
     DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
-    InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView
+    InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, DemoModeView
 )
 
 router = DefaultRouter()
@@ -27,7 +27,8 @@ router.register(r'wealth/activities', InvestmentActivityViewSet, basename='wealt
 
 urlpatterns = [
     path('icons/upload/', IconUploadView.as_view(), name='account-upload-icon'),
-    path('auth/profile/reset-data/', ResetDataView.as_view(), name='profile-reset-data'),
+    path('onboarding/reset/', ResetDataView.as_view(), name='onboarding-reset-data'),
+    path('onboarding/demo-mode/', DemoModeView.as_view(), name='onboarding-demo-mode'),
     path('inbox/upload/', InboxUploadView.as_view(), name='inbox-bulk-upload'),
     path('wealth/summary/', WealthSummaryView.as_view(), name='wealth-summary'),
     path('', include(router.urls)),

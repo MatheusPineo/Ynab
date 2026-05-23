@@ -635,13 +635,17 @@ class InvestmentAsset(models.Model):
         ('STOCK', 'Stock'),
         ('FIXED_INCOME', 'Fixed Income'),
         ('TREASURY', 'Tesouro Direto'),
-        ('FII', 'FII'),
-        ('ETF', 'ETF'),
+        ('FII', 'FIIs'),
+        ('ETF', 'ETFs'),
         ('CRYPTO', 'Crypto'),
+        ('BOND', 'Bonds'),
+        ('MUTUAL_FUND', 'Fundo de Investimento'),
     ]
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='investment_assets')
     ticker = models.CharField(max_length=50) # Ex: AAPL, BOVA11
     name = models.CharField(max_length=150)
+    market_country = models.CharField(max_length=2, default='BR')
+    asset_category = models.CharField(max_length=100, null=True, blank=True)
     asset_type = models.CharField(max_length=50, choices=ASSET_TYPES) # Ex: STOCK, CRYPTO, FII, BOND
     currency = models.CharField(max_length=3, default='BRL')
     
@@ -678,6 +682,7 @@ class InvestmentActivity(models.Model):
     unit_price = models.DecimalField(max_digits=18, decimal_places=8, null=True, blank=True)
     principal_amount = models.DecimalField(max_digits=18, decimal_places=2, null=True, blank=True)
     cdi_percentage = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
     fees = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     created_at = models.DateTimeField(auto_now_add=True)
 

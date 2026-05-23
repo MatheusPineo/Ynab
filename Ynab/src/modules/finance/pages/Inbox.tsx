@@ -35,7 +35,7 @@ import {
 import { toast } from "sonner";
 
 const Inbox = () => {
-  const { inboxItems, isLoading, fetchInboxItems, uploadInboxFiles, approveInboxItem, deleteInboxItem } = useInboxStore();
+  const { inboxItems, isLoading, uploadProgress, uploadTotal, fetchInboxItems, uploadInboxFiles, approveInboxItem, deleteInboxItem } = useInboxStore();
   const { tree, categoryGroups, fetchAccounts, fetchCategoryGroups } = useAccountStore();
   
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
@@ -291,14 +291,21 @@ const Inbox = () => {
           <Button
             onClick={() => fileInputRef.current?.click()}
             className="gradient-primary text-white shadow-glow hover:scale-105 active:scale-95 transition-all flex items-center gap-2 rounded-xl"
-            disabled={isLoading}
+            disabled={isLoading || uploadTotal > 0}
           >
-            {isLoading ? (
+            {uploadTotal > 0 ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Enviando {uploadProgress} de {uploadTotal}...</span>
+              </>
+            ) : isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Upload className="h-4 w-4" />
+              <>
+                <Upload className="h-4 w-4" />
+                Carregar Recibos
+              </>
             )}
-            Carregar Recibos
           </Button>
         </div>
       </div>

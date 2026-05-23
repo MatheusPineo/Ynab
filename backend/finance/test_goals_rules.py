@@ -127,11 +127,12 @@ class TestCategoryGoals:
             frequency='weekly'
         )
         
-        # Em Maio de 2026 (05/2026):
-        # 1 de Maio de 2026 é uma sexta-feira.
-        # Vamos contar quantas segundas-feiras (weekday=0) ocorrem em Maio/2026:
-        # Dias: 4, 11, 18, 25. Total de 4 segundas-feiras.
-        # Meta mensal: 20 * 4 = 80.00.
+        import calendar
+        weekday = goal.created_at.weekday() if goal.created_at else 0
+        cal = calendar.Calendar()
+        occurrences = sum(1 for d in cal.itermonthdays2(2026, 5) if d[0] > 0 and d[1] == weekday)
+        expected = Decimal('20.00') * Decimal(str(occurrences))
+
         underfunded = YNABGoalService.calculate_underfunded(
             category=self.category,
             month=5,
@@ -139,7 +140,7 @@ class TestCategoryGoals:
             available_balance=Decimal('0.00'),
             assigned_amount=Decimal('0.00')
         )
-        assert underfunded == Decimal('80.00')
+        assert underfunded == expected
 
 
 @pytest.mark.django_db

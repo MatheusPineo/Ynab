@@ -12,6 +12,7 @@ def process_credit_card_transaction(
     total_amount,
     category_id=None,
     installment_count=1,
+    starting_installment=1,
     original_currency='BRL',
     original_amount=None,
     exchange_rate=Decimal('1.0000'),
@@ -60,7 +61,7 @@ def process_credit_card_transaction(
     installments = []
     today = date.today()
     
-    for i in range(1, installment_count + 1):
+    for i in range(starting_installment, installment_count + 1):
         bill_month = current_month
         bill_year = current_year
         
@@ -72,8 +73,8 @@ def process_credit_card_transaction(
         )
         
         amount_part = base_installment_amount
-        if i == 1:
-            amount_part += remainder  # Adiciona a diferença de centavos na primeira parcela
+        if i == starting_installment:
+            amount_part += remainder  # Adiciona a diferença de centavos na primeira parcela efetivamente gerada
             
         status_calc = 'posted' if (bill_year < today.year or (bill_year == today.year and bill_month <= today.month)) else 'pending'
             

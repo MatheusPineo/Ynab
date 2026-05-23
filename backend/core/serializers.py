@@ -7,7 +7,7 @@ from .models import UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ('bio', 'avatar_url', 'preferred_currency', 'language', 'hidden_sidebar_items')
+        fields = ('bio', 'avatar_url', 'preferred_currency', 'language', 'hidden_sidebar_items', 'pinned_countries')
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -46,6 +46,10 @@ class UserSerializer(serializers.ModelSerializer):
         
         # Garante a criação automática do perfil de usuário associado
         UserProfile.objects.get_or_create(user=user)
+        
+        # Cria a taxonomia padrão de categorias YNAB
+        from finance.seeding import seed_default_categories
+        seed_default_categories(user)
         
         return user
 

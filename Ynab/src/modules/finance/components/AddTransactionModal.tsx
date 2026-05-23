@@ -18,6 +18,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock, ChevronDown } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
@@ -55,7 +56,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   useEffect(() => {
     if (open) {
       setDescription(transaction?.description || "");
-      setAmount(transaction ? String(Math.abs(transaction.amount)) : "");
+      setAmount(transaction ? Math.abs(transaction.amount) : 0);
       setType(transaction ? (transaction.is_income ? "income" : "expense") : "expense");
       setAccountId(transaction?.account ? String(transaction.account) : (initialAccountId || ""));
       setUseCategory(transaction?.category ? true : false);
@@ -71,11 +72,11 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [status, setStatus] = useState<string>(transaction?.status || "realized");
   const [recurrenceInterval, setRecurrenceInterval] = useState<string>(transaction?.recurrence_interval || "monthly");
   const [toAccountId, setToAccountId] = useState<string>("");
-  const [toAmount, setToAmount] = useState<string>("");
+  const [toAmount, setToAmount] = useState<number>(0);
 
   // Estados para o preenchimento automático (autocomplete) baseado no histórico
   const [description, setDescription] = useState<string>(transaction?.description || "");
-  const [amount, setAmount] = useState<string>(transaction ? String(Math.abs(transaction.amount)) : "");
+  const [amount, setAmount] = useState<number>(transaction ? Math.abs(transaction.amount) : 0);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
@@ -158,7 +159,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
 
   const handleSelectSuggestion = (sug: Transaction) => {
     setDescription(sug.description);
-    setAmount(String(Math.abs(sug.amount)));
+    setAmount(Math.abs(sug.amount));
     setType(sug.is_income ? "income" : "expense");
     if (sug.account) setAccountId(String(sug.account));
     if (sug.category) {
@@ -202,7 +203,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    const amountValue = parseFloat(formData.get("amount") as string);
+    const amountValue = amount;
     const is_income = type === "income";
 
     const transactionData = {
@@ -222,7 +223,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
         from_account: accountId,
         to_account: toAccountId,
         amount: amountValue,
-        to_amount: showLiquidValue ? parseFloat(toAmount) : amountValue,
+        to_amount: showLiquidValue ? toAmount : amountValue,
         description: formData.get("description") as string,
         date: formData.get("date") as string || new Date().toISOString().split('T')[0],
       });
@@ -247,7 +248,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const handleConfirmEditScope = async (scope: "single" | "future" | "all") => {
     if (!transaction) return;
     
-    const amountValue = parseFloat(amount);
+    const amountValue = amount;
     const transactionData = {
       account: accountId,
       description: description,
@@ -377,16 +378,13 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           <div className="grid grid-cols-2 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="amount">Valor</Label>
-              <Input 
+              <CurrencyInput 
                 id="amount" 
-                name="amount" 
-                type="number" 
-                step="0.01" 
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00" 
+                onChange={setAmount}
+                placeholder="0,00" 
                 required 
-                className="bg-background/50" 
+                className="bg-background/50 text-left" 
               />
             </div>
             <div className="grid gap-2">
@@ -427,16 +425,13 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                 Valor Líquido Recebido ({toAccount?.currency})
               </Label>
               <div className="relative">
-                <Input 
+                <CurrencyInput 
                   id="to_amount" 
-                  name="to_amount" 
-                  type="number" 
-                  step="0.01" 
                   value={toAmount}
-                  onChange={(e) => setToAmount(e.target.value)}
+                  onChange={setToAmount}
                   placeholder="Valor final na conta de destino" 
                   required 
-                  className="bg-emerald-500/10 border-emerald-500/30 focus-visible:ring-emerald-500" 
+                  className="bg-emerald-500/10 border-emerald-500/30 focus-visible:ring-emerald-500 text-left" 
                 />
                 <p className="text-[10px] text-muted-foreground mt-1">
                   Informe o valor que de fato caiu na conta após taxas e câmbio.

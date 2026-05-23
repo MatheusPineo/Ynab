@@ -1073,3 +1073,6 @@ Para evitar reestruturações complexas no layout do frontend SPA React que pude
 - **Cabeçalho Customizado `X-Ready-To-Assign`:** O valor calculado do RTA mensal é enviado de forma transparente no cabeçalho HTTP customizado `X-Ready-To-Assign` da resposta da API.
 - **Propriedades Enriquecidas de Envelope:** Cada nó folha da árvore de categorias agora carrega no JSON as propriedades físicas calculadas pelo backend: `'rollover_amount'`, `'available_amount'` e `'overspending_type'`.
 
+
+## Taxonomia Global de Investimentos (Atualizado 23/05/2026)
+Os modelos InvestmentAsset e InvestmentActivity suportam rastreamento internacional (market_country, asset_category) e controle de vencimento (due_date) para rendas fixas.

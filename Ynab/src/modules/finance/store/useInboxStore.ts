@@ -32,6 +32,8 @@ export interface TransactionInbox {
 interface InboxState {
   inboxItems: TransactionInbox[];
   isLoading: boolean;
+  uploadProgress: number;
+  uploadTotal: number;
   
   // Actions
   fetchInboxItems: () => Promise<void>;
@@ -54,6 +56,8 @@ interface InboxState {
 export const useInboxStore = create<InboxState>()((set, get) => ({
   inboxItems: [],
   isLoading: false,
+  uploadProgress: 0,
+  uploadTotal: 0,
 
   fetchInboxItems: async () => {
     set({ isLoading: true });
@@ -71,36 +75,47 @@ export const useInboxStore = create<InboxState>()((set, get) => ({
   },
 
   uploadInboxFiles: async (files) => {
-    set({ isLoading: true });
+    const fileArray = Array.from(files);
+    if (fileArray.length === 0) return;
+
+    set({ isLoading: true, uploadProgress: 0, uploadTotal: fileArray.length });
+    let successCount = 0;
+
     try {
-      const formData = new FormData();
-      
-      // Comprime concorrentemente todas as imagens do upload antes de despachar
-      const compressedFiles = await Promise.all(
-        Array.from(files).map((file) => compressImage(file))
-      );
+      for (let i = 0; i < fileArray.length; i++) {
+        set({ uploadProgress: i + 1 });
+        
+        try {
+          const compressedFile = await compressImage(fileArray[i]);
+          const formData = new FormData();
+          formData.append("files", compressedFile); // endpoint espera "files" ou "file"
 
-      // Adiciona todos os arquivos (sejam as imagens comprimidas ou os PDFs originais)
-      compressedFiles.forEach((file) => {
-        formData.append("files", file);
-      });
+          const response = await authenticatedFetch("/inbox/upload/", {
+            method: "POST",
+            body: formData,
+          });
 
-      const response = await authenticatedFetch("/inbox/upload/", {
-        method: "POST",
-        body: formData, // Deixamos o browser setar multipart/form-data com o boundary
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Falha no upload dos arquivos");
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            console.error("Falha no upload de um arquivo:", errData);
+          } else {
+            successCount++;
+          }
+        } catch (err) {
+          console.error("Erro isolado ao fazer upload de uma imagem:", err);
+        }
       }
 
-      toast.success("Arquivos carregados! Processamento por IA iniciado em segundo plano.");
-      await get().fetchInboxItems();
+      if (successCount > 0) {
+        toast.success(`${successCount} arquivos carregados! Processamento iniciado em background.`);
+        await get().fetchInboxItems();
+      } else {
+        toast.error("Erro ao fazer upload dos arquivos.");
+      }
     } catch (error: any) {
-      toast.error(error.message || "Erro ao fazer upload das imagens.");
+      toast.error(error.message || "Erro catastrófico no lote de upload.");
     } finally {
-      set({ isLoading: false });
+      set({ isLoading: false, uploadProgress: 0, uploadTotal: 0 });
     }
   },
 

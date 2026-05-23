@@ -13,6 +13,7 @@ interface User {
   twoFactorEnabled?: boolean;
   preferredCurrency?: string;
   language?: string;
+  pinnedCountries?: string[];
 }
 
 
@@ -27,6 +28,7 @@ interface AuthState {
   verify2FA: (userId: string, code: string) => Promise<void>;
   logout: () => void;
   refreshAccessToken: () => Promise<string | null>;
+  updatePinnedCountries: (countries: string[]) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -76,7 +78,8 @@ export const useAuthStore = create<AuthState>()(
             has_password: data.user.has_password,
             twoFactorEnabled: data.user.profile?.two_factor_enabled,
             preferredCurrency: data.user.profile?.preferred_currency,
-            language: data.user.profile?.language
+            language: data.user.profile?.language,
+            pinnedCountries: data.user.profile?.pinned_countries
           },
         });
 
@@ -126,7 +129,8 @@ export const useAuthStore = create<AuthState>()(
             has_password: data.user.has_password,
             twoFactorEnabled: data.user.profile?.two_factor_enabled,
             preferredCurrency: data.user.profile?.preferred_currency,
-            language: data.user.profile?.language
+            language: data.user.profile?.language,
+            pinnedCountries: data.user.profile?.pinned_countries
           },
         });
 
@@ -175,7 +179,8 @@ export const useAuthStore = create<AuthState>()(
             has_password: data.user.has_password,
             twoFactorEnabled: data.user.profile?.two_factor_enabled,
             preferredCurrency: data.user.profile?.preferred_currency,
-            language: data.user.profile?.language
+            language: data.user.profile?.language,
+            pinnedCountries: data.user.profile?.pinned_countries
           },
         });
 
@@ -252,6 +257,34 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         set({ user: null, isAuthenticated: false, accessToken: null, refreshToken: null });
+      },
+
+      updatePinnedCountries: async (countries: string[]) => {
+        const { accessToken, user } = get();
+        if (!accessToken || !user) return;
+
+        let baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+        if (!baseUrl.includes("/api") && !baseUrl.startsWith("http://localhost")) {
+          baseUrl = baseUrl.replace(/\/$/, "") + "/api";
+        }
+        baseUrl = baseUrl.replace(/\/$/, "");
+
+        try {
+          const response = await fetch(`${baseUrl}/auth/profile/update/`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${accessToken}`,
+            },
+            body: JSON.stringify({ pinned_countries: countries }),
+          });
+
+          if (response.ok) {
+            set({ user: { ...user, pinnedCountries: countries } });
+          }
+        } catch (error) {
+          console.error("Erro ao atualizar países fixados:", error);
+        }
       },
     }),
     {

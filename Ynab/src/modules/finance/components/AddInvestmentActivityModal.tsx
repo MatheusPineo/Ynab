@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -15,21 +15,74 @@ import { Switch } from "@/shared/components/ui/switch";
 import { Plus } from "lucide-react";
 import { useWealthStore } from "@/modules/finance/store/useWealthStore";
 import { toast } from "sonner";
+import { INVESTMENT_TAXONOMY } from "@/constants/investmentTaxonomy";
+import { CountryCombobox } from "./CountryCombobox";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 
 interface Props {
   children?: React.ReactNode;
 }
 
+const mapSpecificTypeToBackendAssetType = (type: string) => {
+    const t = type.toLowerCase();
+    if (t.includes('aç') || t.includes('stock') || t.includes('bdr') || t.includes('opç') || t.includes('futuro')) return 'STOCK';
+    if (t.includes('fii') || t.includes('fiagro') || t.includes('reit')) return 'FII';
+    if (t.includes('etf')) return 'ETF';
+    if (t.includes('cripto') || t.includes('stable') || t.includes('nft') || t.includes('staking')) return 'CRYPTO';
+    if (t.includes('bond') || t.includes('treasury')) return 'BOND';
+    if (t.includes('tesouro')) return 'TREASURY';
+    if (t.includes('fundo') || t.includes('mutual')) return 'MUTUAL_FUND';
+    return 'FIXED_INCOME';
+};
+
 export const AddInvestmentActivityModal = ({ children }: Props) => {
   const [open, setOpen] = useState(false);
-  const [assetType, setAssetType] = useState<string>("FIXED_INCOME");
+  
+  // Taxonomy States
+  const [custodyRegion, setCustodyRegion] = useState<string>("BR");
+  const [macroGroup, setMacroGroup] = useState<string>("Renda Variável");
+  const [specificType, setSpecificType] = useState<string>("Ações / Units");
+
+  const taxonomyRegion = custodyRegion === "BR" ? "BR" : "GLOBAL";
+
+  const availableMacroGroups = useMemo(() => {
+    return [
+      ...Object.keys(INVESTMENT_TAXONOMY[taxonomyRegion] || {}),
+      ...Object.keys(INVESTMENT_TAXONOMY["UNIVERSAL"] || {})
+    ];
+  }, [taxonomyRegion]);
+
+  const availableSpecificTypes = useMemo(() => {
+    if (INVESTMENT_TAXONOMY[taxonomyRegion]?.[macroGroup]) {
+      return INVESTMENT_TAXONOMY[taxonomyRegion][macroGroup];
+    } else if (INVESTMENT_TAXONOMY["UNIVERSAL"]?.[macroGroup]) {
+      return INVESTMENT_TAXONOMY["UNIVERSAL"][macroGroup];
+    }
+    return [];
+  }, [taxonomyRegion, macroGroup]);
+
+  // Sync resets
+  useEffect(() => {
+    const firstMacro = availableMacroGroups[0];
+    if (firstMacro && !availableMacroGroups.includes(macroGroup)) {
+      setMacroGroup(firstMacro);
+    }
+  }, [availableMacroGroups, macroGroup]);
+
+  useEffect(() => {
+    const firstType = availableSpecificTypes[0];
+    if (firstType && !availableSpecificTypes.includes(specificType)) {
+      setSpecificType(firstType);
+    }
+  }, [availableSpecificTypes, specificType]);
+
   const [liquidityDaily, setLiquidityDaily] = useState(false);
   
   // Real-time calculation states
-  const [rfValor, setRfValor] = useState<string>("");
+  const [rfValor, setRfValor] = useState<number>(0);
   const [rvQuantidade, setRvQuantidade] = useState<string>("1");
-  const [rvPreco, setRvPreco] = useState<string>("");
-  const [rvCustos, setRvCustos] = useState<string>("0");
+  const [rvPreco, setRvPreco] = useState<number>(0);
+  const [rvCustos, setRvCustos] = useState<number>(0);
   
   // Renda Variável states
   const [selectedAssetId, setSelectedAssetId] = useState<string>("");
@@ -37,16 +90,15 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
 
   const { assets, createActivity, createAsset } = useWealthStore();
   
-  const isFixedIncome = assetType === "FIXED_INCOME" || assetType === "TREASURY";
+  const isFixedIncome = macroGroup === "Renda Fixa Brasileira" || macroGroup === "Renda Fixa Global";
 
-  // Calculate dynamic total
   const valorTotal = useMemo(() => {
       if (isFixedIncome) {
-          return parseFloat(rfValor || "0");
+          return rfValor || 0;
       } else {
           const q = parseFloat(rvQuantidade || "0");
-          const p = parseFloat(rvPreco || "0");
-          const c = parseFloat(rvCustos || "0");
+          const p = rvPreco || 0;
+          const c = rvCustos || 0;
           return (q * p) + c;
       }
   }, [isFixedIncome, rfValor, rvQuantidade, rvPreco, rvCustos]);
@@ -57,9 +109,9 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
     
     try {
         let assetId = selectedAssetId;
+        const backendAssetType = mapSpecificTypeToBackendAssetType(specificType);
 
         if (isFixedIncome) {
-            // Para Renda Fixa, sempre criamos um novo ativo ou tranche
             const issuer = formData.get("issuer") as string;
             const titleType = formData.get("title_type") as string;
             const indexer = formData.get("indexer") as string;
@@ -67,10 +119,12 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
             const dueDate = formData.get("due_date") as string;
             
             const createdAsset = await createAsset({
-                ticker: `${titleType} ${indexer}`, // Ex: CDB CDI
+                ticker: `${titleType} ${indexer}`,
                 name: `${titleType} ${issuer} ${rateType === 'POS' ? 'Pós-fixado' : rateType === 'PRE' ? 'Prefixado' : 'Misto'}`,
-                asset_type: assetType,
-                currency: "BRL",
+                asset_type: backendAssetType,
+                market_country: custodyRegion,
+                asset_category: macroGroup,
+                currency: custodyRegion === "BR" ? "BRL" : "USD",
                 issuer: issuer,
                 title_type: titleType,
                 indexer: indexer,
@@ -96,8 +150,10 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
             const createdAsset = await createAsset({
                 ticker: newTicker.toUpperCase(),
                 name: newName,
-                asset_type: assetType,
-                currency: "BRL"
+                asset_type: backendAssetType,
+                market_country: custodyRegion,
+                asset_category: macroGroup,
+                currency: custodyRegion === "BR" ? "BRL" : "USD"
             });
             
             if (createdAsset && createdAsset.id) {
@@ -113,14 +169,14 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
         }
 
         if (isFixedIncome) {
-            const principal = parseFloat(rfValor) || 0;
+            const principal = rfValor || 0;
             const cdiPercentage = parseFloat(formData.get("cdi_percentage") as string) || 0;
             
             await createActivity({
                 asset: parseInt(assetId),
                 activity_type: "BUY",
                 date: formData.get("date") as string,
-                quantity: 1, // Representa 1 contrato inteiro de RF
+                quantity: 1,
                 unit_price: principal,
                 principal_amount: principal,
                 cdi_percentage: formData.get("indexer") === "CDI" ? cdiPercentage : null,
@@ -128,8 +184,8 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
             });
         } else {
             const qty = parseFloat(rvQuantidade) || 0;
-            const unitPrice = parseFloat(rvPreco) || 0;
-            const fees = parseFloat(rvCustos) || 0;
+            const unitPrice = rvPreco || 0;
+            const fees = rvCustos || 0;
             
             await createActivity({
                 asset: parseInt(assetId),
@@ -143,17 +199,16 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
         
         toast.success("Lançamento registrado com sucesso!");
         setOpen(false);
-        // Reset states
-        setRfValor("");
+        setRfValor(0);
         setRvQuantidade("1");
-        setRvPreco("");
-        setRvCustos("0");
+        setRvPreco(0);
+        setRvCustos(0);
     } catch (error: any) {
         toast.error(error.message || "Erro ao registrar atividade");
     }
   };
 
-  const rvAssets = assets.filter(a => a.asset_type !== "FIXED_INCOME" && a.asset_type !== "TREASURY");
+  const rvAssets = assets.filter(a => a.asset_type !== "FIXED_INCOME" && a.asset_type !== "TREASURY" && a.asset_type !== "BOND");
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -170,21 +225,39 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-5 py-2">
           
-          <div className="grid gap-2">
-            <Label htmlFor="assetType">Tipo de ativo</Label>
-            <Select value={assetType} onValueChange={setAssetType}>
-              <SelectTrigger className="bg-background/50 border-border/60 rounded-xl font-medium">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="glass border-border/60">
-                <SelectItem value="FIXED_INCOME">Renda Fixa (CDB/LCI/LCA/LC/LF)</SelectItem>
-                <SelectItem value="TREASURY">Tesouro Direto</SelectItem>
-                <SelectItem value="STOCK">Ações</SelectItem>
-                <SelectItem value="FII">Fundos Imobiliários (FIIs)</SelectItem>
-                <SelectItem value="ETF">ETFs</SelectItem>
-                <SelectItem value="CRYPTO">Criptomoedas</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid gap-4 bg-background/20 p-4 rounded-xl border border-border/60">
+            <div className="grid gap-2">
+              <Label>Onde o ativo está custodiado?</Label>
+              <CountryCombobox value={custodyRegion} onChange={setCustodyRegion} />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="macroGroup">Macro Grupo</Label>
+              <Select value={macroGroup} onValueChange={setMacroGroup}>
+                <SelectTrigger className="bg-background/50 border-border/60 rounded-xl font-medium">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  {availableMacroGroups.map((group) => (
+                    <SelectItem key={group} value={group}>{group}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="specificType">Tipo Específico</Label>
+              <Select value={specificType} onValueChange={setSpecificType}>
+                <SelectTrigger className="bg-background/50 border-border/60 rounded-xl font-medium">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  {availableSpecificTypes.map((type) => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           {isFixedIncome ? (
@@ -196,12 +269,12 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="title_type">Tipo de título</Label>
-                    <Select name="title_type" defaultValue={assetType === "TREASURY" ? "TESOURO" : "CDB"}>
+                    <Select name="title_type" defaultValue={specificType.includes("Tesouro") ? "TESOURO" : "CDB"}>
                       <SelectTrigger className="bg-background/50 border-border/60 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="glass border-border/60">
-                        {assetType === "TREASURY" ? (
+                        {specificType.includes("Tesouro") ? (
                           <>
                             <SelectItem value="SELIC">Tesouro Selic</SelectItem>
                             <SelectItem value="IPCA">Tesouro IPCA+</SelectItem>
@@ -224,7 +297,7 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
               <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="indexer">Indexador</Label>
-                    <Select name="indexer" defaultValue={assetType === "TREASURY" ? "SELIC" : "CDI"}>
+                    <Select name="indexer" defaultValue={specificType.includes("Tesouro") ? "SELIC" : "CDI"}>
                       <SelectTrigger className="bg-background/50 border-border/60 rounded-xl">
                         <SelectValue />
                       </SelectTrigger>
@@ -237,7 +310,7 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="cdi_percentage">Taxa do CDI <span className="text-muted-foreground font-normal text-xs">(%)</span></Label>
+                    <Label htmlFor="cdi_percentage">Taxa <span className="text-muted-foreground font-normal text-xs">(%)</span></Label>
                     <div className="relative">
                         <Input id="cdi_percentage" name="cdi_percentage" type="number" step="0.01" placeholder="Ex: 110" className="bg-background/50 pr-8" />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">%</span>
@@ -260,16 +333,14 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="principal_amount">Valor <span className="text-muted-foreground font-normal text-xs">(Opcional)</span></Label>
-                    <Input 
+                    <Label htmlFor="principal_amount">Valor Aplicado <span className="text-muted-foreground font-normal text-xs"></span></Label>
+                    <CurrencyInput 
                       id="principal_amount" 
-                      name="principal_amount" 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="0,00" 
                       value={rfValor}
-                      onChange={(e) => setRfValor(e.target.value)}
-                      className="bg-background/50" 
+                      onChange={setRfValor}
+                      placeholder="0,00" 
+                      className="bg-background/50 text-left" 
+                      required
                     />
                   </div>
               </div>
@@ -286,7 +357,7 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
                   </div>
                   <div className="grid gap-2">
                     <Label htmlFor="due_date">Data de vencimento</Label>
-                    <Input id="due_date" name="due_date" type="date" className="bg-background/50" />
+                    <Input id="due_date" name="due_date" type="date" required className="bg-background/50" />
                   </div>
               </div>
             </div>
@@ -358,30 +429,24 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
 
               <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="unit_price">Preço em R$</Label>
-                    <Input 
+                    <Label htmlFor="unit_price">Preço Unitário</Label>
+                    <CurrencyInput 
                       id="unit_price" 
-                      name="unit_price" 
-                      type="number" 
-                      step="0.01" 
+                      value={rvPreco}
+                      onChange={setRvPreco}
                       placeholder="0,00" 
                       required 
-                      value={rvPreco}
-                      onChange={(e) => setRvPreco(e.target.value)}
-                      className="bg-background/50" 
+                      className="bg-background/50 text-left" 
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="fees">Outros custos <span className="text-muted-foreground font-normal text-xs">(Opcional)</span></Label>
-                    <Input 
+                    <Label htmlFor="fees">Outros custos / Taxas</Label>
+                    <CurrencyInput 
                       id="fees" 
-                      name="fees" 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="0,00" 
                       value={rvCustos}
-                      onChange={(e) => setRvCustos(e.target.value)}
-                      className="bg-background/50" 
+                      onChange={setRvCustos}
+                      placeholder="0,00" 
+                      className="bg-background/50 text-left" 
                     />
                   </div>
               </div>
@@ -391,7 +456,7 @@ export const AddInvestmentActivityModal = ({ children }: Props) => {
           <div className="mt-2 px-4 py-3 rounded-xl bg-muted/40 border border-border/60 flex justify-between items-center">
             <span className="font-semibold text-foreground/80">Valor total</span>
             <span className="font-bold text-lg">
-                R$ {valorTotal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                {custodyRegion === "BR" ? "R$" : "$"} {valorTotal.toLocaleString(custodyRegion === "BR" ? 'pt-BR' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           </div>
 

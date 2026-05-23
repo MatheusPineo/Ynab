@@ -70,6 +70,10 @@ def get_or_create_google_user(idinfo):
     if created:
         user.set_unusable_password()
         user.save()
+        
+        # Cria a taxonomia padrão de categorias YNAB
+        from finance.seeding import seed_default_categories
+        seed_default_categories(user)
     else:
         user.first_name = first_name
         user.last_name = last_name

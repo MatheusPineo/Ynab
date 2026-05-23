@@ -330,6 +330,51 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
     navigate("/auth");
   };
 
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const handleEnableDemo = async () => {
+    if (!confirm("Isso apagará todos os seus dados atuais e carregará dados fictícios. Deseja continuar?")) return;
+    setIsDemoLoading(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
+      const res = await fetch(`${baseUrl}/onboarding/demo-mode/`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      });
+      if (res.ok) {
+        toast.success("Modo de demonstração ativado! Recarregando dados...");
+        setTimeout(() => window.location.href = "/", 1500);
+      } else {
+        toast.error("Erro ao ativar modo demo.");
+      }
+    } catch (e) {
+      toast.error("Erro de conexão.");
+    } finally {
+      setIsDemoLoading(false);
+    }
+  };
+
+  const handleResetData = async () => {
+    if (!confirm("ATENÇÃO: Isso apagará TODOS OS SEUS DADOS de forma permanente e irreversível. Tem certeza absoluta?")) return;
+    setIsDemoLoading(true);
+    try {
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
+      const res = await fetch(`${baseUrl}/onboarding/reset/`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      });
+      if (res.ok) {
+        toast.success("Todos os dados foram resetados. Começando do zero!");
+        setTimeout(() => window.location.href = "/", 1500);
+      } else {
+        toast.error("Erro ao resetar dados.");
+      }
+    } catch (e) {
+      toast.error("Erro de conexão.");
+    } finally {
+      setIsDemoLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 sm:gap-6 animate-in fade-in duration-500">
       <input 
@@ -374,6 +419,10 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
             <TabsTrigger value="subscription" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
               <CreditCard className="h-4 w-4 shrink-0" />
               <span>Assinatura</span>
+            </TabsTrigger>
+            <TabsTrigger value="demo" className="gap-1.5 rounded-lg data-[state=active]:bg-rose-500/10 data-[state=active]:text-rose-500 text-xs sm:text-sm">
+              <ShieldAlert className="h-4 w-4 shrink-0" />
+              <span>Modo Demo & Reset</span>
             </TabsTrigger>
             {extraTabs.map((tab) => (
               <TabsTrigger 
@@ -794,6 +843,61 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
           {/* Subscription Tab (Gerenciamento de Assinaturas e Planos) */}
           <TabsContent value="subscription" className="space-y-6 animate-in fade-in duration-300">
             <SubscriptionPanel />
+          </TabsContent>
+
+          {/* Demo & Reset Tab */}
+          <TabsContent value="demo" className="space-y-6 animate-in fade-in duration-300">
+            <Card className="rounded-3xl border-rose-500/20 bg-card/40 backdrop-blur-sm overflow-hidden">
+              <CardHeader className="bg-rose-500/5 border-b border-rose-500/10">
+                <CardTitle className="text-xl flex items-center gap-2 font-bold text-rose-500">
+                  <ShieldAlert className="h-6 w-6" />
+                  Área de Testes e Reset (Danger Zone)
+                </CardTitle>
+                <CardDescription>
+                  Ações destrutivas e recursos de demonstração do sistema.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-8 pt-6 space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 rounded-2xl bg-muted/20 border border-border/40 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-base font-bold flex items-center gap-2">
+                      <RefreshCw className="h-4 w-4 text-emerald-500" />
+                      Testar com Dados Fictícios
+                    </p>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      Povoa sua conta com transações falsas, bancos e investimentos para que você possa entender como a plataforma funciona na prática. <strong className="text-foreground">Isso apagará seus dados atuais.</strong>
+                    </p>
+                  </div>
+                  <Button 
+                    onClick={handleEnableDemo}
+                    disabled={isDemoLoading}
+                    className="shrink-0 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-glow"
+                  >
+                    {isDemoLoading ? "Carregando..." : "Ativar Modo Demo"}
+                  </Button>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 rounded-2xl bg-rose-500/5 border border-rose-500/20 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-base font-bold text-rose-500 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Limpar e Começar Meu Orçamento Real
+                    </p>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      Apaga de forma irreversível todas as suas contas, transações e dívidas. O sistema retornará às categorias limpas padrão do YNAB.
+                    </p>
+                  </div>
+                  <Button 
+                    variant="destructive"
+                    onClick={handleResetData}
+                    disabled={isDemoLoading}
+                    className="shrink-0 rounded-xl"
+                  >
+                    {isDemoLoading ? "Apagando..." : "Resetar Minha Conta"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
       </Tabs>
 

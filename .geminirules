@@ -93,3 +93,21 @@
 - **ConsistÃªncia:** SincronizaÃ§Ã£o automÃ¡tica de versÃµes entre Changelog e RodapÃ©.
 - **Portabilidade:** Boilerplate preparado para inicializaÃ§Ã£o rÃ¡pida via `npm/bun install` e `pip install`.
 - [v1.27.1] Script automatizado (sync_market_data.py) para buscar o indice CDI da API do SGS 4389 do Banco Central do Brasil.
+
+// STATUS (23/05/2026): Models InvestmentAsset e InvestmentActivity atualizados com a taxonomia global (market_country, asset_category, due_date).
+
+// STATUS FRONTEND (23/05/2026): Config de Taxonomia (investmentTaxonomy.ts) criado e tipado.
+
+// STATUS FRONTEND (23/05/2026): AddInvestmentActivityModal.tsx refatorado para utilizar steps dinâmicos da taxonomia (BR/GLOBAL/UNIVERSAL).
+
+// STATUS FRONTEND (23/05/2026): CountryCombobox implementado em AddInvestmentActivityModal com suporte a mais de 20 países. Roteamento de taxonomia atualizado.
+
+// STATUS FRONTEND (23/05/2026): CountryCombobox agora permite que o usuário fixe os países favoritos no topo com persistência local, mantendo a lista em ordem alfabética nativa.
+
+// STATUS FULL-STACK (23/05/2026): Preferência de países fixados no CountryCombobox agora é persistida no banco de dados (UserProfile) em vez do localStorage.
+
+// STATUS FULL-STACK (23/05/2026): Rastreamento parcial de faturas de cartao de credito (starting_installment) finalizado (Part 2/4).
+
+// STATUS FULL-STACK (23/05/2026): Refatoracao de upload massivo na Inbox (Part 3/4) finalizada. Fila de envio convertida para processamento sequencial unitario no front-end para protecao de gargalos e travamentos da engine V8/Navegador; resiliencia do Django/Celery com fallback inteligente a timeout e HTTP Errors da API do Gemini.
+
+// STATUS FULL-STACK (23/05/2026): Implementado Seeding service com criacao automatica da taxonomia YNAB no registro do usuario e botões interativos de Reset Total e Demo Mode na tela de configuracoes de seguranca (Part 4/4 finalizada).

@@ -328,13 +328,13 @@ class AccountsAndCategoriesTests(TestCase):
         Debt.objects.create(user=self.user, counterparty_name='John', original_amount=Decimal('200.00'), is_mine=True)
         
         # Chamar endpoint de reset
-        response = self.client.post(reverse('profile-reset-data'))
+        response = self.client.delete(reverse('onboarding-reset-data'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertIn("excluídos com sucesso", response.data['message'])
         
         # Verificar se os dados financeiros do usuário foram deletados
         self.assertEqual(Account.objects.filter(user=self.user).count(), 0)
-        self.assertEqual(Category.objects.filter(user=self.user).count(), 0)
+        self.assertGreater(Category.objects.filter(user=self.user).count(), 0) # Taxonomia padrão foi recriada
         self.assertEqual(Transaction.objects.filter(account__user=self.user).count(), 0)
         self.assertEqual(Goal.objects.filter(user=self.user).count(), 0)
         self.assertEqual(Debt.objects.filter(user=self.user).count(), 0)

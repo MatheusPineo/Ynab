@@ -76,6 +76,7 @@ export const CreditCards = () => {
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [totalInstallments, setTotalInstallments] = useState("1");
+  const [startingInstallment, setStartingInstallment] = useState("1");
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
   const [categoryId, setCategoryId] = useState("");
   const [exchangeRate, setExchangeRate] = useState("1.00");
@@ -205,6 +206,7 @@ export const CreditCards = () => {
         description,
         amount: Number(amount),
         total_installments: Number(totalInstallments),
+        starting_installment: Number(startingInstallment),
         date: txDate,
         category_id: categoryId,
         currency: selectedCard.currency,
@@ -234,6 +236,7 @@ export const CreditCards = () => {
       setDescription("");
       setAmount("");
       setTotalInstallments("1");
+      setStartingInstallment("1");
       setIofAmount("0.00");
     } catch (error: any) {
       toast.error(error.message);
@@ -711,6 +714,22 @@ export const CreditCards = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {Number(totalInstallments) > 1 && (
+                  <div className="flex flex-col gap-1.5 sm:col-span-2">
+                    <Label htmlFor="startingInstallment" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">A partir de qual parcela?</Label>
+                    <Select value={startingInstallment} onValueChange={setStartingInstallment}>
+                      <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium font-mono">
+                        <SelectValue placeholder="1" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border/60">
+                        {Array.from({ length: Number(totalInstallments) }).map((_, i) => (
+                          <SelectItem key={i + 1} value={String(i + 1)}>Parcela {i + 1}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -213,15 +213,18 @@ class AIExtractionService:
                 except requests.exceptions.HTTPError as he:
                     logger.error(f"[AI Service] Erro HTTP na tentativa {attempt}: {str(he)}")
                     if attempt == max_retries:
-                        raise
+                        logger.warning("[AI Service] Esgotado limite de tentativas HTTP Error. Retornando fallback seguro para evitar crash.")
+                        return self.get_fallback_data("Erro na IA")
                 except requests.exceptions.Timeout as te:
                     logger.error(f"[AI Service] Timeout na tentativa {attempt}: {str(te)}")
                     if attempt == max_retries:
-                        raise
+                        logger.warning("[AI Service] Esgotado limite de tentativas de Timeout. Retornando fallback seguro para evitar crash.")
+                        return self.get_fallback_data("Timeout da IA")
                 except Exception as e:
                     logger.error(f"[AI Service] Erro imprevisto na tentativa {attempt}: {str(e)}")
                     if attempt == max_retries:
-                        raise
+                        logger.warning("[AI Service] Esgotado limite de tentativas de Erro Imprevisto. Retornando fallback seguro para evitar crash.")
+                        return self.get_fallback_data("Erro Desconhecido")
                     
                 time.sleep(1)
 

@@ -75,17 +75,17 @@ export const InvestmentLedger: React.FC = () => {
       // Encontrar o ativo relacionado para pegar o tipo e vencimento
       const relatedAsset = assets.find(a => a.id === activity.asset);
       
-      // Determinar o grupo baseado no tipo do ativo (se não achar, vai para "OTHER")
-      const typeKey = relatedAsset?.asset_type || 'OTHER';
+      // Determinar o grupo baseado na nova taxonomia ou fallback
+      const groupName = relatedAsset?.asset_category || ASSET_TYPE_LABELS[relatedAsset?.asset_type || 'OTHER'] || 'Outros';
       
-      if (!groups[typeKey]) {
-        groups[typeKey] = {
-          label: ASSET_TYPE_LABELS[typeKey] || 'Outros',
+      if (!groups[groupName]) {
+        groups[groupName] = {
+          label: groupName,
           items: []
         };
       }
       
-      groups[typeKey].items.push(activity);
+      groups[groupName].items.push(activity);
     });
 
     return groups;
@@ -166,18 +166,18 @@ export const InvestmentLedger: React.FC = () => {
               </div>
               
               <AccordionContent className="p-0">
-                <div className="w-full">
+                <div className="w-full overflow-x-auto">
                   <Table>
                     <TableHeader className="bg-muted/20">
                       <TableRow className="border-b">
-                        <TableHead className="font-medium text-muted-foreground pl-6">Investimento</TableHead>
-                        <TableHead className="font-medium text-muted-foreground">Tipo de investimento</TableHead>
-                        <TableHead className="font-medium text-muted-foreground">Tipo de ordem</TableHead>
-                        <TableHead className="font-medium text-muted-foreground">Vencimento</TableHead>
-                        <TableHead className="font-medium text-muted-foreground text-right">Quantidade</TableHead>
-                        <TableHead className="font-medium text-muted-foreground text-right">Preço unitário</TableHead>
-                        <TableHead className="font-medium text-muted-foreground text-right">Total</TableHead>
-                        <TableHead className="font-medium text-muted-foreground">Data do lançamento</TableHead>
+                        <TableHead className="font-medium text-muted-foreground whitespace-nowrap pl-6">Investimento</TableHead>
+                        <TableHead className="font-medium text-muted-foreground whitespace-nowrap">Tipo de investimento</TableHead>
+                        <TableHead className="font-medium text-muted-foreground whitespace-nowrap">Tipo de ordem</TableHead>
+                        <TableHead className="font-medium text-muted-foreground whitespace-nowrap">Vencimento</TableHead>
+                        <TableHead className="font-medium text-muted-foreground whitespace-nowrap text-right">Quantidade</TableHead>
+                        <TableHead className="font-medium text-muted-foreground whitespace-nowrap text-right">Preço unitário</TableHead>
+                        <TableHead className="font-medium text-muted-foreground whitespace-nowrap text-right">Total</TableHead>
+                        <TableHead className="font-medium text-muted-foreground whitespace-nowrap">Data do lançamento</TableHead>
                         <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -202,9 +202,9 @@ export const InvestmentLedger: React.FC = () => {
                           <TableRow key={item.id} className="hover:bg-muted/10 group">
                             <TableCell className="font-medium pl-6 py-4">{item.asset_ticker || item.asset_name}</TableCell>
                             <TableCell>
-                              <Badge variant="secondary" className="bg-muted/50 text-muted-foreground hover:bg-muted/50 rounded-sm font-normal">
+                              <Badge variant="secondary" className="bg-muted/50 text-muted-foreground hover:bg-muted/50 rounded-sm font-normal whitespace-nowrap">
                                 <Briefcase className="mr-1.5 h-3 w-3" />
-                                {group.label}
+                                {ASSET_TYPE_LABELS[relatedAsset?.asset_type || 'OTHER'] || relatedAsset?.asset_type || 'Outros'}
                               </Badge>
                             </TableCell>
                             <TableCell>
