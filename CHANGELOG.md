@@ -4,6 +4,13 @@ Todas as alterações notáveis, correções de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histórico real de commits do Git para refletir a evolução fidedigna de nosso software.
 
+## [1.35.6] - 23 de Maio de 2026
+
+### Frontend
+- **Cartões de Crédito:** Limpeza da interface do modal de Nova Compra (remoção de Spread/IOF e bloco informativo).
+- **Cartões de Crédito:** Correção no seletor hierárquico de Subconta de despesa, igualando ao formulário de cadastro de despesas padrão.
+- **Cartões de Crédito:** Inclusão de um Tooltip explicativo para a seleção de parcela inicial e adição de seletor de Bandeira do Cartão (Visa, Mastercard, American Express, Elo, UnionPay e JCB).
+
 ## [1.35.5] - 2026-05-23
 
 ### Features & Integrations

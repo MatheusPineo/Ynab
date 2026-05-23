@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/shared/components/ui/input";
 import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/shared/components/ui/select";
 import { Badge } from "@/shared/components/ui/badge";
 import { Progress } from "@/shared/components/ui/progress";
 import { toast } from "sonner";
@@ -71,6 +71,7 @@ export const CreditCards = () => {
   const [closingDay, setClosingDay] = useState("20");
   const [dueDay, setDueDay] = useState("28");
   const [cardCurrency, setCardCurrency] = useState("BRL");
+  const [cardBrand, setCardBrand] = useState("Mastercard");
 
   // Modal de Nova Transação (Compra Matriz)
   const [isNewTxOpen, setIsNewTxOpen] = useState(false);
@@ -140,18 +141,6 @@ export const CreditCards = () => {
       fetchBillsForCard(selectedCard.id);
     }
   }, [selectedCard]);
-
-  const allCategories = useMemo(() => {
-    const list: { id: string; name: string; groupName: string }[] = [];
-    categoryGroups.forEach(group => {
-      if (group.children) {
-        group.children.forEach(cat => {
-          list.push({ id: cat.id, name: cat.name, groupName: group.name });
-        });
-      }
-    });
-    return list;
-  }, [categoryGroups]);
 
   // Criar Novo Cartão de Crédito
   const handleCreateCard = async (e: React.FormEvent) => {
@@ -652,6 +641,23 @@ export const CreditCards = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="cardBrand" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Bandeira do Cartão</Label>
+                <Select value={cardBrand} onValueChange={setCardBrand}>
+                  <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium">
+                    <SelectValue placeholder="Selecione a bandeira" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border/60">
+                    <SelectItem value="Visa">Visa</SelectItem>
+                    <SelectItem value="Mastercard">Mastercard</SelectItem>
+                    <SelectItem value="American Express">American Express</SelectItem>
+                    <SelectItem value="Elo">Elo</SelectItem>
+                    <SelectItem value="UnionPay">UnionPay</SelectItem>
+                    <SelectItem value="JCB">JCB</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <DialogFooter className="pt-2 gap-2 sm:gap-0 border-t border-border/20">
@@ -722,7 +728,10 @@ export const CreditCards = () => {
                 
                 {Number(totalInstallments) > 1 && (
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
-                    <Label htmlFor="startingInstallment" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">A partir de qual parcela?</Label>
+                    <Label htmlFor="startingInstallment" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono flex items-center gap-1.5">
+                      A partir de qual parcela?
+                      <HelpTooltip content="Use esta opção se você já pagou parcelas anteriores desta compra antes de usar o sistema. Ex: Se a compra foi em 10x e você já pagou 8, digite 9 para lançar apenas as parcelas restantes." />
+                    </Label>
                     <Select value={startingInstallment} onValueChange={setStartingInstallment}>
                       <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium font-mono">
                         <SelectValue placeholder="1" />
@@ -764,10 +773,17 @@ export const CreditCards = () => {
                       <SelectValue placeholder="Selecione a subconta" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border/60 max-h-60">
-                      {allCategories.map(cat => (
-                        <SelectItem key={cat.id} value={cat.id}>
-                          <span className="font-semibold">{cat.name}</span> <span className="text-[10px] opacity-60">({cat.groupName})</span>
-                        </SelectItem>
+                      {categoryGroups.map(group => (
+                        <SelectGroup key={group.id}>
+                          <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
+                            {group.name}
+                          </SelectLabel>
+                          {(group.children || []).map(cat => (
+                            <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
                       ))}
                     </SelectContent>
                   </Select>
@@ -775,39 +791,6 @@ export const CreditCards = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="exchangeRate" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Spread / Cotação</Label>
-                  <Input
-                    id="exchangeRate"
-                    type="number"
-                    step="0.0001"
-                    min="0.0001"
-                    value={exchangeRate}
-                    onChange={(e) => setExchangeRate(e.target.value)}
-                    className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono text-sm"
-                  />
-                </div>
-
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="iofAmount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Impostos / IOF</Label>
-                  <CurrencyInput
-                    id="iofAmount"
-                    value={iofAmount || 0}
-                    onChange={(val) => setIofAmount(String(val))}
-                    className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono text-sm text-left"
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-muted/20 border border-border/30 space-y-1.5">
-                <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                  <Sparkles className="h-4 w-4 text-primary" /> Mágica do YNAB
-                </p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Ao confirmar, o valor desta parcela será automaticamente reservado do seu envelope de categoria e transferido para o envelope de pagamento do cartão, garantindo 100% de liquidez.
-                </p>
-              </div>
             </div>
 
             <DialogFooter className="pt-2 gap-2 sm:gap-0 border-t border-border/20">
