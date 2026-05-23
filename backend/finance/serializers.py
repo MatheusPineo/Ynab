@@ -43,9 +43,17 @@ class CategorySerializer(serializers.ModelSerializer):
         }
 
 class TransactionSerializer(serializers.ModelSerializer):
+    statement_id = serializers.IntegerField(source='credit_card_bill.id', read_only=True)
+    statement_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = Transaction
         fields = '__all__'
+
+    def get_statement_name(self, obj):
+        if obj.credit_card_bill:
+            return str(obj.credit_card_bill)
+        return None
 
 class GoalSerializer(serializers.ModelSerializer):
     class Meta:

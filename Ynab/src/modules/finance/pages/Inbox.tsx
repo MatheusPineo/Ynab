@@ -613,14 +613,12 @@ const Inbox = () => {
                           <Label htmlFor="amount" className="text-xs font-semibold">Valor</Label>
                           <div className="relative">
                             <DollarSign className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                            <Input
+                            <CurrencyInput
                               id="amount"
-                              type="number"
-                              step="0.01"
-                              value={amount}
-                              onChange={(e) => setAmount(e.target.value)}
+                              value={parseFloat(amount) || 0}
+                              onChange={(val) => setAmount(String(val))}
                               placeholder="0.00"
-                              className="pl-8 bg-muted/10 border-border/40 rounded-xl text-sm tabular-nums"
+                              className="pl-8 bg-muted/10 border-border/40 rounded-xl text-sm tabular-nums text-left"
                               disabled={selectedItem.status === "processing"}
                               required
                             />

@@ -7,6 +7,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Badge } from "@/shared/components/ui/badge";
@@ -81,6 +82,7 @@ export const CreditCards = () => {
   const [categoryId, setCategoryId] = useState("");
   const [exchangeRate, setExchangeRate] = useState("1.00");
   const [iofAmount, setIofAmount] = useState("0.00");
+  const [categoryError, setCategoryError] = useState(false);
 
   const monthsNames = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -195,8 +197,17 @@ export const CreditCards = () => {
   const handleCreateTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCard) return;
-    if (!description || !amount || !categoryId) {
-      toast.error("Preencha descrição, valor e categoria.");
+    
+    setCategoryError(false);
+    
+    if (!categoryId) {
+      setCategoryError(true);
+      toast.error("Por favor, selecione uma Subconta de despesa.");
+      return;
+    }
+    
+    if (!description || !amount) {
+      toast.error("Preencha descrição e valor.");
       return;
     }
 
@@ -588,15 +599,12 @@ export const CreditCards = () => {
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="creditLimit" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Limite Total do Cartão</Label>
-                <Input
+                <CurrencyInput
                   id="creditLimit"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
                   placeholder="Ex: 15000.00"
-                  value={creditLimit}
-                  onChange={(e) => setCreditLimit(e.target.value)}
-                  className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono font-bold text-sm"
+                  value={creditLimit || 0}
+                  onChange={(val) => setCreditLimit(String(val))}
+                  className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono font-bold text-sm text-left"
                   required
                 />
               </div>
@@ -663,7 +671,7 @@ export const CreditCards = () => {
         <DialogContent className="sm:max-w-[480px] rounded-3xl border-border/60 bg-gradient-to-br from-card/95 via-card/80 to-primary/5 backdrop-blur-xl overflow-hidden p-6 shadow-glow">
           <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
-          <form onSubmit={handleCreateTransaction} className="space-y-5 relative">
+          <form onSubmit={handleCreateTransaction} className="space-y-5 relative" noValidate>
             <DialogHeader className="space-y-1">
               <DialogTitle className="text-2xl font-extrabold text-foreground">Nova Compra</DialogTitle>
               <p className="text-xs text-muted-foreground">
@@ -687,15 +695,12 @@ export const CreditCards = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="amount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Valor Total</Label>
-                  <Input
+                  <CurrencyInput
                     id="amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
                     placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono font-bold text-sm"
+                    value={amount || 0}
+                    onChange={(val) => setAmount(String(val))}
+                    className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono font-bold text-sm text-left"
                     required
                   />
                 </div>
@@ -746,10 +751,17 @@ export const CreditCards = () => {
                 </div>
 
                 <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="category" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Categoria YNAB</Label>
-                  <Select value={categoryId} onValueChange={setCategoryId} required>
-                    <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium truncate">
-                      <SelectValue placeholder="Selecione a categoria" />
+                  <Label htmlFor="category" className={cn("text-[10px] font-bold uppercase tracking-wider font-mono", categoryError ? "text-red-500" : "text-muted-foreground")}>Subconta de despesa</Label>
+                  <Select 
+                    value={categoryId} 
+                    onValueChange={(val) => {
+                      setCategoryId(val);
+                      setCategoryError(false);
+                    }} 
+                    required
+                  >
+                    <SelectTrigger className={cn("rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium truncate", categoryError && "border-red-500 ring-1 ring-red-500/50")}>
+                      <SelectValue placeholder="Selecione a subconta" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border/60 max-h-60">
                       {allCategories.map(cat => (
@@ -759,6 +771,7 @@ export const CreditCards = () => {
                       ))}
                     </SelectContent>
                   </Select>
+                  {categoryError && <span className="text-[10px] text-red-500 font-medium ml-1">Campo obrigatório. Selecione onde deduzir esta despesa.</span>}
                 </div>
               </div>
 
@@ -778,14 +791,11 @@ export const CreditCards = () => {
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="iofAmount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Impostos / IOF</Label>
-                  <Input
+                  <CurrencyInput
                     id="iofAmount"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={iofAmount}
-                    onChange={(e) => setIofAmount(e.target.value)}
-                    className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono text-sm"
+                    value={iofAmount || 0}
+                    onChange={(val) => setIofAmount(String(val))}
+                    className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono text-sm text-left"
                   />
                 </div>
               </div>

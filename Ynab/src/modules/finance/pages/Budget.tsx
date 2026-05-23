@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/shared/components/ui/table";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
@@ -699,10 +700,9 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
         </div>
       </TableCell>
       <TableCell className="text-right hidden sm:table-cell p-2 sm:p-4">
-        <Input
-          type="number"
-          value={cat.assigned_amount}
-          onChange={(e) => assignMoney(cat.id, parseFloat(e.target.value) || 0)}
+        <CurrencyInput
+          value={cat.assigned_amount || 0}
+          onChange={(val) => assignMoney(cat.id, val)}
           className="w-24 ml-auto h-8 text-right bg-background/50 border-border/40 focus:border-primary/50"
         />
       </TableCell>

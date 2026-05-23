@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { TableSkeleton } from "@/shared/components/dashboard/TableSkeleton";
 import { EmptyState } from "@/shared/components/dashboard/EmptyState";
-import { Receipt, TrendingUp, TrendingDown, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2 } from "lucide-react";
+import { Receipt, TrendingUp, TrendingDown, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -50,6 +50,11 @@ const Transactions = () => {
   const [selectedAccountId, setSelectedAccountId] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
+  const toggleGroup = (id: string) => {
+    setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const queryClient = useQueryClient();
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
@@ -140,6 +145,39 @@ const Transactions = () => {
     }
     return result;
   }, [transactions, search, selectedAccountId, targetAccountIds, selectedMonth, selectedYear, statusFilter, typeFilter]);
+
+  const processedTransactions = useMemo(() => {
+    const groups = new Map<number, any>();
+    const result: any[] = [];
+    
+    for (const t of filteredTransactions) {
+      if (t.statement_id) {
+        if (!groups.has(t.statement_id)) {
+          groups.set(t.statement_id, {
+            id: `stmt-${t.statement_id}`,
+            isGroup: true,
+            statement_id: t.statement_id,
+            description: t.statement_name || "Fatura de Cartão",
+            date: t.date,
+            amount: 0,
+            is_income: false,
+            items: [],
+            account: null,
+            status: t.status,
+          });
+          result.push(groups.get(t.statement_id));
+        }
+        const group = groups.get(t.statement_id);
+        group.items.push(t);
+        if (!t.is_income) {
+          group.amount += Number(t.amount);
+        }
+      } else {
+        result.push(t);
+      }
+    }
+    return result;
+  }, [filteredTransactions]);
 
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
@@ -277,101 +315,150 @@ const Transactions = () => {
                 <div key={i} className="h-14 rounded-xl bg-muted/20 animate-pulse" />
               ))}
             </div>
-          ) : filteredTransactions.length === 0 ? (
+          ) : processedTransactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground border border-dashed border-border/60 rounded-xl">
               <Receipt className="h-6 w-6 opacity-20" />
               <p className="text-xs">Nenhuma transação encontrada.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-1.5">
-              {filteredTransactions.map((t) => (
-                <div key={t.id} className="relative">
-                  {/* Hidden trigger for swipe edit */}
-                  <AddTransactionModal transaction={t}>
-                    <button id={`edit-trigger-${t.id}`} className="hidden" />
-                  </AddTransactionModal>
-
-                  <SwipeableTransactionCard
-                    onEdit={() => document.getElementById(`edit-trigger-${t.id}`)?.click()}
-                    onDelete={() => handleDeleteClick(t)}
-                  >
-                    <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm hover:border-border/80 transition-all group">
-                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                        <div className={cn(
-                          "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-                          t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
-                        )}>
-                          {t.is_income
-                            ? <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                            : <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
-                          }
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs xs:text-sm font-semibold text-foreground truncate">{t.description}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <p className="text-[10px] text-muted-foreground">
-                              {new Date(t.date).toLocaleDateString('pt-PT')}
+              {processedTransactions.map((t) => {
+                if (t.isGroup) {
+                  const isExpanded = expandedGroups[t.id];
+                  return (
+                    <div key={t.id} className="flex flex-col border border-border/40 bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden mb-1.5">
+                      <div 
+                        className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-muted/10 transition-colors"
+                        onClick={() => toggleGroup(t.id)}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
+                            <Receipt className="h-3.5 w-3.5 text-indigo-500" />
+                          </div>
+                          <div className="text-left min-w-0 flex-1">
+                            <p className="text-xs xs:text-sm font-semibold text-foreground truncate">{t.description}</p>
+                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                              {t.items.length} Lançamentos • {new Date(t.date).toLocaleDateString('pt-PT')}
                             </p>
-                            <span className={cn(
-                              "text-[9px] px-1 py-0.5 rounded-full flex items-center gap-0.5",
-                              t.status === "realized"
-                                ? "text-emerald-500 bg-emerald-500/10"
-                                : "text-amber-500 bg-amber-500/10"
-                            )}>
-                              {t.status === "realized"
-                                ? <><CheckCircle2 className="h-2 w-2" />Efetivada</>
-                                : <><Clock className="h-2 w-2" />Pendente</>
-                              }
-                            </span>
                           </div>
                         </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <p className="text-xs xs:text-sm font-bold tabular-nums text-rose-400">
+                            -{formatMoney(Math.abs(t.amount), "BRL")}
+                          </p>
+                          {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
-                        <p className={cn(
-                          "text-xs xs:text-sm font-bold tabular-nums",
-                          t.is_income ? "text-emerald-400" : "text-rose-400"
-                        )}>
-                          {t.is_income ? "+" : "-"}
-                          {formatMoney(Math.abs(Number(t.amount)), (() => {
-                            const acc = useAccountStore.getState().getAccount(t.account);
-                            return acc?.currency || "EUR";
-                          })())}
-                        </p>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
-                              <MoreHorizontal className="h-3.5 w-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="glass border-border/60">
-                            <DropdownMenuLabel className="text-xs">Ações</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="cursor-pointer text-xs"
-                              onClick={() => handleStatusToggle(t)}
-                            >
-                              {t.status === "realized"
-                                ? <><Clock className="mr-2 h-3.5 w-3.5" />Marcar Pendente</>
-                                : <><CheckCircle2 className="mr-2 h-3.5 w-3.5" />Efetivar</>
-                              }
-                            </DropdownMenuItem>
-                            <AddTransactionModal transaction={t}>
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer text-xs">
-                                <Edit2 className="mr-2 h-3.5 w-3.5" />
-                                Editar
-                              </DropdownMenuItem>
-                            </AddTransactionModal>
-                            <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400 text-xs" onClick={() => handleDeleteClick(t)}>
-                              <Trash2 className="mr-2 h-3.5 w-3.5" />
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
+                      
+                      {isExpanded && (
+                        <div className="flex flex-col gap-1 p-2 bg-black/10 border-t border-border/20">
+                          {t.items.map((sub: any) => (
+                            <div key={sub.id} className="flex items-center justify-between p-2 rounded-lg bg-card/50 border border-border/20">
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-semibold text-foreground truncate">{sub.description}</p>
+                                <p className="text-[9px] text-muted-foreground mt-0.5">{getAccountName(sub.account)}</p>
+                              </div>
+                              <p className={cn("text-[11px] font-bold tabular-nums shrink-0", sub.is_income ? "text-emerald-400" : "text-rose-400")}>
+                                {sub.is_income ? "+" : "-"}{formatMoney(Math.abs(Number(sub.amount)), (() => {
+                                  const acc = useAccountStore.getState().getAccount(sub.account);
+                                  return acc?.currency || "EUR";
+                                })())}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </SwipeableTransactionCard>
-                </div>
-              ))}
+                  );
+                }
+
+                return (
+                  <div key={t.id} className="relative mb-1.5">
+                    <AddTransactionModal transaction={t}>
+                      <button id={`edit-trigger-${t.id}`} className="hidden" />
+                    </AddTransactionModal>
+                    <SwipeableTransactionCard
+                      onEdit={() => document.getElementById(`edit-trigger-${t.id}`)?.click()}
+                      onDelete={() => handleDeleteClick(t)}
+                    >
+                      <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm hover:border-border/80 transition-all group">
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <div className={cn(
+                            "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                            t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
+                          )}>
+                            {t.is_income
+                              ? <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                              : <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
+                            }
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs xs:text-sm font-semibold text-foreground truncate">{t.description}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <p className="text-[10px] text-muted-foreground">
+                                {new Date(t.date).toLocaleDateString('pt-PT')}
+                              </p>
+                              <span className={cn(
+                                "text-[9px] px-1 py-0.5 rounded-full flex items-center gap-0.5",
+                                t.status === "realized"
+                                  ? "text-emerald-500 bg-emerald-500/10"
+                                  : "text-amber-500 bg-amber-500/10"
+                              )}>
+                                {t.status === "realized"
+                                  ? <><CheckCircle2 className="h-2 w-2" />Efetivada</>
+                                  : <><Clock className="h-2 w-2" />Pendente</>
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
+                          <p className={cn(
+                            "text-xs xs:text-sm font-bold tabular-nums",
+                            t.is_income ? "text-emerald-400" : "text-rose-400"
+                          )}>
+                            {t.is_income ? "+" : "-"}
+                            {formatMoney(Math.abs(Number(t.amount)), (() => {
+                              const acc = useAccountStore.getState().getAccount(t.account);
+                              return acc?.currency || "EUR";
+                            })())}
+                          </p>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="glass border-border/60">
+                              <DropdownMenuLabel className="text-xs">Ações</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="cursor-pointer text-xs"
+                                onClick={() => handleStatusToggle(t)}
+                              >
+                                {t.status === "realized"
+                                  ? <><Clock className="mr-2 h-3.5 w-3.5" />Marcar Pendente</>
+                                  : <><CheckCircle2 className="mr-2 h-3.5 w-3.5" />Efetivar</>
+                                }
+                              </DropdownMenuItem>
+                              <AddTransactionModal transaction={t}>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer text-xs">
+                                  <Edit2 className="mr-2 h-3.5 w-3.5" />
+                                  Editar
+                                </DropdownMenuItem>
+                              </AddTransactionModal>
+                              <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400 text-xs" onClick={() => handleDeleteClick(t)}>
+                                <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                Excluir
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                    </SwipeableTransactionCard>
+                  </div>
+                );
+              })}
             </div>
           )}
         </PullToRefresh>
@@ -393,7 +480,7 @@ const Transactions = () => {
           <TableBody>
             {isLoading ? (
                 <TableSkeleton rows={8} />
-            ) : filteredTransactions.length === 0 ? (
+            ) : processedTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6}>
                   <EmptyState 
@@ -404,84 +491,176 @@ const Transactions = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredTransactions.map((t) => (
-                <TableRow key={t.id} className="border-border/40 hover:bg-muted/10 transition-colors group">
-                  <TableCell className="text-xs text-muted-foreground">
-                    {new Date(t.date).toLocaleDateString('pt-PT')}
-                  </TableCell>
-                  <TableCell className="font-medium">{t.description}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal">
-                      {getAccountName(t.account)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleStatusToggle(t)}
-                      className={cn(
-                        "h-8 px-2 rounded-lg transition-all",
-                        t.status === "realized" 
-                          ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
-                          : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                      )}
-                    >
-                      {t.status === "realized" ? (
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle2 className="h-4 w-4" />
-                          <span className="text-xs font-medium">Efetivada</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="h-4 w-4" />
-                          <span className="text-xs font-medium">Pendente</span>
-                        </div>
-                      )}
-                    </Button>
-                  </TableCell>
-                  <TableCell className={cn(
-                    "text-right font-semibold tabular",
-                    !t.is_income ? "text-rose-400" : "text-emerald-400"
-                  )}>
-                    {(() => {
-                      const acc = useAccountStore.getState().getAccount(t.account);
-                      const currency = acc?.currency || "EUR";
-                      return (
-                        <>
-                          {t.is_income ? "+" : "-"}
-                          {formatMoney(Math.abs(t.amount), currency)}
-                        </>
-                      );
-                    })()}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="glass border-border/60">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        
-                        <AddTransactionModal transaction={t}>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                            <Edit2 className="mr-2 h-4 w-4" />
-                            Editar
-                          </DropdownMenuItem>
-                        </AddTransactionModal>
+              processedTransactions.map((t) => {
+                if (t.isGroup) {
+                  const isExpanded = expandedGroups[t.id];
+                  return (
+                    <Fragment key={t.id}>
+                      {/* Master Row */}
+                      <TableRow 
+                        className="border-border/40 hover:bg-muted/10 transition-colors group cursor-pointer bg-muted/5"
+                        onClick={() => toggleGroup(t.id)}
+                      >
+                        <TableCell className="text-xs text-muted-foreground font-semibold">
+                          {new Date(t.date).toLocaleDateString('pt-PT')}
+                        </TableCell>
+                        <TableCell className="font-bold flex items-center gap-2 text-indigo-400">
+                          <Receipt className="h-4 w-4" />
+                          {t.description}
+                          <Badge variant="outline" className="text-[10px] ml-2 font-mono bg-indigo-500/10 text-indigo-400 border-indigo-500/20">{t.items.length} Lançamentos</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal opacity-50">
+                            -
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal opacity-50">
+                            -
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right font-bold tabular-nums text-rose-400">
+                          -{formatMoney(Math.abs(t.amount), "BRL")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full pointer-events-none text-muted-foreground">
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      
+                      {/* Child Rows */}
+                      {isExpanded && t.items.map((sub: any) => (
+                        <TableRow key={sub.id} className="border-border/10 hover:bg-muted/5 transition-colors group bg-black/5">
+                          <TableCell className="text-xs text-muted-foreground pl-8 opacity-70">
+                            {new Date(sub.date).toLocaleDateString('pt-PT')}
+                          </TableCell>
+                          <TableCell className="font-medium text-sm pl-8">↳ {sub.description}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal">
+                              {getAccountName(sub.account)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStatusToggle(sub)}
+                              className={cn(
+                                "h-8 px-2 rounded-lg transition-all",
+                                sub.status === "realized" 
+                                  ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
+                                  : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                              )}
+                            >
+                              {sub.status === "realized" ? (
+                                <div className="flex items-center gap-1.5">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  <span className="text-xs font-medium">Efetivada</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-4 w-4" />
+                                  <span className="text-xs font-medium">Pendente</span>
+                                </div>
+                              )}
+                            </Button>
+                          </TableCell>
+                          <TableCell className={cn(
+                            "text-right font-medium tabular text-sm opacity-80",
+                            !sub.is_income ? "text-rose-400" : "text-emerald-400"
+                          )}>
+                            {sub.is_income ? "+" : "-"}{formatMoney(Math.abs(sub.amount), (() => {
+                              const acc = useAccountStore.getState().getAccount(sub.account);
+                              return acc?.currency || "EUR";
+                            })())}
+                          </TableCell>
+                          <TableCell></TableCell>
+                        </TableRow>
+                      ))}
+                    </Fragment>
+                  );
+                }
 
-                        <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+                return (
+                  <TableRow key={t.id} className="border-border/40 hover:bg-muted/10 transition-colors group">
+                    <TableCell className="text-xs text-muted-foreground">
+                      {new Date(t.date).toLocaleDateString('pt-PT')}
+                    </TableCell>
+                    <TableCell className="font-medium">{t.description}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal">
+                        {getAccountName(t.account)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleStatusToggle(t)}
+                        className={cn(
+                          "h-8 px-2 rounded-lg transition-all",
+                          t.status === "realized" 
+                            ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
+                            : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                        )}
+                      >
+                        {t.status === "realized" ? (
+                          <div className="flex items-center gap-1.5">
+                            <CheckCircle2 className="h-4 w-4" />
+                            <span className="text-xs font-medium">Efetivada</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="h-4 w-4" />
+                            <span className="text-xs font-medium">Pendente</span>
+                          </div>
+                        )}
+                      </Button>
+                    </TableCell>
+                    <TableCell className={cn(
+                      "text-right font-semibold tabular",
+                      !t.is_income ? "text-rose-400" : "text-emerald-400"
+                    )}>
+                      {(() => {
+                        const acc = useAccountStore.getState().getAccount(t.account);
+                        const currency = acc?.currency || "EUR";
+                        return (
+                          <>
+                            {t.is_income ? "+" : "-"}
+                            {formatMoney(Math.abs(t.amount), currency)}
+                          </>
+                        );
+                      })()}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="glass border-border/60">
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          
+                          <AddTransactionModal transaction={t}>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                              <Edit2 className="mr-2 h-4 w-4" />
+                              Editar
+                            </DropdownMenuItem>
+                          </AddTransactionModal>
+
+                          <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>

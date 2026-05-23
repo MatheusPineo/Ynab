@@ -5,6 +5,7 @@ import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { Plus, Target, Calendar, Trash2, CheckCircle2, Pencil, Wallet, Coins } from "lucide-react";
 import {
@@ -36,6 +37,8 @@ const GoalModal = ({ goal, open, setOpen }: { goal?: Goal; open: boolean; setOpe
   const [hasDeadline, setHasDeadline] = useState(!!goal?.deadline);
   const [currency, setCurrency] = useState<Currency>((goal?.currency as Currency) || "EUR");
   const [emoji, setEmoji] = useState(goal?.emoji || "🎯");
+  const [targetAmount, setTargetAmount] = useState<number>(goal?.target_amount || 0);
+  const [currentAmount, setCurrentAmount] = useState<number>(goal?.current_amount || 0);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,8 +46,8 @@ const GoalModal = ({ goal, open, setOpen }: { goal?: Goal; open: boolean; setOpe
     
     const data = {
       name: formData.get("name") as string,
-      target_amount: Number(parseFloat(formData.get("target") as string).toFixed(2)),
-      current_amount: Number((parseFloat(formData.get("current") as string) || 0).toFixed(2)),
+      target_amount: targetAmount,
+      current_amount: currentAmount,
       deadline: hasDeadline ? (formData.get("deadline") as string) : null,
       emoji: emoji,
       currency: currency,
@@ -93,7 +96,7 @@ const GoalModal = ({ goal, open, setOpen }: { goal?: Goal; open: boolean; setOpe
         <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
             <Label htmlFor="target">Valor Alvo</Label>
-            <Input id="target" name="target" type="number" step="0.01" defaultValue={goal?.target_amount} placeholder="0.00" required className="bg-background/50 h-10" />
+            <CurrencyInput id="target" name="target" value={targetAmount} onChange={setTargetAmount} placeholder="0.00" required className="bg-background/50 h-10 text-left" />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="currency">Moeda</Label>
@@ -113,7 +116,7 @@ const GoalModal = ({ goal, open, setOpen }: { goal?: Goal; open: boolean; setOpe
         {!goal && (
           <div className="grid gap-2">
             <Label htmlFor="current">Saldo Inicial (opcional)</Label>
-            <Input id="current" name="current" type="number" step="0.01" placeholder="0.00" className="bg-background/50 h-10" />
+            <CurrencyInput id="current" name="current" value={currentAmount} onChange={setCurrentAmount} placeholder="0.00" className="bg-background/50 h-10 text-left" />
           </div>
         )}
 
@@ -192,7 +195,7 @@ const Goals = () => {
 const GoalCard = ({ goal, onUpdate, onDelete }: { goal: Goal, onUpdate: any, onDelete: any }) => {
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [depositAmount, setDepositAmount] = useState("");
+  const [depositAmount, setDepositAmount] = useState<number>(0);
 
   const currentAmt = Number(goal.current_amount) || 0;
   const targetAmt = Number(goal.target_amount) || 0;
@@ -203,7 +206,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: { goal: Goal, onUpdate: any, onD
 
   const handleDeposit = async () => {
     console.log("💰 handleDeposit chamado com depositAmount:", depositAmount);
-    const val = parseFloat(depositAmount);
+    const val = depositAmount;
     if (isNaN(val) || val <= 0) {
       toast.error("Insira um valor válido");
       return;
@@ -306,13 +309,12 @@ const GoalCard = ({ goal, onUpdate, onDelete }: { goal: Goal, onUpdate: any, onD
               <div className="py-4 space-y-4">
                 <div className="space-y-2">
                    <Label className="text-xs text-muted-foreground">Valor para adicionar ({currency})</Label>
-                   <Input 
-                    type="number" 
+                   <CurrencyInput 
                     value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
+                    onChange={setDepositAmount}
                     placeholder="0.00"
                     autoFocus
-                    className="h-12 text-lg font-bold bg-background/50 border-border/40 focus:border-primary"
+                    className="h-12 text-lg font-bold bg-background/50 border-border/40 focus:border-primary text-left"
                    />
                 </div>
                 <Button onClick={handleDeposit} className="w-full h-12 gradient-primary text-base font-bold">

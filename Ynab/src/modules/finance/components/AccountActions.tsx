@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
@@ -213,25 +214,21 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="balance">Saldo Atual</Label>
-              <Input
+              <CurrencyInput
                 id="balance"
-                type="number"
-                step="0.01"
                 value={editedBalance}
-                onChange={(e) => setEditedBalance(parseFloat(e.target.value) || 0)}
-                className="bg-background/50"
+                onChange={(val) => setEditedBalance(val)}
+                className="bg-background/50 text-left"
               />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="ceiling">Teto (Limite Opcional)</Label>
-              <Input
+              <CurrencyInput
                 id="ceiling"
-                type="number"
-                step="0.01"
-                value={editedCeiling ?? ""}
-                onChange={(e) => setEditedCeiling(e.target.value !== "" ? parseFloat(e.target.value) : null)}
+                value={editedCeiling ?? 0}
+                onChange={(val) => setEditedCeiling(val === 0 ? null : val)}
                 placeholder="Ex: 1000.00"
-                className="bg-background/50"
+                className="bg-background/50 text-left"
               />
             </div>
             <div className="flex items-center space-x-3 py-1 bg-muted/20 border border-border/40 px-3.5 py-3 rounded-xl">

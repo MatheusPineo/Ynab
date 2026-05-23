@@ -134,6 +134,13 @@ class Transaction(models.Model):
     cleared = models.BooleanField(default=False)
     reconciled = models.BooleanField(default=False)
     transfer_group = models.UUIDField(null=True, blank=True)
+    credit_card_bill = models.ForeignKey(
+        'CreditCardBill',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='ledger_transactions'
+    )
     
     # Vínculo para a transação "template" que gerou esta ocorrência
     recurring_parent = models.ForeignKey(

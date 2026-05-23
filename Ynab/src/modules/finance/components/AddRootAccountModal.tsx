@@ -9,6 +9,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Plus, CreditCard, Landmark, TrendingUp } from "lucide-react";
@@ -22,6 +23,9 @@ export const AddRootAccountModal = () => {
   const [accountType, setAccountType] = useState<"checking" | "credit_card" | "investment">("checking");
   const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [ceiling, setCeiling] = useState<number | null>(null);
+  const [creditLimit, setCreditLimit] = useState(0);
   const { addNode, fetchAccounts } = useAccountStore();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -34,7 +38,7 @@ export const AddRootAccountModal = () => {
         // Criar Cartão de Crédito e Conta YNAB via endpoint dedicado
         const payload = {
           name: formData.get("name") as string,
-          credit_limit: parseFloat(formData.get("credit_limit") as string) || 0,
+          credit_limit: creditLimit || 0,
           closing_day: parseInt(formData.get("closing_day") as string, 10) || 20,
           due_day: parseInt(formData.get("due_day") as string, 10) || 28,
           currency: formData.get("currency") as string,
@@ -53,10 +57,6 @@ export const AddRootAccountModal = () => {
         await fetchAccounts();
       } else {
         // Criar Conta Raiz Normal
-        const balance = parseFloat(formData.get("balance") as string) || 0;
-        const ceilingInput = formData.get("ceiling") as string;
-        const ceiling = ceilingInput ? parseFloat(ceilingInput) : null;
-
         await addNode("root", {
           name: formData.get("name") as string,
           balance: balance,
@@ -70,6 +70,9 @@ export const AddRootAccountModal = () => {
       }
 
       setExcludeFromTotals(false);
+      setBalance(0);
+      setCeiling(null);
+      setCreditLimit(0);
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message);
@@ -160,19 +163,19 @@ export const AddRootAccountModal = () => {
             <>
               <div className="grid gap-2">
                 <Label htmlFor="balance" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Saldo Inicial</Label>
-                <Input id="balance" name="balance" type="number" step="0.01" placeholder="0.00" className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono font-bold text-sm" />
+                <CurrencyInput id="balance" value={balance} onChange={setBalance} className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono font-bold text-sm text-left" />
               </div>
 
               <div className="grid gap-2">
                 <Label htmlFor="ceiling" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Teto (Limite Opcional)</Label>
-                <Input id="ceiling" name="ceiling" type="number" step="0.01" placeholder="Ex: 1000.00" className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono text-sm" />
+                <CurrencyInput id="ceiling" value={ceiling ?? 0} onChange={(val) => setCeiling(val === 0 ? null : val)} placeholder="Ex: 1000.00" className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono text-sm text-left" />
               </div>
             </>
           ) : (
             <>
               <div className="grid gap-2">
                 <Label htmlFor="credit_limit" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Limite Total do Cartão</Label>
-                <Input id="credit_limit" name="credit_limit" type="number" step="0.01" min="0.01" placeholder="Ex: 15000.00" required className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono font-bold text-sm" />
+                <CurrencyInput id="credit_limit" value={creditLimit} onChange={setCreditLimit} placeholder="Ex: 15000.00" required className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono font-bold text-sm text-left" />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

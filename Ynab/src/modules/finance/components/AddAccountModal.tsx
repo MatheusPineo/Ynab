@@ -9,6 +9,7 @@ import {
 } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Plus } from "lucide-react";
@@ -25,15 +26,13 @@ interface Props {
 export const AddAccountModal = ({ parentAccount, children }: Props) => {
   const [open, setOpen] = useState(false);
   const [excludeFromTotals, setExcludeFromTotals] = useState(false);
+  const [balance, setBalance] = useState(0);
+  const [ceiling, setCeiling] = useState<number | null>(null);
   const { addNode } = useAccountStore();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
-    const balance = parseFloat(formData.get("balance") as string) || 0;
-    const ceilingInput = formData.get("ceiling") as string;
-    const ceiling = ceilingInput ? parseFloat(ceilingInput) : null;
 
     addNode(parentAccount.id, {
       name: formData.get("name") as string,
@@ -46,6 +45,8 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
 
     toast.success(`Sub-conta criada em "${parentAccount.name}"`);
     setExcludeFromTotals(false);
+    setBalance(0);
+    setCeiling(null);
     setOpen(false);
   };
 
@@ -70,12 +71,12 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
           
           <div className="grid gap-2">
             <Label htmlFor="balance">Saldo Inicial</Label>
-            <Input id="balance" name="balance" type="number" step="0.01" placeholder="0.00" className="bg-background/50" />
+            <CurrencyInput id="balance" value={balance} onChange={setBalance} className="bg-background/50 text-left" />
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="ceiling">Teto (Limite Opcional)</Label>
-            <Input id="ceiling" name="ceiling" type="number" step="0.01" placeholder="Ex: 1000.00" className="bg-background/50" />
+            <CurrencyInput id="ceiling" value={ceiling ?? 0} onChange={(val) => setCeiling(val === 0 ? null : val)} placeholder="Ex: 1000.00" className="bg-background/50 text-left" />
           </div>
 
           <div className="grid gap-2">

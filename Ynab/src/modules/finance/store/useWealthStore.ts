@@ -5,7 +5,7 @@ export interface InvestmentAsset {
   id: number;
   ticker: string;
   name: string;
-  asset_type: 'FIXED_INCOME' | 'STOCK' | 'FII' | 'CRYPTO' | 'OTHER';
+  asset_type: 'FIXED_INCOME' | 'TREASURY' | 'STOCK' | 'FII' | 'ETF' | 'CRYPTO' | 'BOND' | 'MUTUAL_FUND' | 'OTHER';
   currency: string;
   due_date?: string;
   indexer?: string;
@@ -33,7 +33,7 @@ export interface AssetHolding {
   ticker: string;
   name: string;
   currency: string;
-  asset_type: 'STOCK' | 'FIXED_INCOME' | 'TREASURY' | 'FII' | 'ETF' | 'CRYPTO';
+  asset_type: 'FIXED_INCOME' | 'TREASURY' | 'STOCK' | 'FII' | 'ETF' | 'CRYPTO' | 'BOND' | 'MUTUAL_FUND' | 'OTHER';
   quantity: number;
   average_cost: number;
   total_cost_basis: number;

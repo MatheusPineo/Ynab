@@ -4,16 +4,22 @@ Todas as alteraÃ§Ãµes notÃ¡veis, correÃ§Ãµes de bugs, novas funcionalidades e ma
 
 A linha do tempo abaixo foi sincronizada e mapeada diretamente a partir do histÃ³rico real de commits do Git para refletir a evoluÃ§Ã£o fidedigna de nosso software.
 
+## [1.35.5] - 2026-05-23
+
+### Features & Integrations
+- **Agrupamento de Faturas de Cartao:** Refatoracao completa da tela de transacoes (Mobile e Desktop) para agrupar visualmente as transacoes de cartao de credito atraves de um "Master Row" (Fatura), empacotando os debitos subjacentes dentro de um elemento colapsavel (Invoice Packaging).
+- **Governanca UX/UI (Cartoes):** Implementado um estado customizado para as validacoes nativas dos navegadores e adequacao da nomenclatura sistemica, mudando de "Categoria YNAB" para "Subconta de Despesa".
+
 ## [1.35.4] - 2026-05-23
 
 ### ? Features & Integrations
-- **Modo Demo & Onboarding:** Implementado um novo motor de Seeding de banco de dados (seeding.py). Agora, quando um novo usuário se cadastra, o YNAB cria silenciosamente toda a taxonomia padrão de categorias para facilitar o envelopamento. Também criamos a 'Área de Testes e Reset' nas Configurações, contendo um Modo Demo de 1 clique que gera contas, limites falsos de cartões, dezenas de transações e investimentos pre-populados para que o cliente aprenda a usar o Vault Finance OS interagindo com uma massa de dados rica antes de plugar suas finanças reais.
+- **Modo Demo & Onboarding:** Implementado um novo motor de Seeding de banco de dados (seeding.py). Agora, quando um novo usurio se cadastra, o YNAB cria silenciosamente toda a taxonomia padro de categorias para facilitar o envelopamento. Tambm criamos a 'rea de Testes e Reset' nas Configuraes, contendo um Modo Demo de 1 clique que gera contas, limites falsos de cartes, dezenas de transaes e investimentos pre-populados para que o cliente aprenda a usar o Vault Finance OS interagindo com uma massa de dados rica antes de plugar suas finanas reais.
 
 ## [1.35.3] - 2026-05-23
 
 ### ?? Bug Fixes & Improvements
-- **Inbox (Envio em Massa):** Correção do bug de envio infinito no upload de várias notas fiscais. O upload no frontend agora enfileira imagens uma a uma de modo sequencial com feedback de progresso na tela, evitando sobrecarga de mémoria no navegador, e suportando fallback robusto de erros individuais do motor de inteligência artificial.
-- **Cartões de Crédito:** Adicionado suporte para rastreamento flexível de faturas: usuários agora podem optar por iniciar uma transação parcelada a partir de qualquer parcela inicial, ideal para compras realizadas no passado.
+- **Inbox (Envio em Massa):** Correo do bug de envio infinito no upload de vrias notas fiscais. O upload no frontend agora enfileira imagens uma a uma de modo sequencial com feedback de progresso na tela, evitando sobrecarga de mmoria no navegador, e suportando fallback robusto de erros individuais do motor de inteligncia artificial.
+- **Cartes de Crdito:** Adicionado suporte para rastreamento flexvel de faturas: usurios agora podem optar por iniciar uma transao parcelada a partir de qualquer parcela inicial, ideal para compras realizadas no passado.
 
 ## [1.35.2] - 2026-05-22
 
@@ -1179,20 +1185,20 @@ Nascimento do Vault Finance OS.
 * **Estrutura Base MultirepositÃ³rio:** ConfiguraÃ§Ã£o inicial do Django REST Framework (Backend) e do React + Vite + TypeScript + TailwindCSS (Frontend).
 * **AutenticaÃ§Ã£o Baseada em JSON Web Tokens (JWT):** ImplementaÃ§Ã£o inicial de fluxo seguro de tokens com SimpleJWT (Access e Refresh tokens).
 * **Initial Commit:** Envio inicial do repositÃ³rio contendo as bases lÃ³gicas para o modelo relacional de transaÃ§Ãµes.
-- feat(ui): Ajustes na tabela do Histórico (sem rolagem), edição rápida de lançamentos, pesquisa por valores, alteração do ícone de velocímetro para alvo e aviso explicativo de 'Valor Bruto'.
-- feat(ui): Ajustes no card de Patrimônio Líquido em Investimentos, adição de balões informativos no cadastro de contas e formatação simplificada do histórico de ativos.
+- feat(ui): Ajustes na tabela do Histrico (sem rolagem), edio rpida de lanamentos, pesquisa por valores, alterao do cone de velocmetro para alvo e aviso explicativo de 'Valor Bruto'.
+- feat(ui): Ajustes no card de Patrimnio Lquido em Investimentos, adio de bales informativos no cadastro de contas e formatao simplificada do histrico de ativos.
 
 ## [1.35.4] - 2026-05-23
 
 ### ? Features & Integrations
-- **Modo Demo & Onboarding:** Implementado um novo motor de Seeding de banco de dados (seeding.py). Agora, quando um novo usuário se cadastra, o YNAB cria silenciosamente toda a taxonomia padrão de categorias para facilitar o envelopamento. Também criamos a 'Área de Testes e Reset' nas Configurações, contendo um Modo Demo de 1 clique que gera contas, limites falsos de cartões, dezenas de transações e investimentos pre-populados para que o cliente aprenda a usar o Vault Finance OS interagindo com uma massa de dados rica antes de plugar suas finanças reais.
+- **Modo Demo & Onboarding:** Implementado um novo motor de Seeding de banco de dados (seeding.py). Agora, quando um novo usurio se cadastra, o YNAB cria silenciosamente toda a taxonomia padro de categorias para facilitar o envelopamento. Tambm criamos a 'rea de Testes e Reset' nas Configuraes, contendo um Modo Demo de 1 clique que gera contas, limites falsos de cartes, dezenas de transaes e investimentos pre-populados para que o cliente aprenda a usar o Vault Finance OS interagindo com uma massa de dados rica antes de plugar suas finanas reais.
 
 ## [1.35.3] - 2026-05-23
 
 ### ?? Features & Integrations
-- **Taxonomia Global de Investimentos:** Refatoração do modelo InvestmentAsset para suportar market_country, asset_category e novos tipos de asset_type. O modelo InvestmentActivity agora suporta payloads dinâmicos incluindo due_date.
+- **Taxonomia Global de Investimentos:** Refatorao do modelo InvestmentAsset para suportar market_country, asset_category e novos tipos de asset_type. O modelo InvestmentActivity agora suporta payloads dinmicos incluindo due_date.
 
 ### ?? UI & Frontend Updates
-- **Taxonomia Global Config:** Adicionado o mapeamento centralizado de constantes de investimento em \src/constants/investmentTaxonomy.ts\ para popular formulários dinamicamente.
+- **Taxonomia Global Config:** Adicionado o mapeamento centralizado de constantes de investimento em \src/constants/investmentTaxonomy.ts\ para popular formulrios dinamicamente.
 
 

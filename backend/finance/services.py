@@ -163,7 +163,8 @@ def process_installment_ynab(installment):
             date=today,
             is_income=False,
             status='realized',
-            is_applied_to_balance=True
+            is_applied_to_balance=True,
+            credit_card_bill=installment.bill
         )
         tx_exp._skip_balance_update = True
         tx_exp.save()
@@ -178,7 +179,8 @@ def process_installment_ynab(installment):
             date=today,
             is_income=True,
             status='realized',
-            is_applied_to_balance=True
+            is_applied_to_balance=True,
+            credit_card_bill=installment.bill
         )
         tx_env._skip_balance_update = True
         tx_env.save()

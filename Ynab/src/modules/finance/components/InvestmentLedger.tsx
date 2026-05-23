@@ -16,6 +16,7 @@ import {
   DropdownMenuTrigger 
 } from "@/shared/components/ui/dropdown-menu";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { 
   Dialog,
   DialogContent,
@@ -52,6 +53,8 @@ const ASSET_TYPE_LABELS: Record<string, string> = {
   'FII': 'Fundos Imobiliários',
   'ETF': 'ETFs',
   'CRYPTO': 'Criptomoedas',
+  'BOND': 'Títulos / CDB',
+  'MUTUAL_FUND': 'Fundos de Investimento',
   'OTHER': 'Outros'
 };
 
@@ -282,11 +285,10 @@ export const InvestmentLedger: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label>Preço Unitário (R$)</Label>
-                <Input 
-                  type="number" 
-                  step="0.01" 
+                <CurrencyInput 
                   value={editForm.unit_price} 
-                  onChange={e => setEditForm({...editForm, unit_price: parseFloat(e.target.value)})} 
+                  onChange={val => setEditForm({...editForm, unit_price: val})} 
+                  className="text-left"
                 />
               </div>
               <div className="space-y-2">

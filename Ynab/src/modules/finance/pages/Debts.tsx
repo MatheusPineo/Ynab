@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui
 import { Badge } from "@/shared/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Progress } from "@/shared/components/ui/progress";
@@ -468,15 +469,12 @@ export const Debts = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="amount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Valor</Label>
-                  <Input
+                  <CurrencyInput
                     id="amount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11"
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 text-left"
                     placeholder="0.00"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
+                    value={amount || 0}
+                    onChange={(val) => setAmount(String(val))}
                     required
                   />
                 </div>
@@ -536,15 +534,11 @@ export const Debts = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="payAmount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Valor Amortizado</Label>
-                  <Input
+                  <CurrencyInput
                     id="payAmount"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    max={selectedDebt?.amount_remaining}
-                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 font-mono font-bold"
-                    value={payAmount}
-                    onChange={(e) => setPayAmount(e.target.value)}
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 font-mono font-bold text-left"
+                    value={payAmount || 0}
+                    onChange={(val) => setPayAmount(String(val))}
                     required
                   />
                 </div>
@@ -611,14 +605,11 @@ export const Debts = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="addAmountValue" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Valor Acrescido</Label>
-                  <Input
+                  <CurrencyInput
                     id="addAmountValue"
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 font-mono font-bold"
-                    value={addAmountValue}
-                    onChange={(e) => setAddAmountValue(e.target.value)}
+                    className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 font-mono font-bold text-left"
+                    value={addAmountValue || 0}
+                    onChange={(val) => setAddAmountValue(String(val))}
                     placeholder="0.00"
                     required
                   />

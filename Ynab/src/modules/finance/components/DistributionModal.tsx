@@ -16,6 +16,7 @@ import {
 } from "@/shared/components/ui/select";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { useAccountStore, DistributionTemplateItem, DistributionTemplate } from "@/modules/finance/store/useAccountStore";
 import { AccountNode } from "@/types";
@@ -210,12 +211,11 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs sm:text-sm font-semibold text-muted-foreground">Valor Total a Distribuir</Label>
-              <Input 
-                type="number" 
+              <CurrencyInput 
                 placeholder="Ex: 1400.00" 
-                value={totalAmount} 
-                onChange={e => setTotalAmount(e.target.value)}
-                className="bg-background/50 h-10 rounded-xl text-xs sm:text-sm border-border/40"
+                value={parseFloat(totalAmount) || 0} 
+                onChange={(val) => setTotalAmount(String(val))}
+                className="bg-background/50 h-10 rounded-xl text-xs sm:text-sm border-border/40 text-left"
               />
             </div>
           </div>
@@ -272,13 +272,11 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
                     />
                   </div>
                   <div className="w-32">
-                    <Input 
-                      type="number" 
-                      step="0.01"
+                    <CurrencyInput
                       placeholder="Valor"
                       className="h-9 bg-background/50 text-right rounded-xl text-xs border-border/40" 
-                      value={row.fixed_amount || ""} 
-                      onChange={(e) => handleRowChange(idx, "fixed_amount", e.target.value)}
+                      value={row.fixed_amount || 0} 
+                      onChange={(val) => handleRowChange(idx, "fixed_amount", String(val))}
                     />
                   </div>
                   <div className="w-16 flex items-center justify-center gap-1 shrink-0">
@@ -351,13 +349,11 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[9px] text-muted-foreground uppercase font-black">Valor ({accSource?.currency || "R$"})</Label>
-                      <Input 
-                        type="number" 
-                        step="0.01"
+                      <CurrencyInput
                         placeholder="Ex: 150.00"
                         className="h-9 bg-background/50 text-right rounded-lg text-xs border-border/40" 
-                        value={row.fixed_amount || ""} 
-                        onChange={(e) => handleRowChange(idx, "fixed_amount", e.target.value)}
+                        value={row.fixed_amount || 0} 
+                        onChange={(val) => handleRowChange(idx, "fixed_amount", String(val))}
                       />
                     </div>
                   </div>
