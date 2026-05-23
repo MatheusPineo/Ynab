@@ -1,3 +1,7 @@
+## v1.35.7
+- **Consistência do Arquitetura de Contas:** Agora a parte de registrar uma nova compra em um Cartão de Crédito permite selecionar sua árvore de contas e subcontas cadastradas, em vez de exigir as velhas categorias estáticas. Para isso, alteramos o backend das Matrizes de Transação e os seletores visuais.
+- **Correção da Exibição de Bandeiras:** Foi efetuado o deploy da estrutura de banco de dados correspondente à bandeira do cartão, resolvendo o sumiço do ícone logo após o cadastro!
+
 ## v1.35.6
 - **Cartões de Crédito Mais Inteligentes:** Reformulamos a experiência de uso de Cartões de Crédito! Agora, ao cadastrar um novo cartão, você poderá escolher a Bandeira exata (Visa, Mastercard, Elo, Amex) e visualizá-la lindamente no seu painel. 
 - **Seleção de Subconta Precisa:** Corrigimos o visualizador de Subcontas no painel de compras no cartão, garantindo que você visualize a árvore completa hierárquica na hora de deduzir sua despesa!

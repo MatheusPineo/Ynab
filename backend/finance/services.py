@@ -11,6 +11,7 @@ def process_credit_card_transaction(
     date_tx,
     total_amount,
     category_id=None,
+    expense_account_id=None,
     installment_count=1,
     starting_installment=1,
     original_currency='BRL',
@@ -33,6 +34,7 @@ def process_credit_card_transaction(
     matrix_tx = CreditCardTransaction.objects.create(
         credit_card=credit_card,
         category_id=category_id,
+        expense_account_id=expense_account_id,
         description=description,
         date=date_tx,
         total_amount=val_total,

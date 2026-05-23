@@ -1561,6 +1561,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                 date_tx=date_tx,
                 total_amount=Decimal(str(data['total_amount'])),
                 category_id=data.get('category_id'),
+                expense_account_id=data.get('expense_account_id'),
                 installment_count=int(data.get('installment_count', 1)),
                 starting_installment=int(data.get('starting_installment', 1)),
                 original_currency=data.get('original_currency', 'BRL'),

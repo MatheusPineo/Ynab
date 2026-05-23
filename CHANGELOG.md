@@ -1,3 +1,9 @@
+## [1.35.7] - 2026-05-24
+### Fixed
+- Frontend: Reverted CategoryCombobox to AccountCombobox in the Credit Card Purchase Modal to match the Lançar Transação behavior where Accounts are used as sub-expenses.
+- Backend: Added expense_account to CreditCardTransaction model and updated process_credit_card_transaction to support assigning a purchase to a sub-account instead of a Category.
+- Backend: Fixed brand saving and representation issue by ensuring migration was deployed.
+
 ## [1.35.6] - 2026-05-23
 ### Added
 - Frontend: CategoryCombobox component for hierarchical category selection in credit card purchases.
