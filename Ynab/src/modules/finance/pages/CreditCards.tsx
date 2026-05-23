@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { CreditCard as CreditCardIcon, Plus, Calendar, Clock, CheckCircle2, Sparkles, Zap, Tag, DollarSign, Wallet, MoreVertical, Edit2, Trash2 } from "lucide-react";
-import { CategoryCombobox } from "@/modules/finance/components/CategoryCombobox";
+import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
 
 interface CreditCardModel {
   id: string;
@@ -257,7 +257,7 @@ export const CreditCards = () => {
         total_installments: Number(totalInstallments),
         starting_installment: Number(startingInstallment),
         date: txDate,
-        category_id: categoryId,
+        expense_account_id: categoryId,
         currency: selectedCard.currency,
         exchange_rate: Number(exchangeRate),
         iof_amount: Number(iofAmount)
@@ -971,17 +971,15 @@ export const CreditCards = () => {
 
                 <div className="flex flex-col gap-1.5" id="category-container">
                   <Label htmlFor="category" className={cn("text-[10px] font-bold uppercase tracking-wider font-mono", categoryError ? "text-red-500" : "text-muted-foreground")}>Subconta de despesa</Label>
-                  <CategoryCombobox 
+                  <AccountCombobox 
                     value={categoryId} 
                     onValueChange={(val) => {
                       setCategoryId(val);
-                      setCategoryError(false);
-                    }} 
-                    placeholder="Selecione a subconta"
-                    filterLeafOnly={true}
-                    className={categoryError ? "border-red-500 ring-1 ring-red-500/50" : ""}
+                      if (val) setCategoryError(false);
+                    }}
+                    placeholder="Selecione uma conta"
                   />
-                  {categoryError && <span className="text-[10px] text-red-500 font-medium ml-1">Campo obrigatório. Selecione onde deduzir esta despesa.</span>}
+                  {categoryError && <span className="text-[10px] font-bold text-red-500 mt-1">Por favor, selecione uma subconta para registrar o gasto.</span>}
                 </div>
               </div>
 
