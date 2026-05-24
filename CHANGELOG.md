@@ -1,3 +1,12 @@
+## [1.35.22] - 2026-05-24
+
+### Changed
+- Refatoração Visual do `AccountAccordion`: As badges poluídas de limite foram removidas e convertidas para uma visualização moderna e elegante em grid.
+- Implementação de Barra de Progresso Inteligente para Subcontas: 
+  - Subcontas com Teto agora possuem uma barra que transita do vermelho (`bg-rose-500`) ao verde (`bg-emerald-500`) quando atingem 50% de completude.
+  - Subcontas "Overfunded" (>100%) recebem barra na cor ciano brilhante (`bg-cyan-500`) com efeito neon (drop-shadow).
+  - Subcontas com Limite Livre (sem teto definido) recebem uma discreta barra neutra preenchida na cor cinza (`bg-slate-700`) constando apenas o rótulo de "Saldo Livre".
+
 ## [1.35.21] - 2026-05-24
 
 ### Fixed

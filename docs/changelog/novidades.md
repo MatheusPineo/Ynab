@@ -1,3 +1,9 @@
+## v1.35.22
+- **Novo Visual das Subcontas e Limites:** Substituímos as antigas tags de "Teto" por uma Barra de Progresso muito mais bonita e intuitiva! Agora você pode ver o limite da sua subconta enchendo aos poucos.
+  - A barra é **Vermelha** no início e fica **Verde** ao atingir a metade do limite.
+  - Se você ultrapassar o limite, ela vai brilhar em **Ciano Neon**, informando que houve transbordamento.
+  - E contas que não possuem nenhum limite? Elas agora exibem uma barra neutra indicando "Saldo Livre".
+
 ## v1.35.21
 - **Proteção Contra Erros Visuais nos Relatórios:** Quando uma nova conta é cadastrada, os Relatórios e Gráficos Inteligentes precisavam de dados para montar a interface. Agora, quando a conta está zerada ou carregando, o Vault apresenta uma belíssima tela sutil de "Ainda sem dados suficientes", garantindo navegação contínua em vez de travar o App.
 

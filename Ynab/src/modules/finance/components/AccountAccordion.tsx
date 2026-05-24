@@ -163,7 +163,7 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         type="button"
         onClick={() => hasChildren ? setOpen((o) => !o) : navigate(`/account/${node.id}`)}
         className={cn(
-          "group flex w-full items-center gap-1.5 sm:gap-2 text-left transition-colors duration-200",
+          "group flex flex-col w-full text-left transition-colors duration-200",
           bgFor(depth),
           hasChildren ? "px-3 sm:px-4 py-3 sm:py-4 border-b border-border/40" : "px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl border border-border/50 shadow-sm", // Papel vs Topo de Pasta
           hasChildren && "hover:bg-muted/60 cursor-pointer",
@@ -173,6 +173,7 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         )}
         style={{ paddingLeft: `calc(var(--pad-base) + ${depth} * var(--pad-indent))` }}
       >
+        <div className="flex w-full items-center gap-1.5 sm:gap-2">
         {/* Drag handle */}
         {isMaster && (
           <span
@@ -252,53 +253,12 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
           )}
         </span>
 
-        {/* Indicator for ceiling/limit */}
-        {node.ceiling && Number(node.ceiling) > 0 && (() => {
-          const ceilVal = Math.round(Number(node.ceiling));
-          const pct = Math.round((total / Number(node.ceiling)) * 100);
-          
-          let colorClasses = "";
-          if (pct >= 100) {
-            colorClasses = "gradient-mixed text-zinc-950 font-black border-transparent shadow-sm";
-          } else if (pct >= 80) {
-            colorClasses = "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-          } else if (pct >= 40) {
-            colorClasses = "bg-amber-500/15 text-amber-400 border-amber-500/25";
-          } else {
-            colorClasses = "bg-rose-500/15 text-rose-400 border-rose-500/25";
-          }
-          
-          return (
-            <div className="flex items-center gap-1.5 ml-3 sm:ml-4 shrink-0 select-none">
-              {/* Pill 1: Medidor + Valor Limite */}
-              <div className={cn(
-                "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs sm:text-[13px] font-bold border transition-all shadow-sm",
-                colorClasses
-              )}>
-                <Target className={cn("h-3.5 w-3.5 shrink-0", pct >= 100 ? "text-zinc-950 animate-pulse" : "opacity-90")} />
-                <span>
-                  Teto: {CURRENCY_SYMBOL[currency] || ""}{ceilVal.toLocaleString('pt-BR')}
-                </span>
-              </div>
-              
-              {/* Pill 2: Porcentagem */}
-              <div className={cn(
-                "px-2.5 py-1 rounded-full text-xs sm:text-[13px] font-bold border transition-all shadow-sm",
-                colorClasses
-              )}>
-                <span>{pct}% do limite</span>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Teto + variação */}
         <span className="flex-1" />
 
         {/* Balance */}
         <span
           className={cn(
-            "shrink-0 tabular tracking-tight mr-2",
+            "shrink-0 tabular tracking-tight mr-2 text-right",
             isMaster ? "text-base font-bold" : "text-sm font-medium",
             isExcluded
               ? "text-purple-300/60"
@@ -306,13 +266,68 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
           )}
           title={isExcluded ? "Este saldo está desconsiderado do cálculo total." : undefined}
         >
-          {formatMoney(total, currency)}
+          {node.ceiling && Number(node.ceiling) > 0 ? (
+            <span className="flex items-center gap-1.5">
+              <span>{formatMoney(total, currency)}</span>
+              <span className="text-muted-foreground/60 font-normal text-xs">/</span>
+              <span className="text-muted-foreground text-xs">{formatMoney(Number(node.ceiling), currency)}</span>
+            </span>
+          ) : (
+            formatMoney(total, currency)
+          )}
         </span>
 
         {/* Account Actions */}
         <div onClick={(e) => e.stopPropagation()}>
           <AccountActions account={node} />
         </div>
+        </div>
+
+        {/* Bottom Row: Progress Bar */}
+        {(!isMaster || (node.ceiling && Number(node.ceiling) > 0)) && (() => {
+          const hasCeiling = node.ceiling && Number(node.ceiling) > 0;
+
+          if (!hasCeiling) {
+            return (
+              <div className="w-full h-5 bg-slate-800/80 rounded-full relative overflow-hidden mt-2 border border-slate-700/50 shadow-inner">
+                <div 
+                  className="absolute left-0 top-0 h-full rounded-full transition-all duration-500 bg-slate-700"
+                  style={{ width: '100%' }}
+                />
+                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md z-10 select-none">
+                  Saldo Livre
+                </span>
+              </div>
+            );
+          }
+
+          const ceilVal = Number(node.ceiling);
+          const rawPct = (total / ceilVal) * 100;
+          const displayPct = Math.round(rawPct);
+          const barWidth = Math.min(rawPct, 100);
+          
+          let barColor = "bg-rose-500";
+          let glowClass = "";
+          
+          if (rawPct > 100) {
+            barColor = "bg-cyan-500";
+            glowClass = "shadow-[0_0_10px_rgba(6,182,212,0.8)]";
+          } else if (rawPct >= 50) {
+            barColor = "bg-emerald-500";
+          }
+
+          return (
+            <div className="w-full h-5 bg-slate-800/80 rounded-full relative overflow-hidden mt-2 border border-slate-700/50 shadow-inner">
+              <div 
+                className={cn("absolute left-0 top-0 h-full rounded-full transition-all duration-500", barColor, glowClass)}
+                style={{ width: `${barWidth}%` }}
+              />
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md z-10 select-none">
+                {displayPct}%
+              </span>
+            </div>
+          );
+        })()}
       </button>
 
       {/* Children */}
