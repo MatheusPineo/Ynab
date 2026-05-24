@@ -65,6 +65,8 @@ export const CreditCards = () => {
   const [bills, setBills] = useState<CreditCardBillModel[]>([]);
   const [selectedCard, setSelectedCard] = useState<CreditCardModel | null>(null);
   const [selectedBill, setSelectedBill] = useState<CreditCardBillModel | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -127,7 +129,10 @@ export const CreditCards = () => {
         setBills(sortedBills);
         if (sortedBills.length > 0) {
           const openBill = sortedBills.find(b => !b.is_closed);
-          setSelectedBill(openBill || sortedBills[0]);
+          const billToSelect = openBill || sortedBills[0];
+          setSelectedBill(billToSelect);
+          setSelectedMonth(billToSelect.month - 1);
+          setSelectedYear(billToSelect.year);
         } else {
           setSelectedBill(null);
         }
@@ -515,30 +520,47 @@ export const CreditCards = () => {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
-              {bills.length === 0 ? (
-                <Badge variant="outline" className="border-border/60 p-2">Nenhuma fatura gerada</Badge>
-              ) : (
-                <div className="flex overflow-x-auto pb-1 gap-2 max-w-full">
-                  {bills.map((bill) => {
-                    const isSelected = selectedBill?.id === bill.id;
-                    const monthLabel = monthsNames[bill.month - 1] || bill.month;
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <Select 
+                value={String(selectedMonth)} 
+                onValueChange={(v) => {
+                  const m = Number(v);
+                  setSelectedMonth(m);
+                  const b = bills.find(bill => bill.month === m + 1 && bill.year === selectedYear);
+                  setSelectedBill(b || null);
+                }}
+              >
+                <SelectTrigger className="w-[110px] sm:w-[130px] bg-card/40 border-border/60 rounded-xl h-10 text-xs sm:text-sm shadow-soft focus:ring-0">
+                  <SelectValue placeholder="Mês" />
+                </SelectTrigger>
+                <SelectContent className="border-border/60">
+                  {monthsNames.map((m, i) => (
+                    <SelectItem key={m} value={String(i)} className="text-xs sm:text-sm">{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select 
+                value={String(selectedYear)}
+                onValueChange={(v) => {
+                  const y = Number(v);
+                  setSelectedYear(y);
+                  const b = bills.find(bill => bill.month === selectedMonth + 1 && bill.year === y);
+                  setSelectedBill(b || null);
+                }}
+              >
+                <SelectTrigger className="w-[80px] sm:w-[95px] bg-card/40 border-border/60 rounded-xl h-10 text-xs sm:text-sm shadow-soft focus:ring-0">
+                  <SelectValue placeholder="Ano" />
+                </SelectTrigger>
+                <SelectContent className="border-border/60">
+                  {Array.from({ length: 5 }).map((_, i) => {
+                    const y = new Date().getFullYear() - 2 + i;
                     return (
-                      <Button
-                        key={bill.id}
-                        variant={isSelected ? "default" : "outline"}
-                        onClick={() => setSelectedBill(bill)}
-                        className={cn(
-                          "rounded-xl text-xs font-bold px-4 h-10 shrink-0 transition-all",
-                          isSelected ? "gradient-primary shadow-glow text-white" : "border-border/60 bg-card/40"
-                        )}
-                      >
-                        {monthLabel} {bill.year}
-                      </Button>
+                      <SelectItem key={y} value={String(y)} className="text-xs sm:text-sm">{y}</SelectItem>
                     );
                   })}
-                </div>
-              )}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -644,6 +666,15 @@ export const CreditCards = () => {
                                 <Zap className="h-3.5 w-3.5" /> Antecipar
                               </Button>
                             )}
+
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" onClick={() => console.log('Edit', inst.id)}>
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg" onClick={() => console.log('Delete', inst.id)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       );
