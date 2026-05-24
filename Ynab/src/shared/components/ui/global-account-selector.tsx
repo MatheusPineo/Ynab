@@ -173,7 +173,7 @@ export const GlobalAccountSelector = ({
           className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-lg focus-visible:ring-primary/50"
         />
 
-        <div className="max-h-48 overflow-y-auto flex flex-col gap-0.5 scrollbar-thin">
+        <div className="max-h-[300px] overflow-y-auto overscroll-contain flex flex-col gap-0.5 scrollbar-thin scrollbar-thumb-muted">
           {displayItems.length === 0 ? (
             <div className="py-2.5 px-3 text-xs text-muted-foreground text-center select-none">
               Nenhuma conta encontrada

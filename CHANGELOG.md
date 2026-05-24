@@ -1,3 +1,8 @@
+## [1.35.19] - 2026-05-24
+
+### Fixed
+- Restaurado o comportamento nativo de rolagem vertical (mouse wheel) dentro do componente `GlobalAccountSelector` aplicando `overflow-y-auto`, `overscroll-contain` e uma altura máxima (`max-h-[300px]`) no container da lista de subcontas, impedindo vazamento visual na tela.
+
 ## [1.35.18] - 2026-05-24
 
 ### Fixed

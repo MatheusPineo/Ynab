@@ -1,3 +1,6 @@
+## v1.35.19
+- **Navegação Suave no Seletor:** Adicionamos scroll fluído e contido à lista de contas. Você não perderá mais o contexto e nem será arrastado pela página acidentalmente enquanto tenta encontrar sua subconta preferida no meio de dezenas.
+
 ## v1.35.18
 - **Consistência Visual do Seletor de Contas:** Corrigimos layouts onde o menu de contas ficava achatado em cantos de telas, garantindo expansão total 100% harmonizada.
 
