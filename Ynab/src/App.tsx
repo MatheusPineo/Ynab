@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { ErrorBoundary } from "@/shared/components/ui/error-boundary";
 import { Toaster as Sonner } from "@/shared/components/ui/sonner";
 import { Toaster } from "@/shared/components/ui/toaster";
 import { TooltipProvider } from "@/shared/components/ui/tooltip";
@@ -112,7 +113,8 @@ const App = () => {
           <Sonner />
           <BrowserRouter>
             <CookieBanner />
-            <Routes>
+            <ErrorBoundary>
+              <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/termos-de-uso" element={<Navigate to="/legal?tab=termos" replace />} />
@@ -169,7 +171,8 @@ const App = () => {
               </Route>
 
               <Route path="*" element={<NotFound />} />
-            </Routes>
+              </Routes>
+            </ErrorBoundary>
           </BrowserRouter>
         </TooltipProvider>
       </ThemeProvider>

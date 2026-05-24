@@ -41,6 +41,7 @@ import { cn } from "@/shared/lib/utils";
 import { PullToRefresh } from "@/shared/components/dashboard/PullToRefresh";
 import { DashboardWidgets } from "@/modules/finance/components/DashboardWidgets";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
+import { ErrorBoundary } from "@/shared/components/ui/error-boundary";
 
 const COLORS = [
   "#8b5cf6",
@@ -410,50 +411,52 @@ const Dashboard = () => {
           </div>
           <div className="h-[200px] sm:h-[240px]">
             {historyData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={historyData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="gradPrimary" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.3} />
-                  <XAxis
-                    dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(val) => {
-                      try {
-                        return format(new Date(val), "dd MMM", { locale: ptBR });
-                      } catch {
-                        return val;
+              <ErrorBoundary>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={historyData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gradPrimary" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.3} />
+                    <XAxis
+                      dataKey="date"
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val) => {
+                        try {
+                          return format(new Date(val), "dd MMM", { locale: ptBR });
+                        } catch {
+                          return val;
+                        }
+                      }}
+                    />
+                    <YAxis
+                      stroke="hsl(var(--muted-foreground))"
+                      fontSize={10}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(val) =>
+                        val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)
                       }
-                    }}
-                  />
-                  <YAxis
-                    stroke="hsl(var(--muted-foreground))"
-                    fontSize={10}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(val) =>
-                      val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)
-                    }
-                  />
-                  <Tooltip content={<CustomTooltip baseCurrency={baseCurrency} />} />
-                  <Area
-                    type="monotone"
-                    dataKey="balance"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2.5}
-                    fill="url(#gradPrimary)"
-                    dot={false}
-                    activeDot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 0 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+                    />
+                    <Tooltip content={<CustomTooltip baseCurrency={baseCurrency} />} />
+                    <Area
+                      type="monotone"
+                      dataKey="balance"
+                      stroke="hsl(var(--primary))"
+                      strokeWidth={2.5}
+                      fill="url(#gradPrimary)"
+                      dot={false}
+                      activeDot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 0 }}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </ErrorBoundary>
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
                 <TrendingUp className="h-8 w-8 opacity-20" />
@@ -774,7 +777,9 @@ const Dashboard = () => {
       </div>
 
       {/* ── CUSTOMIZABLE WIDGETS ──────────────────────────── */}
-      <DashboardWidgets />
+      <ErrorBoundary>
+        <DashboardWidgets />
+      </ErrorBoundary>
       </div>
     </PullToRefresh>
   );

@@ -1,3 +1,9 @@
+## [1.35.20] - 2026-05-24
+
+### Added
+- Implementado um robusto `ErrorBoundary` global em React para capturar falhas em toda a árvore de componentes e renderizar uma UI de fallback ("White Screen of Death" prevenida).
+- Adicionado encapsulamento específico de `ErrorBoundary` em torno do rotemento principal no `App.tsx` e blocos de dados pesados no `Dashboard.tsx` (ex: Gráficos e Widgets).
+
 ## [1.35.19] - 2026-05-24
 
 ### Fixed

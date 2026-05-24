@@ -1,3 +1,6 @@
+## v1.35.20
+- **Proteção Contra Quedas (Anti-Crash):** O sistema agora conta com um novo escudo global. Se um gráfico isolado ou widget da Dashboard falhar por algum motivo, ele não vai mais derrubar toda a tela. Apenas o componente defeituoso mostrará um alerta suave, permitindo que você continue a usar o resto do Vault normalmente.
+
 ## v1.35.19
 - **Navegação Suave no Seletor:** Adicionamos scroll fluído e contido à lista de contas. Você não perderá mais o contexto e nem será arrastado pela página acidentalmente enquanto tenta encontrar sua subconta preferida no meio de dezenas.
 
