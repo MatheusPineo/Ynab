@@ -1573,7 +1573,9 @@ class CreditCardViewSet(viewsets.ModelViewSet):
             serializer = CreditCardTransactionSerializer(matrix_tx)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            import traceback
+            err_msg = f"Erro: {str(e)}\n\nTraceback: {traceback.format_exc()}"
+            return Response({'error': err_msg}, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         summary="Antecipa uma parcela futura de cartão de crédito",
