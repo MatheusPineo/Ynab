@@ -85,6 +85,7 @@ export const CreditCards = () => {
   const [cardToEdit, setCardToEdit] = useState<CreditCardModel | null>(null);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
+  const [inputType, setInputType] = useState<"TOTAL" | "PARCELA">("TOTAL");
   const [totalInstallments, setTotalInstallments] = useState("1");
   const [startingInstallment, setStartingInstallment] = useState("1");
   const [txDate, setTxDate] = useState(new Date().toISOString().split("T")[0]);
@@ -267,7 +268,8 @@ export const CreditCards = () => {
         expense_account_id: categoryId,
         currency: selectedCard.currency,
         exchange_rate: Number(exchangeRate),
-        iof_amount: Number(iofAmount)
+        iof_amount: Number(iofAmount),
+        input_type: inputType
       };
 
       const response = await authenticatedFetch(`/credit-cards/${selectedCard.id}/create_transaction/`, {
@@ -975,6 +977,42 @@ export const CreditCards = () => {
                     required
                   />
                 </div>
+                
+                {Number(totalInstallments) > 1 && (
+                  <div className="flex flex-col gap-1.5 sm:col-span-2 mt-1">
+                    <div className="flex bg-muted/30 p-1 rounded-xl border border-border/40 max-w-[240px]">
+                      <button
+                        type="button"
+                        onClick={() => setInputType("TOTAL")}
+                        className={cn(
+                          "flex-1 text-xs font-bold py-1.5 rounded-lg transition-all",
+                          inputType === "TOTAL" ? "bg-card shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Valor Total
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setInputType("PARCELA")}
+                        className={cn(
+                          "flex-1 text-xs font-bold py-1.5 rounded-lg transition-all",
+                          inputType === "PARCELA" ? "bg-card shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        Valor Parcela
+                      </button>
+                    </div>
+                    
+                    {amount && (
+                      <p className="text-[11px] text-muted-foreground mt-1 px-1">
+                        {inputType === "TOTAL" 
+                          ? `Em ${totalInstallments}x de ${formatMoney(Number(amount) / Number(totalInstallments), selectedCard?.currency || 'BRL')}, começando a partir da ${startingInstallment}ª parcela.`
+                          : `Em ${totalInstallments}x de ${formatMoney(Number(amount), selectedCard?.currency || 'BRL')}, totalizando ${formatMoney(Number(amount) * Number(totalInstallments), selectedCard?.currency || 'BRL')}, começando a partir da ${startingInstallment}ª parcela.`
+                        }
+                      </p>
+                    )}
+                  </div>
+                )}
                 
                 {Number(totalInstallments) > 1 && (
                   <div className="flex flex-col gap-1.5 sm:col-span-2">

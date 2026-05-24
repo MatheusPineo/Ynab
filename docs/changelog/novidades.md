@@ -1,3 +1,7 @@
+## [1.35.28] - 2026-05-24
+
+**Novidades na Compra com Cartão**
+- **Calculadora Inteligente de Parcelas:** Agora, ao registrar uma nova compra no cartão de crédito em várias vezes, você pode escolher se o valor digitado é o **Total da Compra** ou apenas o valor de **Uma Parcela**. O sistema vai automaticamente calcular e mostrar exatamente quanto vai ficar o montante e quanto será cobrado por mês, direto na tela, antes de você confirmar!
 ## [1.35.26] - 2026-05-24
 
 **Correções e Estabilização**
@@ -77,6 +81,7 @@
 Agora o Vault Finance OS suporta uma organizaÃ§Ã£o de investimentos muito mais completa, classificando por paÃ­s e categoria macro (ex: Renda VariÃ¡vel BR, Exterior, etc). AlÃ©m disso, adicionamos suporte para vencimento (due date) em atividades de investimento!
 
 - **Frontend de Investimentos Preparado:** FormulÃ¡rios de cadastro de ativos estÃ£o recebendo nova infraestrutura tÃ©cnica para exibir corretamente os novos tipos globais (AÃ§Ãµes, ETFs Internacionais, Criptomoedas, etc).
+
 
 
 
