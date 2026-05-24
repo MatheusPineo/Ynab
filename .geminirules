@@ -1,3 +1,5 @@
+- [v1.35.24 (Atual)] Enxugamento da Interface: Remoção da aba de Insights e do campo de categoria (YNAB) da tela de homologação do Inbox Inteligente.
+- [v1.35.23] Estabilização de UX/UI: Correção de crash de referência (CurrencyInput) no Inbox.ts e aprimoramento da hierarquia visual do grid de subcontas (micro-labels em text-gray-500 e barras overfunded em gradiente dinâmico tailwind).
 - [v1.35.22 (Atual)] UI Progress Bar nas Subcontas: Substituição das antigas tags de limites (AccountAccordion) por uma nova barra de progresso em linha. Lida matematicamente com saldos excedentes via cores em neon-ciano (>100%) e fornece transição elegante (vermelho para verde >= 50%). Contas sem teto definido ganham barra neutra indicando "Saldo Livre".
 - [v1.35.21] Resiliência de Dados (Reports): Corrigido o Runtime Error de renderização em Análises Avançadas. Adicionados controles universais de renderização onde os gráficos apenas desenham na tela quando `isLoading` for `false` E os arrays estiverem plenamente carregados; caso contrário o Vault devolve uma UI elegante de Empty State em vez de travar. Aplicada checagem profunda por Optional Chaining em todos os laços de iteração (v1.35.21).
 - [v1.35.20] Resiliência com Error Boundary: Implementada a fronteira de erro global `ErrorBoundary` em React para capturar exceções. Adicionado aos Routes no App.tsx e aos widgets isolados do Dashboard para prevenir o colapso total da aplicação (White Screen of Death).
@@ -222,5 +224,6 @@
 // STATUS FULL-STACK (23/05/2026): Implementado Seeding service com criacao automatica da taxonomia YNAB no registro do usuario e botões interativos de Reset Total e Demo Mode na tela de configuracoes de seguranca (Part 4/4 finalizada).
 
 // STATUS FULL-STACK (23/05/2026): Invoice Packaging & Credit Card Validation - Telas de transação refatoradas para agrupar despesas de cartão em Master Rows expansíveis; formulário padronizado com nova UX para Subcontas de Despesas.
-/ /   S T A T U S   B A C K E N D   ( 2 4 / 0 5 / 2 0 2 6 ) :   E n g i n e   d e   R e l a t o r i o s   m a t e m a t i c o s   c o n s t r u i d a   e m   D j a n g o   O R M   ( f i n a n c e / r e p o r t s . p y )   c o m   t e s t e s   c o m p l e t o s ,   p r e p a r a n d o   p a r a   a   r e m o c a o   d e   m o c k   d a t a   n o   R e a c t .  
+/ /   S T A T U S   B A C K E N D   ( 2 4 / 0 5 / 2 0 2 6 ) :   E n g i n e   d e   R e l a t o r i o s   m a t e m a t i c o s   c o n s t r u i d a   e m   D j a n g o   O R M   ( f i n a n c e / r e p o r t s . p y )   c o m   t e s t e s   c o m p l e t o s ,   p r e p a r a n d o   p a r a   a   r e m o c a o   d e   m o c k   d a t a   n o   R e a c t . 
+ 
  

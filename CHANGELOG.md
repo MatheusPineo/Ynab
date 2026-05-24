@@ -1,3 +1,16 @@
+## [1.35.24] - 2026-05-24
+
+### Removed
+- Removido o campo Categoria (YNAB) do formulário de homologação do Inbox Inteligente.
+- Removida a aba completa de Insights de todo o ecossistema do frontend (Sidebar, BottomNav, App Routes e SwipeNavigation) para focar na aba Relatórios.
+
+## [1.35.23] - 2026-05-24
+
+### Fixed
+- Correção de erro fatal (ReferenceError) na página de Inbox ocasionado pela falta de importação do CurrencyInput.
+- Refinamento visual da barra de progresso Overfunded no AccountAccordion substituindo gradiente estático por um gradiente Tailwind fluido de cyan para roxo (g-gradient-to-r).
+- Atualização de micro-rótulos informativos no acordeão para usar cor e contraste adequados (	ext-gray-500).
+
 ## [1.35.22] - 2026-05-24
 
 ### Changed
@@ -1307,3 +1320,7 @@ Nascimento do Vault Finance OS.
 - **Taxonomia Global Config:** Adicionado o mapeamento centralizado de constantes de investimento em \src/constants/investmentTaxonomy.ts\ para popular formulrios dinamicamente.
 
 
+U p d a t e d   U I   f o r   S u b - a c c o u n t   l i s t   t o   i n c l u d e   m i c r o - l a b e l s  
+ U p d a t e d   O v e r f u n d e d   S u b - a c c o u n t   U I   w i t h   n e w   c y a n - t o - p u r p l e   g r a d i e n t  
+ F i x e d   b u t t o n   h o v e r   c o n t r a s t   g l o b a l l y  
+ 

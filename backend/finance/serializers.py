@@ -192,8 +192,16 @@ class CreditCardSerializer(serializers.ModelSerializer):
         )
         return float(max(obj.credit_limit - total_used, Decimal('0.00')))
 
+class SimpleCreditCardTransactionSerializer(serializers.ModelSerializer):
+    category_id = serializers.IntegerField(read_only=True)
+    
+    class Meta:
+        model = CreditCardTransaction
+        fields = ['id', 'description', 'date', 'original_currency', 'exchange_rate', 'iof_amount', 'category_id']
+
 class InstallmentSerializer(serializers.ModelSerializer):
-    description = serializers.CharField(source='transaction.description', read_only=True)
+    transaction = SimpleCreditCardTransactionSerializer(read_only=True)
+    installment_number = serializers.IntegerField(source='number', read_only=True)
     total_installments = serializers.IntegerField(source='transaction.installment_count', read_only=True)
     
     class Meta:

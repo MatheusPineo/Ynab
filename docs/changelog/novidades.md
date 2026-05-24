@@ -1,3 +1,9 @@
+## v1.35.24
+- **Enxugamento da Interface:** Retiramos a aba de Insights (pois temos muitos relatórios concentrados em uma aba só agora) e removemos o campo Categoria na Caixa de Entrada (Inbox) para deixar a interface ainda mais limpa e direta.
+
+## v1.35.23
+- **Melhorias Visuais e Estabilidade:** Cores mais refinadas na barra de limite ultrapassado (overfunded) para subcontas, agora com um gradiente dinâmico de azul para roxo. Também consertamos um problema técnico que impedia a tela de Inbox Inteligente de abrir em algumas situações.
+
 ## v1.35.22
 - **Novo Visual das Subcontas e Limites:** Substituímos as antigas tags de "Teto" por uma Barra de Progresso muito mais bonita e intuitiva! Agora você pode ver o limite da sua subconta enchendo aos poucos.
   - A barra é **Vermelha** no início e fica **Verde** ao atingir a metade do limite.
@@ -61,5 +67,6 @@
 Agora o Vault Finance OS suporta uma organização de investimentos muito mais completa, classificando por país e categoria macro (ex: Renda Variável BR, Exterior, etc). Além disso, adicionamos suporte para vencimento (due date) em atividades de investimento!
 
 - **Frontend de Investimentos Preparado:** Formulários de cadastro de ativos estão recebendo nova infraestrutura técnica para exibir corretamente os novos tipos globais (Ações, ETFs Internacionais, Criptomoedas, etc).
+
 
 
