@@ -254,7 +254,7 @@ export const CreditCards = () => {
     try {
       const payload = {
         description,
-        amount: Number(amount),
+        total_amount: Number(amount),
         total_installments: Number(totalInstallments),
         starting_installment: Number(startingInstallment),
         date: txDate,
@@ -918,17 +918,21 @@ export const CreditCards = () => {
 
                 <div className="flex flex-col gap-1.5">
                   <Label htmlFor="installments" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Parcelamento</Label>
-                  <Select value={totalInstallments} onValueChange={setTotalInstallments}>
-                    <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium font-mono">
-                      <SelectValue placeholder="1x (À vista)" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-card border-border/60">
-                      <SelectItem value="1">1x (À vista)</SelectItem>
-                      {Array.from({ length: 11 }).map((_, i) => (
-                        <SelectItem key={i + 2} value={String(i + 2)}>{i + 2}x parcelado</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="installments"
+                    type="number"
+                    min="1"
+                    value={totalInstallments}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setTotalInstallments(val);
+                      if (Number(startingInstallment) > Number(val) && val !== "") {
+                        setStartingInstallment(val);
+                      }
+                    }}
+                    className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium font-mono"
+                    required
+                  />
                 </div>
                 
                 {Number(totalInstallments) > 1 && (
@@ -937,16 +941,20 @@ export const CreditCards = () => {
                       A partir de qual parcela?
                       <HelpTooltip content="Use esta opção se você já pagou parcelas anteriores desta compra antes de usar o sistema. Ex: Se a compra foi em 10x e você já pagou 8, digite 9 para lançar apenas as parcelas restantes." />
                     </Label>
-                    <Select value={startingInstallment} onValueChange={setStartingInstallment}>
-                      <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium font-mono">
-                        <SelectValue placeholder="1" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-card border-border/60">
-                        {Array.from({ length: Number(totalInstallments) }).map((_, i) => (
-                          <SelectItem key={i + 1} value={String(i + 1)}>Parcela {i + 1}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      id="startingInstallment"
+                      type="number"
+                      min="1"
+                      max={totalInstallments}
+                      value={startingInstallment}
+                      onChange={(e) => {
+                        let val = Number(e.target.value);
+                        if (val > Number(totalInstallments)) val = Number(totalInstallments);
+                        setStartingInstallment(String(val || ""));
+                      }}
+                      className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium font-mono"
+                      required
+                    />
                   </div>
                 )}
               </div>
