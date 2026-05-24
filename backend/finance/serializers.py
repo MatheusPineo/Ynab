@@ -222,6 +222,7 @@ class CreditCardBillSerializer(serializers.ModelSerializer):
 
 class CreditCardTransactionSerializer(serializers.ModelSerializer):
     installments = InstallmentSerializer(many=True, read_only=True)
+    input_type = serializers.ChoiceField(choices=['TOTAL', 'PARCELA'], write_only=True, required=False, default='TOTAL')
     
     class Meta:
         model = CreditCardTransaction

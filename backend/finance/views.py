@@ -1568,7 +1568,8 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                 original_currency=data.get('original_currency', 'BRL'),
                 original_amount=Decimal(str(data['original_amount'])) if data.get('original_amount') else None,
                 exchange_rate=Decimal(str(data.get('exchange_rate', '1.0000'))),
-                iof_amount=Decimal(str(data.get('iof_amount', '0.00')))
+                iof_amount=Decimal(str(data.get('iof_amount', '0.00'))),
+                input_type=data.get('input_type', 'TOTAL')
             )
             serializer = CreditCardTransactionSerializer(matrix_tx)
             return Response(serializer.data, status=status.HTTP_201_CREATED)

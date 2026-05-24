@@ -17,7 +17,8 @@ def process_credit_card_transaction(
     original_currency='BRL',
     original_amount=None,
     exchange_rate=Decimal('1.0000'),
-    iof_amount=Decimal('0.00')
+    iof_amount=Decimal('0.00'),
+    input_type='TOTAL'
 ):
     """
     Processa uma compra no cartão de crédito, criando a Compra Matriz e dividindo
@@ -30,7 +31,16 @@ def process_credit_card_transaction(
     val_rate = Decimal(str(exchange_rate))
     val_iof = Decimal(str(iof_amount))
     
-    # Cria a Compra Matriz
+    # Calcula as fatias da dívida (Installment)
+    if input_type == 'PARCELA':
+        base_installment_amount = round(val_total, 2)
+        val_total = val_total * installment_count
+    else:
+        base_installment_amount = round(val_total / installment_count, 2)
+        
+    remainder = val_total - (base_installment_amount * installment_count)
+    
+    # Cria a Compra Matriz (Agora que val_total já está 100% ajustado caso input_type seja PARCELA)
     matrix_tx = CreditCardTransaction.objects.create(
         credit_card=credit_card,
         category_id=category_id,
@@ -40,7 +50,7 @@ def process_credit_card_transaction(
         total_amount=val_total,
         installment_count=installment_count,
         original_currency=original_currency,
-        original_amount=val_orig,
+        original_amount=val_orig if input_type != 'PARCELA' else val_orig * installment_count,
         exchange_rate=val_rate,
         iof_amount=val_iof
     )
@@ -56,10 +66,6 @@ def process_credit_card_transaction(
             current_month = 1
             current_year += 1
             
-    # Calcula as fatias da dívida (Installment)
-    base_installment_amount = round(val_total / installment_count, 2)
-    remainder = val_total - (base_installment_amount * installment_count)
-    
     installments = []
     today = date.today()
     
