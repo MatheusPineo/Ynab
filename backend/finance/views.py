@@ -1549,6 +1549,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
         responses={201: CreditCardTransactionSerializer()}
     )
     @action(detail=True, methods=['post'])
+    @transaction.atomic
     def create_transaction(self, request, pk=None):
         card = self.get_object()
         data = request.data

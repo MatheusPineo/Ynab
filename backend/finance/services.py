@@ -113,25 +113,29 @@ def process_installment_ynab(installment):
     category = matrix_tx.category
     category_name = category.name if category else "Geral"
     
-    # Busca ou cria o envelope (sub-conta) de despesa (ex: Alimentação)
-    expense_envelope = Account.objects.filter(
-        user=user,
-        name=category_name,
-        currency=credit_card.account.currency,
-        parent__isnull=False
-    ).first()
+    # 1. Tenta usar a conta de despesa explicitamente definida na transação
+    expense_envelope = matrix_tx.expense_account
     
+    # 2. Fallback: Busca ou cria o envelope de despesa pelo nome da categoria
     if not expense_envelope:
-        parent_acc = Account.objects.filter(user=user, parent__isnull=True).first()
-        if parent_acc:
-            expense_envelope = Account.objects.create(
-                user=user,
-                name=category_name,
-                currency=credit_card.account.currency,
-                parent=parent_acc,
-                account_type='savings',
-                balance=Decimal('0.00')
-            )
+        expense_envelope = Account.objects.filter(
+            user=user,
+            name=category_name,
+            currency=credit_card.account.currency,
+            parent__isnull=False
+        ).first()
+        
+        if not expense_envelope:
+            parent_acc = Account.objects.filter(user=user, parent__isnull=True).first()
+            if parent_acc:
+                expense_envelope = Account.objects.create(
+                    user=user,
+                    name=category_name,
+                    currency=credit_card.account.currency,
+                    parent=parent_acc,
+                    account_type='savings',
+                    balance=Decimal('0.00')
+                )
             
     # Busca ou cria o envelope de Pagamento do Cartão
     payment_envelope_name = f"Pagamento do Cartão {credit_card.account.name}"
