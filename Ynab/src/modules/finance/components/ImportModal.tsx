@@ -99,7 +99,7 @@ export const ImportModal = ({ children }: { children?: React.ReactNode }) => {
           <DialogTitle>Importar Transações</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
-          <div className="grid gap-2">
+          <div className="grid gap-2 col-span-full">
             <Label htmlFor="account">Conta de Destino</Label>
             <GlobalAccountSelector
               value={accountId}

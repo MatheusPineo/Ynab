@@ -279,7 +279,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
+            <div className="grid gap-2 col-span-full">
               <Label htmlFor="parent-select">Nova Conta Pai</Label>
               <GlobalAccountSelector 
                 value={selectedParentId} 

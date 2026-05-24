@@ -972,7 +972,7 @@ export const CreditCards = () => {
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5" id="category-container">
+                <div className="flex flex-col gap-1.5 col-span-full" id="category-container">
                   <Label htmlFor="category" className={cn("text-[10px] font-bold uppercase tracking-wider font-mono", categoryError ? "text-red-500" : "text-muted-foreground")}>Subconta de despesa</Label>
                   <GlobalAccountSelector 
                     value={categoryId} 

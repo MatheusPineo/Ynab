@@ -641,7 +641,7 @@ const Inbox = () => {
 
                       {/* Account & Category Selection */}
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 col-span-full">
                           <Label htmlFor="account" className="text-xs font-semibold">Conta de Origem</Label>
                           <GlobalAccountSelector
                             value={selectedAccountId}

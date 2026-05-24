@@ -1,3 +1,6 @@
+## v1.35.18
+- **Consistência Visual do Seletor de Contas:** Corrigimos layouts onde o menu de contas ficava achatado em cantos de telas, garantindo expansão total 100% harmonizada.
+
 ## v1.35.17
 - **Novo Seletor de Contas Universal:** Todas as telas do sistema agora usam nosso incrível e veloz seletor de contas global, com busca integrada e design premium ocupando todo o espaço disponível.
 

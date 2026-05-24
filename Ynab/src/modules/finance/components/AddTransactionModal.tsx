@@ -477,7 +477,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div id="account-container" className="relative grid gap-2">
+            <div id="account-container" className="relative grid gap-2 col-span-full">
               <Label htmlFor="account">{isTransfer ? "De Conta (Origem)" : "Conta"}</Label>
               <GlobalAccountSelector
                 value={accountId}
@@ -487,7 +487,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             </div>
 
             {isTransfer && (
-              <div id="to-account-container" className="relative grid gap-2 animate-in slide-in-from-right-2">
+              <div id="to-account-container" className="relative grid gap-2 animate-in slide-in-from-right-2 col-span-full">
                 <Label htmlFor="to_account">Para Conta (Destino)</Label>
                 <GlobalAccountSelector
                   value={toAccountId}

@@ -1,3 +1,8 @@
+## [1.35.18] - 2026-05-24
+
+### Fixed
+- Aplicado o modificador de layout `col-span-full` nos wrappers (DIVs) nativos que englobam o `GlobalAccountSelector` em todos os modais e páginas (AddTransactionModal, DistributionModal, ImportModal, CreditCards, Inbox, AccountActions), rompendo armadilhas de grid e forçando o design de largura total em toda a UI.
+
 ## [1.35.17] - 2026-05-24
 
 ### Changed
