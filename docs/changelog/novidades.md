@@ -1,3 +1,8 @@
+## [1.35.26] - 2026-05-24
+
+**Correções e Estabilização**
+- **Sincronia YNAB x Cartão:** Lançamentos de compras com cartão de crédito agora atualizam instantaneamente todos os fundos das categorias, garantindo que você não precise recarregar a página para ver a dedução real do seu orçamento.
+- **Visualização de Fatura:** A página de Cartões agora identifica automaticamente e exibe a fatura em aberto, em vez de selecionar faturas futuras.
 ## [1.35.25] - 2026-05-24
 
 **Correções e Estabilização**
@@ -72,6 +77,7 @@
 Agora o Vault Finance OS suporta uma organizaÃ§Ã£o de investimentos muito mais completa, classificando por paÃ­s e categoria macro (ex: Renda VariÃ¡vel BR, Exterior, etc). AlÃ©m disso, adicionamos suporte para vencimento (due date) em atividades de investimento!
 
 - **Frontend de Investimentos Preparado:** FormulÃ¡rios de cadastro de ativos estÃ£o recebendo nova infraestrutura tÃ©cnica para exibir corretamente os novos tipos globais (AÃ§Ãµes, ETFs Internacionais, Criptomoedas, etc).
+
 
 
 

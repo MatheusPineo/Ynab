@@ -126,7 +126,8 @@ export const CreditCards = () => {
         });
         setBills(sortedBills);
         if (sortedBills.length > 0) {
-          setSelectedBill(sortedBills[0]);
+          const openBill = sortedBills.find(b => !b.is_closed);
+          setSelectedBill(openBill || sortedBills[0]);
         } else {
           setSelectedBill(null);
         }
@@ -289,6 +290,8 @@ export const CreditCards = () => {
       }
       
       await fetchBillsForCard(selectedCard.id);
+      await fetchAccounts();
+      await fetchCategoryGroups();
       setIsNewTxOpen(false);
       setDescription("");
       setAmount("");
