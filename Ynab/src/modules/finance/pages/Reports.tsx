@@ -110,9 +110,9 @@ export default function Reports() {
   ] as const, []);
   const [selectedRegressionAccount, setSelectedRegressionAccount] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<"current" | "3months" | "6months" | "year">("current");
-  const { data: serverCashflow } = useMonthlyCashflow(currentMonth, currentYear);
-  const { data: serverExpenses } = useExpensesByCategory(currentMonth, currentYear);
-  const { data: serverNetWorth } = useNetWorthEvolution(selectedPeriod === "current" ? 1 : selectedPeriod === "3months" ? 3 : selectedPeriod === "year" ? 12 : 6);
+  const { data: serverCashflow, isLoading: isLoadingCashflow } = useMonthlyCashflow(currentMonth, currentYear);
+  const { data: serverExpenses, isLoading: isLoadingExpenses } = useExpensesByCategory(currentMonth, currentYear);
+  const { data: serverNetWorth, isLoading: isLoadingNetWorth } = useNetWorthEvolution(selectedPeriod === "current" ? 1 : selectedPeriod === "3months" ? 3 : selectedPeriod === "year" ? 12 : 6);
 
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -3644,13 +3644,13 @@ export default function Reports() {
               <div className="text-right">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Líquido Atual</span>
                 <span className="text-xs sm:text-sm font-black text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                  R$ {netWorthData[netWorthData.length - 1]["Patrimônio Líquido"].toLocaleString("pt-BR")}
+                  R$ {netWorthData[netWorthData.length - 1]?.["Patrimônio Líquido"].toLocaleString("pt-BR")}
                 </span>
               </div>
             </div>
 
             <div className="h-64 sm:h-72 w-full">
-              {netWorthData.length === 0 ? <EmptyState /> : (
+              {isLoadingNetWorth || netWorthData.length === 0 ? <EmptyState /> : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={netWorthData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
@@ -3695,7 +3695,7 @@ export default function Reports() {
 
             <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
               <div className="h-40 w-40 shrink-0">
-                {expensesDistribution.chartData.length === 0 ? <EmptyState /> : (
+                {isLoadingExpenses || !expensesDistribution?.chartData || expensesDistribution.chartData.length === 0 ? <EmptyState /> : (
                   <ResponsiveContainer width="100%" height="100%">
                     <RePieChart>
                       <Pie
@@ -3781,7 +3781,7 @@ export default function Reports() {
             </div>
 
             <div className="h-64 sm:h-72 w-full mt-4">
-              {dailyCashFlow.length === 0 ? <EmptyState /> : (
+              {isLoadingCashflow || dailyCashFlow.length === 0 ? <EmptyState /> : (
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={dailyCashFlow} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>

@@ -1,3 +1,6 @@
+## v1.35.21
+- **Proteção Contra Erros Visuais nos Relatórios:** Quando uma nova conta é cadastrada, os Relatórios e Gráficos Inteligentes precisavam de dados para montar a interface. Agora, quando a conta está zerada ou carregando, o Vault apresenta uma belíssima tela sutil de "Ainda sem dados suficientes", garantindo navegação contínua em vez de travar o App.
+
 ## v1.35.20
 - **Proteção Contra Quedas (Anti-Crash):** O sistema agora conta com um novo escudo global. Se um gráfico isolado ou widget da Dashboard falhar por algum motivo, ele não vai mais derrubar toda a tela. Apenas o componente defeituoso mostrará um alerta suave, permitindo que você continue a usar o resto do Vault normalmente.
 

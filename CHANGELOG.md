@@ -1,3 +1,9 @@
+## [1.35.21] - 2026-05-24
+
+### Fixed
+- Estancamento do Runtime Error no módulo `Reports`: Implementado robusto mecanismo de Optional Chaining (`?.`) e verificação unificada de estado de Loading em todo o ecossistema de gráficos (Recharts) das Análises Avançadas. 
+- Implementada proteção explícita para forçar a renderização do `<EmptyState />` caso os dados de rede retornem vazios da API do backend. Isso preza por uma navegação fluida sem falhas de índice (`undefined`) no DOM.
+
 ## [1.35.20] - 2026-05-24
 
 ### Added
