@@ -2163,3 +2163,43 @@ class WealthSummaryView(APIView):
             'holdings': holdings,
             'total_net_worth': round(total_net_worth, 2)
         })
+
+from .reports import ReportEngine
+
+class ReportsViewSet(viewsets.ViewSet):
+    """
+    Endpoints consolidados para relatórios matemáticos da dashboard baseados estritamente nos dados do backend (ORM).
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=['get'])
+    def monthly_cashflow(self, request):
+        now = datetime.now()
+        month = int(request.query_params.get('month', now.month))
+        year = int(request.query_params.get('year', now.year))
+        data = ReportEngine.get_monthly_cashflow(request.user, month, year)
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def expenses_by_category(self, request):
+        now = datetime.now()
+        month = int(request.query_params.get('month', now.month))
+        year = int(request.query_params.get('year', now.year))
+        data = ReportEngine.get_expense_by_category(request.user, month, year)
+        if not data:
+            return Response({"chartData": [], "total": 0, "highSpendAlerts": []})
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def net_worth_evolution(self, request):
+        months_back = int(request.query_params.get('months', 6))
+        data = ReportEngine.get_net_worth_evolution(request.user, months_back)
+        return Response(data)
+
+    @action(detail=False, methods=['get'])
+    def credit_card_usage(self, request):
+        now = datetime.now()
+        month = int(request.query_params.get('month', now.month))
+        year = int(request.query_params.get('year', now.year))
+        data = ReportEngine.get_credit_card_usage(request.user, month, year)
+        return Response(data)

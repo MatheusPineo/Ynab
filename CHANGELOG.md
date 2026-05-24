@@ -1,3 +1,40 @@
+## [1.35.15] - 2026-05-24
+
+### Fixed
+- Frontend: Scaled Credit Card brand SVGs applying internal padding (`p-1`) directly to the `<img />` tag and strictly ensuring `object-contain` without double-padding, guaranteeing the image breathes and respects the strict rectangular bounds.
+
+## [1.35.14] - 2026-05-24
+
+### Fixed
+- Backend & Reports: Fixed net worth logical discrepancies (`liabilities_diff` processing `is_income` accurately). Removed all React hook dependency warnings inside `Reports.tsx` and removed mock data fallbacks, fully syncing frontend Empty States to backend API payload.
+
+## [1.35.13] - 2026-05-24
+- **Reports UI Integration:** Conectados os componentes de gráficos (`AreaChart`, `RePieChart`, `Treemap`, `LineChart`, etc) na página `Reports.tsx` aos endpoints reias do backend, abolindo dados falsos locais.
+- **Empty State UX:** Implementado o componente genérico de fallback `EmptyState` ("Ainda sem dados suficientes.") em todos os gráficos da aplicação. Sempre que a API não retornar informações para o período solicitado, a quebra/gitch do Recharts é interceptada e uma UI amigável e limpa é exibida.
+
+## [1.35.12] - 2026-05-24
+
+### Alterado
+* **Reports API Engine:** Implementado motor matemático no backend (Django ORM) para cálculo em tempo real de Fluxo de Caixa, Despesas por Categoria, Uso de Cartão de Crédito e Evolução do Patrimônio Líquido, preparando a plataforma para remoção de mock data na interface.
+
+## [1.35.11] - 2026-05-24
+### Fixed
+- Frontend: Refined the visual weight and internal padding of `CreditCardBrandIcon` wrappers (`p-0.5`). SVGs now fill the container gracefully (`w-full h-full object-contain`), achieving perfect visual parity with the generic `<CreditCard />` fallback icon.
+
+## [1.35.10] - 2026-05-24
+### Fixed
+- Frontend: Fixed "double-wrapper" layout bug on Credit Cards view that was shrinking the SVG brand logos. Standardized all icon containers to perfectly uniform dimensions (`w-12 h-8`) with conditional backgrounds (white for brands, transparent/dark for fallbacks) managed directly inside the `CreditCardBrandIcon` component.
+
+## [1.35.9] - 2026-05-24
+### Changed
+- Frontend: Refactored `CreditCardBrandIcon` to consume premium SVGs downloaded from UXWing (Visa, Mastercard, Amex, Elo, JCB, UnionPay).
+- Frontend: Implemented robust fallback logic using React `onError` event to automatically replace broken image links with a generic Lucide `CreditCard` icon.
+
+## [1.35.8] - 2026-05-24
+### Changed
+- Frontend: Replaced the static, custom-made credit card brand representations with the new `CreditCardBrandIcon` component.
+- Frontend: Refactored `CreditCardBrandIcon` to use robust inline SVG components for Visa, Mastercard, American Express, Elo, UnionPay, and JCB, bypassing Wikimedia 403 Forbidden hotlinking issues. Added a white pill wrapper to ensure perfect contrast on Dark Mode.
+
 ## [1.35.7] - 2026-05-24
 ### Fixed
 - Frontend: Reverted CategoryCombobox to AccountCombobox in the Credit Card Purchase Modal to match the Lançar Transação behavior where Accounts are used as sub-expenses.

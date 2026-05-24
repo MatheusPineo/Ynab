@@ -1,5 +1,5 @@
-- [v1.35.7 (Atual: Backend agora suporta Account/Subcontas diretamente nas matrizes de transação de Cartão de Crédito. Modificado frontend de CreditCards para usar AccountCombobox no lugar de CategoryCombobox para refletir o uso de Accounts como subcontas de despesa.)
-- [v1.35.4] Formatação de Moeda Global RTL: Auditoria global finalizada. Inputs nativos 	ype="number" para valores monetários foram completamente substituídos pelo CurrencyInput da direita para a esquerda. Removidos os spinners up/down no CSS (index.css). Módulos afetados: Orçamento, Contas, Cartões, Investimentos, Dívidas, Metas e Inbox.
+- [v1.35.15 (Atual)] UI Premium de Cartões (Escala): Adicionado `p-1` internamente na tag `<img />` e mantido `object-contain`, garantindo o enquadramento (breathing room) perfeito das marcas de cartão, alinhadas harmonicamente com o ícone de fallback genérico.
+- [v1.35.14] Gráficos Reais e Vazios Elegantes (Parte 2): Correção na lógica matemática de Patrimônio Líquido (`is_income` em passivos) e estabilização das dependências do `useEffect` em `Reports.tsx`. Integração completa do status YNAB via backend sem mock data.
 # REGRAS GLOBAIS DE ENGENHARIA (NUNCA IGNORE)
 1. **Idioma:** Sempre me responda estritamente em PortuguÃªs do Brasil (pt-BR).
 2. **Qualidade ObrigatÃ³ria:** Toda alteraÃ§Ã£o no cÃ³digo exige a execuÃ§Ã£o imediata da suÃ­te automatizada de testes (Pytest/Vitest/Typecheck) do respectivo projeto para garantir que tudo estÃ¡ verde.
@@ -96,16 +96,12 @@
 - **Portabilidade:** Boilerplate preparado para inicializaÃ§Ã£o rÃ¡pida via `npm/bun install` e `pip install`.
 - [v1.27.1] Script automatizado (sync_market_data.py) para buscar o indice CDI da API do SGS 4389 do Banco Central do Brasil.
 
-// STATUS (23/05/2026): Models InvestmentAsset e InvestmentActivity atualizados com a taxonomia global (market_country, asset_category, due_date).
-
-// STATUS FRONTEND (23/05/2026): Config de Taxonomia (investmentTaxonomy.ts) criado e tipado.
-
-// STATUS FRONTEND (23/05/2026): AddInvestmentActivityModal.tsx refatorado para utilizar steps dinâmicos da taxonomia (BR/GLOBAL/UNIVERSAL).
-
-// STATUS FRONTEND (23/05/2026): CountryCombobox implementado em AddInvestmentActivityModal com suporte a mais de 20 países. Roteamento de taxonomia atualizado.
-
-// STATUS FRONTEND (23/05/2026): CountryCombobox agora permite que o usuário fixe os países favoritos no topo com persistência local, mantendo a lista em ordem alfabética nativa.
-
+- [v1.35.11 (Atual)] UI Premium de Cartões: Otimização do preenchimento interno dos SVGs nos containers (`p-0.5`). Ícones agora ostentam peso visual maximizado com paridade exata de dimensão ao ícone genérico (`h-6 w-6 strokeWidth={1.5}`).
+- [v1.35.10] UI Premium de Cartões: Correção de layout "double-wrapper" que estava espremendo os ícones na listagem. Padronização exata de dimensão em único container com fundos condicionais transferidos para o componente `CreditCardBrandIcon`.
+- [v1.35.9] UI Premium de Cartões: Consumo de SVGs oficiais baixados do UXWing (Visa, Mastercard, Amex, Elo, JCB, UnionPay). Implementada lógica elegante e resiliente React `onError` para exibir fallback (`<CreditCard />`) no caso de imagem corrompida.
+- [v1.35.8] UI Premium de Cartões: Substituição dos placeholders de bandeiras de cartão de crédito pelos ícones SVG oficiais de cada operadora na visualização.
+- [v1.35.7] Backend agora suporta Account/Subcontas diretamente nas matrizes de transação de Cartão de Crédito. Modificado frontend de CreditCards para usar AccountCombobox no lugar de CategoryCombobox para refletir o uso de Accounts como subcontas de despesa.
+- [v1.35.4] Formatação de Moeda Global RTL: Auditoria global finalizada. Inputs nativos 	ype="number" para valores monetários foram completamente substituídos pelo CurrencyInput da direita para a esquerda. Removidos os spinners up/down no CSS (index.css). Módulos afetados: Orçamento, Contas, Cartões, Investimentos, Dívidas, Metas e Inbox.
 # REGRAS GLOBAIS DE ENGENHARIA (NUNCA IGNORE)
 1. **Idioma:** Sempre me responda estritamente em PortuguÃªs do Brasil (pt-BR).
 2. **Qualidade ObrigatÃ³ria:** Toda alteraÃ§Ã£o no cÃ³digo exige a execuÃ§Ã£o imediata da suÃ­te automatizada de testes (Pytest/Vitest/Typecheck) do respectivo projeto para garantir que tudo estÃ¡ verde.
@@ -115,15 +111,12 @@
 
 ## MEMÃ“RIA DE DESENVOLVIMENTO E STATUS
 
-### Status Atual (VersÃ£o 1.35.0)
-- **Marco:** Central de Ajuda Isolada VitePress.
 - **Estado:** 100% estÃ¡vel, manuais operacionais redigidos e em produÃ§Ã£o via Vercel.
 - **Arquitetura:** CriaÃ§Ã£o completa da biblioteca de `docs/` operada sob `vitepress`. Todos os fluxos transacionais, motor YNAB, CartÃµes, IA, Auditoria de Ledgers, Investimentos e ConfiguraÃ§Ãµes foram exaustivamente mapeados e documentados com roteamento central na barra lateral `config.js` do VitePress.
 
 ### HistÃ³rico de Sprints Recentes
-- [v1.35.7 (Atual: Backend agora suporta Account/Subcontas diretamente nas matrizes de transação de Cartão de Crédito. Modificado frontend de CreditCards para usar AccountCombobox no lugar de CategoryCombobox para refletir o uso de Accounts como subcontas de despesa.)
-- [v1.35.4] Formatação de Moeda Global RTL: Auditoria global finalizada. Inputs nativos 	ype="number" para valores monetários foram completamente substituídos pelo CurrencyInput da direita para a esquerda. Removidos os spinners up/down no CSS (index.css). Módulos afetados: Orçamento, Contas, Cartões, Investimentos, Dívidas, Metas e Inbox.
-- [v1.35.3] UI Premium de Investimentos e Contas: AtualizaÃ§Ã£o do card de PatrimÃ´nio LÃ­quido com gradient-glow, melhoria nos badges informativos de teto e On/Off-budget, formataÃ§Ã£o simplificada e expansÃ£o horizontal da tabela do Ledger (Livro-RazÃ£o) e inclusÃ£o da traduÃ§Ã£o do tooltip.
+- [v1.35.14 (Atual)] Gráficos Reais e Vazios Elegantes (Parte 2): Correção na lógica matemática de Patrimônio Líquido (`is_income` em passivos) e estabilização das dependências do `useEffect` em `Reports.tsx`. Integração completa do status YNAB via backend sem mock data.
+- [v1.35.13] Gráficos Reais e Vazios Elegantes: Conectado componentes aos endpoints reais em Reports.tsx abolindo mock data e inserido EmptyState como fallback limpo no frontend da aplicação.
 - [v1.35.2] AutomaÃ§Ã£o de CotaÃ§Ãµes em Tempo Real: O backend agora delega a responsabilidade de composiÃ§Ã£o de valor para o `PortfolioEvolutionEngine`. Renda VariÃ¡vel consome da API Alpha Vantage / HG Brasil dinamicamente; Renda Fixa e a nova classe Tesouro Direto (`TREASURY`) consultam o CDI oficial diÃ¡rio do Banco Central, rendendo na tela de Investimentos.
 - [v1.35.1] CorreÃ§Ã£o de Crash Patrimonial e Novo Aporte: CorreÃ§Ã£o do endpoint `WealthSummaryView` (`finance/views.py`) que retornava um array nativo em vez do objeto esperado (`holdings`, `total_net_worth`). ConstruÃ§Ã£o do modal interativo `AddInvestmentActivityModal.tsx` acoplado ao botÃ£o "Novo Aporte", habilitando o ciclo real de CRUD de Renda VariÃ¡vel e Fixa na UI, alÃ©m do ajuste da aba simplificada para "Investimentos".
 - [v1.35.0] Central de Ajuda: ImplantaÃ§Ã£o do ecossistema de documentaÃ§Ã£o VitePress contendo manuais exaustivos de operaÃ§Ã£o (CartÃµes, OrÃ§amento Base Zero, PatrimÃ´nio, ReconciliaÃ§Ã£o ContÃ¡bil e FAQ de corner cases).
@@ -223,3 +216,5 @@
 // STATUS FULL-STACK (23/05/2026): Implementado Seeding service com criacao automatica da taxonomia YNAB no registro do usuario e botões interativos de Reset Total e Demo Mode na tela de configuracoes de seguranca (Part 4/4 finalizada).
 
 // STATUS FULL-STACK (23/05/2026): Invoice Packaging & Credit Card Validation - Telas de transação refatoradas para agrupar despesas de cartão em Master Rows expansíveis; formulário padronizado com nova UX para Subcontas de Despesas.
+/ /   S T A T U S   B A C K E N D   ( 2 4 / 0 5 / 2 0 2 6 ) :   E n g i n e   d e   R e l a t o r i o s   m a t e m a t i c o s   c o n s t r u i d a   e m   D j a n g o   O R M   ( f i n a n c e / r e p o r t s . p y )   c o m   t e s t e s   c o m p l e t o s ,   p r e p a r a n d o   p a r a   a   r e m o c a o   d e   m o c k   d a t a   n o   R e a c t .  
+ 

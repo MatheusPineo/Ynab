@@ -1,3 +1,16 @@
+## v1.35.15
+- **Design de Cartões Ajustado:** Melhoramos sutilmente o visual dos cartões na sua tela! Os ícones oficiais ganharam mais "respiro" interno e não tocam mais nas bordas do container, trazendo uma experiência perfeitamente realista de cartões físicos.
+
+## v1.35.13
+- **Gráficos Reais e Inteligentes:** Conectamos totalmente nossa nova infraestrutura do servidor diretamente na sua tela de Relatórios! Todos os gráficos agora desenham suas curvas e fatias lendo estritamente os lançamentos do banco de dados, sem usar dados de demonstração.
+- **Gráficos Vazios Elegantes:** Caso você ainda não possua dados suficientes em um mês específico, o sistema não exibirá gráficos quebrados. Em vez disso, você verá um painel minimalista e elegante avisando que ainda faltam informações para desenhar o relatório.
+
+## v1.35.9
+- **Motor de Relatórios Real:** Preparamos a infraestrutura do sistema para abandonar os dados de demonstração! Agora, nosso motor no servidor calcula matematicamente em tempo real seu Fluxo de Caixa, Distribuição de Gastos e Evolução de Patrimônio Líquido com base estritamente nas suas transações reais.
+
+## v1.35.8
+- **Ícones Oficiais de Cartão de Crédito:** Diga adeus aos ícones genéricos! Agora, ao visualizar seus Cartões de Crédito, você verá os ícones reais e oficiais das bandeiras Visa, Mastercard, American Express, Elo, UnionPay e JCB diretamente no seu painel.
+
 ## v1.35.7
 - **Consistência do Arquitetura de Contas:** Agora a parte de registrar uma nova compra em um Cartão de Crédito permite selecionar sua árvore de contas e subcontas cadastradas, em vez de exigir as velhas categorias estáticas. Para isso, alteramos o backend das Matrizes de Transação e os seletores visuais.
 - **Correção da Exibição de Bandeiras:** Foi efetuado o deploy da estrutura de banco de dados correspondente à bandeira do cartão, resolvendo o sumiço do ícone logo após o cadastro!

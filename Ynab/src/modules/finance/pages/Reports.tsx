@@ -55,7 +55,14 @@ import {
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { useGoals } from "@/shared/hooks/useGoals";
+import { useReports } from "@/shared/hooks/useReports";
 
+const EmptyState = () => (
+  <div className="flex flex-col items-center justify-center p-8 w-full h-full min-h-[250px] text-muted-foreground">
+    <BarChart3 className="w-12 h-12 mb-4 opacity-20" />
+    <span className="text-sm font-medium">Ainda sem dados suficientes.</span>
+  </div>
+);
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";
 import { toast } from "sonner";
@@ -82,6 +89,9 @@ export default function Reports() {
   
   // Consumindo metas reais da API via hook React Query
   const { goals, isLoading: isGoalsLoading } = useGoals();
+  const { useMonthlyCashflow, useExpensesByCategory, useNetWorthEvolution } = useReports();
+  const currentMonth = new Date().getMonth() + 1;
+  const currentYear = new Date().getFullYear();
 
   // Estados locais para filtros e controle de abas de nivel
   const [activeLevel, setActiveLevel] = useState<"beginner" | "intermediate" | "advanced" | "compliance" | "performance" | "risk" | "audit" | "business" | "integrity">("beginner");
@@ -100,6 +110,10 @@ export default function Reports() {
   ] as const, []);
   const [selectedRegressionAccount, setSelectedRegressionAccount] = useState<string>("");
   const [selectedPeriod, setSelectedPeriod] = useState<"current" | "3months" | "6months" | "year">("current");
+  const { data: serverCashflow } = useMonthlyCashflow(currentMonth, currentYear);
+  const { data: serverExpenses } = useExpensesByCategory(currentMonth, currentYear);
+  const { data: serverNetWorth } = useNetWorthEvolution(selectedPeriod === "current" ? 1 : selectedPeriod === "3months" ? 3 : selectedPeriod === "year" ? 12 : 6);
+
   const [selectedAccounts, setSelectedAccounts] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isAccountFilterOpen, setIsAccountFilterOpen] = useState(false);
@@ -118,7 +132,7 @@ export default function Reports() {
     fetchAccounts();
     fetchTransactions();
     fetchCategoryGroups();
-  }, []);
+  }, [fetchAccounts, fetchTransactions, fetchCategoryGroups]);
 
   // Extrair contas planas para filtro
   const flatAccounts = useMemo(() => {
@@ -156,21 +170,21 @@ export default function Reports() {
     if (flatCategories.length && !selectedCategories.length) {
       setSelectedCategories(flatCategories.map(c => c.id));
     }
-  }, [flatAccounts, flatCategories]);
+  }, [flatAccounts, flatCategories, selectedAccounts.length, selectedCategories.length]);
 
   // Auto-selecionar a primeira categoria disponivel para o Historico de Categorias do nivel intermediario
   useEffect(() => {
     if (flatCategories.length && !selectedHistoryCategory) {
       setSelectedHistoryCategory(flatCategories[0].id);
     }
-  }, [flatCategories]);
+  }, [flatCategories, selectedHistoryCategory]);
 
   // Auto-selecionar a primeira conta disponivel para a Reconciliacao Bancaria do nivel de auditoria
   useEffect(() => {
     if (flatAccounts.length && !selectedReconciliationAccount) {
       setSelectedReconciliationAccount(flatAccounts[0].id);
     }
-  }, [flatAccounts]);
+  }, [flatAccounts, selectedReconciliationAccount]);
 
   // Filtragem e agregacao de transacoes no periodo selecionado
   const filteredTransactions = useMemo(() => {
@@ -205,175 +219,17 @@ export default function Reports() {
   // ===========================================================================
   // === INICIANTE: 1. DADOS PATRIMONIO LIQUIDO (Ativos vs. Passivos) ===
   // ===========================================================================
-  const netWorthData = useMemo(() => {
-    const assetsAccounts = flatAccounts.filter(a => ["checking", "savings", "cash", "investment"].includes(a.type)).map(a => a.id);
-    const liabilityAccounts = flatAccounts.filter(a => ["credit_card", "debt"].includes(a.type)).map(a => a.id);
-
-    // Contagem real das contas atuais
-    let currentAssetsTotal = 0;
-    let currentLiabilitiesTotal = 0;
-
-    const walkNode = (node: any) => {
-      const balance = Number(node.balance) || 0;
-      if (assetsAccounts.includes(String(node.id))) {
-        currentAssetsTotal += balance;
-      } else if (liabilityAccounts.includes(String(node.id))) {
-        currentLiabilitiesTotal += balance;
-      }
-      if (node.children) node.children.forEach(walkNode);
-    };
-    tree.forEach(walkNode);
-
-    // Se as contas estiverem vazias, geramos dados realistas para demonstrar o relatorio de forma impactante
-    if (currentAssetsTotal === 0 && currentLiabilitiesTotal === 0) {
-      return [
-        { name: "Dez", Ativos: 8500, Passivos: 3100, "Patrimônio Líquido": 5400 },
-        { name: "Jan", Ativos: 9800, Passivos: 2900, "Patrimônio Líquido": 6900 },
-        { name: "Fev", Ativos: 11200, Passivos: 3400, "Patrimônio Líquido": 7800 },
-        { name: "Mar", Ativos: 14500, Passivos: 4200, "Patrimônio Líquido": 10300 },
-        { name: "Abr", Ativos: 16000, Passivos: 3900, "Patrimônio Líquido": 12100 },
-        { name: "Mai", Ativos: 18200, Passivos: 3600, "Patrimônio Líquido": 14600 },
-      ];
-    }
-
-    // Gerar historico reverso retroativo dos ultimos 6 meses de forma dinamica baseado no saldo atual
-    const historyList = [];
-    let runningAssets = currentAssetsTotal;
-    let runningLiabilities = currentLiabilitiesTotal;
-
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      const name = d.toLocaleDateString("pt-BR", { month: "short" }).replace(".", "");
-      const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
-      
-      const transAfter = transactions.filter(t => t.date && new Date(t.date) >= monthStart);
-      let assetsDiff = 0;
-      let liabilitiesDiff = 0;
-
-      transAfter.forEach(t => {
-        const amt = Number(t.amount) || 0;
-        const isAsset = assetsAccounts.includes(String(t.account));
-        const isLiability = liabilityAccounts.includes(String(t.account));
-
-        if (isAsset) {
-          if (t.is_income) assetsDiff += amt;
-          else assetsDiff -= amt;
-        } else if (isLiability) {
-          if (t.is_income) liabilitiesDiff -= amt;
-          else liabilitiesDiff += amt;
-        }
-      });
-
-      const calculatedAssets = Math.max(0, runningAssets - assetsDiff);
-      const calculatedLiabilities = Math.max(0, runningLiabilities - liabilitiesDiff);
-      const net = calculatedAssets - calculatedLiabilities;
-
-      historyList.push({
-        name: name.charAt(0).toUpperCase() + name.slice(1),
-        Ativos: parseFloat(calculatedAssets.toFixed(2)),
-        Passivos: parseFloat(calculatedLiabilities.toFixed(2)),
-        "Patrimônio Líquido": parseFloat(net.toFixed(2)),
-      });
-    }
-
-    return historyList;
-  }, [tree, transactions, flatAccounts]);
+  const netWorthData = serverNetWorth || [];
 
   // ===========================================================================
   // === INICIANTE: 2. DADOS DISTRIBUICAO DE GASTOS (Pizza/Donut de Maiores Gastos) ===
   // ===========================================================================
-  const expensesDistribution = useMemo(() => {
-    const expenseMap: Record<string, number> = {};
-    let totalExpense = 0;
-
-    filteredTransactions.forEach(t => {
-      if (!t.is_income && t.status === "realized") {
-        const amt = Number(t.amount) || 0;
-        const catName = t.category ? getCategoryName(t.category) : "Sem Categoria";
-        expenseMap[catName] = (expenseMap[catName] || 0) + amt;
-        totalExpense += amt;
-      }
-    });
-
-    if (totalExpense === 0) {
-      return {
-        chartData: [
-          { name: "Alimentação", value: 1250, percent: "35.2%" },
-          { name: "Moradia", value: 1500, percent: "42.3%" },
-          { name: "Transporte", value: 450, percent: "12.7%" },
-          { name: "Lazer e Shows", value: 350, percent: "9.8%" },
-        ],
-        total: 3550,
-        highSpendAlerts: ["Moradia", "Alimentação"]
-      };
-    }
-
-    const chartData = Object.keys(expenseMap).map(name => {
-      const val = expenseMap[name];
-      const p = ((val / totalExpense) * 100).toFixed(1);
-      return {
-        name,
-        value: parseFloat(val.toFixed(2)),
-        percent: `${p}%`
-      };
-    }).sort((a, b) => b.value - a.value);
-
-    const highSpendAlerts = chartData
-      .filter(item => (item.value / totalExpense) > 0.30)
-      .map(item => item.name);
-
-    return { chartData, total: totalExpense, highSpendAlerts };
-  }, [filteredTransactions, getCategoryName]);
+  const expensesDistribution = serverExpenses || { chartData: [], total: 0, highSpendAlerts: [] };
 
   // ===========================================================================
   // === INICIANTE: 3. DADOS FLUXO DE CAIXA DIARIO (Entradas vs Saidas) ===
   // ===========================================================================
-  const dailyCashFlow = useMemo(() => {
-    const dayMap: Record<string, { dateStr: string; Entradas: number; Saídas: number }> = {};
-    
-    filteredTransactions.forEach(t => {
-      if (!t.date || t.status !== "realized") return;
-      const formattedDate = new Date(t.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-      const amt = Number(t.amount) || 0;
-
-      if (!dayMap[formattedDate]) {
-        dayMap[formattedDate] = { dateStr: formattedDate, Entradas: 0, Saídas: 0 };
-      }
-
-      if (t.is_income) {
-        dayMap[formattedDate].Entradas += amt;
-      } else {
-        dayMap[formattedDate].Saídas += amt;
-      }
-    });
-
-    const sortedDays = Object.keys(dayMap).sort((a, b) => {
-      const [dayA, monthA] = a.split("/").map(Number);
-      const [dayB, monthB] = b.split("/").map(Number);
-      return monthA !== monthB ? monthA - monthB : dayA - dayB;
-    });
-
-    const chartData = sortedDays.map(day => ({
-      name: day,
-      Entradas: parseFloat(dayMap[day].Entradas.toFixed(2)),
-      Saídas: parseFloat(dayMap[day].Saídas.toFixed(2)),
-    }));
-
-    if (chartData.length === 0) {
-      return [
-        { name: "01/05", Entradas: 3000, Saídas: 150 },
-        { name: "05/05", Entradas: 0, Saídas: 600 },
-        { name: "10/05", Entradas: 1200, Saídas: 340 },
-        { name: "15/05", Entradas: 0, Saídas: 980 },
-        { name: "20/05", Entradas: 500, Saídas: 200 },
-        { name: "25/05", Entradas: 0, Saídas: 1450 },
-        { name: "30/05", Entradas: 2400, Saídas: 120 },
-      ];
-    }
-
-    return chartData;
-  }, [filteredTransactions]);
+  const dailyCashFlow = serverCashflow || [];
 
   const maxExpensePeak = useMemo(() => {
     let peak = { name: "N/A", value: 0 };
@@ -422,16 +278,6 @@ export default function Reports() {
     };
     walk(categoryGroups);
 
-    if (list.length === 0) {
-      return [
-        { id: "1", name: "Alimentação (Supermercado)", assigned: 800, spent: 780, percent: 97.5, status: "yellow" as const },
-        { id: "2", name: "Aluguel & Condomínio", assigned: 1500, spent: 1500, percent: 100.0, status: "green" as const },
-        { id: "3", name: "Lazer & Bares", assigned: 300, spent: 420, percent: 140.0, status: "red" as const },
-        { id: "4", name: "Transporte (Combustível)", assigned: 400, spent: 180, percent: 45.0, status: "green" as const },
-        { id: "5", name: "Assinaturas & Streamings", assigned: 120, spent: 119.9, percent: 99.9, status: "yellow" as const },
-      ];
-    }
-
     return list.sort((a, b) => b.percent - a.percent);
   }, [categoryGroups]);
 
@@ -449,17 +295,9 @@ export default function Reports() {
       desvio: e.assigned - e.spent
     }));
 
-    // Se estiver tudo zerado, geramos dados fidedignos e ricos
+    // Retorna os que possuem dados ou filtra tudo caso todos sejam zero
     const allZero = rawList.every(i => i.Orçado === 0 && i.Realizado === 0);
-    if (allZero) {
-      return [
-        { name: "Alimentação", fullName: "Alimentação", Orçado: 800, Realizado: 780, desvio: 20 },
-        { name: "Aluguel", fullName: "Aluguel & Condomínio", Orçado: 1500, Realizado: 1500, desvio: 0 },
-        { name: "Lazer", fullName: "Lazer & Bares", Orçado: 300, Realizado: 420, desvio: -120 },
-        { name: "Transporte", fullName: "Transporte (Combustível)", Orçado: 400, Realizado: 180, desvio: 220 },
-        { name: "Assinaturas", fullName: "Assinaturas & Streamings", Orçado: 120, Realizado: 119, desvio: 1 },
-      ];
-    }
+    if (allZero) return [];
 
     return rawList.slice(0, 7); // Maiores desvios orçamentários
   }, [envelopesStatus]);
@@ -545,19 +383,9 @@ export default function Reports() {
     // Filtrar transacoes que pertencem a categoria selecionada e que sejam despesas reais
     const catTransactions = transactions.filter(t => String(t.category) === String(selectedHistoryCategory) && !t.is_income && t.status === "realized");
 
-    // Se o usuario for novo ou nao tiver transacoes anteriores nessa categoria, geramos uma tendencia bonita
+    // Se o usuario for novo ou nao tiver transacoes anteriores nessa categoria
     if (catTransactions.length === 0) {
-      const catName = getCategoryName(selectedHistoryCategory) || "Categoria";
-      // Prover fallbacks de acordo com a categoria selecionada
-      const seedValue = catName.includes("Alimentação") ? 1100 : catName.includes("Aluguel") ? 1500 : catName.includes("Lazer") ? 320 : 150;
-      return [
-        { month: "Dez", Gasto: parseFloat((seedValue * 0.9).toFixed(2)) },
-        { month: "Jan", Gasto: parseFloat((seedValue * 1.05).toFixed(2)) },
-        { month: "Fev", Gasto: parseFloat((seedValue * 0.95).toFixed(2)) },
-        { month: "Mar", Gasto: parseFloat((seedValue * 1.15).toFixed(2)) },
-        { month: "Abr", Gasto: parseFloat((seedValue * 1.0).toFixed(2)) },
-        { month: "Mai", Gasto: parseFloat((seedValue).toFixed(2)) },
-      ];
+      return [];
     }
 
     // Backtracking retroativo mensal de despesa da categoria escolhida
@@ -589,40 +417,9 @@ export default function Reports() {
   // === INTERMEDIARIO: 4. METAS DE ECONOMIA (useGoals Integration) ===
   // ===========================================================================
   const goalsProgressReport = useMemo(() => {
-    // Se a API de Metas retornar vazia (usuario inicial ou sem metas), criamos metas ricas de YNAB
+    // Se a API de Metas retornar vazia (usuario inicial ou sem metas)
     if (!goals || goals.length === 0) {
-      return [
-        {
-          id: "1",
-          name: "Reserva de Emergência",
-          emoji: "🛡️",
-          target: 10000,
-          current: 4500,
-          percent: 45.0,
-          monthlySavingsAvg: 450,
-          monthsRemaining: 12
-        },
-        {
-          id: "2",
-          name: "Férias no Caribe",
-          emoji: "✈️",
-          target: 8000,
-          current: 4800,
-          percent: 60.0,
-          monthlySavingsAvg: 800,
-          monthsRemaining: 4
-        },
-        {
-          id: "3",
-          name: "Aporte Previdência",
-          emoji: "📈",
-          target: 15000,
-          current: 13500,
-          percent: 90.0,
-          monthlySavingsAvg: 1500,
-          monthsRemaining: 1
-        }
-      ];
+      return [];
     }
 
     // Processamento de Metas de poupanca reais obtidas da API do Django REST
@@ -673,16 +470,9 @@ export default function Reports() {
     
     walk(tree);
     
-    // Fallback rico e visualmente espetacular de investidor multi-moeda
+    // Fallback vazio
     if (data.length === 0) {
-      return [
-        { name: `XP Investimentos (Ações - ${baseCurrency} 45.000)`, value: 45000 },
-        { name: `Nubank (Liquidez Diária - ${baseCurrency} 15.000)`, value: 15000 },
-        { name: `Wise (Portfólio Global USD - ${baseCurrency} 12.000)`, value: 12000 },
-        { name: `Binance (Criptoativos ETH - ${baseCurrency} 8.500)`, value: 8500 },
-        { name: `Carteira Física (Espécie - ${baseCurrency} 1.200)`, value: 1200 },
-        { name: `Imóvel Aluguel (Provisão - ${baseCurrency} 80.000)`, value: 80000 }
-      ];
+      return [];
     }
     
     return data.sort((a, b) => b.value - a.value);
@@ -708,26 +498,9 @@ export default function Reports() {
     
     const currenciesPresent = Object.keys(currencyTotals);
     
-    // Fallback completo se nao houver contas internacionais registradas
+    // Sem contas internacionais
     if (currenciesPresent.length === 0) {
-      const mockForeign = [
-        { currency: "USD", amount: 5400, rate: parseFloat(convert(1, "USD", baseCurrency).toFixed(4)), change: 1.85, impact: parseFloat((5400 * convert(1, "USD", baseCurrency) * 0.0185).toFixed(2)) },
-        { currency: "EUR", amount: 3200, rate: parseFloat(convert(1, "EUR", baseCurrency).toFixed(4)), change: -0.65, impact: parseFloat((3200 * convert(1, "EUR", baseCurrency) * -0.0065).toFixed(2)) },
-        { currency: "GBP", amount: 1500, rate: parseFloat(convert(1, "GBP", baseCurrency).toFixed(4)), change: 2.10, impact: parseFloat((1500 * convert(1, "GBP", baseCurrency) * 0.021).toFixed(2)) }
-      ];
-      
-      const totalImpact = mockForeign.reduce((acc, c) => acc + c.impact, 0);
-      
-      const chartData = [
-        { month: "Dez", "Ganhos/Perdas": parseFloat((totalImpact * 0.3).toFixed(2)) },
-        { month: "Jan", "Ganhos/Perdas": parseFloat((totalImpact * -0.1).toFixed(2)) },
-        { month: "Fev", "Ganhos/Perdas": parseFloat((totalImpact * 0.6).toFixed(2)) },
-        { month: "Mar", "Ganhos/Perdas": parseFloat((totalImpact * 0.9).toFixed(2)) },
-        { month: "Abr", "Ganhos/Perdas": parseFloat((totalImpact * 0.7).toFixed(2)) },
-        { month: "Mai", "Ganhos/Perdas": parseFloat(totalImpact.toFixed(2)) }
-      ];
-      
-      return { list: mockForeign, chartData, totalImpact: parseFloat(totalImpact.toFixed(2)) };
+      return { list: [], chartData: [], totalImpact: 0 };
     }
     
     // Dados reais das contas multi-moeda do usuario
@@ -1328,7 +1101,6 @@ export default function Reports() {
           name: item.categoryName,
           budget: parseFloat(budget.toFixed(2)),
           spent: parseFloat(spent.toFixed(2)),
-          variance: parseFloat(variance.toFixed(2)),
           priceEffect: parseFloat(priceEffect.toFixed(2)),
           volumeEffect: parseFloat(volumeEffect.toFixed(2)),
           diagnosis
@@ -1337,35 +1109,7 @@ export default function Reports() {
     });
 
     if (list.length === 0) {
-      return [
-        {
-          name: "Supermercado & Alimentação",
-          budget: 1200.00,
-          spent: 1540.00,
-          variance: 340.00,
-          priceEffect: 280.00,
-          volumeEffect: 60.00,
-          diagnosis: "Estouro por EFEITO PREÇO: O custo médio das compras de mantimentos subiu expressivamente."
-        },
-        {
-          name: "Transportes & Aplicativos",
-          budget: 450.00,
-          spent: 620.00,
-          variance: 170.00,
-          priceEffect: -30.00,
-          volumeEffect: 200.00,
-          diagnosis: "Estouro por EFEITO VOLUME: A alta recorrência de corridas ultrapassou o volume planejado."
-        },
-        {
-          name: "Restaurantes & Lazer",
-          budget: 600.00,
-          spent: 780.00,
-          variance: 180.00,
-          priceEffect: 120.00,
-          volumeEffect: 60.00,
-          diagnosis: "Estouro por EFEITO PREÇO: Restaurantes e cafeterias visitadas apresentaram tíquete médio elevado."
-        }
-      ];
+      return [];
     }
 
     return list.sort((a, b) => b.variance - a.variance).slice(0, 4);
@@ -3906,32 +3650,34 @@ export default function Reports() {
             </div>
 
             <div className="h-64 sm:h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={netWorthData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorAtivos" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.01}/>
-                    </linearGradient>
-                    <linearGradient id="colorPassivos" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.01}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#0f172a" />
-                  <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
-                  <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#020617", borderRadius: "16px", borderColor: "#1e293b" }}
-                    labelStyle={{ color: "#94a3b8", fontWeight: "bold", fontSize: "11px" }}
-                    itemStyle={{ fontSize: "11px" }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
-                  <Area type="monotone" dataKey="Ativos" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAtivos)" />
-                  <Area type="monotone" dataKey="Passivos" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorPassivos)" />
-                  <Line type="monotone" dataKey="Patrimônio Líquido" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} />
-                </AreaChart>
-              </ResponsiveContainer>
+              {netWorthData.length === 0 ? <EmptyState /> : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={netWorthData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorAtivos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.25}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.01}/>
+                      </linearGradient>
+                      <linearGradient id="colorPassivos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15}/>
+                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.01}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#0f172a" />
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
+                    <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#020617", borderRadius: "16px", borderColor: "#1e293b" }}
+                      labelStyle={{ color: "#94a3b8", fontWeight: "bold", fontSize: "11px" }}
+                      itemStyle={{ fontSize: "11px" }}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+                    <Area type="monotone" dataKey="Ativos" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorAtivos)" />
+                    <Area type="monotone" dataKey="Passivos" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorPassivos)" />
+                    <Line type="monotone" dataKey="Patrimônio Líquido" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
@@ -3949,26 +3695,28 @@ export default function Reports() {
 
             <div className="flex flex-col sm:flex-row items-center gap-6 justify-center">
               <div className="h-40 w-40 shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RePieChart>
-                    <Pie
-                      data={expensesDistribution.chartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={70}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
-                      {expensesDistribution.chartData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{ backgroundColor: "#020617", borderRadius: "12px", borderColor: "#1e293b", fontSize: "10px" }}
-                    />
-                  </RePieChart>
-                </ResponsiveContainer>
+                {expensesDistribution.chartData.length === 0 ? <EmptyState /> : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RePieChart>
+                      <Pie
+                        data={expensesDistribution.chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={70}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {expensesDistribution.chartData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#020617", borderRadius: "12px", borderColor: "#1e293b", fontSize: "10px" }}
+                      />
+                    </RePieChart>
+                  </ResponsiveContainer>
+                )}
               </div>
 
               <div className="flex-1 w-full space-y-2.5">
@@ -4032,32 +3780,34 @@ export default function Reports() {
               )}
             </div>
 
-            <div className="h-60 sm:h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={dailyCashFlow} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0.01}/>
-                    </linearGradient>
-                    <linearGradient id="colorSaidas" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.15}/>
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.01}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#0f172a" />
-                  <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
-                  <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#020617", borderRadius: "16px", borderColor: "#1e293b" }}
-                    labelStyle={{ color: "#94a3b8", fontWeight: "bold", fontSize: "11px" }}
-                    itemStyle={{ fontSize: "11px" }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
-                  <Area type="monotone" dataKey="Entradas" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorEntradas)" />
-                  <Area type="monotone" dataKey="Saídas" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorSaidas)" />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="h-64 sm:h-72 w-full mt-4">
+              {dailyCashFlow.length === 0 ? <EmptyState /> : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dailyCashFlow} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorEntradas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.01}/>
+                      </linearGradient>
+                      <linearGradient id="colorSaidas" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0.01}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#0f172a" />
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
+                    <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#020617", borderRadius: "16px", borderColor: "#1e293b" }}
+                      labelStyle={{ color: "#94a3b8", fontWeight: "bold", fontSize: "11px" }}
+                      itemStyle={{ fontSize: "11px" }}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+                    <Area type="monotone" dataKey="Entradas" stroke="#10b981" strokeWidth={2.5} fillOpacity={1} fill="url(#colorEntradas)" />
+                    <Area type="monotone" dataKey="Saídas" stroke="#ef4444" strokeWidth={2.5} fillOpacity={1} fill="url(#colorSaidas)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
 
@@ -4135,23 +3885,46 @@ export default function Reports() {
               </p>
             </div>
 
+            <div className="h-72 sm:h-96 w-full -ml-4 sm:ml-0">
+                {budgetVarianceData.length === 0 ? <EmptyState /> : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={budgetVarianceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" stroke="#0f172a" horizontal={true} vertical={false} />
+                      <XAxis type="number" stroke="#64748b" fontSize={10} fontWeight="bold" />
+                      <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} fontWeight="bold" width={100} tickFormatter={(val) => String(val).substring(0, 10) + "..."} />
+                      <Tooltip
+                        contentStyle={{ backgroundColor: "#020617", borderRadius: "16px", borderColor: "#1e293b" }}
+                        labelStyle={{ color: "#94a3b8", fontWeight: "bold", fontSize: "11px" }}
+                        itemStyle={{ fontSize: "11px" }}
+                      />
+                      <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+                      <Bar dataKey="variance" fill="#f43f5e" name="Estouro Total" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="priceEffect" fill="#eab308" name="Efeito Preço" radius={[0, 4, 4, 0]} />
+                      <Bar dataKey="volumeEffect" fill="#a855f7" name="Efeito Volume" radius={[0, 4, 4, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+            </div>
+
             {/* Grafico de Barras agrupado */}
             <div className="h-64 sm:h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={budgetedVsSpentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#0f172a" />
-                  <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
-                  <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "#020617", borderRadius: "16px", borderColor: "#1e293b" }}
-                    labelStyle={{ color: "#94a3b8", fontWeight: "bold", fontSize: "11px" }}
-                    itemStyle={{ fontSize: "11px" }}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
-                  <Bar dataKey="Orçado" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Realizado" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {budgetedVsSpentData.length === 0 ? <EmptyState /> : (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={budgetedVsSpentData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#0f172a" />
+                    <XAxis dataKey="name" stroke="#64748b" fontSize={10} fontWeight="bold" />
+                    <YAxis stroke="#64748b" fontSize={10} fontWeight="bold" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: "#020617", borderRadius: "16px", borderColor: "#1e293b" }}
+                      labelStyle={{ color: "#94a3b8", fontWeight: "bold", fontSize: "11px" }}
+                      itemStyle={{ fontSize: "11px" }}
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: "11px", paddingTop: "10px" }} />
+                    <Bar dataKey="Orçado" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Realizado" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </div>
 
             {/* Desvios em badges */}

@@ -5,10 +5,12 @@ from .views import (
     MonthlyBudgetViewSet, IconUploadView, DistributionTemplateViewSet, 
     DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
-    InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, DemoModeView
+    InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, DemoModeView,
+    ReportsViewSet
 )
 
 router = DefaultRouter()
+router.register(r'reports', ReportsViewSet, basename='reports')
 router.register(r'accounts', AccountViewSet, basename='account')
 router.register(r'categories', CategoryViewSet, basename='category')
 router.register(r'transactions', TransactionViewSet, basename='transaction')

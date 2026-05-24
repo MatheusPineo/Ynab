@@ -18,6 +18,7 @@ import { cn } from "@/shared/lib/utils";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { CreditCard as CreditCardIcon, Plus, Calendar, Clock, CheckCircle2, Sparkles, Zap, Tag, DollarSign, Wallet, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { CreditCardBrandIcon } from "@/modules/finance/components/CreditCardBrandIcon";
 
 interface CreditCardModel {
   id: string;
@@ -418,16 +419,7 @@ export const CreditCards = () => {
                     </div>
                     
                     <div className="flex items-center gap-1 z-10">
-                      <div className={cn(
-                        "p-2.5 rounded-2xl backdrop-blur-md border mr-1",
-                        isSelected ? "bg-white/10 border-white/20 text-primary" : "bg-primary/10 border-primary/20 text-primary"
-                      )}>
-                        {card.brand === "Visa" && <span className="font-extrabold italic text-sm">VISA</span>}
-                        {card.brand === "Mastercard" && <div className="flex -space-x-1.5"><div className="w-3.5 h-3.5 rounded-full bg-red-500 opacity-80 mix-blend-multiply"></div><div className="w-3.5 h-3.5 rounded-full bg-yellow-400 opacity-80 mix-blend-multiply"></div></div>}
-                        {card.brand === "Elo" && <span className="font-bold text-sm tracking-tighter">elo</span>}
-                        {card.brand === "American Express" && <span className="font-bold text-xs">AMEX</span>}
-                        {(!card.brand || !["Visa", "Mastercard", "Elo", "American Express"].includes(card.brand)) && <Sparkles className="h-5 w-5" />}
-                      </div>
+                      <CreditCardBrandIcon brand={card.brand} className="mr-2" />
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -755,6 +747,7 @@ export const CreditCards = () => {
                     <SelectItem value="Elo">Elo</SelectItem>
                     <SelectItem value="UnionPay">UnionPay</SelectItem>
                     <SelectItem value="JCB">JCB</SelectItem>
+                    <SelectItem value="Outra">Outra</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -832,11 +825,13 @@ export const CreditCards = () => {
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent className="bg-card border-border/60">
-                      <SelectItem value="Mastercard">Mastercard</SelectItem>
                       <SelectItem value="Visa">Visa</SelectItem>
+                      <SelectItem value="Mastercard">Mastercard</SelectItem>
                       <SelectItem value="American Express">American Express</SelectItem>
                       <SelectItem value="Elo">Elo</SelectItem>
-                      <SelectItem value="Outro">Outra</SelectItem>
+                      <SelectItem value="UnionPay">UnionPay</SelectItem>
+                      <SelectItem value="JCB">JCB</SelectItem>
+                      <SelectItem value="Outra">Outra</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
