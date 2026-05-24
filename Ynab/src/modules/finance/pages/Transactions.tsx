@@ -36,7 +36,7 @@ import { Button } from "@/shared/components/ui/button";
 import { AddTransactionModal } from "@/modules/finance/components/AddTransactionModal";
 import { ImportModal } from "@/modules/finance/components/ImportModal";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
-import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { useQueryClient } from "@tanstack/react-query";
 import { PullToRefresh } from "@/shared/components/dashboard/PullToRefresh";
 import { SwipeableTransactionCard } from "@/modules/finance/components/SwipeableTransactionCard";
@@ -275,7 +275,7 @@ const Transactions = () => {
             </SelectContent>
           </Select>
 
-          <AccountCombobox
+          <GlobalAccountSelector
             value={selectedAccountId}
             onValueChange={setSelectedAccountId}
             placeholder="Filtrar Conta"

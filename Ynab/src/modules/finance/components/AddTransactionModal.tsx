@@ -25,7 +25,7 @@ import { cn } from "@/shared/lib/utils";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { type Transaction } from "@/types";
-import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
 
 
@@ -479,7 +479,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           <div className="grid grid-cols-2 gap-4">
             <div id="account-container" className="relative grid gap-2">
               <Label htmlFor="account">{isTransfer ? "De Conta (Origem)" : "Conta"}</Label>
-              <AccountCombobox
+              <GlobalAccountSelector
                 value={accountId}
                 onValueChange={setAccountId}
                 placeholder="Selecione uma conta"
@@ -489,7 +489,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             {isTransfer && (
               <div id="to-account-container" className="relative grid gap-2 animate-in slide-in-from-right-2">
                 <Label htmlFor="to_account">Para Conta (Destino)</Label>
-                <AccountCombobox
+                <GlobalAccountSelector
                   value={toAccountId}
                   onValueChange={setToAccountId}
                   placeholder="Selecione uma conta"

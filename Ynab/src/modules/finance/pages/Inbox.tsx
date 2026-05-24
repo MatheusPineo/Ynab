@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
-import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { useInboxStore, type TransactionInbox } from "@/modules/finance/store/useInboxStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { Button } from "@/shared/components/ui/button";
@@ -643,7 +643,7 @@ const Inbox = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <Label htmlFor="account" className="text-xs font-semibold">Conta de Origem</Label>
-                          <AccountCombobox
+                          <GlobalAccountSelector
                             value={selectedAccountId}
                             onValueChange={setSelectedAccountId}
                             placeholder="Selecione a conta..."

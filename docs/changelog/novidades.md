@@ -1,3 +1,9 @@
+## v1.35.17
+- **Novo Seletor de Contas Universal:** Todas as telas do sistema agora usam nosso incrível e veloz seletor de contas global, com busca integrada e design premium ocupando todo o espaço disponível.
+
+## v1.35.16
+- **Melhorias de Compras Parceladas:** O modal de compra no Cartão de Crédito agora aceita números dinâmicos e customizados de parcelamento (ex: 24x, 36x), permitindo compras grandes com precisão flexível no motor do YNAB!
+
 ## v1.35.15
 - **Design de Cartões Ajustado:** Melhoramos sutilmente o visual dos cartões na sua tela! Os ícones oficiais ganharam mais "respiro" interno e não tocam mais nas bordas do container, trazendo uma experiência perfeitamente realista de cartões físicos.
 

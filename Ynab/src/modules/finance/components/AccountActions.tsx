@@ -24,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { Input } from "@/shared/components/ui/input";
 import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
@@ -280,20 +281,13 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="parent-select">Nova Conta Pai</Label>
-              <Select 
+              <GlobalAccountSelector 
                 value={selectedParentId} 
                 onValueChange={setSelectedParentId}
-              >
-                <SelectTrigger id="parent-select" className="bg-background/50 border-border/60 rounded-xl h-11">
-                  <SelectValue placeholder="Selecione a conta pai" />
-                </SelectTrigger>
-                <SelectContent className="glass">
-                  <SelectItem value="root">Tornar Conta Mestre (Nível Superior / Sem Pai)</SelectItem>
-                  {eligibleParents.map(parent => (
-                    <SelectItem key={parent.id} value={String(parent.id)}>{parent.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Selecione a conta pai"
+                showRootOption={true}
+                allowListIds={eligibleParents.map(p => String(p.id))}
+              />
               <p className="text-[10px] text-muted-foreground leading-relaxed mt-1">
                 O seletor filtra automaticamente e oculta a própria conta e todos os descendentes dela para prevenir recursão cíclica infinita.
               </p>

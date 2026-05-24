@@ -1,3 +1,17 @@
+## [1.35.17] - 2026-05-24
+
+### Changed
+- Refatorado a seleção hierárquica de contas. O `AccountCombobox` foi promovido a `GlobalAccountSelector`, posicionado como o componente universal em toda a aplicação (Adicionar Receita, Adicionar Despesa, Transferências, Inbox, Pagamento de Dívidas).
+- Enforçado strict layout: `GlobalAccountSelector` agora ocupa `w-full` e `col-span-full` para nunca dividir a linha com outros campos, garantindo padronização visual global.
+- Atualizado o dropdown legado de 'Nova Conta Pai' no painel de Ações de Conta para consumir nativamente o novo seletor com a flag `showRootOption`.
+
+## [1.35.16] - 2026-05-24
+
+### Changed
+- Refatorado formulário de Modal de Compras de Cartão de Crédito (`CreditCards.tsx`) substituindo o `<select>` limitador de 12x por um `<input type="number">` dinâmico e sem limite.
+- Corrigido property payload para o endpoint de transações, de `amount` para `total_amount` garantindo integridade das requisições.
+- Lógica reativa da seleção de `A partir de qual parcela?` dinamicamente amarrada ao total de parcelas customizadas.
+
 ## [1.35.15] - 2026-05-24
 
 ### Fixed

@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { toast } from "sonner";
-import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 
 export const ImportModal = ({ children }: { children?: React.ReactNode }) => {
   const [open, setOpen] = useState(false);
@@ -101,7 +101,7 @@ export const ImportModal = ({ children }: { children?: React.ReactNode }) => {
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
             <Label htmlFor="account">Conta de Destino</Label>
-            <AccountCombobox
+            <GlobalAccountSelector
               value={accountId}
               onValueChange={setAccountId}
               placeholder="Selecione uma conta"

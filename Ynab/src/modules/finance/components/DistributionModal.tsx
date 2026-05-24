@@ -22,7 +22,7 @@ import { useAccountStore, DistributionTemplateItem, DistributionTemplate } from 
 import { AccountNode } from "@/types";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { Split, Plus, Trash, Save } from "lucide-react";
-import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { toast } from "sonner";
 
 
@@ -203,7 +203,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
             <div className="space-y-1.5">
               <Label className="text-xs sm:text-sm font-semibold text-muted-foreground">Conta de Origem</Label>
-              <AccountCombobox
+              <GlobalAccountSelector
                 value={sourceAccount}
                 onValueChange={setSourceAccount}
                 placeholder="Selecione a conta de origem..."
@@ -253,7 +253,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
                 {/* Desktop layout: clean row */}
                 <div className="hidden sm:flex items-center gap-3 p-1">
                   <div className="flex-1">
-                    <AccountCombobox
+                    <GlobalAccountSelector
                       value={row.account}
                       onValueChange={(v) => handleRowChange(idx, "account", v)}
                       placeholder="Conta destino..."
@@ -326,7 +326,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
 
                   <div className="space-y-1">
                     <Label className="text-[9px] text-muted-foreground uppercase font-black">Conta Destino</Label>
-                    <AccountCombobox
+                    <GlobalAccountSelector
                       value={row.account}
                       onValueChange={(v) => handleRowChange(idx, "account", v)}
                       placeholder="Selecione a conta destino..."

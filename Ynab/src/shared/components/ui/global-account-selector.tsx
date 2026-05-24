@@ -5,7 +5,7 @@ import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { cn } from "@/shared/lib/utils";
 import { Popover, PopoverTrigger, PopoverContent } from "@/shared/components/ui/popover";
 
-interface AccountComboboxProps {
+interface GlobalAccountSelectorProps {
   value: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
@@ -14,10 +14,12 @@ interface AccountComboboxProps {
   required?: boolean;
   filterLeafOnly?: boolean; // Se true, lista apenas contas folha (sem filhos)
   showAllOption?: boolean;  // Se true, inclui a opção "Todas as Contas" com valor "all"
+  showRootOption?: boolean; // Se true, inclui a opção "Conta Mestre" com valor "root"
+  allowListIds?: string[]; // Se passado, apenas essas contas (além das virtuais) serão exibidas
   disabled?: boolean;
 }
 
-export const AccountCombobox = ({
+export const GlobalAccountSelector = ({
   value,
   onValueChange,
   placeholder = "Selecione uma conta",
@@ -25,8 +27,10 @@ export const AccountCombobox = ({
   className,
   filterLeafOnly = false,
   showAllOption = false,
+  showRootOption = false,
+  allowListIds,
   disabled = false,
-}: AccountComboboxProps) => {
+}: GlobalAccountSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -63,6 +67,7 @@ export const AccountCombobox = ({
   const filteredAccounts = allAccounts
     .filter((acc) => {
       if (excludeAccountId && String(acc.id) === String(excludeAccountId)) return false;
+      if (allowListIds && !allowListIds.includes(String(acc.id))) return false;
       if (filterLeafOnly && !acc.isLeaf) return false;
       return normalizeStr(acc.name).includes(normalizeStr(search));
     });
@@ -70,13 +75,20 @@ export const AccountCombobox = ({
   // Se showAllOption for ativo, incluímos o item virtual "Todas as Contas"
   const showVirtualAll = showAllOption && (normalizeStr("todas as contas").includes(normalizeStr(search)) || search === "");
 
-  const displayItems = showVirtualAll
-    ? [{ id: "all", name: "Todas as Contas", displayName: "Todas as Contas", currency: "", isLeaf: true }, ...filteredAccounts]
-    : filteredAccounts;
+  // Se showRootOption for ativo, incluímos o item virtual "Conta Mestre"
+  const showVirtualRoot = showRootOption && (normalizeStr("conta mestre superior").includes(normalizeStr(search)) || search === "");
+
+  const displayItems = [
+    ...(showVirtualAll ? [{ id: "all", name: "Todas as Contas", displayName: "Todas as Contas", currency: "", isLeaf: true }] : []),
+    ...(showVirtualRoot ? [{ id: "root", name: "Conta Mestre (Nível Superior / Sem Pai)", displayName: "Conta Mestre (Nível Superior / Sem Pai)", currency: "", isLeaf: true }] : []),
+    ...filteredAccounts
+  ];
 
   // Conta selecionada atualmente
   const selectedAccount = value === "all"
-    ? null
+    ? { id: "all", name: "Todas as Contas", displayName: "Todas as Contas", currency: "" }
+    : value === "root"
+    ? { id: "root", name: "Conta Mestre (Nível Superior / Sem Pai)", displayName: "Conta Mestre (Nível Superior / Sem Pai)", currency: "" }
     : allAccounts.find((a) => String(a.id) === String(value));
 
   // Inicializar o primeiro resultado focado por padrão ao digitar ou abrir
@@ -102,18 +114,16 @@ export const AccountCombobox = ({
           type="button"
           disabled={disabled}
           className={cn(
-            "w-full h-10 px-3 bg-background/50 border border-border/60 hover:border-primary/50 rounded-xl flex items-center justify-between text-xs sm:text-sm font-medium transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-primary/40",
+            "w-full col-span-full h-10 px-3 bg-background/50 border border-border/60 hover:border-primary/50 rounded-xl flex items-center justify-between text-xs sm:text-sm font-medium transition-colors cursor-pointer text-left focus:outline-none focus:ring-1 focus:ring-primary/40",
             disabled && "opacity-50 cursor-not-allowed pointer-events-none",
             className
           )}
         >
           <span className="truncate">
-            {value === "all" ? (
-              <span className="text-foreground font-semibold">Todas as Contas</span>
-            ) : selectedAccount ? (
+            {selectedAccount ? (
               <span className="flex items-center gap-1.5">
                 <span className="whitespace-pre">{selectedAccount.displayName || selectedAccount.name}</span>
-                <span className="text-[10px] text-muted-foreground">({selectedAccount.currency})</span>
+                {selectedAccount.currency && <span className="text-[10px] text-muted-foreground">({selectedAccount.currency})</span>}
               </span>
             ) : (
               <span className="text-muted-foreground/60">{placeholder}</span>
@@ -186,7 +196,7 @@ export const AccountCombobox = ({
                   )}
                 >
                   <span className="whitespace-pre">{acc.displayName || acc.name}</span>
-                  {acc.id !== "all" && (
+                  {acc.id !== "all" && acc.id !== "root" && acc.currency && (
                     <span className="text-[10px] text-muted-foreground font-semibold px-1 bg-background/30 rounded border border-border/30">
                       {acc.currency}
                     </span>

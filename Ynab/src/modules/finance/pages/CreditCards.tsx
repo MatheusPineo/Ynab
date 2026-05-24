@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { CreditCard as CreditCardIcon, Plus, Calendar, Clock, CheckCircle2, Sparkles, Zap, Tag, DollarSign, Wallet, MoreVertical, Edit2, Trash2 } from "lucide-react";
-import { AccountCombobox } from "@/modules/finance/components/AccountCombobox";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { CreditCardBrandIcon } from "@/modules/finance/components/CreditCardBrandIcon";
 
 interface CreditCardModel {
@@ -974,7 +974,7 @@ export const CreditCards = () => {
 
                 <div className="flex flex-col gap-1.5" id="category-container">
                   <Label htmlFor="category" className={cn("text-[10px] font-bold uppercase tracking-wider font-mono", categoryError ? "text-red-500" : "text-muted-foreground")}>Subconta de despesa</Label>
-                  <AccountCombobox 
+                  <GlobalAccountSelector 
                     value={categoryId} 
                     onValueChange={(val) => {
                       setCategoryId(val);
