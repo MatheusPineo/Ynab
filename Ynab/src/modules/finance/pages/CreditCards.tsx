@@ -281,6 +281,13 @@ export const CreditCards = () => {
       );
 
       await fetchCreditCards();
+      // Atualiza o selectedCard com os novos dados buscados em fetchCreditCards
+      const updatedCardResponse = await authenticatedFetch(`/credit-cards/${selectedCard.id}/`);
+      if (updatedCardResponse.ok) {
+        const updatedCardData = await updatedCardResponse.json();
+        setSelectedCard(updatedCardData);
+      }
+      
       await fetchBillsForCard(selectedCard.id);
       setIsNewTxOpen(false);
       setDescription("");
@@ -342,7 +349,7 @@ export const CreditCards = () => {
           <Button 
             onClick={() => setIsNewCardOpen(true)}
             variant="outline"
-            className="rounded-2xl border-primary/50 text-primary hover:bg-primary/10 h-12 font-bold px-5 gap-2 shadow-soft"
+            className="rounded-2xl border-primary/50 text-primary hover:bg-primary/10 hover:text-primary h-12 font-bold px-5 gap-2 shadow-soft"
           >
             <Plus className="h-5 w-5" /> Cadastrar Cartão
           </Button>

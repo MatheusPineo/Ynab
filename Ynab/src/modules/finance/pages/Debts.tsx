@@ -135,7 +135,7 @@ const DebtCard = ({
               <Button 
                 variant="outline"
                 size="sm" 
-                className="h-8 text-xs border-primary/20 hover:border-primary/40 hover:bg-primary/5 text-primary cursor-pointer shrink-0" 
+                className="h-8 text-xs border-primary/20 hover:border-primary/40 hover:bg-primary/5 hover:text-primary text-primary cursor-pointer shrink-0" 
                 onClick={() => onAddDebtAmount(debt)}
               >
                 <Plus className="mr-1 h-3.5 w-3.5" />

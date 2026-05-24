@@ -294,7 +294,7 @@ const GoalCard = ({ goal, onUpdate, onDelete }: { goal: Goal, onUpdate: any, onD
         <div className="flex items-center gap-2 pt-2">
           <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex-1 rounded-xl border-border/40 bg-background/30 hover:bg-primary/10 hover:border-primary/50 transition-all gap-2 h-10 group/btn">
+              <Button variant="outline" className="flex-1 rounded-xl border-border/40 bg-background/30 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all gap-2 h-10 group/btn">
                 <Wallet className="h-4 w-4 text-primary group-hover/btn:scale-110 transition-transform" />
                 <span className="text-xs font-bold uppercase tracking-wider">Adicionar Saldo</span>
               </Button>

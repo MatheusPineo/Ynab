@@ -3,6 +3,7 @@ import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { useInboxStore, type TransactionInbox } from "@/modules/finance/store/useInboxStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
+import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -639,9 +640,9 @@ const Inbox = () => {
                         </div>
                       </div>
 
-                      {/* Account & Category Selection */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1.5 col-span-full">
+                      {/* Account Selection */}
+                      <div className="grid gap-4">
+                        <div className="space-y-1.5">
                           <Label htmlFor="account" className="text-xs font-semibold">Conta de Origem</Label>
                           <GlobalAccountSelector
                             value={selectedAccountId}
@@ -650,29 +651,6 @@ const Inbox = () => {
                             disabled={selectedItem.status === "processing"}
                             className="bg-muted/10 border-border/40 rounded-xl text-xs h-10 shadow-soft focus:ring-0"
                           />
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <Label htmlFor="category" className="text-xs font-semibold">Categoria (YNAB)</Label>
-                          <Select
-                            value={selectedCategoryId}
-                            onValueChange={setSelectedCategoryId}
-                            disabled={selectedItem.status === "processing"}
-                          >
-                            <SelectTrigger id="category" className="bg-muted/10 border-border/40 rounded-xl text-xs h-10 shadow-soft focus:ring-0">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent className="glass border-border/60">
-                              <SelectItem value="none" className="text-xs text-muted-foreground italic">
-                                Sem Categoria (Receita)
-                              </SelectItem>
-                              {allCategories.map((cat) => (
-                                <SelectItem key={cat.id} value={cat.id} className="text-xs">
-                                  {cat.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
                         </div>
                       </div>
 

@@ -14,7 +14,7 @@ import Accounts from "@/modules/finance/pages/Accounts";
 import Transactions from "@/modules/finance/pages/Transactions";
 import Budget from "@/modules/finance/pages/Budget";
 import Goals from "@/modules/finance/pages/Goals";
-import Insights from "@/modules/finance/pages/Insights";
+
 import Settings from "@/modules/auth/pages/Settings";
 import AccountDetails from "@/modules/finance/pages/AccountDetails";
 import Debts from "@/modules/finance/pages/Debts";
@@ -132,8 +132,7 @@ const App = () => {
                 <Route path="budget" element={<FeatureProtectedRoute featureKey="budget"><Budget /></FeatureProtectedRoute>} />
                 <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />
                 <Route path="debts" element={<FeatureProtectedRoute featureKey="debts"><Debts /></FeatureProtectedRoute>} />
-                <Route path="insights" element={<FeatureProtectedRoute featureKey="insights"><Insights /></FeatureProtectedRoute>} />
-                <Route path="reports" element={<FeatureProtectedRoute featureKey="insights"><Reports /></FeatureProtectedRoute>} />
+                <Route path="reports" element={<FeatureProtectedRoute featureKey="reports"><Reports /></FeatureProtectedRoute>} />
                 <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
                 <Route path="credit-cards" element={<FeatureProtectedRoute featureKey="credit_cards"><CreditCards /></FeatureProtectedRoute>} />
                 <Route path="investments" element={<FeatureProtectedRoute featureKey="investments"><Investments /></FeatureProtectedRoute>} />

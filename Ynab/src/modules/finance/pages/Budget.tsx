@@ -377,7 +377,7 @@ const Budget = () => {
               <Button 
                 variant="outline" 
                 onClick={() => setIsGroupDialogOpen(true)}
-                className="border-primary/20 hover:bg-primary/10 rounded-xl h-8 sm:h-10 text-[10px] sm:text-xs gap-1 sm:gap-1.5 font-bold"
+                className="border-primary/20 hover:bg-primary/10 hover:text-primary rounded-xl h-8 sm:h-10 text-[10px] sm:text-xs gap-1 sm:gap-1.5 font-bold"
               >
                 <FolderPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 Novo Grupo
@@ -421,7 +421,7 @@ const Budget = () => {
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="rounded-lg border-primary/20 hover:bg-primary/10 h-7 text-[10px] sm:text-xs px-2.5"
+                          className="rounded-lg border-primary/20 hover:bg-primary/10 hover:text-primary h-7 text-[10px] sm:text-xs px-2.5"
                           onClick={() => keepInAccount(income.id)}
                         >
                           Manter

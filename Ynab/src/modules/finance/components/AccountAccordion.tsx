@@ -256,26 +256,44 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         <span className="flex-1" />
 
         {/* Balance */}
-        <span
-          className={cn(
-            "shrink-0 tabular tracking-tight mr-2 text-right",
-            isMaster ? "text-base font-bold" : "text-sm font-medium",
-            isExcluded
-              ? "text-purple-300/60"
-              : (total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
-          )}
+        <div
+          className="shrink-0 flex flex-col items-end mr-2"
           title={isExcluded ? "Este saldo está desconsiderado do cálculo total." : undefined}
         >
           {node.ceiling && Number(node.ceiling) > 0 ? (
-            <span className="flex items-center gap-1.5">
-              <span>{formatMoney(total, currency)}</span>
-              <span className="text-muted-foreground/60 font-normal text-xs">/</span>
-              <span className="text-muted-foreground text-xs">{formatMoney(Number(node.ceiling), currency)}</span>
-            </span>
+            <>
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-0.5 select-none">
+                Valor Alocado / Teto
+              </span>
+              <span className={cn(
+                "tabular tracking-tight flex items-center gap-1.5",
+                isMaster ? "text-base font-bold" : "text-sm font-medium",
+                isExcluded
+                  ? "text-purple-300/60"
+                  : (total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
+              )}>
+                <span>{formatMoney(total, currency)}</span>
+                <span className="text-muted-foreground/60 font-normal text-xs">/</span>
+                <span className="text-muted-foreground text-xs">{formatMoney(Number(node.ceiling), currency)}</span>
+              </span>
+            </>
           ) : (
-            formatMoney(total, currency)
+            <>
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-0.5 select-none">
+                Valor Alocado
+              </span>
+              <span className={cn(
+                "tabular tracking-tight",
+                isMaster ? "text-base font-bold" : "text-sm font-medium",
+                isExcluded
+                  ? "text-purple-300/60"
+                  : (total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
+              )}>
+                {formatMoney(total, currency)}
+              </span>
+            </>
           )}
-        </span>
+        </div>
 
         {/* Account Actions */}
         <div onClick={(e) => e.stopPropagation()}>
@@ -310,8 +328,8 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
           let glowClass = "";
           
           if (rawPct > 100) {
-            barColor = "bg-cyan-500";
-            glowClass = "shadow-[0_0_10px_rgba(6,182,212,0.8)]";
+            barColor = "bg-gradient-to-r from-cyan-400 to-purple-500";
+            glowClass = "shadow-[0_0_12px_rgba(168,85,247,0.6)]";
           } else if (rawPct >= 50) {
             barColor = "bg-emerald-500";
           }

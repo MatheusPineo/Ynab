@@ -12,7 +12,7 @@ const TABS = [
   "/transactions",
   "/budget",
   "/goals",
-  "/insights",
+
   "/settings"
 ];
 

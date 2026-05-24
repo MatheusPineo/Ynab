@@ -1563,7 +1563,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                 total_amount=Decimal(str(data['total_amount'])),
                 category_id=data.get('category_id'),
                 expense_account_id=data.get('expense_account_id'),
-                installment_count=int(data.get('installment_count', 1)),
+                installment_count=int(data.get('total_installments', 1)),
                 starting_installment=int(data.get('starting_installment', 1)),
                 original_currency=data.get('original_currency', 'BRL'),
                 original_amount=Decimal(str(data['original_amount'])) if data.get('original_amount') else None,

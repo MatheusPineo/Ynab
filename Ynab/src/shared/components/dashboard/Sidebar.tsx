@@ -49,8 +49,7 @@ export const navItems = [
   { icon: Scale, key: "rule503020", to: "/rule503020" },
   { icon: Handshake, key: "debts", to: "/debts" },
   { icon: Target, key: "goals", to: "/goals" },
-  { icon: Sparkles, key: "insights", to: "/insights" },
-  { icon: BarChart3, key: "reports", featureKey: "insights", to: "/reports" },
+  { icon: BarChart3, key: "reports", featureKey: "reports", to: "/reports" },
 ];
 
 export const Sidebar = () => {

@@ -39,7 +39,7 @@ const moreNavItems = [
   { icon: CreditCard, key: "credit_cards", to: "/credit-cards" },
   { icon: Handshake, key: "debts", to: "/debts" },
   { icon: Target, key: "goals", to: "/goals" },
-  { icon: Sparkles, key: "insights", to: "/insights" },
+
   { icon: SettingsIcon, key: "settings", to: "/settings" },
 ];
 

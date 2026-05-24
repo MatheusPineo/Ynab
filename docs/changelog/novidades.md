@@ -1,3 +1,8 @@
+## [1.35.25] - 2026-05-24
+
+**Correções e Estabilização**
+- **Cartões de Crédito:** Lançamentos de compras com cartão de crédito agora geram a fatura automaticamente no sistema sem falhas silenciosas.
+- **Cartões de Crédito:** O Limite Disponível agora é atualizado visualmente de forma instantânea após registrar uma nova compra.
 ## v1.35.24
 - **Enxugamento da Interface:** Retiramos a aba de Insights (pois temos muitos relatÃ³rios concentrados em uma aba sÃ³ agora) e removemos o campo Categoria na Caixa de Entrada (Inbox) para deixar a interface ainda mais limpa e direta.
 
@@ -67,6 +72,7 @@
 Agora o Vault Finance OS suporta uma organizaÃ§Ã£o de investimentos muito mais completa, classificando por paÃ­s e categoria macro (ex: Renda VariÃ¡vel BR, Exterior, etc). AlÃ©m disso, adicionamos suporte para vencimento (due date) em atividades de investimento!
 
 - **Frontend de Investimentos Preparado:** FormulÃ¡rios de cadastro de ativos estÃ£o recebendo nova infraestrutura tÃ©cnica para exibir corretamente os novos tipos globais (AÃ§Ãµes, ETFs Internacionais, Criptomoedas, etc).
+
 
 
 

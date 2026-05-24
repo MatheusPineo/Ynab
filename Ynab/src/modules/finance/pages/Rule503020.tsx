@@ -255,7 +255,7 @@ const Rule503020 = () => {
                 className={cn(
                   "rounded-xl h-10 gap-2 font-semibold border text-sm",
                   connectedToBudget
-                    ? "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20"
+                    ? "bg-primary/10 text-primary border-primary/30 hover:bg-primary/20 hover:text-primary"
                     : "text-muted-foreground border-border/50 hover:border-border"
                 )}
               >
