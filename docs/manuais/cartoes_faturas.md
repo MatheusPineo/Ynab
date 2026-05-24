@@ -53,3 +53,8 @@ O parcelamento √© processado atrav√©s do nosso motor de fatiamento at√¥mico, gar
 * Ele quebrar√° o valor de maneira milim√©trica e lan√ßar√° dez registros individuais de faturas (`Installment`) de R$ 150,00.
 * A aloca√ß√£o obedecer√° a regra do Dia de Fechamento: se hoje for antes da data de corte, a primeira parcela cai na fatura atual e as pr√≥ximas 9 seguem a sequ√™ncia. Caso a compra seja efetuada no "Melhor dia de compra", a primeira parcela come√ßar√° no ciclo seguinte.
 * **Reserva Gradual de Caixa:** M√™s a m√™s, quando o m√™s vira, a parcela da fatura subtrai o seu respectivo envelope e vai enchendo o envelope de pagamento do cart√£o. O sistema processa o endividamento passivo conforme o tempo passa, protegendo a sua liquidez hoje.
+
+### ?? Calculadora Inteligente de Parcelas (Total vs Parcela)
+Quando vocÍ realiza uma compra parcelada, o Vault Finance OS facilita a matem·tica para vocÍ. Abaixo do campo de parcelas, vocÍ encontra o **Toggle Inteligente**:
+- **Valor Total:** Se a compra foi de R$ 1000,00 em 10x, digite 1000 e selecione *Valor Total*. O sistema exibir· o alerta did·tico de que criar· 10 parcelas de R$ 100,00.
+- **Valor da Parcela:** Se vocÍ sabe apenas que vai pagar 10x de R$ 100,00, basta digitar 100 e selecionar *Valor Parcela*. O sistema escalar· matematicamente a Compra Matriz para R$ 1000,00 no ato da deduÁ„o de limite, garantindo a paridade do livro-raz„o sem exigir que vocÍ use calculadoras externas!
