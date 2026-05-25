@@ -648,25 +648,16 @@ export const CreditCards = () => {
           </div>
 
           {/* Painel da Fatura Selecionada */}
-          {selectedBill ? (
-            <div className="mt-4">
-              <BillDetailsView 
-                card={selectedCard}
-                bill={selectedBill}
-                onEditInstallment={handleEditInstallmentClick}
-                onDeleteInstallment={handleDeleteInstallmentClick}
-                onAnticipateInstallment={handleAnticipateInstallment}
-                isSubmitting={isSubmitting}
-              />
-            </div>
-          ) : (
-            <Card className="rounded-3xl border-border/60 p-12 text-center bg-card/40 backdrop-blur-sm shadow-soft">
-              <div className="flex flex-col items-center justify-center gap-2">
-                <DollarSign className="h-8 w-8 mx-auto opacity-30 text-primary" />
-                <p className="text-sm text-muted-foreground">Nenhuma fatura encontrada para o mês selecionado.</p>
-              </div>
-            </Card>
-          )}
+          <div className="mt-4">
+            <BillDetailsView 
+              card={selectedCard}
+              bill={selectedBill}
+              onEditInstallment={handleEditInstallmentClick}
+              onDeleteInstallment={handleDeleteInstallmentClick}
+              onAnticipateInstallment={handleAnticipateInstallment}
+              isSubmitting={isSubmitting}
+            />
+          </div>
         </div>
       )}
 

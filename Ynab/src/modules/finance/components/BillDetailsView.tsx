@@ -73,16 +73,7 @@ export const BillDetailsView = ({
     return { total: bill?.total_amount || 0, pending, paid };
   }, [bill]);
 
-  if (!bill) {
-    return (
-      <Card className="rounded-3xl border-border/60 p-12 text-center bg-card/40 backdrop-blur-sm shadow-soft">
-        <div className="flex flex-col items-center justify-center gap-2">
-          <DollarSign className="h-8 w-8 mx-auto opacity-30 text-primary" />
-          <p className="text-sm text-muted-foreground">Nenhuma fatura encontrada.</p>
-        </div>
-      </Card>
-    );
-  }
+  // removed!
 
   return (
     <div className="flex flex-col gap-4 sm:gap-6 pb-12 animate-in fade-in duration-500">
