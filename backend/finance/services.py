@@ -169,8 +169,7 @@ def process_installment_ynab(installment):
         date=matrix_tx.date,
         is_income=False,
         status='realized',
-        is_applied_to_balance=True,
-        credit_card_bill=installment.bill
+        is_applied_to_balance=True
     )
     tx_cc._skip_balance_update = True
     tx_cc.save()
