@@ -330,14 +330,16 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         {(!isMaster || (node.ceiling && Number(node.ceiling) > 0)) && (() => {
           if (!hasCeiling) {
             return (
-              <div className="w-full h-4 bg-slate-800/80 rounded-full relative overflow-hidden mt-3 border border-slate-700/50 shadow-inner">
-                <div 
-                  className="absolute left-0 top-0 h-full rounded-full transition-all duration-500 bg-slate-700"
-                  style={{ width: '100%' }}
-                />
-                <span className="absolute inset-0 flex items-center justify-center text-[9px] uppercase tracking-wider font-bold text-white drop-shadow-md z-10 select-none">
+              <div className="w-full relative mt-4">
+                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-wider font-bold text-muted-foreground drop-shadow-sm select-none">
                   Saldo Livre
                 </span>
+                <div className="w-full h-1.5 bg-slate-800/80 rounded-full relative overflow-hidden shadow-inner">
+                  <div 
+                    className="absolute left-0 top-0 h-full rounded-full transition-all duration-500 bg-slate-700"
+                    style={{ width: '100%' }}
+                  />
+                </div>
               </div>
             );
           }
