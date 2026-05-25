@@ -36,6 +36,7 @@ import { Button } from "@/shared/components/ui/button";
 import { AddTransactionModal } from "@/modules/finance/components/AddTransactionModal";
 import { ImportModal } from "@/modules/finance/components/ImportModal";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
+import { PayBillModal } from "@/modules/finance/components/PayBillModal";
 import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { useQueryClient } from "@tanstack/react-query";
 import { PullToRefresh } from "@/shared/components/dashboard/PullToRefresh";
@@ -52,12 +53,16 @@ const Transactions = () => {
   const [typeFilter, setTypeFilter] = useState("all");
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
+  // States for Pay Bill
+  const [payBillModalOpen, setPayBillModalOpen] = useState(false);
+  const [billToPay, setBillToPay] = useState<any>(null);
+
   const toggleGroup = (id: string) => {
     setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
   const queryClient = useQueryClient();
-  const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
+  const { transactions, isLoading, deleteTransaction, updateTransaction, payBill } = useTransactions(selectedMonth + 1, selectedYear);
 
   // Garante dados frescos ao montar a página de transações (corrige bug de cache stale)
   useEffect(() => {
@@ -181,6 +186,25 @@ const Transactions = () => {
 
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
+
+  const handlePayBillClick = (group: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setBillToPay(group);
+    setPayBillModalOpen(true);
+  };
+
+  const handlePayBillConfirm = async (accountId: string) => {
+    if (billToPay && billToPay.items.length > 0) {
+      await payBill.mutateAsync({
+        credit_card_id: String(billToPay.items[0].credit_card_id),
+        bill_id: String(billToPay.statement_id),
+        account_id: accountId,
+        amount: Math.abs(billToPay.amount)
+      });
+      setPayBillModalOpen(false);
+      setBillToPay(null);
+    }
+  };
 
   const handleDeleteClick = (t: any) => {
     if (t.recurring_parent || t.is_recurring) {
@@ -343,7 +367,17 @@ const Transactions = () => {
                           </div>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <p className="text-xs xs:text-sm font-bold tabular-nums text-rose-400">
+                          {t.status !== 'paid' && t.status !== 'realized' && (
+                            <Button 
+                              variant="default" 
+                              size="sm" 
+                              className="h-7 text-[10px] px-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                              onClick={(e) => handlePayBillClick(t, e)}
+                            >
+                              Pagar Fatura
+                            </Button>
+                          )}
+                          <p className="text-xs xs:text-sm font-bold tabular-nums text-rose-400 hidden xs:block">
                             -{formatMoney(Math.abs(t.amount), "BRL")}
                           </p>
                           {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
@@ -514,14 +548,21 @@ const Transactions = () => {
                             -
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal opacity-50">
-                            -
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-bold tabular-nums text-rose-400">
-                          -{formatMoney(Math.abs(t.amount), "BRL")}
-                        </TableCell>
+                          <TableCell>
+                            {t.status !== 'paid' && t.status !== 'realized' && (
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="h-7 text-xs px-3 bg-indigo-600 hover:bg-indigo-700 text-white"
+                                onClick={(e) => handlePayBillClick(t, e)}
+                              >
+                                Pagar Fatura
+                              </Button>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right font-bold tabular-nums text-rose-400">
+                            -{formatMoney(Math.abs(t.amount), "BRL")}
+                          </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full pointer-events-none text-muted-foreground">
                             {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
@@ -665,6 +706,14 @@ const Transactions = () => {
           </TableBody>
         </Table>
       </div>
+
+      <PayBillModal 
+        isOpen={payBillModalOpen}
+        onClose={() => setPayBillModalOpen(false)}
+        onConfirm={handlePayBillConfirm}
+        billName={billToPay?.description || "Fatura"}
+        totalAmount={billToPay ? formatMoney(Math.abs(billToPay.amount), "BRL") : "0,00"}
+      />
 
       <RecurringScopeModal
         open={scopeModalOpen}

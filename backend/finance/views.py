@@ -1619,6 +1619,86 @@ class CreditCardViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Parcela não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
     @extend_schema(
+        summary="Paga a fatura do cartão",
+        description="Efetiva todas as transações pendentes nas subcontas e liquida a dívida."
+    )
+    @action(detail=True, methods=['post'], url_path='pay_bill/(?P<bill_id>[^/.]+)')
+    @transaction.atomic
+    def pay_bill(self, request, pk=None, bill_id=None):
+        card = self.get_object()
+        user = request.user
+        payment_account_id = request.data.get('account_id')
+        amount_paid = Decimal(str(request.data.get('amount', '0.00')))
+        
+        try:
+            bill = CreditCardBill.objects.get(id=bill_id, credit_card=card)
+            
+            from datetime import date
+            
+            # Efetiva todas as parcelas pendentes da subconta
+            pending_txs = Transaction.objects.filter(
+                account__user=user,
+                credit_card_bill=bill,
+                status='pending',
+                is_applied_to_balance=False
+            )
+            for tx in pending_txs:
+                tx.status = 'realized'
+                tx.is_applied_to_balance = True
+                tx._skip_balance_update = True
+                tx.save()
+                
+                # Desconta o dinheiro da subconta neste exato momento (pagamento pós-fixado)
+                tx.account.balance -= tx.amount
+                tx.account.save()
+            
+            # Atualiza o status das parcelas
+            for inst in bill.installments.all():
+                inst.status = 'paid'
+                inst.save()
+                
+            # Atualiza a fatura
+            bill.is_closed = True
+            bill.save()
+            
+            # Cria a transação de transferência da conta corrente
+            if payment_account_id:
+                payment_account = Account.objects.get(id=payment_account_id, user=user)
+                
+                payment_tx = Transaction(
+                    account=payment_account,
+                    amount=amount_paid,
+                    description=f"Pagamento de Fatura: {card.account.name}",
+                    date=date.today(),
+                    is_income=False,
+                    status='realized',
+                    is_applied_to_balance=True
+                )
+                payment_tx._skip_balance_update = True
+                payment_tx.save()
+                payment_account.balance -= amount_paid
+                payment_account.save()
+                
+                card_tx = Transaction(
+                    account=card.account,
+                    amount=amount_paid,
+                    description=f"Pagamento da Fatura",
+                    date=date.today(),
+                    is_income=True,
+                    status='realized',
+                    is_applied_to_balance=True,
+                    credit_card_bill=bill
+                )
+                card_tx._skip_balance_update = True
+                card_tx.save()
+                card.account.balance += amount_paid
+                card.account.save()
+            
+            return Response({'message': 'Fatura paga com sucesso.'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @extend_schema(
         summary="Gerencia (Exclui ou Edita) uma parcela e suas relacionadas",
         description="A partir de uma parcela, aplica modificações nela mesma, nas futuras, ou em todas."
     )

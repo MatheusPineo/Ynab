@@ -110,7 +110,8 @@ def process_credit_card_transaction(
 
 def process_installment_ynab(installment):
     """
-    Executa a transferência virtual de saldo do envelope de despesa para o envelope de pagamento do cartão.
+    Cria a transação pendente na subconta de despesa e registra a dívida no cartão.
+    A dedução real ocorrerá apenas quando a fatura for paga (is_applied_to_balance=True).
     """
     matrix_tx = installment.transaction
     credit_card = matrix_tx.credit_card
@@ -119,10 +120,9 @@ def process_installment_ynab(installment):
     category = matrix_tx.category
     category_name = category.name if category else "Geral"
     
-    # 1. Tenta usar a conta de despesa explicitamente definida na transação
+    # Busca a subconta (envelope) de despesa
     expense_envelope = matrix_tx.expense_account
     
-    # 2. Fallback: Busca ou cria o envelope de despesa pelo nome da categoria
     if not expense_envelope:
         expense_envelope = Account.objects.filter(
             user=user,
@@ -143,66 +143,28 @@ def process_installment_ynab(installment):
                     balance=Decimal('0.00')
                 )
             
-    # Busca ou cria o envelope de Pagamento do Cartão
-    payment_envelope_name = f"Pagamento do Cartão {credit_card.account.name}"
-    payment_envelope = Account.objects.filter(
-        user=user,
-        name=payment_envelope_name,
-        currency=credit_card.account.currency,
-        parent__isnull=False
-    ).first()
-    
-    if not payment_envelope:
-        parent_acc = expense_envelope.parent if expense_envelope else Account.objects.filter(user=user, parent__isnull=True).first()
-        if parent_acc:
-            payment_envelope = Account.objects.create(
-                user=user,
-                name=payment_envelope_name,
-                currency=credit_card.account.currency,
-                parent=parent_acc,
-                account_type='savings',
-                balance=Decimal('0.00')
-            )
-            
-    if expense_envelope and payment_envelope:
+    if expense_envelope:
         today = date.today()
         
-        # Deduz do envelope de despesa
+        # Cria a transação PENDENTE na subconta de despesa
+        # Ela aparece no extrato, mas não desconta o saldo nem o orçamento (is_applied_to_balance=False)
         tx_exp = CoreTransaction(
             account=expense_envelope,
+            category=category,
             amount=installment.amount,
-            description=f"Reserva YNAB: {matrix_tx.description} (Parcela {installment.number})",
-            date=today,
+            description=f"{matrix_tx.description} (Parcela {installment.number}/{matrix_tx.installment_count})" if matrix_tx.installment_count > 1 else matrix_tx.description,
+            date=matrix_tx.date,
             is_income=False,
-            status='realized',
-            is_applied_to_balance=True,
+            status='pending',
+            is_applied_to_balance=False,
             credit_card_bill=installment.bill
         )
-        tx_exp._skip_balance_update = True
         tx_exp.save()
-        expense_envelope.balance -= installment.amount
-        expense_envelope.save()
-        
-        # Aloca no envelope de pagamento do cartão
-        tx_env = CoreTransaction(
-            account=payment_envelope,
-            amount=installment.amount,
-            description=f"Reserva YNAB: {matrix_tx.description} (Parcela {installment.number})",
-            date=today,
-            is_income=True,
-            status='realized',
-            is_applied_to_balance=True,
-            credit_card_bill=installment.bill
-        )
-        tx_env._skip_balance_update = True
-        tx_env.save()
-        payment_envelope.balance += installment.amount
-        payment_envelope.save()
 
-    # Registra a transação de despesa real sob a conta do cartão de crédito
+    # Registra a dívida real no cartão de crédito
+    # Sem categoria para não afetar o orçamento até o pagamento!
     tx_cc = CoreTransaction(
         account=credit_card.account,
-        category=category,
         amount=installment.amount,
         description=f"{matrix_tx.description} (Parcela {installment.number}/{matrix_tx.installment_count})" if matrix_tx.installment_count > 1 else matrix_tx.description,
         date=matrix_tx.date,
@@ -316,7 +278,8 @@ class YNABBudgetService:
                 account__exclude_from_totals=False,
                 date__month=m,
                 date__year=y,
-                category__isnull=False
+                category__isnull=False,
+                is_applied_to_balance=True
             ).exclude(
                 account__account_type='investment'
             )
@@ -380,7 +343,8 @@ class YNABBudgetService:
             account__exclude_from_totals=False,
             date__month=target_month,
             date__year=target_year,
-            category__isnull=False
+            category__isnull=False,
+            is_applied_to_balance=True
         ).exclude(
             account__account_type='investment'
         )
@@ -984,7 +948,9 @@ class CreditCardManagementService:
                     
                     CoreTransaction.objects.filter(
                         account__user=user,
-                        description__contains=f'Reserva YNAB: {matrix_tx.description} (Parcela {inst.number})'
+                        credit_card_bill=inst.bill,
+                        description__startswith=matrix_tx.description,
+                        description__contains=f'(Parcela {inst.number}/'
                     ).delete()
                     
                     matrix_tx.total_amount -= inst.amount
@@ -999,6 +965,7 @@ class CreditCardManagementService:
             elif action == 'edit':
                 new_amount = Decimal(str(new_data.get('amount'))) if new_data and 'amount' in new_data else None
                 new_description = new_data.get('description') if new_data else None
+                old_desc = matrix_tx.description
                 
                 for inst in installments_to_affect:
                     if new_amount is not None:
@@ -1011,7 +978,7 @@ class CreditCardManagementService:
                     if new_amount is not None:
                         cc_txs = CoreTransaction.objects.filter(
                             account=credit_card.account,
-                            description__startswith=matrix_tx.description,
+                            description__startswith=old_desc,
                             description__contains=f'(Parcela {inst.number}/'
                         )
                         for t in cc_txs:
@@ -1019,20 +986,24 @@ class CreditCardManagementService:
                             t.amount = new_amount
                             t.save()
                             
+                        # Atualiza também a transação pendente na subconta
                         ynab_txs = CoreTransaction.objects.filter(
                             account__user=user,
-                            description__contains=f'Reserva YNAB: {matrix_tx.description} (Parcela {inst.number})'
+                            credit_card_bill=inst.bill,
+                            description__startswith=old_desc,
+                            description__contains=f'(Parcela {inst.number}/'
                         )
                         for t in ynab_txs:
                             t._skip_balance_update = False
                             t.amount = new_amount
                             t.save()
-                            
-                if new_description and new_description != matrix_tx.description:
-                    old_desc = matrix_tx.description
+                
+                if new_description is not None:
                     matrix_tx.description = new_description
                     
-                    for inst in matrix_tx.installments.all():
+                    for inst in installments_to_affect:
+                        new_parcela_desc = f"{new_description} (Parcela {inst.number}/{matrix_tx.installment_count})" if matrix_tx.installment_count > 1 else new_description
+                        
                         cc_txs = CoreTransaction.objects.filter(
                             account=credit_card.account,
                             description__startswith=old_desc,
@@ -1040,16 +1011,18 @@ class CreditCardManagementService:
                         )
                         for t in cc_txs:
                             t._skip_balance_update = True
-                            t.description = t.description.replace(old_desc, new_description)
+                            t.description = new_parcela_desc
                             t.save()
                             
                         ynab_txs = CoreTransaction.objects.filter(
                             account__user=user,
-                            description__contains=f'Reserva YNAB: {old_desc} (Parcela {inst.number})'
+                            credit_card_bill=inst.bill,
+                            description__startswith=old_desc,
+                            description__contains=f'(Parcela {inst.number}/'
                         )
                         for t in ynab_txs:
                             t._skip_balance_update = True
-                            t.description = t.description.replace(f'Reserva YNAB: {old_desc}', f'Reserva YNAB: {new_description}')
+                            t.description = new_parcela_desc
                             t.save()
                             
                 matrix_tx.save()

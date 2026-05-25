@@ -45,6 +45,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class TransactionSerializer(serializers.ModelSerializer):
     statement_id = serializers.IntegerField(source='credit_card_bill.id', read_only=True)
     statement_name = serializers.SerializerMethodField()
+    credit_card_id = serializers.IntegerField(source='credit_card_bill.credit_card.id', read_only=True)
     
     class Meta:
         model = Transaction

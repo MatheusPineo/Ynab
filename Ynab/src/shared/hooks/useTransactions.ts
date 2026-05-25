@@ -115,5 +115,33 @@ export const useTransactions = (month?: number, year?: number) => {
     },
   });
 
-  return { transactions, isLoading, addTransaction, updateTransaction, deleteTransaction, importFile, transferTransaction };
+  const payBill = useMutation({
+    mutationFn: async (data: { credit_card_id: string; bill_id: string; account_id?: string; amount?: number }) => {
+      const response = await authenticatedFetch(`/credit-cards/${data.credit_card_id}/pay_bill/${data.bill_id}/`, {
+        method: "POST",
+        body: JSON.stringify({
+          account_id: data.account_id,
+          amount: data.amount
+        }),
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro ao pagar a fatura.");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["transactions"] });
+      const store = useAccountStore.getState();
+      store.fetchAccounts();
+      store.fetchCategoryGroups();
+      store.fetchTransactions();
+      toast.success("Fatura paga com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(error.message);
+    }
+  });
+
+  return { transactions, isLoading, addTransaction, updateTransaction, deleteTransaction, importFile, transferTransaction, payBill };
 };
