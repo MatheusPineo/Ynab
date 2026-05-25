@@ -1,86 +1,102 @@
+## [1.35.30] - 2026-05-25
+
+**Controle Total: Exclusão e Edição Granular**
+- **Opções Avançadas:** Agora ao excluir ou editar um lançamento parcelado, você pode escolher exatamente como quer aplicar a alteração:
+  1. **Apenas esta parcela:** Ideal para pular ou renegociar um único mês.
+  2. **Esta e as próximas:** Perfeito para quando você antecipa ou cancela a compra no meio do caminho.
+  3. **Todas as parcelas:** Se foi um erro completo, apague tudo de uma vez.
+- O YNAB ajustará as reservas de dinheiro mágica e matematicamente pra você!
+
+## [1.35.29] - 2026-05-25
+
+**Melhorias e Ajustes na Fatura do Cartão**
+- **Fatura sempre no Mês Correto:** Ajustamos a visualização para sempre abrir automaticamente no mês atual, exibindo a fatura em aberto corretamente e na ordem certa (meses de Janeiro a Dezembro, em ordem cronológica).
+- **Aviso de Fatura Vazia:** Se não houver nada lançado no mês selecionado, agora a tela te mostra um aviso amigável indicando a ausência de lançamentos, melhorando a experiência.
+- **Gestão Total de Lançamentos:** Os botões de excluir e editar lançamentos na fatura agora estão operacionais! Excluir um lançamento apaga magicamente todos os vínculos dele (até os envelopes do YNAB), garantindo consistência total!
+
 ## [1.35.28] - 2026-05-24
 
-**Novidades na Compra com Cart�o**
-- **Calculadora Inteligente de Parcelas:** Agora, ao registrar uma nova compra no cart�o de cr�dito em v�rias vezes, voc� pode escolher se o valor digitado � o **Total da Compra** ou apenas o valor de **Uma Parcela**. O sistema vai automaticamente calcular e mostrar exatamente quanto vai ficar o montante e quanto ser� cobrado por m�s, direto na tela, antes de voc� confirmar!
+**Novidades na Compra com Cartão**
+- **Calculadora Inteligente de Parcelas:** Agora, ao registrar uma nova compra no cartão de crédito em várias vezes, você pode escolher se o valor digitado é o **Total da Compra** ou apenas o valor de **Uma Parcela**. O sistema vai automaticamente calcular e mostrar exatamente quanto vai ficar o montante e quanto será cobrado por mês, direto na tela, antes de você confirmar!
 ## [1.35.26] - 2026-05-24
 
-**Corre��es e Estabiliza��o**
-- **Sincronia YNAB x Cart�o:** Lan�amentos de compras com cart�o de cr�dito agora atualizam instantaneamente todos os fundos das categorias, garantindo que voc� n�o precise recarregar a p�gina para ver a dedu��o real do seu or�amento.
-- **Visualiza��o de Fatura:** A p�gina de Cart�es agora identifica automaticamente e exibe a fatura em aberto, em vez de selecionar faturas futuras.
+**Correções e Estabilização**
+- **Sincronia YNAB x Cartão:** Lançamentos de compras com cartão de crédito agora atualizam instantaneamente todos os fundos das categorias, garantindo que você não precise recarregar a página para ver a dedução real do seu orçamento.
+- **Visualização de Fatura:** A página de Cartões agora identifica automaticamente e exibe a fatura em aberto, em vez de selecionar faturas futuras.
 ## [1.35.25] - 2026-05-24
 
-**Corre��es e Estabiliza��o**
-- **Cart�es de Cr�dito:** Lan�amentos de compras com cart�o de cr�dito agora geram a fatura automaticamente no sistema sem falhas silenciosas.
-- **Cart�es de Cr�dito:** O Limite Dispon�vel agora � atualizado visualmente de forma instant�nea ap�s registrar uma nova compra.
+**Correções e Estabilização**
+- **Cartões de Crédito:** Lançamentos de compras com cartão de crédito agora geram a fatura automaticamente no sistema sem falhas silenciosas.
+- **Cartões de Crédito:** O Limite Disponível agora é atualizado visualmente de forma instantânea após registrar uma nova compra.
 ## v1.35.24
-- **Enxugamento da Interface:** Retiramos a aba de Insights (pois temos muitos relatórios concentrados em uma aba só agora) e removemos o campo Categoria na Caixa de Entrada (Inbox) para deixar a interface ainda mais limpa e direta.
+- **Enxugamento da Interface:** Retiramos a aba de Insights (pois temos muitos relatÃ³rios concentrados em uma aba sÃ³ agora) e removemos o campo Categoria na Caixa de Entrada (Inbox) para deixar a interface ainda mais limpa e direta.
 
 ## v1.35.23
-- **Melhorias Visuais e Estabilidade:** Cores mais refinadas na barra de limite ultrapassado (overfunded) para subcontas, agora com um gradiente dinâmico de azul para roxo. Também consertamos um problema técnico que impedia a tela de Inbox Inteligente de abrir em algumas situações.
+- **Melhorias Visuais e Estabilidade:** Cores mais refinadas na barra de limite ultrapassado (overfunded) para subcontas, agora com um gradiente dinÃ¢mico de azul para roxo. TambÃ©m consertamos um problema tÃ©cnico que impedia a tela de Inbox Inteligente de abrir em algumas situaÃ§Ãµes.
 
 ## v1.35.22
-- **Novo Visual das Subcontas e Limites:** Substituímos as antigas tags de "Teto" por uma Barra de Progresso muito mais bonita e intuitiva! Agora você pode ver o limite da sua subconta enchendo aos poucos.
-  - A barra é **Vermelha** no início e fica **Verde** ao atingir a metade do limite.
-  - Se você ultrapassar o limite, ela vai brilhar em **Ciano Neon**, informando que houve transbordamento.
-  - E contas que não possuem nenhum limite? Elas agora exibem uma barra neutra indicando "Saldo Livre".
+- **Novo Visual das Subcontas e Limites:** SubstituÃ­mos as antigas tags de "Teto" por uma Barra de Progresso muito mais bonita e intuitiva! Agora vocÃª pode ver o limite da sua subconta enchendo aos poucos.
+  - A barra Ã© **Vermelha** no inÃ­cio e fica **Verde** ao atingir a metade do limite.
+  - Se vocÃª ultrapassar o limite, ela vai brilhar em **Ciano Neon**, informando que houve transbordamento.
+  - E contas que nÃ£o possuem nenhum limite? Elas agora exibem uma barra neutra indicando "Saldo Livre".
 
 ## v1.35.21
-- **Proteção Contra Erros Visuais nos Relatórios:** Quando uma nova conta é cadastrada, os Relatórios e Gráficos Inteligentes precisavam de dados para montar a interface. Agora, quando a conta está zerada ou carregando, o Vault apresenta uma belíssima tela sutil de "Ainda sem dados suficientes", garantindo navegação contínua em vez de travar o App.
+- **ProteÃ§Ã£o Contra Erros Visuais nos RelatÃ³rios:** Quando uma nova conta Ã© cadastrada, os RelatÃ³rios e GrÃ¡ficos Inteligentes precisavam de dados para montar a interface. Agora, quando a conta estÃ¡ zerada ou carregando, o Vault apresenta uma belÃ­ssima tela sutil de "Ainda sem dados suficientes", garantindo navegaÃ§Ã£o contÃ­nua em vez de travar o App.
 
 ## v1.35.20
-- **Proteção Contra Quedas (Anti-Crash):** O sistema agora conta com um novo escudo global. Se um gráfico isolado ou widget da Dashboard falhar por algum motivo, ele não vai mais derrubar toda a tela. Apenas o componente defeituoso mostrará um alerta suave, permitindo que você continue a usar o resto do Vault normalmente.
+- **ProteÃ§Ã£o Contra Quedas (Anti-Crash):** O sistema agora conta com um novo escudo global. Se um grÃ¡fico isolado ou widget da Dashboard falhar por algum motivo, ele nÃ£o vai mais derrubar toda a tela. Apenas o componente defeituoso mostrarÃ¡ um alerta suave, permitindo que vocÃª continue a usar o resto do Vault normalmente.
 
 ## v1.35.19
-- **Navegação Suave no Seletor:** Adicionamos scroll fluído e contido à lista de contas. Você não perderá mais o contexto e nem será arrastado pela página acidentalmente enquanto tenta encontrar sua subconta preferida no meio de dezenas.
+- **NavegaÃ§Ã£o Suave no Seletor:** Adicionamos scroll fluÃ­do e contido Ã  lista de contas. VocÃª nÃ£o perderÃ¡ mais o contexto e nem serÃ¡ arrastado pela pÃ¡gina acidentalmente enquanto tenta encontrar sua subconta preferida no meio de dezenas.
 
 ## v1.35.18
-- **Consistência Visual do Seletor de Contas:** Corrigimos layouts onde o menu de contas ficava achatado em cantos de telas, garantindo expansão total 100% harmonizada.
+- **ConsistÃªncia Visual do Seletor de Contas:** Corrigimos layouts onde o menu de contas ficava achatado em cantos de telas, garantindo expansÃ£o total 100% harmonizada.
 
 ## v1.35.17
-- **Novo Seletor de Contas Universal:** Todas as telas do sistema agora usam nosso incrível e veloz seletor de contas global, com busca integrada e design premium ocupando todo o espaço disponível.
+- **Novo Seletor de Contas Universal:** Todas as telas do sistema agora usam nosso incrÃ­vel e veloz seletor de contas global, com busca integrada e design premium ocupando todo o espaÃ§o disponÃ­vel.
 
 ## v1.35.16
-- **Melhorias de Compras Parceladas:** O modal de compra no Cartão de Crédito agora aceita números dinâmicos e customizados de parcelamento (ex: 24x, 36x), permitindo compras grandes com precisão flexível no motor do YNAB!
+- **Melhorias de Compras Parceladas:** O modal de compra no CartÃ£o de CrÃ©dito agora aceita nÃºmeros dinÃ¢micos e customizados de parcelamento (ex: 24x, 36x), permitindo compras grandes com precisÃ£o flexÃ­vel no motor do YNAB!
 
 ## v1.35.15
-- **Design de Cartões Ajustado:** Melhoramos sutilmente o visual dos cartões na sua tela! Os ícones oficiais ganharam mais "respiro" interno e não tocam mais nas bordas do container, trazendo uma experiência perfeitamente realista de cartões físicos.
+- **Design de CartÃµes Ajustado:** Melhoramos sutilmente o visual dos cartÃµes na sua tela! Os Ã­cones oficiais ganharam mais "respiro" interno e nÃ£o tocam mais nas bordas do container, trazendo uma experiÃªncia perfeitamente realista de cartÃµes fÃ­sicos.
 
 ## v1.35.13
-- **Gráficos Reais e Inteligentes:** Conectamos totalmente nossa nova infraestrutura do servidor diretamente na sua tela de Relatórios! Todos os gráficos agora desenham suas curvas e fatias lendo estritamente os lançamentos do banco de dados, sem usar dados de demonstração.
-- **Gráficos Vazios Elegantes:** Caso você ainda não possua dados suficientes em um mês específico, o sistema não exibirá gráficos quebrados. Em vez disso, você verá um painel minimalista e elegante avisando que ainda faltam informações para desenhar o relatório.
+- **GrÃ¡ficos Reais e Inteligentes:** Conectamos totalmente nossa nova infraestrutura do servidor diretamente na sua tela de RelatÃ³rios! Todos os grÃ¡ficos agora desenham suas curvas e fatias lendo estritamente os lanÃ§amentos do banco de dados, sem usar dados de demonstraÃ§Ã£o.
+- **GrÃ¡ficos Vazios Elegantes:** Caso vocÃª ainda nÃ£o possua dados suficientes em um mÃªs especÃ­fico, o sistema nÃ£o exibirÃ¡ grÃ¡ficos quebrados. Em vez disso, vocÃª verÃ¡ um painel minimalista e elegante avisando que ainda faltam informaÃ§Ãµes para desenhar o relatÃ³rio.
 
 ## v1.35.9
-- **Motor de Relatórios Real:** Preparamos a infraestrutura do sistema para abandonar os dados de demonstração! Agora, nosso motor no servidor calcula matematicamente em tempo real seu Fluxo de Caixa, Distribuição de Gastos e Evolução de Patrimônio Líquido com base estritamente nas suas transações reais.
+- **Motor de RelatÃ³rios Real:** Preparamos a infraestrutura do sistema para abandonar os dados de demonstraÃ§Ã£o! Agora, nosso motor no servidor calcula matematicamente em tempo real seu Fluxo de Caixa, DistribuiÃ§Ã£o de Gastos e EvoluÃ§Ã£o de PatrimÃ´nio LÃ­quido com base estritamente nas suas transaÃ§Ãµes reais.
 
 ## v1.35.8
-- **Ícones Oficiais de Cartão de Crédito:** Diga adeus aos ícones genéricos! Agora, ao visualizar seus Cartões de Crédito, você verá os ícones reais e oficiais das bandeiras Visa, Mastercard, American Express, Elo, UnionPay e JCB diretamente no seu painel.
+- **Ã�cones Oficiais de CartÃ£o de CrÃ©dito:** Diga adeus aos Ã­cones genÃ©ricos! Agora, ao visualizar seus CartÃµes de CrÃ©dito, vocÃª verÃ¡ os Ã­cones reais e oficiais das bandeiras Visa, Mastercard, American Express, Elo, UnionPay e JCB diretamente no seu painel.
 
 ## v1.35.7
-- **Consistência do Arquitetura de Contas:** Agora a parte de registrar uma nova compra em um Cartão de Crédito permite selecionar sua árvore de contas e subcontas cadastradas, em vez de exigir as velhas categorias estáticas. Para isso, alteramos o backend das Matrizes de Transação e os seletores visuais.
-- **Correção da Exibição de Bandeiras:** Foi efetuado o deploy da estrutura de banco de dados correspondente à bandeira do cartão, resolvendo o sumiço do ícone logo após o cadastro!
+- **ConsistÃªncia do Arquitetura de Contas:** Agora a parte de registrar uma nova compra em um CartÃ£o de CrÃ©dito permite selecionar sua Ã¡rvore de contas e subcontas cadastradas, em vez de exigir as velhas categorias estÃ¡ticas. Para isso, alteramos o backend das Matrizes de TransaÃ§Ã£o e os seletores visuais.
+- **CorreÃ§Ã£o da ExibiÃ§Ã£o de Bandeiras:** Foi efetuado o deploy da estrutura de banco de dados correspondente Ã  bandeira do cartÃ£o, resolvendo o sumiÃ§o do Ã­cone logo apÃ³s o cadastro!
 
 ## v1.35.6
-- **Cartões de Crédito Mais Inteligentes:** Reformulamos a experiência de uso de Cartões de Crédito! Agora, ao cadastrar um novo cartão, você poderá escolher a Bandeira exata (Visa, Mastercard, Elo, Amex) e visualizá-la lindamente no seu painel. 
-- **Seleção de Subconta Precisa:** Corrigimos o visualizador de Subcontas no painel de compras no cartão, garantindo que você visualize a árvore completa hierárquica na hora de deduzir sua despesa!
-- **Edição e Exclusão:** Agora é possível editar ou excluir um cartão de crédito livremente com um clique no botão de 3 pontinhos na tela de Cartões!
+- **CartÃµes de CrÃ©dito Mais Inteligentes:** Reformulamos a experiÃªncia de uso de CartÃµes de CrÃ©dito! Agora, ao cadastrar um novo cartÃ£o, vocÃª poderÃ¡ escolher a Bandeira exata (Visa, Mastercard, Elo, Amex) e visualizÃ¡-la lindamente no seu painel. 
+- **SeleÃ§Ã£o de Subconta Precisa:** Corrigimos o visualizador de Subcontas no painel de compras no cartÃ£o, garantindo que vocÃª visualize a Ã¡rvore completa hierÃ¡rquica na hora de deduzir sua despesa!
+- **EdiÃ§Ã£o e ExclusÃ£o:** Agora Ã© possÃ­vel editar ou excluir um cartÃ£o de crÃ©dito livremente com um clique no botÃ£o de 3 pontinhos na tela de CartÃµes!
 
-﻿## v1.35.5
-- **Digitação Monetária Global Premium:** Substituímos em todo o sistema a caixa de digitação nativa do navegador por uma caixa de formatação dinâmica. Ao digitar valores no Orçamento, Cartões, Metas ou Dívidas, a digitação ocorre fluidamente da Direita para a Esquerda (Ex: ao digitar 100, aparece 1,00), reproduzindo a experiência perfeita de aplicativos bancários. As horrorosas setas de incremento/decremento nativas também foram removidas permanentemente!
-# Novidades e AtualizaÃ§Ãµes
+ï»¿## v1.35.5
+- **DigitaÃ§Ã£o MonetÃ¡ria Global Premium:** SubstituÃ­mos em todo o sistema a caixa de digitaÃ§Ã£o nativa do navegador por uma caixa de formataÃ§Ã£o dinÃ¢mica. Ao digitar valores no OrÃ§amento, CartÃµes, Metas ou DÃ­vidas, a digitaÃ§Ã£o ocorre fluidamente da Direita para a Esquerda (Ex: ao digitar 100, aparece 1,00), reproduzindo a experiÃªncia perfeita de aplicativos bancÃ¡rios. As horrorosas setas de incremento/decremento nativas tambÃ©m foram removidas permanentemente!
+# Novidades e AtualizaÃƒÂ§ÃƒÂµes
 
-## v1.35.3`n- **Upload Inteligente da Inbox:** Redesenhamos a engenharia por trás do envio em massa de cupons fiscais. Agora a barra de progresso no painel de Inteligência Artificial processa cada imagem individualmente (Ex: 'Processando 1 de 3...'), tornando o navegador imune a travamentos ao enviar PDFs ou fotos pesadas.
-- **Rastreamento de Faturas Parciais:** Começou a registrar os gastos agora, mas possui parcelas em aberto de meses passados? O painel de adição de transações de Cartão de Crédito agora permite escolher exatamente em qual parcela a cobrança deve iniciar (Ex: 9 de 12).
+## v1.35.3`n- **Upload Inteligente da Inbox:** Redesenhamos a engenharia por trÃ¡s do envio em massa de cupons fiscais. Agora a barra de progresso no painel de InteligÃªncia Artificial processa cada imagem individualmente (Ex: 'Processando 1 de 3...'), tornando o navegador imune a travamentos ao enviar PDFs ou fotos pesadas.
+- **Rastreamento de Faturas Parciais:** ComeÃ§ou a registrar os gastos agora, mas possui parcelas em aberto de meses passados? O painel de adiÃ§Ã£o de transaÃ§Ãµes de CartÃ£o de CrÃ©dito agora permite escolher exatamente em qual parcela a cobranÃ§a deve iniciar (Ex: 9 de 12).
 
-- **Design de PatrimÃ´nio LÃ­quido:** A pÃ¡gina de investimentos agora conta com um Dashboard premium exibindo seu PatrimÃ´nio LÃ­quido com design mais fluÃ­do e atraente.
-- **Tabela HistÃ³rica de Ativos Ampliada:** A tabela do livro-razÃ£o (ledger) agora ocupa a tela inteira de forma horizontal e as quantidades exatas sÃ£o formatadas mais limpas, eliminando a rolagem chata!
-- **InformaÃ§Ãµes Detalhadas de Contas:** Agora ao criar uma Conta Corrente ou CartÃ£o de CrÃ©dito vocÃª receberÃ¡ um balÃ£o de explicaÃ§Ã£o detalhada sobre como o dinheiro (On-Budget ou Fatura) funciona.
-- **TraduÃ§Ã£o:** A aba de investimentos na barra lateral agora descreve exatamente o que ela faz.
+- **Design de PatrimÃƒÂ´nio LÃƒÂ­quido:** A pÃƒÂ¡gina de investimentos agora conta com um Dashboard premium exibindo seu PatrimÃƒÂ´nio LÃƒÂ­quido com design mais fluÃƒÂ­do e atraente.
+- **Tabela HistÃƒÂ³rica de Ativos Ampliada:** A tabela do livro-razÃƒÂ£o (ledger) agora ocupa a tela inteira de forma horizontal e as quantidades exatas sÃƒÂ£o formatadas mais limpas, eliminando a rolagem chata!
+- **InformaÃƒÂ§ÃƒÂµes Detalhadas de Contas:** Agora ao criar uma Conta Corrente ou CartÃƒÂ£o de CrÃƒÂ©dito vocÃƒÂª receberÃƒÂ¡ um balÃƒÂ£o de explicaÃƒÂ§ÃƒÂ£o detalhada sobre como o dinheiro (On-Budget ou Fatura) funciona.
+- **TraduÃƒÂ§ÃƒÂ£o:** A aba de investimentos na barra lateral agora descreve exatamente o que ela faz.
 
-## Atualização: Suporte a Taxonomia Global de Investimentos (23/05/2026)
+## AtualizaÃ§Ã£o: Suporte a Taxonomia Global de Investimentos (23/05/2026)
 
-Agora o Vault Finance OS suporta uma organização de investimentos muito mais completa, classificando por país e categoria macro (ex: Renda Variável BR, Exterior, etc). Além disso, adicionamos suporte para vencimento (due date) em atividades de investimento!
+Agora o Vault Finance OS suporta uma organizaÃ§Ã£o de investimentos muito mais completa, classificando por paÃ­s e categoria macro (ex: Renda VariÃ¡vel BR, Exterior, etc). AlÃ©m disso, adicionamos suporte para vencimento (due date) em atividades de investimento!
 
-- **Frontend de Investimentos Preparado:** Formulários de cadastro de ativos estão recebendo nova infraestrutura técnica para exibir corretamente os novos tipos globais (Ações, ETFs Internacionais, Criptomoedas, etc).
+- **Frontend de Investimentos Preparado:** FormulÃ¡rios de cadastro de ativos estÃ£o recebendo nova infraestrutura tÃ©cnica para exibir corretamente os novos tipos globais (AÃ§Ãµes, ETFs Internacionais, Criptomoedas, etc).
 
 
 

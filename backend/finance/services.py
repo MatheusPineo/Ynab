@@ -952,3 +952,104 @@ class PortfolioEvolutionEngine:
             'total_profit_loss': round(total_profit_loss, 2),
             'percentage_yield': round(percentage_yield, 2),
         }
+
+
+class CreditCardManagementService:
+    @staticmethod
+    def manage_installment(installment, mode, action, new_data=None):
+        from .models import Transaction as CoreTransaction, Installment
+        from decimal import Decimal
+        from django.db import transaction
+        
+        with transaction.atomic():
+            matrix_tx = installment.transaction
+            user = matrix_tx.credit_card.account.user
+            credit_card = matrix_tx.credit_card
+            
+            installments_to_affect = []
+            if mode == 'single':
+                installments_to_affect = [installment]
+            elif mode == 'future':
+                installments_to_affect = list(matrix_tx.installments.filter(number__gte=installment.number).order_by('number'))
+            elif mode == 'all':
+                installments_to_affect = list(matrix_tx.installments.all().order_by('number'))
+                
+            if action == 'delete':
+                for inst in installments_to_affect:
+                    CoreTransaction.objects.filter(
+                        account=credit_card.account,
+                        description__startswith=matrix_tx.description,
+                        description__contains=f'(Parcela {inst.number}/'
+                    ).delete()
+                    
+                    CoreTransaction.objects.filter(
+                        account__user=user,
+                        description__contains=f'Reserva YNAB: {matrix_tx.description} (Parcela {inst.number})'
+                    ).delete()
+                    
+                    matrix_tx.total_amount -= inst.amount
+                    matrix_tx.installment_count -= 1
+                    inst.delete()
+                    
+                if matrix_tx.installment_count <= 0:
+                    matrix_tx.delete()
+                else:
+                    matrix_tx.save()
+                    
+            elif action == 'edit':
+                new_amount = Decimal(str(new_data.get('amount'))) if new_data and 'amount' in new_data else None
+                new_description = new_data.get('description') if new_data else None
+                
+                for inst in installments_to_affect:
+                    if new_amount is not None:
+                        diff = new_amount - inst.amount
+                        matrix_tx.total_amount += diff
+                        inst.amount = new_amount
+                        
+                    inst.save()
+                    
+                    if new_amount is not None:
+                        cc_txs = CoreTransaction.objects.filter(
+                            account=credit_card.account,
+                            description__startswith=matrix_tx.description,
+                            description__contains=f'(Parcela {inst.number}/'
+                        )
+                        for t in cc_txs:
+                            t._skip_balance_update = False
+                            t.amount = new_amount
+                            t.save()
+                            
+                        ynab_txs = CoreTransaction.objects.filter(
+                            account__user=user,
+                            description__contains=f'Reserva YNAB: {matrix_tx.description} (Parcela {inst.number})'
+                        )
+                        for t in ynab_txs:
+                            t._skip_balance_update = False
+                            t.amount = new_amount
+                            t.save()
+                            
+                if new_description and new_description != matrix_tx.description:
+                    old_desc = matrix_tx.description
+                    matrix_tx.description = new_description
+                    
+                    for inst in matrix_tx.installments.all():
+                        cc_txs = CoreTransaction.objects.filter(
+                            account=credit_card.account,
+                            description__startswith=old_desc,
+                            description__contains=f'(Parcela {inst.number}/'
+                        )
+                        for t in cc_txs:
+                            t._skip_balance_update = True
+                            t.description = t.description.replace(old_desc, new_description)
+                            t.save()
+                            
+                        ynab_txs = CoreTransaction.objects.filter(
+                            account__user=user,
+                            description__contains=f'Reserva YNAB: {old_desc} (Parcela {inst.number})'
+                        )
+                        for t in ynab_txs:
+                            t._skip_balance_update = True
+                            t.description = t.description.replace(f'Reserva YNAB: {old_desc}', f'Reserva YNAB: {new_description}')
+                            t.save()
+                            
+                matrix_tx.save()

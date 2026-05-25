@@ -231,3 +231,5 @@
 
 
 
+// STATUS FULL-STACK (25/05/2026): Lógica de exibição das faturas ajustada para ordem cronológica e endpoint de exclusão de lançamentos/parcelas (delete_transaction) criado e integrado com exclusão em cascata (matriz, YNAB reserves, credit transactions). Frontend reativou os botões da fatura e adicionou novos tratamentos visuais.
+// STATUS FULL-STACK (25/05/2026): Criado modais avançados de exclusão e edição de parcelas com as opções 'Apenas esta', 'Esta e as próximas' e 'Todas as parcelas'. Atualizado endpoint manage_installment para processar as 3 lógicas de forma atômica no backend.

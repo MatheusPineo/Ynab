@@ -94,6 +94,16 @@ export const CreditCards = () => {
   const [iofAmount, setIofAmount] = useState("0.00");
   const [categoryError, setCategoryError] = useState(false);
 
+  // Modais de Edição/Exclusão Granular
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [installmentToDelete, setInstallmentToDelete] = useState<string | null>(null);
+  
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [installmentToEdit, setInstallmentToEdit] = useState<InstallmentModel | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [manageScope, setManageScope] = useState<'single' | 'future' | 'all'>('single');
+
   const monthsNames = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -124,19 +134,18 @@ export const CreditCards = () => {
       if (response.ok) {
         const data = await response.json();
         const sortedBills = (Array.isArray(data) ? data : []).sort((a, b) => {
-          if (a.year !== b.year) return b.year - a.year;
-          return b.month - a.month;
+          if (a.year !== b.year) return a.year - b.year;
+          return a.month - b.month;
         });
         setBills(sortedBills);
-        if (sortedBills.length > 0) {
-          const openBill = sortedBills.find(b => !b.is_closed);
-          const billToSelect = openBill || sortedBills[0];
-          setSelectedBill(billToSelect);
-          setSelectedMonth(billToSelect.month - 1);
-          setSelectedYear(billToSelect.year);
-        } else {
-          setSelectedBill(null);
-        }
+        
+        const currentMonth = new Date().getMonth() + 1;
+        const currentYear = new Date().getFullYear();
+        
+        const b = sortedBills.find(bill => bill.month === currentMonth && bill.year === currentYear);
+        setSelectedBill(b || null);
+        setSelectedMonth(currentMonth - 1);
+        setSelectedYear(currentYear);
       }
     } catch (error) {
       console.error("Erro ao buscar faturas:", error);
@@ -329,6 +338,77 @@ export const CreditCards = () => {
       toast.success("⚡ Parcela antecipada com sucesso para a fatura atual!");
       await fetchCreditCards();
       await fetchBillsForCard(selectedCard.id);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Excluir Lançamento (Compra Matriz ou Parcela)
+  const handleDeleteInstallmentClick = (installmentId: string) => {
+    setInstallmentToDelete(installmentId);
+    setManageScope('single');
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDeleteInstallment = async () => {
+    if (!selectedCard || !installmentToDelete) return;
+    setIsSubmitting(true);
+    try {
+      const response = await authenticatedFetch(`/credit-cards/${selectedCard.id}/manage_installment/${installmentToDelete}/?mode=${manageScope}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Erro ao excluir lançamento");
+      }
+
+      toast.success("Lançamento(s) excluído(s) com sucesso!");
+      await fetchCreditCards();
+      await fetchBillsForCard(selectedCard.id);
+      await fetchAccounts();
+      setDeleteModalOpen(false);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditInstallmentClick = (inst: InstallmentModel) => {
+    setInstallmentToEdit(inst);
+    setEditAmount(inst.amount);
+    setEditDescription(inst.transaction.description);
+    setManageScope('single');
+    setEditModalOpen(true);
+  };
+
+  const confirmEditInstallment = async () => {
+    if (!selectedCard || !installmentToEdit) return;
+    if (!editAmount || !editDescription) {
+      toast.error("Preencha todos os campos.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const response = await authenticatedFetch(`/credit-cards/${selectedCard.id}/manage_installment/${installmentToEdit.id}/?mode=${manageScope}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: editAmount, description: editDescription })
+      });
+
+      if (!response.ok) {
+        const result = await response.json();
+        throw new Error(result.error || "Erro ao editar lançamento");
+      }
+
+      toast.success("Lançamento(s) editado(s) com sucesso!");
+      await fetchCreditCards();
+      await fetchBillsForCard(selectedCard.id);
+      await fetchAccounts();
+      setEditModalOpen(false);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -670,10 +750,10 @@ export const CreditCards = () => {
                             )}
 
                             <div className="flex items-center gap-1 shrink-0">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" onClick={() => console.log('Edit', inst.id)}>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" onClick={() => handleEditInstallmentClick(inst)}>
                                 <Edit2 className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg" onClick={() => console.log('Delete', inst.id)}>
+                              <Button variant="ghost" size="icon" disabled={isSubmitting} className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg" onClick={() => handleDeleteInstallmentClick(inst.id)}>
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -686,8 +766,11 @@ export const CreditCards = () => {
               </CardContent>
             </Card>
           ) : (
-            <Card className="rounded-3xl border-border/60 p-12 text-center bg-card/40 backdrop-blur-sm">
-              <p className="text-sm text-muted-foreground">Selecione uma fatura acima para visualizar o detalhamento.</p>
+            <Card className="rounded-3xl border-border/60 p-12 text-center bg-card/40 backdrop-blur-sm shadow-soft">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <DollarSign className="h-8 w-8 mx-auto opacity-30 text-primary" />
+                <p className="text-sm text-muted-foreground">Nenhuma fatura encontrada para o mês selecionado.</p>
+              </div>
             </Card>
           )}
         </div>
@@ -1078,6 +1161,80 @@ export const CreditCards = () => {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Exclusão Granular */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent className="sm:max-w-[425px] p-6 gap-6 rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Excluir Lançamento</DialogTitle>
+            <p className="text-sm text-muted-foreground">Escolha como deseja excluir esta compra. Os envelopes associados serão automaticamente ajustados.</p>
+          </DialogHeader>
+
+          <div className="flex flex-col gap-3 py-4">
+            <Button variant={manageScope === 'single' ? 'default' : 'outline'} className="justify-start h-auto whitespace-normal px-4 py-4" onClick={() => setManageScope('single')}>
+              <div className="text-left">
+                <div className="font-medium">Apenas esta parcela</div>
+                <div className="text-xs opacity-70 mt-1">Exclui somente este mês, as outras parcelas permanecem intactas.</div>
+              </div>
+            </Button>
+            <Button variant={manageScope === 'future' ? 'default' : 'outline'} className="justify-start h-auto whitespace-normal px-4 py-4" onClick={() => setManageScope('future')}>
+              <div className="text-left">
+                <div className="font-medium">Esta e as próximas</div>
+                <div className="text-xs opacity-70 mt-1">Exclui esta e as parcelas futuras. O valor total da compra diminuirá.</div>
+              </div>
+            </Button>
+            <Button variant={manageScope === 'all' ? 'destructive' : 'outline'} className="justify-start h-auto whitespace-normal px-4 py-4" onClick={() => setManageScope('all')}>
+              <div className="text-left">
+                <div className="font-medium text-rose-500">Todas as parcelas</div>
+                <div className="text-xs opacity-70 mt-1">Exclui toda a compra (Matriz) e todas as suas parcelas de ponta a ponta.</div>
+              </div>
+            </Button>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={confirmDeleteInstallment} disabled={isSubmitting}>Confirmar Exclusão</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Edição Granular */}
+      <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
+        <DialogContent className="sm:max-w-[425px] p-6 gap-6 rounded-3xl">
+          <DialogHeader>
+            <DialogTitle>Editar Lançamento</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Descrição</Label>
+              <Input value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label>Valor da Parcela</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-muted-foreground">{baseCurrency}</span>
+                <Input type="number" step="0.01" className="pl-12" value={editAmount} onChange={(e) => setEditAmount(e.target.value)} />
+              </div>
+            </div>
+            
+            <div className="pt-4 space-y-3">
+              <Label>Aplicar alteração em:</Label>
+              <div className="flex flex-col gap-2">
+                <Button variant={manageScope === 'single' ? 'default' : 'outline'} className="justify-start h-auto whitespace-normal text-left py-3" onClick={() => setManageScope('single')}>Apenas nesta parcela</Button>
+                <Button variant={manageScope === 'future' ? 'default' : 'outline'} className="justify-start h-auto whitespace-normal text-left py-3" onClick={() => setManageScope('future')}>Nesta e nas próximas</Button>
+                <Button variant={manageScope === 'all' ? 'default' : 'outline'} className="justify-start h-auto whitespace-normal text-left py-3" onClick={() => setManageScope('all')}>Em todas as parcelas</Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4">
+            <Button variant="ghost" onClick={() => setEditModalOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmEditInstallment} disabled={isSubmitting}>Salvar Alterações</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

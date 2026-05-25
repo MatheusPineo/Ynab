@@ -1618,6 +1618,43 @@ class CreditCardViewSet(viewsets.ModelViewSet):
         except Installment.DoesNotExist:
             return Response({'error': 'Parcela não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
+    @extend_schema(
+        summary="Gerencia (Exclui ou Edita) uma parcela e suas relacionadas",
+        description="A partir de uma parcela, aplica modificações nela mesma, nas futuras, ou em todas."
+    )
+    @action(detail=True, methods=['delete', 'patch'], url_path='manage_installment/(?P<installment_id>[^/.]+)')
+    @transaction.atomic
+    def manage_installment(self, request, pk=None, installment_id=None):
+        card = self.get_object()
+        mode = request.query_params.get('mode', 'single') # 'single', 'future', 'all'
+        
+        try:
+            inst = Installment.objects.get(id=installment_id, transaction__credit_card=card)
+            
+            from .services import CreditCardManagementService
+            
+            if request.method == 'DELETE':
+                CreditCardManagementService.manage_installment(inst, mode, 'delete')
+                return Response({'message': 'Lançamento(s) excluído(s) com sucesso.'})
+                
+            elif request.method == 'PATCH':
+                new_data = {
+                    'amount': request.data.get('amount'),
+                    'description': request.data.get('description'),
+                }
+                # Remove nulos
+                new_data = {k: v for k, v in new_data.items() if v is not None}
+                
+                CreditCardManagementService.manage_installment(inst, mode, 'edit', new_data)
+                return Response({'message': 'Lançamento(s) editado(s) com sucesso.'})
+                
+        except Installment.DoesNotExist:
+            return Response({'error': 'Lançamento não encontrado.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from .models import TransactionInbox
