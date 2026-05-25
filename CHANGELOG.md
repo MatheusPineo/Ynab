@@ -1,3 +1,9 @@
+## [1.35.31] - 2026-05-25
+
+### Changed
+- Refatoração da UI de Faturas: Removido o modelo de acordeão ("sanfonas") nas listagens de transações agrupadas. A visualização de faturas ganhou uma tela isolada premium, acessível ao clicar na transação da fatura ou pela aba "Cartões de Crédito". O componente exibe de forma consistente cards informativos com "Total", "Pago", "Pendente" e listagem completa dos lançamentos mensais. A interface prioriza o preenchimento, inclusive forçando um 'empty state' elegante para meses sem faturas, garantindo uma estética 100% contínua e imersiva.
+- Estilização de Subcontas e Limites: As barras de progresso (budget bars) foram refatoradas para uma espessura fina (6px), assemelhando-se a um "fill line" refinado. As porcentagens foram movidas para criar badges flutuantes no cabeçalho ou exatamente acima da linha (para o "Saldo Livre"). A interface ficou extremamente clean e sofisticada sem sobrecarregar a visão com componentes espessos.
+
 ## [1.35.30] - 2026-05-25
 
 ### Added
