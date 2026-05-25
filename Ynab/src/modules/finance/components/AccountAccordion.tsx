@@ -289,9 +289,6 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold select-none">
                   Valor Alocado / Teto
                 </span>
-                <span className={cn("text-[10px] font-bold px-1.5 rounded bg-muted/40", textColor)}>
-                  {displayPct}%
-                </span>
               </div>
               <span className={cn(
                 "tabular tracking-tight flex items-center gap-1.5",
@@ -330,14 +327,35 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         </div>
 
         {/* Bottom Row: Progress Bar */}
-        {hasCeiling && (
-          <div className="w-full h-1.5 bg-muted/30 rounded-full relative overflow-hidden mt-3 shadow-inner">
-            <div 
-              className={cn("absolute left-0 top-0 h-full rounded-full transition-all duration-500", barColor, glowClass)}
-              style={{ width: `${barWidth}%` }}
-            />
-          </div>
-        )}
+        {(!isMaster || (node.ceiling && Number(node.ceiling) > 0)) && (() => {
+          if (!hasCeiling) {
+            return (
+              <div className="w-full h-4 bg-slate-800/80 rounded-full relative overflow-hidden mt-3 border border-slate-700/50 shadow-inner">
+                <div 
+                  className="absolute left-0 top-0 h-full rounded-full transition-all duration-500 bg-slate-700"
+                  style={{ width: '100%' }}
+                />
+                <span className="absolute inset-0 flex items-center justify-center text-[9px] uppercase tracking-wider font-bold text-white drop-shadow-md z-10 select-none">
+                  Saldo Livre
+                </span>
+              </div>
+            );
+          }
+
+          return (
+            <div className="w-full relative mt-4">
+              <span className={cn("absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-bold drop-shadow-sm", textColor)}>
+                {displayPct}%
+              </span>
+              <div className="w-full h-1.5 bg-muted/30 rounded-full relative overflow-hidden shadow-inner">
+                <div 
+                  className={cn("absolute left-0 top-0 h-full rounded-full transition-all duration-500", barColor, glowClass)}
+                  style={{ width: `${barWidth}%` }}
+                />
+              </div>
+            </div>
+          );
+        })()}
       </button>
 
       {/* Children */}
