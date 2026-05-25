@@ -143,8 +143,15 @@ def process_installment_ynab(installment):
                 )
             
     if expense_envelope:
-        today = date.today()
-        
+        # Calcula a data projetada da fatura para as transações pendentes
+        import calendar
+        try:
+            _, last_day_of_bill_month = calendar.monthrange(installment.bill.year, installment.bill.month)
+            day_to_use = min(matrix_tx.date.day, last_day_of_bill_month)
+            tx_date = date(installment.bill.year, installment.bill.month, day_to_use)
+        except Exception:
+            tx_date = matrix_tx.date
+            
         # Cria a transação PENDENTE na subconta de despesa
         # Ela aparece no extrato, mas não desconta o saldo nem o orçamento (is_applied_to_balance=False)
         tx_exp = CoreTransaction(
@@ -152,29 +159,30 @@ def process_installment_ynab(installment):
             category=category,
             amount=installment.amount,
             description=f"{matrix_tx.description} (Parcela {installment.number}/{matrix_tx.installment_count})" if matrix_tx.installment_count > 1 else matrix_tx.description,
-            date=matrix_tx.date,
+            date=tx_date,
             is_income=False,
             status='pending',
             is_applied_to_balance=False,
             credit_card_bill=installment.bill
         )
+        tx_exp._skip_balance_update = True
         tx_exp.save()
 
-    # Registra a dívida real no cartão de crédito
-    # Sem categoria para não afetar o orçamento até o pagamento!
-    tx_cc = CoreTransaction(
-        account=credit_card.account,
-        amount=installment.amount,
-        description=f"{matrix_tx.description} (Parcela {installment.number}/{matrix_tx.installment_count})" if matrix_tx.installment_count > 1 else matrix_tx.description,
-        date=matrix_tx.date,
-        is_income=False,
-        status='realized',
-        is_applied_to_balance=True
-    )
-    tx_cc._skip_balance_update = True
-    tx_cc.save()
-    credit_card.account.balance -= installment.amount
-    credit_card.account.save()
+        # Registra a dívida real no cartão de crédito
+        # Sem categoria para não afetar o orçamento até o pagamento!
+        tx_cc = CoreTransaction(
+            account=credit_card.account,
+            amount=installment.amount,
+            description=f"{matrix_tx.description} (Parcela {installment.number}/{matrix_tx.installment_count})" if matrix_tx.installment_count > 1 else matrix_tx.description,
+            date=tx_date,
+            is_income=False,
+            status='realized',
+            is_applied_to_balance=True
+        )
+        tx_cc._skip_balance_update = True
+        tx_cc.save()
+        credit_card.account.balance -= installment.amount
+        credit_card.account.save()
 
 
 class YNABBudgetService:

@@ -137,6 +137,13 @@ const Transactions = () => {
   const filteredTransactions = useMemo(() => {
     const result = (Array.isArray(transactions) ? transactions : []).filter((t) => {
       if (!t || !t.description || !t.date) return false;
+
+      // Hide raw credit card debt transactions from the "Todas as Contas" view
+      // to prevent duplicate clutter alongside the "Fatura" package.
+      if (selectedAccountId === "all" && t.account_type === 'credit_card') {
+        return false;
+      }
+
       const searchLower = search.toLowerCase();
       const matchesSearch = t.description.toLowerCase().includes(searchLower) || String(t.amount).includes(searchLower.replace(',', '.'));
       const matchesAccount = selectedAccountId === "all" || targetAccountIds.includes(String(t.account));
