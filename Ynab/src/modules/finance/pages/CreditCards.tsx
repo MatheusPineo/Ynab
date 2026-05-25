@@ -19,6 +19,7 @@ import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { CreditCard as CreditCardIcon, Plus, Calendar, Clock, CheckCircle2, Sparkles, Zap, Tag, DollarSign, Wallet, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { CreditCardBrandIcon } from "@/modules/finance/components/CreditCardBrandIcon";
+import { BillDetailsView } from "@/modules/finance/components/BillDetailsView";
 
 interface CreditCardModel {
   id: string;
@@ -648,123 +649,16 @@ export const CreditCards = () => {
 
           {/* Painel da Fatura Selecionada */}
           {selectedBill ? (
-            <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
-              <CardHeader className="border-b border-border/40 bg-muted/10 p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Resumo da Fatura</span>
-                  <CardTitle className="text-3xl font-extrabold text-foreground">
-                    {formatMoney(selectedBill.total_amount, selectedCard.currency)}
-                  </CardTitle>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {selectedBill.is_closed ? (
-                    <Badge className="bg-rose-500/10 text-rose-500 border-rose-500/20 px-4 py-1.5 rounded-xl text-sm font-bold shadow-none gap-2">
-                      <CheckCircle2 className="h-4 w-4" /> Fatura Fechada
-                    </Badge>
-                  ) : (
-                    <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-4 py-1.5 rounded-xl text-sm font-bold shadow-none gap-2">
-                      <Clock className="h-4 w-4" /> Fatura Aberta
-                    </Badge>
-                  )}
-                </div>
-              </CardHeader>
-
-              <CardContent className="p-6 sm:p-8 space-y-6">
-                <div className="flex items-center justify-between pb-2 border-b border-border/40">
-                  <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                    <Tag className="h-4 w-4 text-primary" /> Transações e Parcelas
-                  </h3>
-                  <span className="text-xs text-muted-foreground font-semibold">
-                    {selectedBill.installments?.length || 0} lançamento{selectedBill.installments?.length !== 1 && "s"}
-                  </span>
-                </div>
-
-                {!selectedBill.installments || selectedBill.installments.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground border border-dashed border-border/60 rounded-2xl">
-                    <DollarSign className="h-8 w-8 mx-auto mb-2 opacity-30 text-primary" />
-                    <p className="text-sm font-medium">Nenhum lançamento registrado nesta fatura.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {selectedBill.installments.map((inst) => {
-                      const tx = inst.transaction;
-                      const isAnticipated = inst.status === "anticipated";
-
-                      return (
-                        <div 
-                          key={inst.id} 
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 hover:bg-muted/30 transition-all gap-4 group"
-                        >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold text-foreground text-sm sm:text-base">
-                                {tx?.description || "Compra Rotativa"}
-                              </span>
-                              <Badge variant="outline" className="text-[10px] font-mono font-bold bg-background/50 border-border/60">
-                                {inst.installment_number}/{inst.total_installments}
-                              </Badge>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground font-medium">
-                              <span>{tx ? new Date(tx.date).toLocaleDateString("pt-BR") : ""}</span>
-                              <span>•</span>
-                              <span>{tx?.category_id ? getCategoryName(tx.category_id) : "Sem Categoria"}</span>
-                              {tx?.iof_amount > 0 && (
-                                <span className="text-amber-500 font-bold font-mono">IOF: {formatMoney(tx.iof_amount, selectedCard.currency)}</span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
-                            <div className="text-right">
-                              <span className="font-extrabold text-foreground text-base font-mono">
-                                {formatMoney(inst.amount, selectedCard.currency)}
-                              </span>
-                              <div className="mt-0.5">
-                                {inst.status === "paid" && (
-                                  <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[10px]">Pago</Badge>
-                                )}
-                                {inst.status === "posted" && (
-                                  <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20 text-[10px]">Postado</Badge>
-                                )}
-                                {inst.status === "pending" && (
-                                  <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[10px]">Pendente</Badge>
-                                )}
-                                {isAnticipated && (
-                                  <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/20 text-[10px]">Antecipado</Badge>
-                                )}
-                              </div>
-                            </div>
-
-                            {inst.status === "pending" && !selectedBill.is_closed && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={isSubmitting}
-                                onClick={() => handleAnticipateInstallment(inst.id)}
-                                className="h-9 px-3 rounded-xl border-amber-500/30 text-amber-500 hover:bg-amber-500/10 hover:border-amber-500/50 text-xs font-bold gap-1 shrink-0"
-                              >
-                                <Zap className="h-3.5 w-3.5" /> Antecipar
-                              </Button>
-                            )}
-
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-lg" onClick={() => handleEditInstallmentClick(inst)}>
-                                <Edit2 className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" disabled={isSubmitting} className="h-8 w-8 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 rounded-lg" onClick={() => handleDeleteInstallmentClick(inst.id)}>
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <div className="mt-4">
+              <BillDetailsView 
+                card={selectedCard}
+                bill={selectedBill}
+                onEditInstallment={handleEditInstallmentClick}
+                onDeleteInstallment={handleDeleteInstallmentClick}
+                onAnticipateInstallment={handleAnticipateInstallment}
+                isSubmitting={isSubmitting}
+              />
+            </div>
           ) : (
             <Card className="rounded-3xl border-border/60 p-12 text-center bg-card/40 backdrop-blur-sm shadow-soft">
               <div className="flex flex-col items-center justify-center gap-2">

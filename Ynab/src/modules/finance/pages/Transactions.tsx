@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, Fragment } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { formatMoney } from "@/shared/lib/currency-utils";
@@ -51,15 +52,9 @@ const Transactions = () => {
   const [selectedAccountId, setSelectedAccountId] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const navigate = useNavigate();
 
   // States for Pay Bill
-  const [payBillModalOpen, setPayBillModalOpen] = useState(false);
-  const [billToPay, setBillToPay] = useState<any>(null);
-
-  const toggleGroup = (id: string) => {
-    setExpandedGroups(prev => ({ ...prev, [id]: !prev[id] }));
-  };
 
   const queryClient = useQueryClient();
   const { transactions, isLoading, deleteTransaction, updateTransaction, payBill } = useTransactions(selectedMonth + 1, selectedYear);
@@ -355,12 +350,15 @@ const Transactions = () => {
             <div className="flex flex-col gap-1.5">
               {processedTransactions.map((t) => {
                 if (t.isGroup) {
-                  const isExpanded = expandedGroups[t.id];
                   return (
                     <div key={t.id} className="flex flex-col border border-border/40 bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden mb-1.5">
                       <div 
                         className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-muted/10 transition-colors"
-                        onClick={() => toggleGroup(t.id)}
+                        onClick={() => {
+                          if (t.items[0]?.credit_card_id) {
+                            navigate(`/finance/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
+                          }
+                        }}
                       >
                         <div className="flex items-center gap-2.5 min-w-0 flex-1">
                           <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
@@ -387,32 +385,9 @@ const Transactions = () => {
                           <p className="text-xs xs:text-sm font-bold tabular-nums text-rose-400 hidden xs:block">
                             -{formatMoney(Math.abs(t.amount), "BRL")}
                           </p>
-                          {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                          <CornerDownRight className="h-4 w-4 text-muted-foreground" />
                         </div>
                       </div>
-                      
-                      {isExpanded && (
-                        <div className="flex flex-col gap-1.5 p-3 bg-indigo-500/5 border-t border-indigo-500/10 rounded-b-xl shadow-inner relative">
-                          {/* Visual spine for nested items */}
-                          <div className="absolute left-[22px] top-4 bottom-6 w-px bg-indigo-500/20 rounded-full" />
-                          
-                          {t.items.map((sub: any) => (
-                            <div key={sub.id} className="flex items-center justify-between p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/10 ml-5 relative">
-                              <CornerDownRight className="h-3.5 w-3.5 text-indigo-400 absolute -left-[18px] top-1/2 -translate-y-1/2 opacity-60" />
-                              <div className="min-w-0 flex-1 pl-1">
-                                <p className="text-xs font-semibold text-foreground truncate">{sub.description}</p>
-                                <p className="text-[10px] text-indigo-400/80 font-medium mt-0.5">{getAccountName(sub.account)}</p>
-                              </div>
-                              <p className={cn("text-[11px] font-bold tabular-nums shrink-0", sub.is_income ? "text-emerald-400" : "text-rose-400")}>
-                                {sub.is_income ? "+" : "-"}{formatMoney(Math.abs(Number(sub.amount)), (() => {
-                                  const acc = useAccountStore.getState().getAccount(sub.account);
-                                  return acc?.currency || "EUR";
-                                })())}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
                     </div>
                   );
                 }
@@ -538,13 +513,16 @@ const Transactions = () => {
             ) : (
               processedTransactions.map((t) => {
                 if (t.isGroup) {
-                  const isExpanded = expandedGroups[t.id];
                   return (
                     <Fragment key={t.id}>
                       {/* Master Row */}
                       <TableRow 
                         className="border-border/40 hover:bg-muted/10 transition-colors group cursor-pointer bg-muted/5"
-                        onClick={() => toggleGroup(t.id)}
+                        onClick={() => {
+                          if (t.items[0]?.credit_card_id) {
+                            navigate(`/finance/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
+                          }
+                        }}
                       >
                         <TableCell className="text-xs text-muted-foreground font-semibold">
                           {new Date(t.date).toLocaleDateString('pt-PT')}
@@ -576,63 +554,10 @@ const Transactions = () => {
                           </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full pointer-events-none text-muted-foreground">
-                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            <CornerDownRight className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>
-                      
-                      {/* Child Rows */}
-                      {isExpanded && t.items.map((sub: any) => (
-                        <TableRow key={sub.id} className="border-b border-border/5 hover:bg-indigo-500/10 transition-colors group bg-indigo-500/5 relative before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-indigo-500/30">
-                          <TableCell className="text-xs text-indigo-200/60 pl-8 font-medium">
-                            {new Date(sub.date).toLocaleDateString('pt-PT')}
-                          </TableCell>
-                          <TableCell className="font-semibold text-sm pl-4 flex items-center text-indigo-100">
-                            <CornerDownRight className="h-4 w-4 text-indigo-400/70 mr-3 shrink-0" />
-                            {sub.description}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-300 border-indigo-500/20 font-medium">
-                              {getAccountName(sub.account)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleStatusToggle(sub)}
-                              className={cn(
-                                "h-8 px-2 rounded-lg transition-all",
-                                sub.status === "realized" 
-                                  ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
-                                  : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                              )}
-                            >
-                              {sub.status === "realized" ? (
-                                <div className="flex items-center gap-1.5">
-                                  <CheckCircle2 className="h-4 w-4" />
-                                  <span className="text-xs font-medium">Efetivada</span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-1.5">
-                                  <Clock className="h-4 w-4" />
-                                  <span className="text-xs font-medium">Pendente</span>
-                                </div>
-                              )}
-                            </Button>
-                          </TableCell>
-                          <TableCell className={cn(
-                            "text-right font-medium tabular text-sm opacity-80",
-                            !sub.is_income ? "text-rose-400" : "text-emerald-400"
-                          )}>
-                            {sub.is_income ? "+" : "-"}{formatMoney(Math.abs(sub.amount), (() => {
-                              const acc = useAccountStore.getState().getAccount(sub.account);
-                              return acc?.currency || "EUR";
-                            })())}
-                          </TableCell>
-                          <TableCell></TableCell>
-                        </TableRow>
-                      ))}
                     </Fragment>
                   );
                 }
