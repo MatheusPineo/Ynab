@@ -358,7 +358,7 @@ const Transactions = () => {
                         className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-muted/10 transition-colors"
                         onClick={() => {
                           if (t.items[0]?.credit_card_id) {
-                            navigate(`/finance/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
+                            navigate(`/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
                           }
                         }}
                       >
@@ -522,7 +522,7 @@ const Transactions = () => {
                         className="border-border/40 hover:bg-muted/10 transition-colors group cursor-pointer bg-muted/5"
                         onClick={() => {
                           if (t.items[0]?.credit_card_id) {
-                            navigate(`/finance/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
+                            navigate(`/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
                           }
                         }}
                       >
