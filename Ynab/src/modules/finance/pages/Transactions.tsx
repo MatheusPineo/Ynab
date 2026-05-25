@@ -55,6 +55,8 @@ const Transactions = () => {
   const navigate = useNavigate();
 
   // States for Pay Bill
+  const [payBillModalOpen, setPayBillModalOpen] = useState(false);
+  const [billToPay, setBillToPay] = useState<any>(null);
 
   const queryClient = useQueryClient();
   const { transactions, isLoading, deleteTransaction, updateTransaction, payBill } = useTransactions(selectedMonth + 1, selectedYear);
