@@ -95,9 +95,8 @@ def process_credit_card_transaction(
         )
         installments.append(inst)
         
-        # Realocação Virtual YNAB (Se a parcela cair na fatura atual/postada)
-        if inst.status == 'posted':
-            process_installment_ynab(inst)
+        # Realocação Virtual YNAB (Agora para TODAS as parcelas, pois as pendentes não afetam o saldo)
+        process_installment_ynab(inst)
             
         # Avança para o próximo mês
         current_month += 1
@@ -170,7 +169,8 @@ def process_installment_ynab(installment):
         date=matrix_tx.date,
         is_income=False,
         status='realized',
-        is_applied_to_balance=True
+        is_applied_to_balance=True,
+        credit_card_bill=installment.bill
     )
     tx_cc._skip_balance_update = True
     tx_cc.save()
