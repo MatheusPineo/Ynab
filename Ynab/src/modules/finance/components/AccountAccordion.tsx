@@ -51,11 +51,35 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
 
+  const { updateNode, tree } = useAccountStore();
+
   const total = sumNode(node);
   const isMaster = depth === 0;
   const isExcluded = !!node.exclude_from_totals;
+  const hasCeiling = node.ceiling && Number(node.ceiling) > 0;
+  const ceilVal = hasCeiling ? Number(node.ceiling) : 0;
+  
+  let rawPct = 0;
+  let displayPct = 0;
+  let barWidth = 0;
+  let barColor = "bg-rose-500";
+  let textColor = "text-rose-500";
+  let glowClass = "";
 
-  const { updateNode, tree } = useAccountStore();
+  if (hasCeiling) {
+    rawPct = (total / ceilVal) * 100;
+    displayPct = Math.round(rawPct);
+    barWidth = Math.min(rawPct, 100);
+    
+    if (rawPct > 100) {
+      barColor = "bg-gradient-to-r from-cyan-400 to-purple-500";
+      textColor = "text-cyan-400";
+      glowClass = "shadow-[0_0_12px_rgba(168,85,247,0.6)]";
+    } else if (rawPct >= 50) {
+      barColor = "bg-emerald-500";
+      textColor = "text-emerald-500";
+    }
+  }
 
   const {
     attributes,
@@ -255,16 +279,20 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
 
         <span className="flex-1" />
 
-        {/* Balance */}
         <div
           className="shrink-0 flex flex-col items-end mr-2"
           title={isExcluded ? "Este saldo está desconsiderado do cálculo total." : undefined}
         >
-          {node.ceiling && Number(node.ceiling) > 0 ? (
+          {hasCeiling ? (
             <>
-              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-0.5 select-none">
-                Valor Alocado / Teto
-              </span>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold select-none">
+                  Valor Alocado / Teto
+                </span>
+                <span className={cn("text-[10px] font-bold px-1.5 rounded bg-muted/40", textColor)}>
+                  {displayPct}%
+                </span>
+              </div>
               <span className={cn(
                 "tabular tracking-tight flex items-center gap-1.5",
                 isMaster ? "text-base font-bold" : "text-sm font-medium",
@@ -302,50 +330,14 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         </div>
 
         {/* Bottom Row: Progress Bar */}
-        {(!isMaster || (node.ceiling && Number(node.ceiling) > 0)) && (() => {
-          const hasCeiling = node.ceiling && Number(node.ceiling) > 0;
-
-          if (!hasCeiling) {
-            return (
-              <div className="w-full h-5 bg-slate-800/80 rounded-full relative overflow-hidden mt-2 border border-slate-700/50 shadow-inner">
-                <div 
-                  className="absolute left-0 top-0 h-full rounded-full transition-all duration-500 bg-slate-700"
-                  style={{ width: '100%' }}
-                />
-                <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md z-10 select-none">
-                  Saldo Livre
-                </span>
-              </div>
-            );
-          }
-
-          const ceilVal = Number(node.ceiling);
-          const rawPct = (total / ceilVal) * 100;
-          const displayPct = Math.round(rawPct);
-          const barWidth = Math.min(rawPct, 100);
-          
-          let barColor = "bg-rose-500";
-          let glowClass = "";
-          
-          if (rawPct > 100) {
-            barColor = "bg-gradient-to-r from-cyan-400 to-purple-500";
-            glowClass = "shadow-[0_0_12px_rgba(168,85,247,0.6)]";
-          } else if (rawPct >= 50) {
-            barColor = "bg-emerald-500";
-          }
-
-          return (
-            <div className="w-full h-5 bg-slate-800/80 rounded-full relative overflow-hidden mt-2 border border-slate-700/50 shadow-inner">
-              <div 
-                className={cn("absolute left-0 top-0 h-full rounded-full transition-all duration-500", barColor, glowClass)}
-                style={{ width: `${barWidth}%` }}
-              />
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow-md z-10 select-none">
-                {displayPct}%
-              </span>
-            </div>
-          );
-        })()}
+        {hasCeiling && (
+          <div className="w-full h-1.5 bg-muted/30 rounded-full relative overflow-hidden mt-3 shadow-inner">
+            <div 
+              className={cn("absolute left-0 top-0 h-full rounded-full transition-all duration-500", barColor, glowClass)}
+              style={{ width: `${barWidth}%` }}
+            />
+          </div>
+        )}
       </button>
 
       {/* Children */}
