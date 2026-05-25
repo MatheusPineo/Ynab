@@ -4,7 +4,7 @@ import { useTransactions } from "@/shared/hooks/useTransactions";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { TableSkeleton } from "@/shared/components/dashboard/TableSkeleton";
 import { EmptyState } from "@/shared/components/dashboard/EmptyState";
-import { Receipt, TrendingUp, TrendingDown, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { Receipt, TrendingUp, TrendingDown, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, ChevronDown, ChevronUp, CornerDownRight } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -392,12 +392,16 @@ const Transactions = () => {
                       </div>
                       
                       {isExpanded && (
-                        <div className="flex flex-col gap-1 p-2 bg-black/10 border-t border-border/20">
+                        <div className="flex flex-col gap-1.5 p-3 bg-indigo-500/5 border-t border-indigo-500/10 rounded-b-xl shadow-inner relative">
+                          {/* Visual spine for nested items */}
+                          <div className="absolute left-[22px] top-4 bottom-6 w-px bg-indigo-500/20 rounded-full" />
+                          
                           {t.items.map((sub: any) => (
-                            <div key={sub.id} className="flex items-center justify-between p-2 rounded-lg bg-card/50 border border-border/20">
-                              <div className="min-w-0 flex-1">
-                                <p className="text-[11px] font-semibold text-foreground truncate">{sub.description}</p>
-                                <p className="text-[9px] text-muted-foreground mt-0.5">{getAccountName(sub.account)}</p>
+                            <div key={sub.id} className="flex items-center justify-between p-2.5 rounded-lg bg-indigo-500/10 border border-indigo-500/10 ml-5 relative">
+                              <CornerDownRight className="h-3.5 w-3.5 text-indigo-400 absolute -left-[18px] top-1/2 -translate-y-1/2 opacity-60" />
+                              <div className="min-w-0 flex-1 pl-1">
+                                <p className="text-xs font-semibold text-foreground truncate">{sub.description}</p>
+                                <p className="text-[10px] text-indigo-400/80 font-medium mt-0.5">{getAccountName(sub.account)}</p>
                               </div>
                               <p className={cn("text-[11px] font-bold tabular-nums shrink-0", sub.is_income ? "text-emerald-400" : "text-rose-400")}>
                                 {sub.is_income ? "+" : "-"}{formatMoney(Math.abs(Number(sub.amount)), (() => {
@@ -579,13 +583,16 @@ const Transactions = () => {
                       
                       {/* Child Rows */}
                       {isExpanded && t.items.map((sub: any) => (
-                        <TableRow key={sub.id} className="border-border/10 hover:bg-muted/5 transition-colors group bg-black/5">
-                          <TableCell className="text-xs text-muted-foreground pl-8 opacity-70">
+                        <TableRow key={sub.id} className="border-b border-border/5 hover:bg-indigo-500/10 transition-colors group bg-indigo-500/5 relative before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:bg-indigo-500/30">
+                          <TableCell className="text-xs text-indigo-200/60 pl-8 font-medium">
                             {new Date(sub.date).toLocaleDateString('pt-PT')}
                           </TableCell>
-                          <TableCell className="font-medium text-sm pl-8">↳ {sub.description}</TableCell>
+                          <TableCell className="font-semibold text-sm pl-4 flex items-center text-indigo-100">
+                            <CornerDownRight className="h-4 w-4 text-indigo-400/70 mr-3 shrink-0" />
+                            {sub.description}
+                          </TableCell>
                           <TableCell>
-                            <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal">
+                            <Badge variant="secondary" className="bg-indigo-500/10 text-indigo-300 border-indigo-500/20 font-medium">
                               {getAccountName(sub.account)}
                             </Badge>
                           </TableCell>
