@@ -82,6 +82,9 @@ export interface AccountNode {
   ceiling: number | null;
   /** Se true, o saldo desta conta/subconta não é computado na soma mestre e nem nos totais do dashboard */
   exclude_from_totals?: boolean;
+  actual_balance?: number;
+  reserved_credit_balance?: number;
+  available_balance?: number;
 }
 
 /**

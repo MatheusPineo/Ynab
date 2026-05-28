@@ -37,6 +37,7 @@ import {
 import { AddTransactionModal } from "@/modules/finance/components/AddTransactionModal";
 import { ImportModal } from "@/modules/finance/components/ImportModal";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 
 // Badge precisa ser importado para referência em BadgeVariant de AccountDetails
 import { Badge } from "@/shared/components/ui/badge";
@@ -182,6 +183,24 @@ const AccountDetails = () => {
 
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
+
+  const chartData = useMemo(() => {
+    const total = Number(account?.balance) || 0;
+    const reserved = Number(account?.reserved_credit_balance) || 0;
+    const available = Number(account?.available_balance) ?? (total - reserved);
+    
+    if (reserved <= 0) {
+      return [
+        { name: "Disponível para Gastos", value: Math.max(0, total) || 1, color: "#10b981" },
+        { name: "Reservado para Cartão", value: 0, color: "#f59e0b" }
+      ];
+    }
+
+    return [
+      { name: "Disponível para Gastos", value: Math.max(0, available), color: "#10b981" },
+      { name: "Reservado para Cartão", value: Math.max(0, reserved), color: "#f59e0b" }
+    ];
+  }, [account]);
 
   const handleDeleteClick = (t: any) => {
     if (t.recurring_parent || t.is_recurring) {
@@ -365,206 +384,276 @@ const AccountDetails = () => {
         </Card>
       </div>
 
-      {/* Transactions Section */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h2 className="text-base sm:text-lg font-semibold tracking-tight">Transações da Conta</h2>
-          
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar nesta conta..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 bg-muted/20 border-border/60 rounded-xl"
-              />
-            </div>
+      {/* Responsive Grid containing Transactions and Balance Lock Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left/Main Column: Transactions list */}
+        <div className="lg:col-span-2 flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h2 className="text-base sm:text-lg font-semibold tracking-tight">Transações da Conta</h2>
             
-            <ImportModal />
-            <AddTransactionModal initialAccountId={id} />
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1 sm:w-64">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar nesta conta..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10 bg-muted/20 border-border/60 rounded-xl"
+                />
+              </div>
+              
+              <ImportModal />
+              <AddTransactionModal initialAccountId={id} />
+            </div>
+          </div>
+
+          {/* Mobile: Card List */}
+          <div className="sm:hidden flex flex-col gap-2">
+            {isLoading ? (
+              <div className="flex flex-col gap-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="h-20 rounded-2xl bg-muted/20 animate-pulse" />
+                ))}
+              </div>
+            ) : filteredTransactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground border border-dashed border-border/60 rounded-2xl">
+                <Receipt className="h-8 w-8 opacity-20" />
+                <p className="text-sm">Nenhuma movimentação encontrada.</p>
+              </div>
+            ) : (
+              filteredTransactions.map((t) => (
+                <div
+                  key={t.id}
+                  className="flex items-center justify-between p-3 rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm transition-all"
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className={cn(
+                      "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
+                      t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
+                    )}>
+                      {t.is_income
+                        ? <TrendingUp className="h-4 w-4 text-emerald-500" />
+                        : <TrendingDown className="h-4 w-4 text-rose-500" />
+                      }
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground truncate">{t.description}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[11px] text-muted-foreground">
+                          {new Date(t.date).toLocaleDateString('pt-PT')}
+                        </p>
+                        <span className={cn(
+                          "text-[10px] px-1 py-0.5 rounded-full",
+                          t.status === "realized" ? "text-emerald-500 bg-emerald-500/10" : "text-amber-500 bg-amber-500/10"
+                        )}>
+                          {t.status === "realized" ? "Efetivada" : "Pendente"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <p className={cn(
+                      "text-sm font-bold tabular-nums",
+                      t.is_income ? "text-emerald-400" : "text-rose-400"
+                    )}>
+                      {t.is_income ? "+" : "-"}{formatMoney(Math.abs(t.amount), currency)}
+                    </p>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="glass border-border/60">
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="cursor-pointer" onClick={() => handleStatusToggle(t)}>
+                          {t.status === "realized"
+                            ? <><Clock className="mr-2 h-4 w-4" />Marcar Pendente</>
+                            : <><CheckCircle2 className="mr-2 h-4 w-4" />Efetivar</>
+                          }
+                        </DropdownMenuItem>
+                        <AddTransactionModal transaction={t}>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                            <Edit2 className="mr-2 h-4 w-4" />
+                            Editar
+                          </DropdownMenuItem>
+                        </AddTransactionModal>
+                        <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Desktop: Table */}
+          <div className="hidden sm:block rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow className="hover:bg-transparent border-border/60">
+                  <TableHead className="w-[120px]">Data</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="w-[70px]"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                    <TableSkeleton rows={5} />
+                ) : filteredTransactions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5}>
+                      <EmptyState 
+                        icon={Receipt} 
+                        title="Nenhuma transação" 
+                        description="Nenhuma movimentação encontrada para esta conta."
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTransactions.map((t) => (
+                    <TableRow key={t.id} className="border-border/40 hover:bg-muted/10 transition-colors group">
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(t.date).toLocaleDateString('pt-PT')}
+                      </TableCell>
+                      <TableCell className="font-medium">{t.description}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleStatusToggle(t)}
+                          className={cn(
+                            "h-8 px-2 rounded-lg transition-all",
+                            t.status === "realized" 
+                              ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
+                              : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                          )}
+                        >
+                          {t.status === "realized" ? (
+                            <div className="flex items-center gap-1.5">
+                              <CheckCircle2 className="h-4 w-4" />
+                              <span className="text-xs font-medium">Efetivada</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <Clock className="h-4 w-4" />
+                              <span className="text-xs font-medium">Pendente</span>
+                            </div>
+                          )}
+                        </Button>
+                      </TableCell>
+                      <TableCell className={cn(
+                        "text-right font-semibold tabular",
+                        !t.is_income ? "text-rose-400" : "text-emerald-400"
+                      )}>
+                        {t.is_income ? "+" : "-"}
+                        {formatMoney(Math.abs(t.amount), currency)}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="glass border-border/60">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            
+                            <AddTransactionModal transaction={t}>
+                              <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                                <Edit2 className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
+                            </AddTransactionModal>
+
+                            <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </div>
         </div>
 
-        {/* Mobile: Card List */}
-        <div className="sm:hidden flex flex-col gap-2">
-          {isLoading ? (
-            <div className="flex flex-col gap-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-20 rounded-2xl bg-muted/20 animate-pulse" />
-              ))}
-            </div>
-          ) : filteredTransactions.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground border border-dashed border-border/60 rounded-2xl">
-              <Receipt className="h-8 w-8 opacity-20" />
-              <p className="text-sm">Nenhuma movimentação encontrada.</p>
-            </div>
-          ) : (
-            filteredTransactions.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center justify-between p-3 rounded-2xl border border-border/40 bg-card/40 backdrop-blur-sm transition-all"
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className={cn(
-                    "h-9 w-9 rounded-xl flex items-center justify-center shrink-0",
-                    t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
-                  )}>
-                    {t.is_income
-                      ? <TrendingUp className="h-4 w-4 text-emerald-500" />
-                      : <TrendingDown className="h-4 w-4 text-rose-500" />
-                    }
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-foreground truncate">{t.description}</p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <p className="text-[11px] text-muted-foreground">
-                        {new Date(t.date).toLocaleDateString('pt-PT')}
-                      </p>
-                      <span className={cn(
-                        "text-[10px] px-1 py-0.5 rounded-full",
-                        t.status === "realized" ? "text-emerald-500 bg-emerald-500/10" : "text-amber-500 bg-amber-500/10"
-                      )}>
-                        {t.status === "realized" ? "Efetivada" : "Pendente"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0 ml-2">
-                  <p className={cn(
-                    "text-sm font-bold tabular-nums",
-                    t.is_income ? "text-emerald-400" : "text-rose-400"
-                  )}>
-                    {t.is_income ? "+" : "-"}{formatMoney(Math.abs(t.amount), currency)}
-                  </p>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="glass border-border/60">
-                      <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="cursor-pointer" onClick={() => handleStatusToggle(t)}>
-                        {t.status === "realized"
-                          ? <><Clock className="mr-2 h-4 w-4" />Marcar Pendente</>
-                          : <><CheckCircle2 className="mr-2 h-4 w-4" />Efetivar</>
-                        }
-                      </DropdownMenuItem>
-                      <AddTransactionModal transaction={t}>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                          <Edit2 className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                      </AddTransactionModal>
-                      <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+        {/* Right Column: Balance Lock Distribution (Pie Chart Card) */}
+        <div className="lg:col-span-1 flex flex-col gap-4">
+          <Card className="rounded-2xl sm:rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft">
+            <CardContent className="p-4 sm:p-6 flex flex-col gap-4">
+              <h3 className="text-base font-semibold tracking-tight">Distribuição do Saldo</h3>
+              <div className="h-[200px] w-full flex items-center justify-center relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: any) => formatMoney(Number(value), currency)}
+                      contentStyle={{
+                        backgroundColor: "rgba(15, 23, 42, 0.9)",
+                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                        borderRadius: "12px",
+                        color: "#fff",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                
+                {/* Center Text (Physical Balance) */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
+                  <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Saldo Físico</span>
+                  <span className="text-sm font-extrabold text-foreground">{formatMoney(account.balance, currency)}</span>
                 </div>
               </div>
-            ))
-          )}
+
+              {/* Custom Legend */}
+              <div className="flex flex-col gap-3 mt-2">
+                <div className="flex items-center justify-between text-xs sm:text-sm border-b border-border/20 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-emerald-500 shrink-0" />
+                    <span className="text-muted-foreground font-medium">Disponível para Gastos</span>
+                  </div>
+                  <span className="font-bold text-foreground tabular-nums">
+                    {formatMoney(account.available_balance ?? (Number(account.balance) - (account.reserved_credit_balance ?? 0)), currency)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-xs sm:text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 w-3 rounded-full bg-amber-500 shrink-0" />
+                    <span className="text-muted-foreground font-medium">Reservado para Cartão</span>
+                  </div>
+                  <span className="font-bold text-foreground tabular-nums">
+                    {formatMoney(account.reserved_credit_balance ?? 0, currency)}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Desktop: Table */}
-        <div className="hidden sm:block rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
-          <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow className="hover:bg-transparent border-border/60">
-                <TableHead className="w-[120px]">Data</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead className="w-[70px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                  <TableSkeleton rows={5} />
-              ) : filteredTransactions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5}>
-                    <EmptyState 
-                      icon={Receipt} 
-                      title="Nenhuma transação" 
-                      description="Nenhuma movimentação encontrada para esta conta."
-                    />
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredTransactions.map((t) => (
-                  <TableRow key={t.id} className="border-border/40 hover:bg-muted/10 transition-colors group">
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(t.date).toLocaleDateString('pt-PT')}
-                    </TableCell>
-                    <TableCell className="font-medium">{t.description}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleStatusToggle(t)}
-                        className={cn(
-                          "h-8 px-2 rounded-lg transition-all",
-                          t.status === "realized" 
-                            ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
-                            : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                        )}
-                      >
-                        {t.status === "realized" ? (
-                          <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span className="text-xs font-medium">Efetivada</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-xs font-medium">Pendente</span>
-                          </div>
-                        )}
-                      </Button>
-                    </TableCell>
-                    <TableCell className={cn(
-                      "text-right font-semibold tabular",
-                      !t.is_income ? "text-rose-400" : "text-emerald-400"
-                    )}>
-                      {t.is_income ? "+" : "-"}
-                      {formatMoney(Math.abs(t.amount), currency)}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="glass border-border/60">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          
-                          <AddTransactionModal transaction={t}>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                              <Edit2 className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                          </AddTransactionModal>
-
-                          <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
       </div>
 
       <RecurringScopeModal

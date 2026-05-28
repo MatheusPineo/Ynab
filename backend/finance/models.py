@@ -22,6 +22,7 @@ class Account(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     exclude_from_totals = models.BooleanField(default=False)
     last_reconciled = models.DateTimeField(null=True, blank=True)
+    reserved_credit_balance = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal('0.00'))
 
     class Meta:
         db_table = 'core_account'
@@ -29,6 +30,13 @@ class Account(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.user.username})"
+
+    @property
+    def available_balance(self):
+        """
+        Retorna o saldo disponível subtraindo o valor reservado para cartão de crédito.
+        """
+        return self.balance - self.reserved_credit_balance
 
     @property
     def is_on_budget(self):
@@ -429,18 +437,32 @@ class DebtCharge(models.Model):
 
 
 class CreditCard(models.Model):
+    COUNTRY_CHOICES = [
+        ('BR', 'Brasil'),
+        ('PT', 'Portugal'),
+    ]
+    
+    SETTLEMENT_CHOICES = [
+        ('FULL_REIMBURSEMENT', '100% de Reembolso (Fim do Mês)'),
+        ('REVOLVING_CREDIT', 'Crédito Rotativo (Pagamento Parcial)'),
+        ('FRACTIONED', 'Pagamento Fracionado / Parcelamento'),
+    ]
+
     account = models.OneToOneField(Account, on_delete=models.CASCADE, related_name='credit_card_config')
     closing_day = models.PositiveSmallIntegerField()  # 1-31
     due_day = models.PositiveSmallIntegerField()      # 1-31
     credit_limit = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     brand = models.CharField(max_length=50, null=True, blank=True)
+    country_of_issue = models.CharField(max_length=2, choices=COUNTRY_CHOICES, default='BR')
+    settlement_mode = models.CharField(max_length=20, choices=SETTLEMENT_CHOICES, default='FULL_REIMBURSEMENT')
+    revolving_percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
 
     class Meta:
         db_table = 'core_creditcard'
         app_label = 'core'
 
     def __str__(self):
-        return f"Cartão {self.account.name} (Fechamento: {self.closing_day}, Vencimento: {self.due_day})"
+        return f"Cartão {self.account.name} (Fechamento: {self.closing_day}, Vencimento: {self.due_day}, País: {self.country_of_issue})"
 
 
 class CreditCardBill(models.Model):
@@ -498,6 +520,7 @@ class Installment(models.Model):
     number = models.PositiveSmallIntegerField()
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    subaccount = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='installments')
 
     class Meta:
         db_table = 'core_installment'

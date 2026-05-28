@@ -31,6 +31,9 @@ interface CreditCardModel {
   currency: string;
   account_id: string;
   brand?: string | null;
+  country_of_issue?: "BR" | "PT";
+  settlement_mode?: "FULL_REIMBURSEMENT" | "REVOLVING_CREDIT" | "FRACTIONED";
+  revolving_percentage?: number | string | null;
 }
 
 interface InstallmentModel {
@@ -79,6 +82,9 @@ export const CreditCards = () => {
   const [dueDay, setDueDay] = useState("28");
   const [cardCurrency, setCardCurrency] = useState("BRL");
   const [cardBrand, setCardBrand] = useState("Mastercard");
+  const [cardCountry, setCardCountry] = useState<"BR" | "PT">("BR");
+  const [settlementMode, setSettlementMode] = useState<"FULL_REIMBURSEMENT" | "REVOLVING_CREDIT" | "FRACTIONED">("FULL_REIMBURSEMENT");
+  const [revolvingPercentage, setRevolvingPercentage] = useState("");
 
   // Modal de Nova Transação (Compra Matriz)
   const [isNewTxOpen, setIsNewTxOpen] = useState(false);
@@ -162,6 +168,11 @@ export const CreditCards = () => {
   useEffect(() => {
     if (selectedCard) {
       fetchBillsForCard(selectedCard.id);
+      if (selectedCard.country_of_issue === "PT") {
+        setTotalInstallments("1");
+        setStartingInstallment("1");
+        setInputType("TOTAL");
+      }
     }
   }, [selectedCard]);
 
@@ -181,7 +192,10 @@ export const CreditCards = () => {
         closing_day: Number(closingDay),
         due_day: Number(dueDay),
         currency: cardCurrency,
-        brand: cardBrand
+        brand: cardBrand,
+        country_of_issue: cardCountry,
+        settlement_mode: cardCountry === "PT" ? settlementMode : "FULL_REIMBURSEMENT",
+        revolving_percentage: (cardCountry === "PT" && settlementMode === "REVOLVING_CREDIT" && revolvingPercentage) ? Number(revolvingPercentage) : null
       };
 
       const response = await authenticatedFetch("/credit-cards/", {
@@ -197,6 +211,9 @@ export const CreditCards = () => {
       setIsNewCardOpen(false);
       setCardName("");
       setCreditLimit("");
+      setCardCountry("BR");
+      setSettlementMode("FULL_REIMBURSEMENT");
+      setRevolvingPercentage("");
       await fetchCreditCards();
       await fetchAccounts();
     } catch (error: any) {
@@ -222,7 +239,10 @@ export const CreditCards = () => {
         closing_day: Number(closingDay),
         due_day: Number(dueDay),
         currency: cardCurrency,
-        brand: cardBrand
+        brand: cardBrand,
+        country_of_issue: cardCountry,
+        settlement_mode: cardCountry === "PT" ? settlementMode : "FULL_REIMBURSEMENT",
+        revolving_percentage: (cardCountry === "PT" && settlementMode === "REVOLVING_CREDIT" && revolvingPercentage) ? Number(revolvingPercentage) : null
       };
 
       const response = await authenticatedFetch(`/credit-cards/${cardToEdit.id}/`, {
@@ -451,6 +471,11 @@ export const CreditCards = () => {
                 toast.error("Selecione ou cadastre um cartão de crédito primeiro.");
                 return;
               }
+              if (selectedCard.country_of_issue === "PT") {
+                setTotalInstallments("1");
+                setStartingInstallment("1");
+                setInputType("TOTAL");
+              }
               setIsNewTxOpen(true);
             }}
             className="gradient-primary px-6 h-12 rounded-2xl font-bold shadow-glow hover:scale-105 transition-all text-sm gap-2"
@@ -535,6 +560,9 @@ export const CreditCards = () => {
                             setDueDay(String(card.due_day));
                             setCardCurrency(card.currency);
                             setCardBrand(card.brand || "");
+                            setCardCountry(card.country_of_issue || "BR");
+                            setSettlementMode(card.settlement_mode || "FULL_REIMBURSEMENT");
+                            setRevolvingPercentage(card.revolving_percentage ? String(card.revolving_percentage) : "");
                             setIsEditCardOpen(true);
                           }}>
                             <Edit2 className="mr-2 h-4 w-4" />
@@ -762,6 +790,63 @@ export const CreditCards = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">País de Emissão</Label>
+                <Select value={cardCountry} onValueChange={(val: "BR" | "PT") => {
+                  setCardCountry(val);
+                  if (val === "BR") {
+                    setSettlementMode("FULL_REIMBURSEMENT");
+                    setRevolvingPercentage("");
+                  }
+                }}>
+                  <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium">
+                    <SelectValue placeholder="Selecione o país" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border/60">
+                    <SelectItem value="BR">Brasil (BR)</SelectItem>
+                    <SelectItem value="PT">Portugal (PT)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {cardCountry === "PT" && (
+                <>
+                  <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2">
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Modo de Liquidação / Pagamento</Label>
+                    <Select value={settlementMode} onValueChange={(val: any) => {
+                      setSettlementMode(val);
+                      if (val !== "REVOLVING_CREDIT") setRevolvingPercentage("");
+                    }}>
+                      <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium">
+                        <SelectValue placeholder="Selecione o modo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border/60">
+                        <SelectItem value="FULL_REIMBURSEMENT">100% de Reembolso (Fim do Mês)</SelectItem>
+                        <SelectItem value="REVOLVING_CREDIT">Crédito Rotativo (Pagamento Parcial)</SelectItem>
+                        <SelectItem value="FRACTIONED">Pagamento Fracionado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {settlementMode === "REVOLVING_CREDIT" && (
+                    <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2">
+                      <Label htmlFor="revolvingPercentage" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Porcentagem Mínima de Pagamento (%)</Label>
+                      <Input
+                        id="revolvingPercentage"
+                        type="number"
+                        min="1"
+                        max="100"
+                        placeholder="Ex: 15"
+                        value={revolvingPercentage}
+                        onChange={(e) => setRevolvingPercentage(e.target.value)}
+                        className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono text-sm"
+                        required
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <DialogFooter className="pt-2 gap-2 sm:gap-0 border-t border-border/20">
@@ -874,6 +959,63 @@ export const CreditCards = () => {
                   />
                 </div>
               </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">País de Emissão</Label>
+                <Select value={cardCountry} onValueChange={(val: "BR" | "PT") => {
+                  setCardCountry(val);
+                  if (val === "BR") {
+                    setSettlementMode("FULL_REIMBURSEMENT");
+                    setRevolvingPercentage("");
+                  }
+                }}>
+                  <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium">
+                    <SelectValue placeholder="Selecione o país" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-card border-border/60">
+                    <SelectItem value="BR">Brasil (BR)</SelectItem>
+                    <SelectItem value="PT">Portugal (PT)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {cardCountry === "PT" && (
+                <>
+                  <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2">
+                    <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Modo de Liquidação / Pagamento</Label>
+                    <Select value={settlementMode} onValueChange={(val: any) => {
+                      setSettlementMode(val);
+                      if (val !== "REVOLVING_CREDIT") setRevolvingPercentage("");
+                    }}>
+                      <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium">
+                        <SelectValue placeholder="Selecione o modo" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-card border-border/60">
+                        <SelectItem value="FULL_REIMBURSEMENT">100% de Reembolso (Fim do Mês)</SelectItem>
+                        <SelectItem value="REVOLVING_CREDIT">Crédito Rotativo (Pagamento Parcial)</SelectItem>
+                        <SelectItem value="FRACTIONED">Pagamento Fracionado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {settlementMode === "REVOLVING_CREDIT" && (
+                    <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-2">
+                      <Label htmlFor="editRevolvingPercentage" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Porcentagem Mínima de Pagamento (%)</Label>
+                      <Input
+                        id="editRevolvingPercentage"
+                        type="number"
+                        min="1"
+                        max="100"
+                        placeholder="Ex: 15"
+                        value={revolvingPercentage}
+                        onChange={(e) => setRevolvingPercentage(e.target.value)}
+                        className="rounded-xl bg-muted/15 border-border/40 h-11 font-mono text-sm"
+                        required
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <DialogFooter className="px-6 py-4 gap-2 sm:gap-0 border-t border-border/20 bg-muted/5">
@@ -927,26 +1069,40 @@ export const CreditCards = () => {
                   />
                 </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <Label htmlFor="installments" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Parcelamento</Label>
-                  <Input
-                    id="installments"
-                    type="number"
-                    min="1"
-                    value={totalInstallments}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setTotalInstallments(val);
-                      if (Number(startingInstallment) > Number(val) && val !== "") {
-                        setStartingInstallment(val);
+                {selectedCard?.country_of_issue === "PT" ? (
+                  <div className="flex flex-col gap-1.5 justify-center bg-primary/10 p-3 rounded-xl border border-primary/20 text-xs text-primary font-semibold animate-in fade-in h-11 self-end">
+                    <span className="flex items-center gap-1.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                      {selectedCard?.settlement_mode === "REVOLVING_CREDIT"
+                        ? `Crédito Rotativo (${selectedCard?.revolving_percentage}% mín.)`
+                        : selectedCard?.settlement_mode === "FRACTIONED"
+                        ? "Pagamento Fracionado"
+                        : "Liquidação a 100% no fecho (Débito Diferido)"
                       }
-                    }}
-                    className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium font-mono"
-                    required
-                  />
-                </div>
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="installments" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Parcelamento</Label>
+                    <Input
+                      id="installments"
+                      type="number"
+                      min="1"
+                      value={totalInstallments}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTotalInstallments(val);
+                        if (Number(startingInstallment) > Number(val) && val !== "") {
+                          setStartingInstallment(val);
+                        }
+                      }}
+                      className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium font-mono"
+                      required
+                    />
+                  </div>
+                )}
                 
-                {Number(totalInstallments) > 1 && (
+                {selectedCard?.country_of_issue !== "PT" && Number(totalInstallments) > 1 && (
                   <div className="flex flex-col gap-1.5 sm:col-span-2 mt-1">
                     <div className="flex bg-muted/30 p-1 rounded-xl border border-border/40 max-w-[240px]">
                       <button
@@ -982,7 +1138,7 @@ export const CreditCards = () => {
                   </div>
                 )}
                 
-                {Number(totalInstallments) > 1 && (
+                {selectedCard?.country_of_issue !== "PT" && Number(totalInstallments) > 1 && (
                   <div className="flex flex-col gap-1.5 sm:col-span-2">
                     <Label htmlFor="startingInstallment" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono flex items-center gap-1.5">
                       A partir de qual parcela?

@@ -197,13 +197,14 @@ const Transactions = () => {
     setPayBillModalOpen(true);
   };
 
-  const handlePayBillConfirm = async (accountId: string) => {
+  const handlePayBillConfirm = async (accountId: string, paymentMode: string, payloadData: any) => {
     if (billToPay && billToPay.items.length > 0) {
       await payBill.mutateAsync({
         credit_card_id: String(billToPay.items[0].credit_card_id),
         bill_id: String(billToPay.statement_id),
         account_id: accountId,
-        amount: Math.abs(billToPay.amount)
+        payment_mode: paymentMode as any,
+        payload_data: payloadData
       });
       setPayBillModalOpen(false);
       setBillToPay(null);
@@ -654,6 +655,8 @@ const Transactions = () => {
         onConfirm={handlePayBillConfirm}
         billName={billToPay?.description || "Fatura"}
         totalAmount={billToPay ? formatMoney(Math.abs(billToPay.amount), "BRL") : "0,00"}
+        creditCardId={billToPay?.items?.[0]?.credit_card_id ? String(billToPay.items[0].credit_card_id) : ""}
+        billId={billToPay?.statement_id ? String(billToPay.statement_id) : ""}
       />
 
       <RecurringScopeModal

@@ -1626,77 +1626,31 @@ class CreditCardViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def pay_bill(self, request, pk=None, bill_id=None):
         card = self.get_object()
-        user = request.user
-        payment_account_id = request.data.get('account_id')
-        amount_paid = Decimal(str(request.data.get('amount', '0.00')))
+        data = request.data
         
+        payment_mode = data.get('payment_mode', 'ITEMIZED')
+        payload_data = data.get('payload_data', {})
+        payment_account_id = data.get('account_id') or data.get('payment_account_id')
+        
+        if not bill_id:
+            bill_id = data.get('bill_id')
+            
         try:
-            bill = CreditCardBill.objects.get(id=bill_id, credit_card=card)
-            
-            from datetime import date
-            
-            # Efetiva todas as parcelas pendentes da subconta
-            pending_txs = Transaction.objects.filter(
-                account__user=user,
-                credit_card_bill=bill,
-                status='pending',
-                is_applied_to_balance=False
+            from .services import pay_bill as service_pay_bill
+            total_paid = service_pay_bill(
+                bill_id=bill_id,
+                payment_mode=payment_mode,
+                payload_data=payload_data,
+                payment_account_id=payment_account_id
             )
-            for tx in pending_txs:
-                tx.status = 'realized'
-                tx.is_applied_to_balance = True
-                tx._skip_balance_update = True
-                tx.save()
-                
-                # Desconta o dinheiro da subconta neste exato momento (pagamento pós-fixado)
-                tx.account.balance -= tx.amount
-                tx.account.save()
-            
-            # Atualiza o status das parcelas
-            for inst in bill.installments.all():
-                inst.status = 'paid'
-                inst.save()
-                
-            # Atualiza a fatura
-            bill.is_closed = True
-            bill.save()
-            
-            # Cria a transação de transferência da conta corrente
-            if payment_account_id:
-                payment_account = Account.objects.get(id=payment_account_id, user=user)
-                
-                payment_tx = Transaction(
-                    account=payment_account,
-                    amount=amount_paid,
-                    description=f"Pagamento de Fatura: {card.account.name}",
-                    date=date.today(),
-                    is_income=False,
-                    status='realized',
-                    is_applied_to_balance=True
-                )
-                payment_tx._skip_balance_update = True
-                payment_tx.save()
-                payment_account.balance -= amount_paid
-                payment_account.save()
-                
-                card_tx = Transaction(
-                    account=card.account,
-                    amount=amount_paid,
-                    description=f"Pagamento da Fatura",
-                    date=date.today(),
-                    is_income=True,
-                    status='realized',
-                    is_applied_to_balance=True,
-                    credit_card_bill=bill
-                )
-                card_tx._skip_balance_update = True
-                card_tx.save()
-                card.account.balance += amount_paid
-                card.account.save()
-            
-            return Response({'message': 'Fatura paga com sucesso.'})
+            return Response({
+                'message': 'Fatura paga com sucesso.',
+                'total_paid': str(total_paid)
+            }, status=status.HTTP_200_OK)
         except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+            import traceback
+            err_msg = f"Erro: {str(e)}\n\nTraceback: {traceback.format_exc()}"
+            return Response({'error': err_msg}, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         summary="Gerencia (Exclui ou Edita) uma parcela e suas relacionadas",

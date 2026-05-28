@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,7 @@ import { useTransactions } from "@/shared/hooks/useTransactions";
 import { type Transaction } from "@/types";
 import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
+import { authenticatedFetch } from "@/shared/lib/api";
 
 
 interface Props {
@@ -80,6 +81,42 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState<number>(-1);
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
+
+  // Estados para cartão de crédito regional
+  const [creditCards, setCreditCards] = useState<any[]>([]);
+  const [inputType, setInputType] = useState<"TOTAL" | "PARCELA">("TOTAL");
+  const [totalInstallments, setTotalInstallments] = useState("1");
+  const [startingInstallment, setStartingInstallment] = useState("1");
+
+  useEffect(() => {
+    const fetchCards = async () => {
+      try {
+        const res = await authenticatedFetch("/credit-cards/");
+        if (res.ok) {
+          const data = await res.json();
+          setCreditCards(data || []);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar cartões em AddTransactionModal:", err);
+      }
+    };
+    fetchCards();
+  }, []);
+
+  const currentCard = useMemo(() => {
+    if (!accountId) return null;
+    return creditCards.find(
+      (c: any) => String(c.account_id) === String(accountId) || String(c.account) === String(accountId)
+    );
+  }, [accountId, creditCards]);
+
+  useEffect(() => {
+    if (currentCard && currentCard.country_of_issue === "PT") {
+      setTotalInstallments("1");
+      setStartingInstallment("1");
+      setInputType("TOTAL");
+    }
+  }, [currentCard]);
 
 
 
@@ -239,6 +276,43 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
         if (onClose) onClose();
       }
     } else {
+      if (type === "expense" && currentCard) {
+        if (!useCategory || categoryId === "none") {
+          toast.error("Por favor, selecione uma Categoria de Orçamento para o cartão.");
+          return;
+        }
+        try {
+          const payload = {
+            description: formData.get("description") as string,
+            total_amount: amountValue,
+            total_installments: Number(totalInstallments),
+            starting_installment: Number(startingInstallment),
+            date: formData.get("date") as string || new Date().toISOString().split('T')[0],
+            expense_account_id: categoryId,
+            currency: currentCard.currency,
+            exchange_rate: 1.0,
+            iof_amount: 0.0,
+            input_type: inputType
+          };
+          const response = await authenticatedFetch(`/credit-cards/${currentCard.id}/create_transaction/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.error || "Erro ao processar compra no cartão");
+
+          toast.success("✨ Compra lançada com sucesso no cartão!");
+          await useAccountStore.getState().fetchAccounts();
+          await useAccountStore.getState().fetchTransactions();
+          setOpen(false);
+          if (onClose) onClose();
+          return;
+        } catch (error: any) {
+          toast.error(error.message);
+          return;
+        }
+      }
       await addTransaction.mutateAsync(transactionData as any);
       setOpen(false);
       if (onClose) onClose();
@@ -498,6 +572,103 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
               </div>
             )}
           </div>
+
+          {!isTransfer && type === "expense" && currentCard && !isEdit && (
+            <div className="grid gap-4 p-4 rounded-lg border border-border/50 bg-background/30 animate-in slide-in-from-top-2">
+              {currentCard.country_of_issue === "PT" ? (
+                <div className="flex flex-col gap-1.5 justify-center bg-primary/10 p-3 rounded-xl border border-primary/20 text-xs text-primary font-semibold">
+                  <span className="flex items-center gap-1.5">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                    {currentCard.settlement_mode === "REVOLVING_CREDIT"
+                      ? `Crédito Rotativo (${currentCard.revolving_percentage}% mín.)`
+                      : currentCard.settlement_mode === "FRACTIONED"
+                      ? "Pagamento Fracionado"
+                      : "Liquidação a 100% no fecho (Débito Diferido)"
+                    }
+                  </span>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1.5 col-span-2">
+                    <Label htmlFor="modal_installments" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Parcelamento</Label>
+                    <Input
+                      id="modal_installments"
+                      type="number"
+                      min="1"
+                      value={totalInstallments}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTotalInstallments(val);
+                        if (Number(startingInstallment) > Number(val) && val !== "") {
+                          setStartingInstallment(val);
+                        }
+                      }}
+                      className="rounded-xl bg-background/50 border-border/60 h-11 text-sm font-medium font-mono"
+                      required
+                    />
+                  </div>
+
+                  {Number(totalInstallments) > 1 && (
+                    <div className="flex flex-col gap-1.5 col-span-2 mt-1">
+                      <div className="flex bg-muted/30 p-1 rounded-xl border border-border/40 max-w-[240px]">
+                        <button
+                          type="button"
+                          onClick={() => setInputType("TOTAL")}
+                          className={cn(
+                            "flex-1 text-xs font-bold py-1.5 rounded-lg transition-all",
+                            inputType === "TOTAL" ? "bg-card shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Valor Total
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setInputType("PARCELA")}
+                          className={cn(
+                            "flex-1 text-xs font-bold py-1.5 rounded-lg transition-all",
+                            inputType === "PARCELA" ? "bg-card shadow-soft text-foreground" : "text-muted-foreground hover:text-foreground"
+                          )}
+                        >
+                          Valor Parcela
+                        </button>
+                      </div>
+
+                      {amount > 0 && (
+                        <p className="text-[11px] text-muted-foreground mt-1 px-1">
+                          {inputType === "TOTAL"
+                            ? `Em ${totalInstallments}x de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: currentCard.currency || "BRL" }).format(amount / Number(totalInstallments))}, começando a partir da ${startingInstallment}ª parcela.`
+                            : `Em ${totalInstallments}x de ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: currentCard.currency || "BRL" }).format(amount)}, totalizando ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: currentCard.currency || "BRL" }).format(amount * Number(totalInstallments))}, começando a partir da ${startingInstallment}ª parcela.`
+                          }
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {Number(totalInstallments) > 1 && (
+                    <div className="flex flex-col gap-1.5 col-span-2">
+                      <Label htmlFor="modal_startingInstallment" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono flex items-center gap-1.5">
+                        A partir de qual parcela?
+                      </Label>
+                      <Input
+                        id="modal_startingInstallment"
+                        type="number"
+                        min="1"
+                        max={totalInstallments}
+                        value={startingInstallment}
+                        onChange={(e) => {
+                          let val = Number(e.target.value);
+                          if (val > Number(totalInstallments)) val = Number(totalInstallments);
+                          setStartingInstallment(String(val || ""));
+                        }}
+                        className="rounded-xl bg-background/50 border-border/60 h-11 text-sm font-medium font-mono"
+                        required
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {!isTransfer && (
             <div className="flex flex-col gap-4 p-4 rounded-lg border border-border/50 bg-background/30">

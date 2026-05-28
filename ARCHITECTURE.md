@@ -370,7 +370,9 @@ flowchart TD
     L --> F
     
     F -->|Não| M[Fim da Sincronização]
-```
+| **Despe**sa | Passada ou Atual | `realized` | 🔴 Sim (Diminui) | Dinheiro efetivamente debitado e deduzido da conta do usuário. |
+
+---
 
 ### 4.1 Geração Automática de Ajustes de Saldo em Subcontas
 Para facilitar a reconciliação e o lançamento de saldos iniciais de envelopes/subcontas sem a necessidade de digitação manual de transações repetitivas, o backend (`AccountViewSet`) intercepta as operações de criação e atualização de saldos em subcontas (`parent is not None`).
@@ -379,11 +381,22 @@ Para facilitar a reconciliação e o lançamento de saldos iniciais de envelopes
 
 ---
 
-### 4.2 Módulo de Cartões de Crédito (Parcelamentos e Janela Estendida)
-Para suportar o complexo sistema brasileiro de parcelamento atrelado a faturas e o crédito rotativo internacional, o sistema implementa uma modelagem de fatiamento de dívida com integração YNAB:
-* **Cálculo da Janela Estendida (Melhor Dia):** Cada cartão define um `closing_day` (dia de fechamento) e um `due_day` (vencimento). Se uma compra for executada no dia do fechamento ou depois ($D \ge closing\_day$), o algoritmo de alocação joga a primeira fatura automaticamente para o mês seguinte.
-* **Geração da Dívida Matriz (`CreditCardTransaction` vs `Installment`):** O montante total é mantido intacto na compra matriz. As parcelas (`Installment`) são fatiadas proporcionalmente e distribuídas para as faturas de meses subsequentes, permitindo antecipações futuras.
+### 4.2 Módulo de Cartões de Crédito (Estratégia Regional e Janela Estendida)
+Para suportar o complexo sistema brasileiro de parcelamento atrelado a faturas e o faturamento internacional com modalidades europeias de reembolso, o sistema implementa uma modelagem de fatiamento de dívida com integração YNAB e adaptações regionais:
+* **Estratégia Regional (BR vs PT):** O modelo `CreditCard` incorpora a propriedade `country_of_issue` (`'BR'` ou `'PT'`) e a regra de quitação `settlement_mode` (`'FULL_REIMBURSEMENT'`, `'REVOLVING_CREDIT'`, `'FRACTIONED'`).
+* **Bypass de Parcelamento (Portugal - PT):** Em Portugal, os terminais de pagamento físicos (Rede Multibanco) não suportam parcelamento na maquininha (*merchant-side*). Ao processar uma compra matriz em cartão `'PT'`, a camada de serviço (`process_credit_card_transaction`) força de forma compulsória a transação a ter apenas 1 parcela (Débito Diferido/Deferred Debit), anulando parâmetros de parcelamento.
+* **Interface Dinâmica Regionalizada (v1.36.00):** O modal de criação de cartões (`CreditCards.tsx`) adapta-se dinamicamente ao país emissor selecionado. O modal global de lançamentos (`AddTransactionModal.tsx`) lê dinamicamente a propriedade `country_of_issue` da conta de pagamento ativa e oculta os seletores de parcelamento ("Total vs Parcela" e número de parcelas) para cartões 'PT', forçando 1x parcela, e exibindo um badge informativo do modo de liquidação configurado.
+* **Modalidades de Reembolso Europeias (Settlement Modes):**
+  * *100% Reembolso (FULL_REIMBURSEMENT):* Débito integral do saldo da fatura na conta à ordem associada no dia do vencimento.
+  * *Crédito Rotativo (REVOLVING_CREDIT):* Pagamento parcial de uma fração mínima (`revolving_percentage`), rolando o saldo com juros.
+  * *Fracionado (FRACTIONED):* O parcelamento ocorre no aplicativo do emissor *a posteriori* da transação, e não na maquininha.
+* **Dedução Diferida e Saldo Reservado (v1.37.00):** Para evitar descompasso visual no YNAB entre o gasto no cartão e a data de pagamento da fatura, o sistema adota um mecanismo diferido. Ao postar uma parcela, o montante correspondente é adicionado ao campo `reserved_credit_balance` da subconta de despesa, indicando que aquele dinheiro está bloqueado para o vencimento do cartão. O saldo líquido de uso é expresso pela propriedade `available_balance` (`balance - reserved_credit_balance`). A dedução real no saldo (`balance`) da subconta só ocorre quando o pagamento da fatura for formalmente liquidado pelo usuário.
+* **Motor Avançado de Pagamento Triplo de Faturas (v1.39.00):** O sistema estende a liquidação de faturas implementando três estratégias matemáticas acionadas via `pay_bill` no backend e integradas a uma interface de abas dinâmicas no frontend:
+  * *ITEMIZED (Carrinho de Parcelas):* Abate apenas as parcelas especificadas pelo usuário na requisição (`installment_ids`).
+  * *FIFO (Fila Cronológica):* Consome um valor financeiro de pagamento amortizando os lançamentos mais antigos até os mais recentes. Caso o valor residual cubra apenas parte de uma parcela, o sistema realiza um *split* (divisão atômica): liquida a porção paga e cria um lançamento residual pendente com valor ajustado na fatura do mês subsequente, preservando a integridade das transações do YNAB.
+  * *PERCENTAGE (Amortização Pro-Rata):* Aplica uma taxa percentual (ex: 30%) a todas as parcelas pendentes da fatura, debitando a porção amortizada e estendendo a porção pendente restante (70%) em novas parcelas geradas na fatura seguinte.
 * **Reserva de Liquidez YNAB (Passivo):** O cartão atua como uma Conta de Passivo. Ao postar uma parcela de despesa (ex: Alimentação), o sistema deduz o valor do envelope de Alimentação e transfere esse montante virtualmente para o envelope de `Pagamento do Cartão`, garantindo a provisão de fundos para a quitação.
+* **Link Direto de Parcela (`Installment.subaccount`):** Cada parcela (`Installment`) armazena uma chave estrangeira direta para a subconta (`Account`) de onde o montante de débito foi originado, garantindo rastreabilidade ACID perfeita para o motor de liquidação.
 * **Lançamento de Despesa Física Real:** Para manter a consistência contábil e a conciliação do cartão de crédito, ao postar uma parcela, o processador YNAB (`process_installment_ynab`) cria paralelamente uma transação real de débito (`CoreTransaction`) vinculada à conta do cartão de crédito (`credit_card.account`) e deduz o valor do montante da parcela diretamente do saldo líquido da conta do cartão (`credit_card.account.balance`), sincronizando os saldos reais e virtuais.
 
 ---
@@ -1039,6 +1052,15 @@ Em sistemas que utilizam subcontas ou envelopes de limites virtuais sob uma cont
   }, [transactions, accountIds]);
   ```
 - **Resultado:** Garante que o extrato exiba instantaneamente a transação homologada pela IA no exato momento em que os saldos consolidados da conta pai são deduzidos, mantendo a coerência visual completa da interface.
+
+#### 11.7 Visualização Gráfica de Saldos Reservados e Disponíveis (v1.38.0)
+Para melhorar o entendimento da retenção de fundos em subcontas/envelopes (onde o dinheiro fica retido na subconta como `reserved_credit_balance` e o saldo real `balance` permanece intacto até o pagamento da fatura), introduzimos uma visualização gráfica reativa na tela de detalhes:
+- **Gráfico Donut (Pie Chart):** Implementado no lado direito da tela no desktop (`AccountDetails.tsx`), utilizando a biblioteca `recharts`.
+- **Estratégias de Renderização:** O gráfico divide o saldo físico (`balance`) em duas fatias:
+  - **Saldo Disponível (`available_balance`):** Representado na cor verde (`#10b981`).
+  - **Saldo Reservado (`reserved_credit_balance`):** Representado na cor âmbar (`#f59e0b`).
+- **Resiliência de Layout:** Se o saldo reservado for 0, o gráfico exibe 100% de disponibilidade, impedindo falhas na renderização de fatias de valor zero.
+- **Auditoria de Serialização:** O backend (`AccountSerializer`) foi atualizado para fornecer de forma síncrona os campos calculados `available_balance` e `actual_balance` (via `balance`), garantindo tipagem consistente no frontend.
 
 #### 2. Correção de Incompatibilidade de Tipos (String vs Number Casting)
 Na filtragem de transações por conta na tabela global (`Transactions.tsx`), a comparação estrita era efetuada entre `t.account` (recebido do backend como um inteiro numérico) e `selectedAccountId` (recebido da UI como string).

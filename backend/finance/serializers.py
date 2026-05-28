@@ -2,6 +2,9 @@ from rest_framework import serializers
 from .models import Account, Category, Transaction, Goal, MonthlyBudget, DistributionTemplate, DistributionTemplateItem, Debt, DebtPayment
 
 class AccountSerializer(serializers.ModelSerializer):
+    available_balance = serializers.ReadOnlyField()
+    actual_balance = serializers.ReadOnlyField(source='balance')
+
     class Meta:
         model = Account
         fields = '__all__'
@@ -178,7 +181,7 @@ class CreditCardSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = CreditCard
-        fields = ['id', 'name', 'closing_day', 'due_day', 'credit_limit', 'available_limit', 'currency', 'account_id', 'account', 'brand']
+        fields = ['id', 'name', 'closing_day', 'due_day', 'credit_limit', 'available_limit', 'currency', 'account_id', 'account', 'brand', 'country_of_issue', 'settlement_mode', 'revolving_percentage']
 
     def get_name(self, obj):
         return obj.account.name if obj.account else "Cartão"

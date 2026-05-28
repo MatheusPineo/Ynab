@@ -116,12 +116,21 @@ export const useTransactions = (month?: number, year?: number) => {
   });
 
   const payBill = useMutation({
-    mutationFn: async (data: { credit_card_id: string; bill_id: string; account_id?: string; amount?: number }) => {
+    mutationFn: async (data: { 
+      credit_card_id: string; 
+      bill_id: string; 
+      account_id?: string; 
+      amount?: number;
+      payment_mode?: 'ITEMIZED' | 'FIFO' | 'PERCENTAGE';
+      payload_data?: any;
+    }) => {
       const response = await authenticatedFetch(`/credit-cards/${data.credit_card_id}/pay_bill/${data.bill_id}/`, {
         method: "POST",
         body: JSON.stringify({
           account_id: data.account_id,
-          amount: data.amount
+          amount: data.amount,
+          payment_mode: data.payment_mode,
+          payload_data: data.payload_data
         }),
       });
       if (!response.ok) {

@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from datetime import date
 from rest_framework_simplejwt.tokens import RefreshToken
 
-user = CreditCard.objects.first().account.user()
+user = CreditCard.objects.first().account.user
 refresh = RefreshToken.for_user(user)
 access_token = str(refresh.access_token)
 

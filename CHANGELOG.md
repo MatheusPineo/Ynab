@@ -1,3 +1,36 @@
+## [1.39.00] - 2026-05-28
+
+### Added
+- Interface Visual do Modal Avançado de Pagamento (3 Abas): Criação do componente `PayBillModal.tsx` com navegação segmentada ("Escolher Compras", "Digitar Valor" e "Porcentagem").
+- Simulação Visual de FIFO em Tempo Real: Adicionadas marcações inteligentes com checks e barras de progresso fluidas para simular o preenchimento de parcelas e split na parcela residual limítrofe no input de valor fixo.
+- Controle Deslizante Pro-Rata: Integrado slider responsivo (1% a 100%) em sincronia com input numérico para pagamento percentual com resumo detalhado de dedução pro-rata.
+- Integração da API de Quitação no Frontend: Atualizada a mutação `payBill` no hook `useTransactions.ts` para transportar o modo de pagamento e payloads detalhados.
+- Integração Direta de Quitação em Detalhes da Fatura: Adicionado suporte ao modal e botão "Pagar Fatura" na página `BillDetails.tsx` com re-fetch atômico de dados.
+- Sincronização e Auditoria de Tipagem: Ajustados os tipos de retorno e estados locais garantindo validação total estrita de TypeScript.
+
+## [1.38.00] - 2026-05-28
+
+### Added
+- Serviço Avançado de Pagamento de Faturas (Triple-Mode): Implementada a função `pay_bill` no backend com três estratégias matemáticas de liquidação: ITEMIZED (quitação de parcelas específicas), FIFO (quitação cronológica com divisão e geração de parcelas residuais futuras) e PERCENTAGE (pro-rata uniforme com geração de resíduos diferidos).
+- Controle de Unicidade e Integridade: Integrada lógica de controle para evitar violações de chave primária/unicidade no split de parcelas ao incrementar o contador da compra matriz.
+- Endpoint Transacional `@action(detail=True)` em `CreditCardViewSet` para expor o serviço de quitação de forma robusta e atômica.
+- Visualização de Reserva de Envelopes: Adicionado gráfico Donut Chart interativo (Pie Chart via Recharts) na tela de detalhes de subconta (AccountDetails.tsx) para ilustrar de forma premium a divisão entre o "Saldo Disponível" e o "Saldo Reservado" (bloqueado para cartão).
+- Auditoria de Serialização no Django: Adicionados os campos calculados `available_balance` e `actual_balance` ao `AccountSerializer` para integração fluida de tipagem TypeScript (AccountNode).
+
+## [1.37.00] - 2026-05-28
+
+### Added
+- Refatoração de Modelos para Dedução Diferida: Adicionado o campo `reserved_credit_balance` e a propriedade `available_balance` no modelo `Account` para rastrear dinheiro bloqueado para pagamentos futuros de faturas.
+- Link Direto de Parcela: Adicionado o relacionamento `subaccount` ao modelo `Installment` para rastrear a origem dos débitos de cada parcela e possibilitar liquidações atômicas e fracionamentos na fatura.
+
+## [1.36.00] - 2026-05-28
+
+### Added
+- Estratégia Regional de Cartões (BR vs PT): Introduzido suporte nativo a cartões emitidos no Brasil (BR) e em Portugal (PT) no modelo `CreditCard`.
+- Novos campos regionalizados: Adicionados campos `country_of_issue`, `settlement_mode` e `revolving_percentage` para modelar regras locais de cobrança e modalidades europeias.
+- Bypass de POS para Portugal (PT): Implementada restrição que força compras em cartões portugueses a assumirem parcela única (1x - Deferred Debit) no backend, ignorando parcelamento no estabelecimento.
+- Interface Dinâmica de Cartões e Transações: Modais de criação e edição de cartões adaptam-se dinamicamente conforme o país selecionado. O modal global de transações (`AddTransactionModal.tsx`) foi integrado para ler dinamicamente o país de emissão do cartão selecionado, suprimindo as opções de parcelamento para cartões de Portugal (PT), forçando 1x parcela, e exibindo um badge informativo com o modo de liquidação ativo.
+
 ## [1.35.31] - 2026-05-25
 
 ### Changed

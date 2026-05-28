@@ -5,6 +5,8 @@ import { Button } from "@/shared/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { BillDetailsView } from "@/modules/finance/components/BillDetailsView";
+import { PayBillModal } from "@/modules/finance/components/PayBillModal";
+import { useTransactions } from "@/shared/hooks/useTransactions";
 
 const BillDetails = () => {
   const { cardId, billId } = useParams<{ cardId: string; billId: string }>();
@@ -13,6 +15,33 @@ const BillDetails = () => {
   const [card, setCard] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [payBillModalOpen, setPayBillModalOpen] = useState(false);
+
+  const { payBill } = useTransactions(
+    bill ? Number(bill.month) : undefined,
+    bill ? Number(bill.year) : undefined
+  );
+
+  const handlePayBillConfirm = async (accountId: string, paymentMode: string, payloadData: any) => {
+    if (bill && card) {
+      setIsSubmitting(true);
+      try {
+        await payBill.mutateAsync({
+          credit_card_id: String(card.id),
+          bill_id: String(bill.id),
+          account_id: accountId,
+          payment_mode: paymentMode as any,
+          payload_data: payloadData
+        });
+        setPayBillModalOpen(false);
+        fetchDetails();
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSubmitting(false);
+      }
+    }
+  };
 
   const fetchDetails = async () => {
     if (!cardId || !billId) return;
@@ -94,6 +123,8 @@ const BillDetails = () => {
     );
   }
 
+  const hasUnpaid = bill?.installments?.some((i: any) => i.status === 'pending' || i.status === 'posted');
+
   return (
     <div className="flex flex-col gap-4 sm:gap-6 pb-12 animate-in fade-in duration-500">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -110,6 +141,17 @@ const BillDetails = () => {
             </p>
           </div>
         </div>
+
+        {hasUnpaid && (
+          <Button 
+            variant="default"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-soft"
+            onClick={() => setPayBillModalOpen(true)}
+            disabled={isSubmitting}
+          >
+            Pagar Fatura
+          </Button>
+        )}
       </div>
 
       <BillDetailsView
@@ -119,6 +161,16 @@ const BillDetails = () => {
         onDeleteInstallment={handleDeleteInstallmentClick}
         onAnticipateInstallment={handleAnticipateInstallment}
         isSubmitting={isSubmitting}
+      />
+
+      <PayBillModal
+        isOpen={payBillModalOpen}
+        onClose={() => setPayBillModalOpen(false)}
+        onConfirm={handlePayBillConfirm}
+        billName={`Fatura de ${bill.month.toString().padStart(2, '0')}/${bill.year}`}
+        totalAmount={String(bill.total_amount)}
+        creditCardId={String(card.id)}
+        billId={String(bill.id)}
       />
     </div>
   );

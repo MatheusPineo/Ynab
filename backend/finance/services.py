@@ -26,6 +26,12 @@ def process_credit_card_transaction(
     """
     credit_card = CreditCard.objects.get(id=credit_card_id)
     
+    # Bypass Regional (Portugal - PT): cartões emitidos em PT não suportam parcelamento pelo estabelecimento
+    if credit_card.country_of_issue == 'PT':
+        installment_count = 1
+        starting_installment = 1
+        input_type = 'TOTAL'
+        
     val_total = Decimal(str(total_amount))
     val_orig = Decimal(str(original_amount)) if original_amount is not None else val_total
     val_rate = Decimal(str(exchange_rate))
@@ -55,6 +61,28 @@ def process_credit_card_transaction(
         iof_amount=val_iof
     )
     
+    # Resolve a subconta (envelope de despesa) antes do loop de parcelas
+    category_name = matrix_tx.category.name if matrix_tx.category else "Geral"
+    expense_envelope = matrix_tx.expense_account
+    if not expense_envelope:
+        expense_envelope = Account.objects.filter(
+            user=credit_card.account.user,
+            name=category_name,
+            currency=credit_card.account.currency,
+            parent__isnull=False
+        ).first()
+        if not expense_envelope:
+            parent_acc = Account.objects.filter(user=credit_card.account.user, parent__isnull=True).first()
+            if parent_acc:
+                expense_envelope = Account.objects.create(
+                    user=credit_card.account.user,
+                    name=category_name,
+                    currency=credit_card.account.currency,
+                    parent=parent_acc,
+                    account_type='savings',
+                    balance=Decimal('0.00')
+                )
+
     # 1. Ciclo de Fatura e "Melhor Dia":
     # Se a transação ocorrer no dia exato ou após o closing_day, vai para o mês subsequente.
     current_month = date_tx.month
@@ -91,7 +119,8 @@ def process_credit_card_transaction(
             bill=bill,
             number=i,
             amount=amount_part,
-            status=status_calc
+            status=status_calc,
+            subaccount=expense_envelope
         )
         installments.append(inst)
         
@@ -114,35 +143,17 @@ def process_installment_ynab(installment):
     """
     matrix_tx = installment.transaction
     credit_card = matrix_tx.credit_card
-    user = credit_card.account.user
     
     category = matrix_tx.category
-    category_name = category.name if category else "Geral"
     
-    # Busca a subconta (envelope) de despesa
-    expense_envelope = matrix_tx.expense_account
-    
-    if not expense_envelope:
-        expense_envelope = Account.objects.filter(
-            user=user,
-            name=category_name,
-            currency=credit_card.account.currency,
-            parent__isnull=False
-        ).first()
-        
-        if not expense_envelope:
-            parent_acc = Account.objects.filter(user=user, parent__isnull=True).first()
-            if parent_acc:
-                expense_envelope = Account.objects.create(
-                    user=user,
-                    name=category_name,
-                    currency=credit_card.account.currency,
-                    parent=parent_acc,
-                    account_type='savings',
-                    balance=Decimal('0.00')
-                )
+    # Busca a subconta (envelope) de despesa vinculada
+    expense_envelope = installment.subaccount
             
     if expense_envelope:
+        # Incrementa o saldo reservado (Deferred Subaccount Deduction)
+        expense_envelope.reserved_credit_balance += installment.amount
+        expense_envelope.save()
+
         # Calcula a data projetada da fatura para as transações pendentes
         import calendar
         try:
@@ -183,6 +194,279 @@ def process_installment_ynab(installment):
         tx_cc.save()
         credit_card.account.balance -= installment.amount
         credit_card.account.save()
+
+
+@transaction.atomic
+def pay_bill(bill_id, payment_mode, payload_data=None, payment_account_id=None):
+    """
+    Serviço avançado de pagamento de fatura com 3 estratégias matemáticas:
+    - ITEMIZED: paga parcelas específicas de payload_data['installment_ids']
+    - FIFO: consome um valor total de payload_data['amount'] pagando por ordem cronológica (com split se necessário)
+    - PERCENTAGE: aplica um percentual de payload_data['percentage'] pro-rata a todas as parcelas (com split)
+    """
+    try:
+        bill = CreditCardBill.objects.get(id=bill_id)
+    except CreditCardBill.DoesNotExist:
+        raise ValueError("Fatura não encontrada.")
+
+    credit_card = bill.credit_card
+    user = credit_card.account.user
+
+    # Parcelas não pagas desta fatura
+    unpaid_installments = bill.installments.filter(status__in=['pending', 'posted']).order_by('transaction__date', 'id')
+
+    total_paid = Decimal('0.00')
+
+    # Próxima fatura para caso de split
+    next_month = bill.month + 1
+    next_year = bill.year
+    if next_month > 12:
+        next_month = 1
+        next_year += 1
+    
+    def get_or_create_next_bill():
+        next_b, _ = CreditCardBill.objects.get_or_create(
+            credit_card=credit_card,
+            month=next_month,
+            year=next_year
+        )
+        return next_b
+
+    if payment_mode == 'ITEMIZED':
+        if not payload_data or 'installment_ids' not in payload_data:
+            raise ValueError("Payload inválido para o modo ITEMIZED: 'installment_ids' é obrigatório.")
+        inst_ids = payload_data['installment_ids']
+        target_installments = unpaid_installments.filter(id__in=inst_ids)
+        
+        for inst in target_installments:
+            amt = inst.amount
+            total_paid += amt
+            
+            subaccount = inst.subaccount
+            if subaccount:
+                subaccount.balance -= amt
+                subaccount.reserved_credit_balance -= amt
+                subaccount.save()
+                
+                tx = CoreTransaction.objects.filter(
+                    account=subaccount,
+                    credit_card_bill=bill,
+                    amount=amt,
+                    status='pending'
+                ).first()
+                if tx:
+                    tx.status = 'realized'
+                    tx.is_applied_to_balance = True
+                    tx._skip_balance_update = True
+                    tx.save()
+            
+            inst.status = 'paid'
+            inst.save()
+
+    elif payment_mode == 'FIFO':
+        if not payload_data or 'amount' not in payload_data:
+            raise ValueError("Payload inválido para o modo FIFO: 'amount' é obrigatório.")
+        pool = Decimal(str(payload_data['amount']))
+        if pool <= 0:
+            raise ValueError("O valor de pagamento no modo FIFO deve ser maior que zero.")
+
+        for inst in unpaid_installments:
+            if pool <= 0:
+                break
+            
+            subaccount = inst.subaccount
+            if pool >= inst.amount:
+                # Cobertura total
+                amt_to_pay = inst.amount
+                pool -= amt_to_pay
+                total_paid += amt_to_pay
+                
+                if subaccount:
+                    subaccount.balance -= amt_to_pay
+                    subaccount.reserved_credit_balance -= amt_to_pay
+                    subaccount.save()
+                    
+                    tx = CoreTransaction.objects.filter(
+                        account=subaccount,
+                        credit_card_bill=bill,
+                        amount=amt_to_pay,
+                        status='pending'
+                    ).first()
+                    if tx:
+                        tx.status = 'realized'
+                        tx.is_applied_to_balance = True
+                        tx._skip_balance_update = True
+                        tx.save()
+                
+                inst.status = 'paid'
+                inst.save()
+            else:
+                # Cobertura parcial (Boundary split)
+                amt_to_pay = pool
+                remaining_amt = inst.amount - amt_to_pay
+                pool = Decimal('0.00')
+                total_paid += amt_to_pay
+                
+                next_bill = get_or_create_next_bill()
+                
+                # Incrementa o número de parcelas na transação matriz para manter unicidade
+                matrix_tx = inst.transaction
+                matrix_tx.installment_count += 1
+                matrix_tx.save()
+                
+                # Cria a parcela residual para a próxima fatura
+                Installment.objects.create(
+                    transaction=matrix_tx,
+                    bill=next_bill,
+                    number=matrix_tx.installment_count,
+                    amount=remaining_amt,
+                    status='pending',
+                    subaccount=subaccount
+                )
+                
+                if subaccount:
+                    subaccount.balance -= amt_to_pay
+                    subaccount.reserved_credit_balance -= amt_to_pay
+                    subaccount.save()
+                    
+                    tx = CoreTransaction.objects.filter(
+                        account=subaccount,
+                        credit_card_bill=bill,
+                        amount=inst.amount,
+                        status='pending'
+                    ).first()
+                    if tx:
+                        import calendar
+                        # Cria transação pendente residual para o mês seguinte
+                        CoreTransaction.objects.create(
+                            account=subaccount,
+                            category=tx.category,
+                            amount=remaining_amt,
+                            description=tx.description,
+                            date=date(next_bill.year, next_bill.month, min(tx.date.day, calendar.monthrange(next_bill.year, next_bill.month)[1])),
+                            is_income=tx.is_income,
+                            status='pending',
+                            is_applied_to_balance=False,
+                            credit_card_bill=next_bill
+                        )
+                        tx.amount = amt_to_pay
+                        tx.status = 'realized'
+                        tx.is_applied_to_balance = True
+                        tx._skip_balance_update = True
+                        tx.save()
+                
+                inst.amount = amt_to_pay
+                inst.status = 'paid'
+                inst.save()
+
+    elif payment_mode == 'PERCENTAGE':
+        if not payload_data or 'percentage' not in payload_data:
+            raise ValueError("Payload inválido para o modo PERCENTAGE: 'percentage' é obrigatório.")
+        factor = Decimal(str(payload_data['percentage']))
+        if factor <= 0 or factor > 1:
+            raise ValueError("O fator de porcentagem deve ser maior que 0 e menor ou igual a 1.")
+
+        next_bill = get_or_create_next_bill()
+        for inst in unpaid_installments:
+            slice_amount = round(inst.amount * factor, 2)
+            remaining_amount = inst.amount - slice_amount
+            total_paid += slice_amount
+            
+            subaccount = inst.subaccount
+            if remaining_amount > 0:
+                # Incrementa o número de parcelas na transação matriz para manter unicidade
+                matrix_tx = inst.transaction
+                matrix_tx.installment_count += 1
+                matrix_tx.save()
+                
+                # Cria a parcela residual na próxima fatura
+                Installment.objects.create(
+                    transaction=matrix_tx,
+                    bill=next_bill,
+                    number=matrix_tx.installment_count,
+                    amount=remaining_amount,
+                    status='pending',
+                    subaccount=subaccount
+                )
+            
+            if subaccount:
+                subaccount.balance -= slice_amount
+                subaccount.reserved_credit_balance -= slice_amount
+                subaccount.save()
+                
+                tx = CoreTransaction.objects.filter(
+                    account=subaccount,
+                    credit_card_bill=bill,
+                    amount=inst.amount,
+                    status='pending'
+                ).first()
+                if tx:
+                    if remaining_amount > 0:
+                        import calendar
+                        # Cria transação pendente residual para o mês seguinte
+                        CoreTransaction.objects.create(
+                            account=subaccount,
+                            category=tx.category,
+                            amount=remaining_amount,
+                            description=tx.description,
+                            date=date(next_bill.year, next_bill.month, min(tx.date.day, calendar.monthrange(next_bill.year, next_bill.month)[1])),
+                            is_income=tx.is_income,
+                            status='pending',
+                            is_applied_to_balance=False,
+                            credit_card_bill=next_bill
+                        )
+                    tx.amount = slice_amount
+                    tx.status = 'realized'
+                    tx.is_applied_to_balance = True
+                    tx._skip_balance_update = True
+                    tx.save()
+                    
+            inst.amount = slice_amount
+            inst.status = 'paid'
+            inst.save()
+
+    # Criação dos lançamentos contábeis de pagamento/transferência da conta corrente (checking) se informado
+    if payment_account_id and total_paid > 0:
+        payment_account = Account.objects.get(id=payment_account_id, user=user)
+        
+        # Transação de saída da conta de pagamento
+        payment_tx = CoreTransaction(
+            account=payment_account,
+            amount=total_paid,
+            description=f"Pagamento de Fatura: {credit_card.account.name}",
+            date=date.today(),
+            is_income=False,
+            status='realized',
+            is_applied_to_balance=True
+        )
+        payment_tx._skip_balance_update = True
+        payment_tx.save()
+        payment_account.balance -= total_paid
+        payment_account.save()
+        
+        # Transação de entrada no cartão de crédito
+        card_tx = CoreTransaction(
+            account=credit_card.account,
+            amount=total_paid,
+            description=f"Pagamento da Fatura",
+            date=date.today(),
+            is_income=True,
+            status='realized',
+            is_applied_to_balance=True,
+            credit_card_bill=bill
+        )
+        card_tx._skip_balance_update = True
+        card_tx.save()
+        credit_card.account.balance += total_paid
+        credit_card.account.save()
+
+    # Fecha a fatura caso todas as parcelas estejam pagas
+    if not bill.installments.filter(status__in=['pending', 'posted']).exists():
+        bill.is_closed = True
+        bill.is_paid = True
+        bill.save()
+
+    return total_paid
 
 
 class YNABBudgetService:
