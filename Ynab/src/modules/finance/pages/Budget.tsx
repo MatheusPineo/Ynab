@@ -15,7 +15,7 @@ import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight } from "lucide-react";
+import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -218,6 +218,7 @@ const Budget = () => {
   const {
     categoryGroups,
     tree,
+    readyToAssignBalance,
     fetchCategoryGroups,
     assignMoney,
     autoAssign,
@@ -232,7 +233,10 @@ const Budget = () => {
     getAccount,
     getAccountName,
     keepInAccount,
-    totalsByCurrency
+    totalsByCurrency,
+    autoShield,
+    surplusSweep,
+    monthEndCascade,
   } = useAccountStore();
   
   const { convert } = useCurrencyStore();
@@ -240,6 +244,8 @@ const Budget = () => {
   const [newGroupName, setNewGroupName] = useState("");
   const [newCatName, setNewCatName] = useState("");
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
+  const [cascadeOpen, setCascadeOpen] = useState(false);
+  const [rebalancing, setRebalancing] = useState<string | null>(null);
 
   useEffect(() => {
     fetchCategoryGroups();
@@ -318,6 +324,40 @@ const Budget = () => {
     return calculateTotal(categoryGroups);
   }, [categoryGroups]);
 
+  // Flatten all leaf categories for the cascade dropdown
+  const leafCategories = useMemo(() => {
+    const leaves: { id: string; name: string }[] = [];
+    const walk = (nodes: CategoryNode[]) => {
+      if (!Array.isArray(nodes)) return;
+      for (const n of nodes) {
+        if (!n) continue;
+        if (n.children && n.children.length > 0) {
+          walk(n.children);
+        } else {
+          leaves.push({ id: n.id, name: n.name });
+        }
+      }
+    };
+    walk(categoryGroups);
+    return leaves;
+  }, [categoryGroups]);
+
+  const handleAutoShield = async () => {
+    setRebalancing('shield');
+    try { await autoShield(); } finally { setRebalancing(null); }
+  };
+
+  const handleSurplusSweep = async () => {
+    setRebalancing('sweep');
+    try { await surplusSweep(); } finally { setRebalancing(null); }
+  };
+
+  const handleCascade = async (targetId: string) => {
+    setCascadeOpen(false);
+    setRebalancing('cascade');
+    try { await monthEndCascade(targetId); } finally { setRebalancing(null); }
+  };
+
   const activeGroups = useMemo(() => {
     const raw = (Array.isArray(categoryGroups) ? categoryGroups : [])
       .filter(g => g && g.id && (typeof g.id === "string" || typeof g.id === "number") && typeof g.name === "string" && g.name.trim().toUpperCase() !== "TESTE");
@@ -384,6 +424,76 @@ const Budget = () => {
               </Button>
               <MonthSelector />
             </div>
+          </div>
+        </div>
+
+        {/* RTA Panel + Rebalancing Toolbar */}
+        <div className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          {/* RTA Badge */}
+          <div className={cn(
+            "flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-sm transition-all",
+            readyToAssignBalance > 0
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+              : readyToAssignBalance < 0
+                ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                : "bg-muted/20 border-border/40 text-muted-foreground"
+          )}>
+            <Wallet className="h-5 w-5 shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-[9px] uppercase tracking-widest font-black opacity-70">Disponível para Alocar</span>
+              <span className="text-lg sm:text-xl font-black leading-none" data-testid="rta-balance">
+                {formatMoney(readyToAssignBalance, "EUR")}
+              </span>
+            </div>
+          </div>
+
+          {/* Rebalancing Toolbar */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAutoShield}
+              disabled={rebalancing !== null}
+              className="rounded-xl h-9 text-[10px] sm:text-xs gap-1.5 font-bold border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
+            >
+              <Shield className="h-3.5 w-3.5" />
+              {rebalancing === 'shield' ? 'Cobrindo...' : 'Cobrir Rombos'}
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSurplusSweep}
+              disabled={rebalancing !== null}
+              className="rounded-xl h-9 text-[10px] sm:text-xs gap-1.5 font-bold border-sky-500/30 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
+            >
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+              {rebalancing === 'sweep' ? 'Recolhendo...' : 'Recolher Sobras'}
+            </Button>
+
+            <DropdownMenu open={cascadeOpen} onOpenChange={setCascadeOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={rebalancing !== null}
+                  className="rounded-xl h-9 text-[10px] sm:text-xs gap-1.5 font-bold border-violet-500/30 text-violet-400 hover:bg-violet-500/10 hover:text-violet-300"
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                  {rebalancing === 'cascade' ? 'Limpando...' : 'Limpar Mês'}
+                  <ChevronDown className="h-3 w-3 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass border-border/60 max-h-60 overflow-y-auto">
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">Transferir saldo para...</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {leafCategories.map(cat => (
+                  <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="text-xs">
+                    {cat.name}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -683,7 +793,7 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
     opacity: isDragging ? 0.5 : 1,
   };
 
-  const available = (cat.assigned_amount || 0) - (cat.spent_amount || 0);
+  const available = cat.available_amount ?? ((cat.assigned_amount || 0) - (cat.spent_amount || 0));
   const percentSpent = (cat.assigned_amount || 0) > 0 ? ((cat.spent_amount || 0) / cat.assigned_amount) * 100 : 0;
 
   return (

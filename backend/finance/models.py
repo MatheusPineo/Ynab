@@ -62,9 +62,17 @@ class Account(models.Model):
 
 
 class Category(models.Model):
+    TARGET_TYPE_CHOICES = [
+        ('FIXED', 'Valor Fixo'),
+        ('PERCENTAGE', 'Percentual da Receita'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='categories')
     name = models.CharField(max_length=100)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    target_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    target_type = models.CharField(max_length=10, choices=TARGET_TYPE_CHOICES, default='FIXED')
+    ceiling_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 
     class Meta:
         db_table = 'core_category'
@@ -759,4 +767,64 @@ class DailyCDIRate(models.Model):
 
     def __str__(self) -> str:
         return f"CDI {self.date}: {self.annual_rate}% a.a."
+
+
+class Debtor(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='debtors')
+    name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_debtor'
+        app_label = 'core'
+        unique_together = ('user', 'name')
+
+    def __str__(self):
+        return f"{self.name} (Roommate)"
+
+
+class DebtItem(models.Model):
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('PARTIAL', 'Partial'),
+        ('SETTLED', 'Settled'),
+    ]
+
+    debtor = models.ForeignKey(Debtor, on_delete=models.CASCADE, related_name='items')
+    origin_subaccount = models.ForeignKey(Account, on_delete=models.CASCADE)
+    product_name = models.CharField(max_length=255)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
+    date_created = models.DateField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_debtitem'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.product_name} - {self.debtor.name} ({self.paid_amount}/{self.total_amount})"
+
+    def clean(self):
+        super().clean()
+        if self.total_amount is not None and self.total_amount <= 0:
+            raise ValidationError("O valor total da dívida deve ser maior que zero.")
+        if self.paid_amount is not None:
+            if self.paid_amount < 0:
+                raise ValidationError("O valor pago não pode ser negativo.")
+            if self.total_amount is not None and self.paid_amount > self.total_amount:
+                raise ValidationError("O valor pago não pode exceder o valor total da dívida.")
+
+        if self.total_amount is not None and self.paid_amount is not None:
+            if self.paid_amount == 0:
+                self.status = 'PENDING'
+            elif self.paid_amount >= self.total_amount:
+                self.status = 'SETTLED'
+            else:
+                self.status = 'PARTIAL'
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
 

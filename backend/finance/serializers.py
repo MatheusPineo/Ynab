@@ -39,7 +39,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'user', 'name', 'parent', 'assigned_amount', 'spent_amount']
+        fields = ['id', 'user', 'name', 'parent', 'target_value', 'target_type', 'ceiling_value', 'assigned_amount', 'spent_amount']
         extra_kwargs = {
             'parent': {'required': False, 'allow_null': True},
             'user': {'read_only': True},  # Preenchido automaticamente pela view
@@ -261,3 +261,23 @@ class InvestmentActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = InvestmentActivity
         fields = '__all__'
+
+
+from .models import Debtor, DebtItem
+
+class DebtItemSerializer(serializers.ModelSerializer):
+    origin_subaccount_name = serializers.CharField(source='origin_subaccount.name', read_only=True)
+
+    class Meta:
+        model = DebtItem
+        fields = '__all__'
+
+
+class DebtorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Debtor
+        fields = '__all__'
+        extra_kwargs = {
+            'user': {'read_only': True},
+        }
+

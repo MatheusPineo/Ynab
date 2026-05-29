@@ -6,7 +6,7 @@ from .views import (
     DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
     InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, DemoModeView,
-    ReportsViewSet
+    ReportsViewSet, DebtorViewSet, DebtItemViewSet
 )
 
 router = DefaultRouter()
@@ -26,6 +26,8 @@ router.register(r'category-goals', CategoryGoalViewSet, basename='category-goal'
 router.register(r'transaction-rules', TransactionRuleViewSet, basename='transaction-rule')
 router.register(r'wealth/assets', InvestmentAssetViewSet, basename='wealth-asset')
 router.register(r'wealth/activities', InvestmentActivityViewSet, basename='wealth-activity')
+router.register(r'debtors', DebtorViewSet, basename='debtor')
+router.register(r'debt-items', DebtItemViewSet, basename='debt-item')
 
 urlpatterns = [
     path('icons/upload/', IconUploadView.as_view(), name='account-upload-icon'),

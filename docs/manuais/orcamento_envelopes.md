@@ -45,14 +45,44 @@ Diferente de sistemas tradicionais que "resetam" as categorias no dia 1º, nosso
 
 ---
 
-## 4. O Motor de Metas de Acúmulo
+## 4. Metas de Orçamento Inteligentes (Budget Targets)
 
-A organização não serve apenas para pagar contas, mas para acumular riqueza. O Vault Finance OS possui um simulador de Metas acoplado a qualquer sub-envelope.
+Para tornar o planejamento financeiro proativo e semi-automatizado, cada sub-envelope agora suporta regras e metas de orçamento avançadas com tetos de gastos:
+* **Tipo de Meta (Target Type):**
+  * **Fixa (FIXED):** Um valor fixo a ser orçado mensalmente no envelope (ex: R$ 500,00 para *Alimentação*).
+  * **Percentual (PERCENTAGE):** Um valor percentual com base em um aporte total recebido (ex: 20% do salário do mês para *Investimentos*).
+* **Valor Alvo (Target Value):** O valor desejado (em moeda local ou percentual).
+* **Teto de Gastos (Ceiling Value):** O limite máximo financeiro que o envelope pode acumular. Se configurado com um valor maior que 0,00, impede o acúmulo desnecessário de dinheiro no envelope caso você não o gaste (ex: teto de R$ 300,00 em *Lazer* impede que sobras acumulem infinitamente mês a mês).
 
-**Como configurar uma Meta:**
-1. Selecione um envelope que você deseja utilizar como poupança, por exemplo: `Trocar de Carro`.
-2. Acesse a aba de propriedades e crie uma meta de **Acúmulo Alvo** (Target Balance).
-3. Defina o valor financeiro (Ex: R$ 30.000) e uma data limite final (Ex: Dezembro de 2026).
-4. O sistema processará automaticamente a matemática de divisão pelo tempo restante e gerará uma sugestão proativa: "Designar R$ 800 este mês para manter-se na rota".
+---
 
-As metas são sinalizadas no painel de controle por pequenas barras de progresso circulares acopladas ao lado de cada envelope, mantendo você sempre orientado em direção à construção dos seus objetivos financeiros de curto e longo prazo.
+## 5. Distribuição Inteligente de Renda (Smart Income Allocation)
+
+Ao invés de digitar manualmente em cada envelope, você pode distribuir o saldo acumulado no **RTA** (Ready to Assign) usando o modal de **Distribuição de Renda** com dois modos de automação inteligentes:
+
+1. **Alocação de Metas Recorrentes (`RECURRING_TARGETS`):**
+   * O sistema analisa todos os envelopes que possuem metas configuradas.
+   * Calcula automaticamente o valor fixo ou percentual necessário para cada um deles.
+   * Preenche de forma atômica e em lote todos os envelopes a partir do RTA, poupando o trabalho manual de distribuir o dinheiro um a um.
+2. **Distribuição Proporcional de Sobras (`EXTRA_PROPORTIONAL`):**
+   * Ideal para quando entra um bônus ou renda extra.
+   * Distribui o valor excedente proporcionalmente entre os envelopes com base na proporção de suas metas padrão.
+
+No frontend, o modal de **Distribuição de Renda** permite mapear facilmente os valores de entrada diretamente para as categorias (envelopes) de destino de forma visual e intuitiva.
+
+---
+
+## 6. Rebalanceamento Automático de Envelopes (Automated Rebalancing)
+
+O motor do orçamento conta com uma ferramenta poderosa de rebalanceamento rápido para ajustar seus envelopes instantaneamente e limpar desvios orçamentários:
+
+* **Ajustar ao Teto (`REBALANCE_TO_CEILING`):** 
+  * Varre todos os envelopes que possuem um **Teto de Gastos (Ceiling Value)** configurado.
+  * Identifica os envelopes que acumularam saldo disponível acima desse teto.
+  * Recolhe a fatia excedente e devolve para o **RTA (Ready to Assign)**, deixando você livre para realocar esse dinheiro para outros propósitos urgentes.
+* **Zerar Envelopes Estourados (`REBALANCE_ZERO_OVERSPENT`):**
+  * Localiza todos os envelopes que terminaram o mês no vermelho (negativos/estourados).
+  * Retira dinheiro diretamente do pool do **RTA** para cobrir essas brechas e zerar os saldos devedores, blindando seu orçamento de estouros no mês subsequente.
+
+Todas essas ações podem ser acionadas diretamente na tela de Orçamento através do painel reativo do cabeçalho de RTA, que exibe em destaque o valor disponível: **"X€ Disponível para Atribuir"**.
+

@@ -1095,6 +1095,34 @@ Para evitar reestruturações complexas no layout do frontend SPA React que pude
 - **Cabeçalho Customizado `X-Ready-To-Assign`:** O valor calculado do RTA mensal é enviado de forma transparente no cabeçalho HTTP customizado `X-Ready-To-Assign` da resposta da API.
 - **Propriedades Enriquecidas de Envelope:** Cada nó folha da árvore de categorias agora carrega no JSON as propriedades físicas calculadas pelo backend: `'rollover_amount'`, `'available_amount'` e `'overspending_type'`.
 
+##### 4. Automação de Metas, Distribuição Inteligente e Rebalanceamento (v1.40.00)
+Para expandir as capacidades contábeis e de automação, introduzimos regras de planejamento avançado:
+- **Metas de Categoria (`Category`):** Adição dos campos `target_value` (Decimal), `target_type` (FIXED ou PERCENTAGE) e `ceiling_value` (Decimal) para modelagem de metas e limites de acúmulo por envelope.
+- **Serviço de Alocação (`BudgetAutomationService`):**
+  - `smart_allocate(user, amount, mode)`: Executado de forma atômica (`transaction.atomic`).
+  - Modo `RECURRING_TARGETS`: Varre os envelopes, calcula a necessidade de provisão (fixa ou percentual sobre a receita total) e cria/atualiza os registros de `MonthlyBudget`.
+  - Modo `EXTRA_PROPORTIONAL`: Divide a sobra do RTA proporcionalmente entre os sub-envelopes ativos baseado na relevância de suas metas.
+- **Ações de Rebalanceamento Automático:**
+  - `REBALANCE_TO_CEILING`: Identifica envelopes com saldo acumulado acima de seu `ceiling_value`, retira o excesso e repatria a liquidez para o `RTA`.
+  - `REBALANCE_ZERO_OVERSPENT`: Localiza envelopes com saldo disponível negativo e retira a provisão necessária do `RTA` para restaurar o equilíbrio do envelope a zero.
+- **Integração de Estado (Zustand & Headers):**
+  - O cabeçalho HTTP `X-Ready-To-Assign` é capturado pelo interceptor de rede na store do Zustand (`useAccountStore.ts`) e armazenado em `readyToAssignBalance`.
+  - O componente `Budget.tsx` consome esse estado e renderiza o painel de distribuição, acionando as chamadas para o backend na reconfiguração ou distribuição em lote.
+
+##### 5. Motor de Repagamento FIFO e Devedores Agrupados (v1.41.00)
+Para gerenciar despesas compartilhadas (roommates) e amortizar recebimentos de forma integrada aos envelopes de orçamento, implementamos um motor de repagamento cronológico atômico:
+- **Modelagem de Dados (`Debtor` e `DebtItem`):**
+  - `Debtor`: Representa o devedor associado a um usuário (`user`).
+  - `DebtItem`: Itens de dívida individuais vinculados à subconta/conta de origem (`origin_subaccount`) contendo descrição (`product_name`), valor total (`total_amount`), valor pago (`paid_amount`) e status (`status` em `PENDING`, `PARTIAL`, `SETTLED`).
+- **Motor FIFO (`DebtorPaymentService.pay_subaccount_group`):**
+  - Executado dentro de uma transação atômica (`@transaction.atomic`).
+  - **Injeção Contábil:** Cria um lançamento de transação (`Transaction`) de receita (`is_income=True`) na subconta/conta de destino correspondente a `origin_subaccount`, curando o envelope de origem.
+  - **Fila de Amortização:** Busca os registros de `DebtItem` não liquidados (`PENDING` ou `PARTIAL`) ordenados por `date_created` e `id` de forma ascendente. Amortiza o saldo recebido sequencialmente sobre cada item da fila. O status transiciona para `SETTLED` se totalmente quitado ou `PARTIAL` se a provisão esgotar durante a liquidação de um item específico.
+- **Agregação e Endpoint (`DebtorViewSet`):**
+  - Endpoint `@action(detail=True) grouped_debts`: Consolida no backend as dívidas do devedor agrupadas por subconta/conta, somando o saldo pendente total por grupo e aninhando a lista de itens ativos (`DebtItem`).
+  - Endpoint `@action(detail=True) pay_group`: Aciona o serviço transacional para processar o recebimento agrupado e liquidar as dívidas no banco.
+  - Endpoint `@action(detail=True) add_items`: Endpoint transacional mapeado para o serviço de criação em lote (`DebtorCreationService.register_itemized_debts`) que permite ao frontend cadastrar de uma só vez múltiplos itens de dívida vinculados a um roommate sem alterar o saldo do envelope.
+
 
 ## Taxonomia Global de Investimentos (Atualizado 23/05/2026)
 Os modelos InvestmentAsset e InvestmentActivity suportam rastreamento internacional (market_country, asset_category) e controle de vencimento (due_date) para rendas fixas.

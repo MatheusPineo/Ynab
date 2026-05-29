@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
+import { authenticatedFetch } from "@/shared/lib/api";
 import { formatMoney, CURRENCY_SYMBOL } from "@/shared/lib/currency-utils";
 import { TableSkeleton } from "@/shared/components/dashboard/TableSkeleton";
 import { EmptyState } from "@/shared/components/dashboard/EmptyState";
@@ -51,6 +52,7 @@ const AccountDetails = () => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
   const [accountsLoaded, setAccountsLoaded] = useState(false);
+  const [debtItems, setDebtItems] = useState<any[]>([]);
 
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
 
@@ -85,7 +87,43 @@ const AccountDetails = () => {
 
   useEffect(() => {
     fetchAccounts().finally(() => setAccountsLoaded(true));
+    const fetchDebtItems = async () => {
+      try {
+        const res = await authenticatedFetch("/debt-items/");
+        if (res.ok) {
+          const data = await res.json();
+          setDebtItems(data);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar itens de dívidas", err);
+      }
+    };
+    fetchDebtItems();
   }, [fetchAccounts]);
+
+  const subaccountDebts = useMemo(() => {
+    if (!account) return { total: 0, debtors: [] };
+    const items = debtItems.filter(item => 
+      String(item.origin_subaccount) === String(account.id) &&
+      (item.status === "PENDING" || item.status === "PARTIAL")
+    );
+
+    const total = items.reduce((sum, item) => sum + (Number(item.total_amount) - Number(item.paid_amount)), 0);
+
+    const debtorMap: Record<string, number> = {};
+    items.forEach(item => {
+      const name = item.debtor_name || "Outro";
+      const outstanding = Number(item.total_amount) - Number(item.paid_amount);
+      debtorMap[name] = (debtorMap[name] || 0) + outstanding;
+    });
+
+    const debtorList = Object.entries(debtorMap)
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 3); // top 3 debtors
+
+    return { total, debtors: debtorList };
+  }, [debtItems, account]);
 
   const currency = account?.currency || "EUR";
 
@@ -154,6 +192,27 @@ const AccountDetails = () => {
     };
   }, [accountTransactions, selectedMonth, selectedYear, account?.balance]);
 
+  const [scopeModalOpen, setScopeModalOpen] = useState(false);
+  const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
+
+  const chartData = useMemo(() => {
+    const total = Number(account?.balance) || 0;
+    const reserved = Number(account?.reserved_credit_balance) || 0;
+    const available = Number(account?.available_balance) ?? (total - reserved);
+    
+    if (reserved <= 0) {
+      return [
+        { name: "Disponível para Gastos", value: Math.max(0, total) || 1, color: "#10b981" },
+        { name: "Reservado para Cartão", value: 0, color: "#f59e0b" }
+      ];
+    }
+
+    return [
+      { name: "Disponível para Gastos", value: Math.max(0, available), color: "#10b981" },
+      { name: "Reservado para Cartão", value: Math.max(0, reserved), color: "#f59e0b" }
+    ];
+  }, [account]);
+
   // Mostra loading enquanto as contas ainda não foram carregadas da API
   if (!account && !accountsLoaded) {
     return (
@@ -181,26 +240,6 @@ const AccountDetails = () => {
     );
   }
 
-  const [scopeModalOpen, setScopeModalOpen] = useState(false);
-  const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
-
-  const chartData = useMemo(() => {
-    const total = Number(account?.balance) || 0;
-    const reserved = Number(account?.reserved_credit_balance) || 0;
-    const available = Number(account?.available_balance) ?? (total - reserved);
-    
-    if (reserved <= 0) {
-      return [
-        { name: "Disponível para Gastos", value: Math.max(0, total) || 1, color: "#10b981" },
-        { name: "Reservado para Cartão", value: 0, color: "#f59e0b" }
-      ];
-    }
-
-    return [
-      { name: "Disponível para Gastos", value: Math.max(0, available), color: "#10b981" },
-      { name: "Reservado para Cartão", value: Math.max(0, reserved), color: "#f59e0b" }
-    ];
-  }, [account]);
 
   const handleDeleteClick = (t: any) => {
     if (t.recurring_parent || t.is_recurring) {
@@ -302,6 +341,21 @@ const AccountDetails = () => {
           )}
         </div>
       </div>
+
+      {subaccountDebts.total > 0 && (account.available_balance ?? (Number(account.balance) - (Number(account.reserved_credit_balance) || 0))) < 0 && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-2 shadow-soft animate-in slide-in-from-top-2 duration-300">
+          <p className="text-xs sm:text-sm text-amber-500 font-bold leading-relaxed">
+            Este saldo negativo de {formatMoney(account.available_balance ?? (Number(account.balance) - (Number(account.reserved_credit_balance) || 0)), currency)} possui {formatMoney(subaccountDebts.total, currency)} a ser restituído por terceiros.
+          </p>
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {subaccountDebts.debtors.map((d) => (
+              <Badge key={d.name} className="bg-amber-500/15 text-amber-500 border-amber-500/20 hover:bg-amber-500/25 shadow-none font-bold text-[10px] rounded-xl px-2 py-0.5">
+                {d.name}: {formatMoney(d.amount, currency)}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Period Filters */}
       <div className="flex flex-wrap items-center gap-2 pl-0">

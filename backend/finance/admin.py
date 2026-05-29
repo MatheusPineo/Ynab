@@ -11,8 +11,8 @@ class AccountAdmin(admin.ModelAdmin):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'user')
-    list_filter = ('user',)
+    list_display = ('name', 'user', 'target_value', 'target_type', 'ceiling_value')
+    list_filter = ('user', 'target_type')
 
 @admin.register(MonthlyBudget)
 class MonthlyBudgetAdmin(admin.ModelAdmin):

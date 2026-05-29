@@ -80,6 +80,8 @@ else:
         "https://ynab-five.vercel.app",
     ]
 
+CORS_EXPOSE_HEADERS = ['X-Ready-To-Assign']
+
 ROOT_URLCONF = 'ynab_backend.urls'
 
 TEMPLATES = [

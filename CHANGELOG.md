@@ -1,3 +1,23 @@
+## [1.41.00] - 2026-05-29
+
+### Added
+- Modelos de Colegas de Quarto e Dívidas: Criados os modelos `Debtor` e `DebtItem` no Django para suportar despesas compartilhadas granularmente.
+- Motor de Repagamento FIFO Agrupado: Desenvolvido `DebtorPaymentService.pay_subaccount_group` atômico para injetar saldos em contas e liquidar dívidas em fila cronológica.
+- Registro de Dívidas em Lote (Bulk Creation): Desenvolvido o serviço `DebtorCreationService.register_itemized_debts` transacional para cadastrar múltiplos itens de despesa vinculados a um roommate sem deduzir novamente do envelope.
+- Serialização e Agregação na API: Refatorada `DebtorViewSet` e criada `DebtItemViewSet` para expor dívidas consolidadas por envelope, totais pendentes e itens internos estruturados em formato aninhado. Adicionado endpoint `POST /api/debtors/{id}/add_items/` mapeando o serviço de lote.
+- Cobertura de Testes Automatizados: Adicionado `test_debtor_payments.py` com validações rigorosas de comportamento FIFO, criação em lote e rotas HTTP da API.
+
+
+## [1.40.00] - 2026-05-29
+
+### Added
+- Metas de Orçamento Inteligentes: Introduzidas as propriedades `target_value`, `target_type` (choices: FIXED, PERCENTAGE) e `ceiling_value` no modelo `Category` do Django.
+- Serviço de Distribuição de Renda (Smart Allocation): Criado o serviço `BudgetAutomationService.smart_allocate` para preenchimento de envelopes base-zero de forma atômica no backend a partir de metas recorrentes (`RECURRING_TARGETS`) ou distribuição proporcional extra (`EXTRA_PROPORTIONAL`).
+- Ações Rápidas de Rebalanceamento Automático: Implementadas funções para ajustar envelopes ao teto (`REBALANCE_TO_CEILING`) e zerar envelopes estourados (`REBALANCE_ZERO_OVERSPENT`) recolhendo e distribuindo saldos do RTA.
+- Captura de RTA no Zustand: Adicionado interceptor para ler o cabeçalho HTTP `X-Ready-To-Assign` na store `useAccountStore.ts`, salvando dinamicamente em `readyToAssignBalance` e exibindo no cabeçalho do orçamento.
+- Modal de Distribuição de Renda no Frontend: Refatoração do `DistributionModal.tsx` para mapear inputs para categorias em vez de contas físicas, acionando o endpoint `/monthly-budgets/set_budget/` e `smart_allocate`.
+- Painel de Ações de Rebalanceamento na UI: Botões integrados no cabeçalho do orçamento para disparar rebalanceamentos rápidos no backend.
+
 ## [1.39.00] - 2026-05-28
 
 ### Added

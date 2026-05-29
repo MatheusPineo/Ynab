@@ -720,6 +720,57 @@ class CategoryViewSet(viewsets.ModelViewSet):
                 
         return Response({'message': 'Auto-assign concluído com sucesso.'})
 
+    @action(detail=False, methods=['post'])
+    def auto_shield(self, request):
+        """
+        Aciona o escudo automático: cobre déficits de envelopes redistribuindo de categorias superavitárias.
+        """
+        from .services import BudgetRebalancingService
+        month = int(request.data.get('month', datetime.now().month))
+        year = int(request.data.get('year', datetime.now().year))
+        result = BudgetRebalancingService.auto_shield(request.user, month, year)
+        return Response({
+            'message': 'Escudo automático aplicado com sucesso.',
+            'donors': {str(k): v for k, v in result['donors'].items()},
+            'recipients': {str(k): v for k, v in result['recipients'].items()},
+            'total_moved': float(result['total_moved']),
+            'uncovered_deficit': float(result['uncovered_deficit']),
+        })
+
+    @action(detail=False, methods=['post'])
+    def surplus_sweep(self, request):
+        """
+        Aciona varredura de excedentes: remove sobras acima do ceiling e devolve ao RTA.
+        """
+        from .services import BudgetRebalancingService
+        month = int(request.data.get('month', datetime.now().month))
+        year = int(request.data.get('year', datetime.now().year))
+        result = BudgetRebalancingService.surplus_sweep(request.user, month, year)
+        return Response({
+            'message': 'Varredura de excedentes concluída.',
+            'swept_categories': {str(k): v for k, v in result['swept_categories'].items()},
+            'total_returned_to_rta': float(result['total_returned_to_rta']),
+        })
+
+    @action(detail=False, methods=['post'])
+    def month_end_cascade(self, request):
+        """
+        Aciona cascata de fim de mês: drena categorias voláteis para uma categoria alvo.
+        """
+        from .services import BudgetRebalancingService
+        month = int(request.data.get('month', datetime.now().month))
+        year = int(request.data.get('year', datetime.now().year))
+        target_category_id = request.data.get('target_category_id')
+        if not target_category_id:
+            return Response({'error': 'target_category_id é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+        result = BudgetRebalancingService.month_end_cascade(request.user, month, year, target_category_id)
+        return Response({
+            'message': 'Cascata de fim de mês concluída.',
+            'drained_categories': {str(k): v for k, v in result['drained_categories'].items()},
+            'target_category': result['target_category'],
+            'total_transferred': float(result['total_transferred']),
+        })
+
 class MonthlyBudgetViewSet(viewsets.ModelViewSet):
     serializer_class = MonthlyBudgetSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -2278,3 +2329,83 @@ class ReportsViewSet(viewsets.ViewSet):
         year = int(request.query_params.get('year', now.year))
         data = ReportEngine.get_credit_card_usage(request.user, month, year)
         return Response(data)
+
+
+from .models import Debtor, DebtItem
+from .serializers import DebtorSerializer, DebtItemSerializer
+from .services import DebtorPaymentService
+
+class DebtorViewSet(viewsets.ModelViewSet):
+    serializer_class = DebtorSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Debtor.objects.filter(user=self.request.user).order_by('name')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['get'])
+    def grouped_debts(self, request, pk=None):
+        debtor = self.get_object()
+        items = DebtItem.objects.filter(debtor=debtor).select_related('origin_subaccount')
+        
+        grouped = {}
+        for item in items:
+            sub = item.origin_subaccount
+            if sub.id not in grouped:
+                grouped[sub.id] = {
+                    'subaccount_id': sub.id,
+                    'subaccount_name': sub.name,
+                    'total_outstanding_balance': Decimal('0.00'),
+                    'items': []
+                }
+            # Outstanding = total_amount - paid_amount
+            outstanding = item.total_amount - item.paid_amount
+            grouped[sub.id]['total_outstanding_balance'] += outstanding
+            grouped[sub.id]['items'].append(DebtItemSerializer(item).data)
+            
+        result = list(grouped.values())
+        return Response(result)
+
+    @action(detail=True, methods=['post'])
+    def pay_group(self, request, pk=None):
+        debtor = self.get_object()
+        subaccount_id = request.data.get('subaccount_id')
+        payment_amount = request.data.get('amount')
+        
+        if not subaccount_id or not payment_amount:
+            return Response({"detail": "subaccount_id e amount são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            result = DebtorPaymentService.pay_subaccount_group(debtor.id, subaccount_id, payment_amount)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def add_items(self, request, pk=None):
+        debtor = self.get_object()
+        subaccount_id = request.data.get('subaccount_id')
+        items_payload = request.data.get('items')
+        
+        if not subaccount_id or not isinstance(items_payload, list):
+            return Response({"detail": "subaccount_id e items (lista) são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            from .services import DebtorCreationService
+            created_items = DebtorCreationService.register_itemized_debts(debtor.id, subaccount_id, items_payload)
+            serialized = DebtItemSerializer(created_items, many=True)
+            return Response(serialized.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+class DebtItemViewSet(viewsets.ModelViewSet):
+    serializer_class = DebtItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return DebtItem.objects.filter(debtor__user=self.request.user).select_related('debtor', 'origin_subaccount').order_by('-date_created', '-id')
+

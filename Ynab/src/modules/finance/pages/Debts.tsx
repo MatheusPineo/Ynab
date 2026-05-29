@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Plus, CreditCard, ChevronDown, ChevronUp, CheckCircle2, History, Trash, Handshake } from "lucide-react";
+import { Plus, CreditCard, ChevronDown, ChevronUp, CheckCircle2, History, Trash, Handshake, User } from "lucide-react";
 import { formatMoney } from "@/shared/lib/currency-utils";
+import { authenticatedFetch } from "@/shared/lib/api";
+import { useNavigate } from "react-router-dom";
 import { useDebtStore, Debt, DebtPayment } from "@/modules/finance/store/useDebtStore";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
@@ -202,10 +204,12 @@ const DebtCard = ({
 };
 
 export const Debts = () => {
+  const navigate = useNavigate();
   const { debts, fetchDebts, addDebt, addPayment, addDebtAmount } = useDebtStore();
   const { tree, fetchAccounts } = useAccountStore();
   const { baseCurrency } = useCurrencyStore();
   
+  const [debtors, setDebtors] = useState<{ id: number; name: string }[]>([]);
   const [isAddDebtOpen, setIsAddDebtOpen] = useState(false);
   const [isPaymentOpen, setIsPaymentOpen] = useState(false);
   const [selectedDebt, setSelectedDebt] = useState<Debt | null>(null);
@@ -233,6 +237,18 @@ export const Debts = () => {
   useEffect(() => {
     fetchDebts();
     if (tree.length === 0) fetchAccounts();
+    const fetchDebtors = async () => {
+      try {
+        const res = await authenticatedFetch("/debtors/");
+        if (res.ok) {
+          const data = await res.json();
+          setDebtors(data);
+        }
+      } catch (err) {
+        console.error("Erro ao buscar devedores", err);
+      }
+    };
+    fetchDebtors();
   }, [fetchDebts, fetchAccounts, tree.length]);
 
   useEffect(() => {
@@ -380,6 +396,27 @@ export const Debts = () => {
             </TabsList>
 
             <TabsContent value="me_devem" className="space-y-4 focus-visible:outline-none focus-visible:ring-0">
+              {debtors.length > 0 && (
+                <div className="space-y-3 mb-6 p-4 bg-sidebar/20 rounded-2xl border border-sidebar-border/30">
+                  <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider font-mono flex items-center gap-2">
+                    <User className="h-4 w-4 text-primary" />
+                    Perfis de Roommates (Visão Agrupada FIFO)
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {debtors.map((d) => (
+                      <Button
+                        key={d.id}
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl border-border/40 bg-sidebar/30 hover:bg-muted/10 flex items-center gap-1.5"
+                        onClick={() => navigate(`/debtor/${d.id}`)}
+                      >
+                        <span>Ver Perfil de {d.name}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {meDevem.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="h-20 w-20 rounded-full bg-primary/5 flex items-center justify-center mb-6">

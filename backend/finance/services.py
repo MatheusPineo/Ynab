@@ -1317,3 +1317,340 @@ class CreditCardManagementService:
                             t.save()
                             
                 matrix_tx.save()
+
+
+class BudgetAutomationService:
+    """
+    Serviço de alocação inteligente de receita nos envelopes de orçamento.
+    Consome do pool RTA e distribui para MonthlyBudget de acordo com as
+    regras de target definidas em cada Category.
+    """
+
+    @staticmethod
+    @transaction.atomic
+    def smart_allocate(user, amount, mode, month=None, year=None, savings_category_id=None):
+        """
+        Aloca `amount` do RTA para os envelopes de categoria.
+        Modos:
+          - RECURRING_TARGETS: preenche envelopes conforme target_value de cada categoria.
+          - EXTRA_PROPORTIONAL: distribui extra proporcional aos ratios dos targets.
+          - EXTRA_SAVINGS: injeta 100% do extra numa categoria de poupança designada.
+
+        Retorna dict com breakdown da alocação e saldo não alocado.
+        """
+        from .models import Category, MonthlyBudget
+        from datetime import date as dt_date
+
+        today = dt_date.today()
+        m = month or today.month
+        y = year or today.year
+        pool = Decimal(str(amount))
+        if pool <= Decimal('0.00'):
+            return {'allocated': {}, 'remainder': Decimal('0.00'), 'total_allocated': Decimal('0.00')}
+
+        cats = Category.objects.filter(user=user, parent__isnull=False, target_value__gt=Decimal('0.00'))
+        allocated = {}
+
+        if mode == 'RECURRING_TARGETS':
+            for cat in cats:
+                if pool <= Decimal('0.00'):
+                    break
+                target = cat.target_value if cat.target_type == 'FIXED' else round(pool * cat.target_value / Decimal('100.00'), 2)
+                # Obter quanto já está alocado neste mês
+                mb, created = MonthlyBudget.objects.get_or_create(
+                    category=cat, month=m, year=y, defaults={'amount': Decimal('0.00')}
+                )
+                gap = max(Decimal('0.00'), target - mb.amount)
+                fill = min(gap, pool) if cat.target_type == 'FIXED' else min(target, pool)
+                if fill > Decimal('0.00'):
+                    mb.amount += fill
+                    mb.save()
+                    pool -= fill
+                    allocated[cat.id] = {'name': cat.name, 'amount': fill}
+
+        elif mode == 'EXTRA_PROPORTIONAL':
+            total_target = sum(
+                c.target_value for c in cats if c.target_type == 'FIXED'
+            ) + sum(
+                pool * c.target_value / Decimal('100.00') for c in cats if c.target_type == 'PERCENTAGE'
+            )
+            if total_target > Decimal('0.00'):
+                for cat in cats:
+                    if pool <= Decimal('0.00'):
+                        break
+                    t = cat.target_value if cat.target_type == 'FIXED' else round(pool * cat.target_value / Decimal('100.00'), 2)
+                    ratio = t / total_target
+                    share = round(Decimal(str(amount)) * ratio, 2)
+                    share = min(share, pool)
+                    if share > Decimal('0.00'):
+                        mb, _ = MonthlyBudget.objects.get_or_create(
+                            category=cat, month=m, year=y, defaults={'amount': Decimal('0.00')}
+                        )
+                        mb.amount += share
+                        mb.save()
+                        pool -= share
+                        allocated[cat.id] = {'name': cat.name, 'amount': share}
+
+        elif mode == 'EXTRA_SAVINGS':
+            if not savings_category_id:
+                raise ValueError("savings_category_id é obrigatório para o modo EXTRA_SAVINGS.")
+            cat = Category.objects.get(id=savings_category_id, user=user)
+            mb, _ = MonthlyBudget.objects.get_or_create(
+                category=cat, month=m, year=y, defaults={'amount': Decimal('0.00')}
+            )
+            mb.amount += pool
+            mb.save()
+            allocated[cat.id] = {'name': cat.name, 'amount': pool}
+            pool = Decimal('0.00')
+
+        total_alloc = Decimal(str(amount)) - pool
+        return {'allocated': allocated, 'remainder': pool, 'total_allocated': total_alloc}
+
+
+class BudgetRebalancingService:
+    """
+    Serviço de rebalanceamento automático dos envelopes de orçamento.
+    Opera sobre MonthlyBudget.amount para redistribuir fundos entre categorias
+    sem tocar no pool RTA (exceto surplus_sweep que devolve ao RTA).
+    """
+
+    @staticmethod
+    @transaction.atomic
+    def auto_shield(user, month, year):
+        """
+        Escudo automático: identifica categorias com saldo negativo e cobre o déficit
+        puxando proporcionalmente APENAS de categorias com available > target_value.
+        CRÍTICO: NÃO toca no pool RTA.
+
+        Retorna dict com categorias doadoras, receptoras e valores transferidos.
+        """
+        from .models import Category, MonthlyBudget
+
+        states = YNABBudgetService.calculate_envelope_states(user, month, year)
+        envelopes = states['envelope_states']
+
+        cats = {c.id: c for c in Category.objects.filter(user=user, parent__isnull=False)}
+
+        # Separar deficitárias e superavitárias (acima do target)
+        deficit_cats = {}  # cat_id -> deficit (positivo)
+        donor_cats = {}    # cat_id -> excesso doável (acima do target)
+
+        for cat_id, env in envelopes.items():
+            available = env['available']
+            cat = cats.get(cat_id)
+            if not cat:
+                continue
+            if available < Decimal('0.00'):
+                deficit_cats[cat_id] = -available
+            elif available > cat.target_value and cat.target_value > Decimal('0.00'):
+                donor_cats[cat_id] = available - cat.target_value
+
+        total_deficit = sum(deficit_cats.values())
+        total_donor_pool = sum(donor_cats.values())
+
+        if total_deficit <= Decimal('0.00') or total_donor_pool <= Decimal('0.00'):
+            return {'donors': {}, 'recipients': {}, 'total_moved': Decimal('0.00'), 'uncovered_deficit': total_deficit}
+
+        # Quanto realmente conseguimos cobrir
+        coverable = min(total_deficit, total_donor_pool)
+        donors_log = {}
+        recipients_log = {}
+
+        # 1. Puxar dos doadores proporcionalmente
+        for cat_id, excess in donor_cats.items():
+            ratio = excess / total_donor_pool
+            pull = round(coverable * ratio, 2)
+            if pull > Decimal('0.00'):
+                mb, _ = MonthlyBudget.objects.get_or_create(
+                    category_id=cat_id, month=month, year=year, defaults={'amount': Decimal('0.00')}
+                )
+                mb.amount -= pull
+                mb.save()
+                donors_log[cat_id] = {'name': cats[cat_id].name, 'pulled': pull}
+
+        # 2. Distribuir para deficitárias proporcionalmente
+        for cat_id, deficit in deficit_cats.items():
+            ratio = deficit / total_deficit
+            push = round(coverable * ratio, 2)
+            if push > Decimal('0.00'):
+                mb, _ = MonthlyBudget.objects.get_or_create(
+                    category_id=cat_id, month=month, year=year, defaults={'amount': Decimal('0.00')}
+                )
+                mb.amount += push
+                mb.save()
+                recipients_log[cat_id] = {'name': cats[cat_id].name, 'received': push}
+
+        uncovered = max(Decimal('0.00'), total_deficit - coverable)
+        return {'donors': donors_log, 'recipients': recipients_log, 'total_moved': coverable, 'uncovered_deficit': uncovered}
+
+    @staticmethod
+    @transaction.atomic
+    def surplus_sweep(user, month, year):
+        """
+        Varredura de excedentes: categorias cujo available > ceiling_value (ceiling > 0)
+        têm o excesso removido do MonthlyBudget, devolvendo-o ao pool RTA.
+
+        Retorna dict com categorias varridas e total devolvido ao RTA.
+        """
+        from .models import Category, MonthlyBudget
+
+        states = YNABBudgetService.calculate_envelope_states(user, month, year)
+        envelopes = states['envelope_states']
+
+        cats = {c.id: c for c in Category.objects.filter(
+            user=user, parent__isnull=False, ceiling_value__gt=Decimal('0.00')
+        )}
+
+        swept = {}
+        total_swept = Decimal('0.00')
+
+        for cat_id, cat in cats.items():
+            env = envelopes.get(cat_id)
+            if not env:
+                continue
+            available = env['available']
+            if available > cat.ceiling_value:
+                excess = available - cat.ceiling_value
+                mb = MonthlyBudget.objects.filter(category_id=cat_id, month=month, year=year).first()
+                if mb and mb.amount > Decimal('0.00'):
+                    reduction = min(excess, mb.amount)
+                    mb.amount -= reduction
+                    mb.save()
+                    swept[cat_id] = {'name': cat.name, 'excess_removed': reduction}
+                    total_swept += reduction
+
+        return {'swept_categories': swept, 'total_returned_to_rta': total_swept}
+
+    @staticmethod
+    @transaction.atomic
+    def month_end_cascade(user, current_month, current_year, target_category_id):
+        """
+        Cascata de fim de mês: categorias voláteis (com ceiling_value definido, interpretadas
+        como não-acumulativas) têm seu saldo remanescente transferido 100% para a
+        target_category_id.
+
+        Retorna dict com categorias drenadas e total transferido.
+        """
+        from .models import Category, MonthlyBudget
+
+        states = YNABBudgetService.calculate_envelope_states(user, current_month, current_year)
+        envelopes = states['envelope_states']
+
+        # Categorias voláteis: possuem ceiling_value > 0 (interpretadas como "não acumulam")
+        volatile_cats = Category.objects.filter(
+            user=user, parent__isnull=False, ceiling_value__gt=Decimal('0.00')
+        ).exclude(id=target_category_id)
+
+        drained = {}
+        total_flushed = Decimal('0.00')
+
+        for cat in volatile_cats:
+            env = envelopes.get(cat.id)
+            if not env:
+                continue
+            available = env['available']
+            if available > Decimal('0.00'):
+                # Reduz o MonthlyBudget desta categoria
+                mb = MonthlyBudget.objects.filter(category=cat, month=current_month, year=current_year).first()
+                if mb:
+                    drain = min(available, mb.amount)
+                    if drain > Decimal('0.00'):
+                        mb.amount -= drain
+                        mb.save()
+                        drained[cat.id] = {'name': cat.name, 'flushed': drain}
+                        total_flushed += drain
+
+        # Deposita tudo na categoria alvo
+        if total_flushed > Decimal('0.00'):
+            target_mb, _ = MonthlyBudget.objects.get_or_create(
+                category_id=target_category_id, month=current_month, year=current_year,
+                defaults={'amount': Decimal('0.00')}
+            )
+            target_mb.amount += total_flushed
+            target_mb.save()
+
+        target_cat = Category.objects.filter(id=target_category_id).first()
+        return {
+            'drained_categories': drained,
+            'target_category': target_cat.name if target_cat else str(target_category_id),
+            'total_transferred': total_flushed,
+        }
+
+
+class DebtorPaymentService:
+    @staticmethod
+    @transaction.atomic
+    def pay_subaccount_group(debtor_id, subaccount_id, payment_amount):
+        from .models import Debtor, DebtItem, Account, Transaction as CoreTransaction
+        from django.utils import timezone
+        from decimal import Decimal
+
+        debtor = Debtor.objects.get(pk=debtor_id)
+        subaccount = Account.objects.get(pk=subaccount_id)
+        payment_amount_dec = Decimal(str(payment_amount))
+
+        # 1. Inject the incoming payment_amount directly back into the targeted SubAccount
+        CoreTransaction.objects.create(
+            account=subaccount,
+            amount=payment_amount_dec,
+            is_income=True,
+            description=f"Pagamento de dívida - {debtor.name}",
+            date=timezone.now().date(),
+            status='realized'
+        )
+
+        # 2. Fetch all DebtItem records matching debtor_id AND subaccount_id where status in ['PENDING', 'PARTIAL'] ordered chronologically
+        items = DebtItem.objects.filter(
+            debtor_id=debtor_id,
+            origin_subaccount_id=subaccount_id,
+            status__in=['PENDING', 'PARTIAL']
+        ).order_by('date_created', 'id')
+
+        # 3. Process through these items using strict FIFO
+        remaining = payment_amount_dec
+        for item in items:
+            if remaining <= Decimal('0.00'):
+                break
+            due = item.total_amount - item.paid_amount
+            if remaining >= due:
+                item.paid_amount = item.total_amount
+                item.status = 'SETTLED'
+                remaining -= due
+            else:
+                item.paid_amount += remaining
+                item.status = 'PARTIAL'
+                remaining = Decimal('0.00')
+            item.save()
+
+        return {'status': 'success', 'remaining_unallocated': remaining}
+
+
+class DebtorCreationService:
+    @staticmethod
+    @transaction.atomic
+    def register_itemized_debts(debtor_id, subaccount_id, items_payload):
+        from .models import Debtor, DebtItem, Account
+        from decimal import Decimal
+
+        debtor = Debtor.objects.get(pk=debtor_id)
+        subaccount = Account.objects.get(pk=subaccount_id)  # Validate that the subaccount exists
+
+        created_items = []
+        for item in items_payload:
+            prod_name = item.get('product_name')
+            total = Decimal(str(item.get('total_amount')))
+            
+            debt_item = DebtItem.objects.create(
+                debtor=debtor,
+                origin_subaccount=subaccount,
+                product_name=prod_name,
+                total_amount=total,
+                paid_amount=Decimal('0.00'),
+                status='PENDING'
+            )
+            created_items.append(debt_item)
+            
+        return created_items
+
+
+

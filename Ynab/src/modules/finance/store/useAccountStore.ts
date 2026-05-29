@@ -27,6 +27,12 @@ export interface CategoryNode {
   name: string;
   assigned_amount: number;
   spent_amount: number;
+  available_amount?: number;
+  rollover_amount?: number;
+  overspending_type?: string | null;
+  target_value?: number;
+  target_type?: 'FIXED' | 'PERCENTAGE';
+  ceiling_value?: number;
   parent: string | null;
   children?: CategoryNode[];
 }
@@ -49,6 +55,7 @@ interface AccountState {
   transactions: Transaction[];
   globalPendingTransactions: Transaction[];
   categoryGroups: CategoryGroup[];
+  readyToAssignBalance: number;
   goals: Goal[];
   currentMonth: number;
   currentYear: number;
@@ -90,6 +97,11 @@ interface AccountState {
   updateCategory: (id: string, updates: Partial<CategoryNode>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   setCategoryGroups: (groups: CategoryGroup[]) => void;
+
+  // Rebalancing Actions
+  autoShield: () => Promise<any>;
+  surplusSweep: () => Promise<any>;
+  monthEndCascade: (targetCategoryId: string) => Promise<any>;
   
   // Goals Actions
   fetchGoals: () => Promise<void>;
@@ -115,6 +127,7 @@ export const useAccountStore = create<AccountState>()(
       transactions: [],
       globalPendingTransactions: [],
       categoryGroups: [],
+      readyToAssignBalance: 0,
       goals: initialGoals,
       pendingIcons: {},
       distributionTemplates: [],
@@ -331,8 +344,12 @@ export const useAccountStore = create<AccountState>()(
           const { currentMonth, currentYear } = get();
           const response = await authenticatedFetch(`/categories/tree/?month=${currentMonth}&year=${currentYear}`);
           if (!response.ok) throw new Error("Falha ao buscar categorias");
+          const rtaHeader = response.headers.get('X-Ready-To-Assign');
           const data = await response.json();
-          set({ categoryGroups: data });
+          set({
+            categoryGroups: data,
+            readyToAssignBalance: rtaHeader ? parseFloat(rtaHeader) : 0,
+          });
         } catch (error) {
           console.error("Erro ao buscar categorias:", error);
         }
@@ -431,6 +448,64 @@ export const useAccountStore = create<AccountState>()(
       },
 
       setCategoryGroups: (groups) => set({ categoryGroups: groups }),
+
+      // --- REBALANCING ACTIONS ---
+      autoShield: async () => {
+        try {
+          const { currentMonth, currentYear } = get();
+          const response = await authenticatedFetch(`/categories/auto_shield/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ month: currentMonth, year: currentYear }),
+          });
+          if (!response.ok) throw new Error("Falha ao cobrir rombos");
+          const result = await response.json();
+          await get().fetchCategoryGroups();
+          toast.success(`Escudo aplicado! ${result.total_moved.toFixed(2)}€ redistribuídos.`);
+          return result;
+        } catch (error: any) {
+          toast.error(error.message);
+          throw error;
+        }
+      },
+
+      surplusSweep: async () => {
+        try {
+          const { currentMonth, currentYear } = get();
+          const response = await authenticatedFetch(`/categories/surplus_sweep/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ month: currentMonth, year: currentYear }),
+          });
+          if (!response.ok) throw new Error("Falha ao recolher sobras");
+          const result = await response.json();
+          await get().fetchCategoryGroups();
+          toast.success(`Sobras recolhidas! ${result.total_returned_to_rta.toFixed(2)}€ devolvidos ao RTA.`);
+          return result;
+        } catch (error: any) {
+          toast.error(error.message);
+          throw error;
+        }
+      },
+
+      monthEndCascade: async (targetCategoryId: string) => {
+        try {
+          const { currentMonth, currentYear } = get();
+          const response = await authenticatedFetch(`/categories/month_end_cascade/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ month: currentMonth, year: currentYear, target_category_id: targetCategoryId }),
+          });
+          if (!response.ok) throw new Error("Falha na cascata de fim de mês");
+          const result = await response.json();
+          await get().fetchCategoryGroups();
+          toast.success(`Limpeza concluída! ${result.total_transferred.toFixed(2)}€ transferidos para ${result.target_category}.`);
+          return result;
+        } catch (error: any) {
+          toast.error(error.message);
+          throw error;
+        }
+      },
 
       // --- GOALS ---
       fetchGoals: async () => {

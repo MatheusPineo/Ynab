@@ -19,6 +19,7 @@ import Settings from "@/modules/auth/pages/Settings";
 import AccountDetails from "@/modules/finance/pages/AccountDetails";
 import BillDetails from "@/modules/finance/pages/BillDetails";
 import Debts from "@/modules/finance/pages/Debts";
+import DebtorProfile from "@/modules/finance/pages/DebtorProfile";
 import Rule503020 from "@/modules/finance/pages/Rule503020";
 import Reports from "@/modules/finance/pages/Reports";
 import CreditCards from "@/modules/finance/pages/CreditCards";
@@ -167,6 +168,7 @@ const App = () => {
                   } 
                 />
                 <Route path="account/:id" element={<AccountDetails />} />
+                <Route path="debtor/:id" element={<DebtorProfile />} />
                 <Route path="bill/:cardId/:billId" element={<BillDetails />} />
                 <Route path="help" element={<HelpCenter isPublic={false} />} />
               </Route>
