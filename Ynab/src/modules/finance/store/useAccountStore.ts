@@ -150,12 +150,14 @@ export const useAccountStore = create<AccountState>()(
         set({ currentMonth: month, currentYear: year });
         get().fetchCategoryGroups();
         get().fetchTransactions();
+        get().fetchAccounts();
       },
 
       // --- ACCOUNTS ---
       fetchAccounts: async () => {
         try {
-          const response = await authenticatedFetch("/accounts/tree/");
+          const { currentMonth, currentYear } = get();
+          const response = await authenticatedFetch(`/accounts/tree/?month=${currentMonth}&year=${currentYear}`);
           if (!response.ok) throw new Error("Falha ao buscar contas");
           const data = await response.json();
           set({ tree: Array.isArray(data) ? data : [] });

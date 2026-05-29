@@ -187,6 +187,15 @@ class AccountViewSet(viewsets.ModelViewSet):
         """
         Retorna uma árvore aninhada de contas e subcontas do usuário ativo.
         """
+        from datetime import datetime
+        now = datetime.now()
+        try:
+            month = int(request.query_params.get('month', now.month))
+            year = int(request.query_params.get('year', now.year))
+        except (ValueError, TypeError):
+            month = now.month
+            year = now.year
+
         accounts = self.get_queryset()
         
         def build_tree(account_list, parent_id=None):
@@ -194,11 +203,30 @@ class AccountViewSet(viewsets.ModelViewSet):
             for account in account_list:
                 if account.parent_id == parent_id:
                     children = build_tree(account_list, account.id)
+                    
+                    from django.db.models import Sum
+                    from decimal import Decimal
+                    from .models import Transaction as CoreTx
+                    
+                    if account.account_type != 'credit_card':
+                        reserved_val = CoreTx.objects.filter(
+                            account=account,
+                            status='pending',
+                            is_applied_to_balance=False,
+                            credit_card_bill__isnull=False,
+                            credit_card_bill__month=month,
+                            credit_card_bill__year=year
+                        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                    else:
+                        reserved_val = Decimal('0.00')
+
                     acc_dict = {
                         'id': str(account.id),
                         'name': account.name,
                         'account_type': account.account_type,
                         'balance': float(account.balance),
+                        'reserved_credit_balance': float(reserved_val),
+                        'available_balance': float(account.balance - reserved_val),
                         'currency': account.currency,
                         'icon_url': account.icon_url,
                         'parent': str(account.parent_id) if account.parent_id else None,
