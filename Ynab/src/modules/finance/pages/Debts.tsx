@@ -233,6 +233,8 @@ export const Debts = () => {
   const [addAmountDescription, setAddAmountDescription] = useState("");
   const [addAmountDate, setAddAmountDate] = useState(new Date().toISOString().split('T')[0]);
   const [addAmountAccount, setAddAmountAccount] = useState("");
+  const [addAmountSubaccount, setAddAmountSubaccount] = useState("");
+  const [conciliationMode, setConciliationMode] = useState<"cash_loan" | "roomie_split">("cash_loan");
 
   useEffect(() => {
     fetchDebts();
@@ -307,23 +309,57 @@ export const Debts = () => {
 
   const handleAddDebtAmountSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedDebt || !addAmountValue || !addAmountDate || !addAmountDescription) {
-      toast.error("Preencha todos os campos.");
+    if (!selectedDebt || !addAmountValue || !addAmountDate || !addAmountDescription || !addAmountSubaccount) {
+      toast.error("Preencha todos os campos obrigatórios.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await addDebtAmount(selectedDebt.id, {
-        amount: Number(addAmountValue),
-        description: addAmountDescription,
-        date: addAmountDate,
-        account: (addAmountAccount && addAmountAccount !== "none") ? addAmountAccount : null
-      });
+      if (conciliationMode === "cash_loan") {
+        await addDebtAmount(selectedDebt.id, {
+          amount: Number(addAmountValue),
+          description: addAmountDescription,
+          date: addAmountDate,
+          account: addAmountSubaccount
+        });
+      } else {
+        const debtor = debtors.find(d => d.name.toLowerCase() === selectedDebt.counterparty_name.toLowerCase());
+        if (!debtor) {
+          throw new Error(`Perfil do roommate para "${selectedDebt.counterparty_name}" não encontrado. Por favor, registre o roommate no menu de roommates antes.`);
+        }
+
+        const res = await authenticatedFetch(`/debtors/${debtor.id}/add_items/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subaccount_id: Number(addAmountSubaccount),
+            product_name: addAmountDescription,
+            total_amount: Number(addAmountValue)
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || "Erro ao criar item de débito");
+        }
+
+        await addDebtAmount(selectedDebt.id, {
+          amount: Number(addAmountValue),
+          description: addAmountDescription,
+          date: addAmountDate,
+          account: null
+        });
+
+        toast.success("Split de roommate adicionado com sucesso!");
+      }
       setIsAddAmountOpen(false);
       setAddAmountValue("");
       setAddAmountDescription("");
-      setAddAmountAccount("");
+      setAddAmountSubaccount("");
+      setConciliationMode("cash_loan");
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -331,7 +367,6 @@ export const Debts = () => {
 
   const openPaymentModal = (debt: Debt) => {
     setSelectedDebt(debt);
-    // Suggest the remaining amount
     setPayAmount(debt.amount_remaining.toString());
     setIsPaymentOpen(true);
   };
@@ -340,7 +375,8 @@ export const Debts = () => {
     setSelectedDebt(debt);
     setAddAmountValue("");
     setAddAmountDescription("");
-    setAddAmountAccount("");
+    setAddAmountSubaccount("");
+    setConciliationMode("cash_loan");
     setIsAddAmountOpen(true);
   };
 
@@ -679,13 +715,12 @@ export const Debts = () => {
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="addAmountAccount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Conta de Conciliação (Opcional)</Label>
-                <Select value={addAmountAccount} onValueChange={setAddAmountAccount}>
+                <Label htmlFor="addAmountSubaccount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Subconta de Destino/Origem</Label>
+                <Select value={addAmountSubaccount} onValueChange={setAddAmountSubaccount} required>
                   <SelectTrigger className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11">
-                    <SelectValue placeholder="Sem conta bancária vinculada" />
+                    <SelectValue placeholder="Selecione a subconta (Mercado, Poupança...)" />
                   </SelectTrigger>
-                  <SelectContent className="bg-card border-border/60">
-                    <SelectItem value="none">Nenhuma (ajuste estritamente contábil / manual)</SelectItem>
+                  <SelectContent className="bg-card border-border/60 max-h-60 overflow-y-auto">
                     {subaccounts.map(acc => (
                       <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
                     ))}
@@ -693,9 +728,35 @@ export const Debts = () => {
                 </Select>
               </div>
 
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Regra de Conciliação</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={conciliationMode === "cash_loan" ? "default" : "outline"}
+                    className="rounded-xl h-10 text-xs font-bold"
+                    onClick={() => setConciliationMode("cash_loan")}
+                  >
+                    Empréstimo Direto
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={conciliationMode === "roomie_split" ? "default" : "outline"}
+                    className="rounded-xl h-10 text-xs font-bold"
+                    onClick={() => setConciliationMode("roomie_split")}
+                  >
+                    Divisão Roommate
+                  </Button>
+                </div>
+              </div>
+
               <div className="p-3 bg-muted/10 border border-border/30 rounded-2xl">
                 <p className="text-[10px] sm:text-xs text-muted-foreground text-center leading-relaxed font-sans">
-                  💡 Caso selecione uma conta bancária, isto criará automaticamente uma transação do tipo <strong className="text-foreground">{selectedDebt?.is_mine ? "Receita" : "Despesa"}</strong> para balanceamento.
+                  {conciliationMode === "cash_loan" ? (
+                    <span>💡 <strong>Empréstimo Direto:</strong> Deduzirá diretamente o valor do saldo físico da subconta selecionada.</span>
+                  ) : (
+                    <span>💡 <strong>Divisão Roommate:</strong> Registrará a despesa compartilhada detalhada no perfil do roommate sem gerar transação física duplicada.</span>
+                  )}
                 </p>
               </div>
             </div>

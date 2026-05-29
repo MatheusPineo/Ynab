@@ -2417,6 +2417,12 @@ class DebtorViewSet(viewsets.ModelViewSet):
         subaccount_id = request.data.get('subaccount_id')
         items_payload = request.data.get('items')
         
+        if not items_payload and 'product_name' in request.data:
+            items_payload = [{
+                'product_name': request.data.get('product_name'),
+                'total_amount': request.data.get('total_amount')
+            }]
+            
         if not subaccount_id or not isinstance(items_payload, list):
             return Response({"detail": "subaccount_id e items (lista) são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
             
