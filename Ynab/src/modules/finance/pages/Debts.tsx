@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import { AccountNode } from "@/types";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 
 const DebtCard = ({ 
   debt, 
@@ -193,8 +194,8 @@ const DebtCard = ({
                   <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/40 gap-2">
                     <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3">
                       {editingSubaccountIdx === idx ? (
-                        <Select
-                          value={g.id ? String(g.id) : "legacy"}
+                        <GlobalAccountSelector
+                          value={g.id ? String(g.id) : ""}
                           onValueChange={async (newVal) => {
                             if (targetItemId) {
                               try {
@@ -220,19 +221,10 @@ const DebtCard = ({
                             }
                             setEditingSubaccountIdx(null);
                           }}
-                        >
-                          <SelectTrigger className="h-7 w-[130px] text-xs">
-                            <SelectValue placeholder="Selecione..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="legacy">Herdado (Geral)</SelectItem>
-                            {subaccounts.map(acc => (
-                              <SelectItem key={acc.id} value={String(acc.id)}>
-                                {acc.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Selecione..."
+                          filterLeafOnly={true}
+                          className="h-7 w-[130px] text-xs font-semibold"
+                        />
                       ) : (
                         <span 
                           className="text-muted-foreground flex items-center gap-1.5 font-medium cursor-pointer hover:underline"
@@ -926,16 +918,13 @@ export const Debts = () => {
 
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="payAccount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Conta Bancária de Destino / Origem</Label>
-                <Select value={payAccount} onValueChange={setPayAccount} required>
-                  <SelectTrigger className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11">
-                    <SelectValue placeholder="Selecione a conta bancária" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border/60">
-                    {subaccounts.map(acc => (
-                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <GlobalAccountSelector
+                  value={payAccount}
+                  onValueChange={setPayAccount}
+                  placeholder="Selecione a conta bancária"
+                  filterLeafOnly={true}
+                  className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11"
+                />
               </div>
 
               <div className="p-3 bg-muted/10 border border-border/30 rounded-2xl">
@@ -1008,19 +997,15 @@ export const Debts = () => {
                   />
                 </div>
               </div>
-
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="addAmountSubaccount" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Subconta de Destino/Origem</Label>
-                <Select value={addAmountSubaccount} onValueChange={setAddAmountSubaccount} required>
-                  <SelectTrigger className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11">
-                    <SelectValue placeholder="Selecione a subconta (Mercado, Poupança...)" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-card border-border/60 max-h-60 overflow-y-auto">
-                    {subaccounts.map(acc => (
-                      <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <GlobalAccountSelector
+                  value={addAmountSubaccount}
+                  onValueChange={setAddAmountSubaccount}
+                  placeholder="Selecione a subconta (Mercado, Poupança...)"
+                  filterLeafOnly={true}
+                  className="rounded-xl border-border/40 bg-muted/15 text-xs sm:text-sm focus:ring-primary/30 h-11"
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
