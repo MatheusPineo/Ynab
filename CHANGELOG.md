@@ -1,3 +1,11 @@
+## [1.41.05] - 2026-05-30
+
+### Added
+- Agregação de Devedores Unificada nas Subcontas: Modificada a lógica de cálculo de `debtors_summary` e `pending_restitutions_total` no `AccountSerializer` e na rota `/accounts/tree/` para somar de forma dinâmica os saldos em aberto provenientes de roommate splits (`DebtItem`) e empréstimos/débitos pessoais (`Debt` onde `is_mine = False` e `origin_subaccount` coincide), unificando de forma transparente os devedores na visualização detalhada do envelope.
+
+### Fixed
+- Correção de typo na chamada da função `date` dentro do arquivo `test_reports.py` do backend.
+
 ## [1.41.04] - 2026-05-30
 
 ### Added

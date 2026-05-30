@@ -85,6 +85,8 @@ export interface AccountNode {
   actual_balance?: number;
   reserved_credit_balance?: number;
   available_balance?: number;
+  pending_restitutions_total?: number;
+  debtors_summary?: { debtor_name: string; amount: number }[];
 }
 
 /**

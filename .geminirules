@@ -17,17 +17,18 @@
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-05-30 21:46:00): Adição da saudação dinâmica no Topbar por período de horário local do navegador (v1.41.04).
-- Frontend: Implementação de getGreeting no Topbar.tsx para saudar o usuário ("Bom dia", "Boa tarde", "Boa noite") mantendo a formatação e emoji wave originais.
-- Backend: Correção de IntegrityError em compras de cartão, correção de NameError em tratamento de categoria e pay_bill, restabelecendo 100% de conformidade com pytest.
+(Atualizado em 2026-05-30 22:13:00): Agregação de devedores unificada nas subcontas (v1.41.05).
+- Frontend: Exibição dinâmica do card "Devedores deste Envelope" nos detalhes internos das subcontas (AccountDetails.tsx).
+- Backend: Modificadas as propriedades debtors_summary e pending_restitutions_total no AccountSerializer e no endpoint /accounts/tree/ para agregar tanto dívidas de roommates (DebtItem) quanto dívidas pessoais gerais (Debt onde is_mine = False e origin_subaccount coincide), garantindo consistência total do saldo devido.
 
-### Status Atual (Versão 1.41.04)
-- **Marco:** Cumprimento Dinâmico no Topbar e Testes Verdes (v1.41.04).
+### Status Atual (Versão 1.41.05)
+- **Marco:** Devedores Unificados nas Subcontas (v1.41.05).
 - **Estado:** 100% estável e implantado em produção (Vercel).
-- **Arquitetura:** Injeção de lógica condicional no Topbar.tsx com base em `getHours()` e renderização dinâmica na tag `h1` sem interferir na visualização mobile.
+- **Arquitetura:** Agregação híbrida de roommates e empréstimos diretos para exibir devedores por caixinha no frontend.
 - **Testes:** Suíte de testes (Vitest + Pytest) 100% verde (90 testes Django + 30 testes frontend bem-sucedidos).
 
 ### Histórico de Sprints Recentes
+- [v1.41.05] Agregação de Devedores Unificada nas Subcontas: Integração híbrida de roommate splits (DebtItem) e dívidas pessoais (Debt) na sumarização de devedores por subconta.
 - [v1.41.04] Cumprimento Inteligente no Topbar: Saudação dinâmica por hora local (Bom dia, Boa tarde, Boa noite) integrada ao componente de cabeçalho.
 - [v1.41.03] Estabilização do Motor de Faturas: Correção de conciliações e faturas do cartão, importações e integridade de banco de dados.
 - [v1.41.02] Seletor de Contas Global e Edição Inline: Substituição de dropdowns comuns por GlobalAccountSelector e suporte a edição rápida de valores e exclusão no painel de devedores.

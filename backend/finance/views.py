@@ -220,18 +220,34 @@ class AccountViewSet(viewsets.ModelViewSet):
                     else:
                         reserved_val = Decimal('0.00')
 
-                    from .models import DebtItem
+                    from .models import DebtItem, Debt, DebtCharge, DebtPayment
                     debt_items = DebtItem.objects.filter(
                         origin_subaccount=account,
                         status__in=['PENDING', 'PARTIAL']
                     )
-                    pending_restitutions_total = sum(item.total_amount - item.paid_amount for item in debt_items)
+                    total_items = sum(item.total_amount - item.paid_amount for item in debt_items)
                     
                     debtor_map = {}
                     for item in debt_items:
                         name = item.debtor.name if item.debtor else "Outro"
                         outstanding = item.total_amount - item.paid_amount
                         debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
+                        
+                    debts = Debt.objects.filter(
+                        origin_subaccount=account,
+                        is_mine=False
+                    )
+                    total_debts = Decimal('0.00')
+                    for debt in debts:
+                        total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                        total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                        outstanding = (debt.original_amount + total_charges) - total_paid
+                        if outstanding > 0:
+                            total_debts += outstanding
+                            name = debt.counterparty_name
+                            debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
+                            
+                    pending_restitutions_total = total_items + total_debts
                     
                     debtors_summary = [
                         {"debtor_name": name, "amount": float(amount)}

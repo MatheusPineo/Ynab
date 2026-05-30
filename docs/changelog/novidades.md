@@ -1,5 +1,10 @@
 # Novidades e Atualizações
 
+## Visualização Unificada de Devedores na Subconta (30/05/2026) 👥💼
+A tela interna de cada subconta (envelope) agora conta com um painel completo e dinâmico de devedores:
+* **Painel "Devedores deste Envelope":** Exibe de forma inteligente a lista de devedores e os respectivos saldos que cada um deve a este envelope.
+* **Unificação Matemática:** O resumo integra e calcula de forma dinâmica os saldos pendentes originados tanto de roommate splits (`DebtItem`) quanto de empréstimos diretos e pessoais (`Debt` onde a contraparte nos deve), garantindo que nenhum valor devido fique oculto na visualização interna do envelope.
+
 ## Cumprimento Inteligente no Topbar (30/05/2026) ☀️🌙
 A página inicial agora se comunica com você de acordo com o período do dia:
 * **Saudação Dinâmica por Horário:** O cabeçalho superior (`Topbar.tsx`) agora analisa a hora do seu navegador.

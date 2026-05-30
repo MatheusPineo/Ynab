@@ -16,12 +16,11 @@ O Vault Finance OS possui um sistema completo e granular para gerenciar despesas
 
 ---
 
-## 2. Como Funciona a Visualização Agrupada?
+## 2. Como Funciona a Visualização Agrupada e o Resumo Interno da Subconta
 
-Na interface do usuário, as dívidas de um devedor não são mostradas apenas como uma lista gigante e desorganizada. O sistema realiza uma **Agregação por Envelope (Origin Subaccount)**:
-1. **Agrupamento por Categoria:** Os débitos são divididos por envelopes de origem (ex: todas as compras de supermercado ficam sob "Mercado", despesas de luz ficam sob "Contas de Consumo").
-2. **Saldo Total Pendente:** Para cada grupo/envelope, o sistema calcula a soma exata dos valores que ainda restam ser pagos.
-3. **Itens Underlying:** Dentro de cada grupo, você pode expandir para ver a listagem detalhada de cada produto ou serviço individual, com suas respectivas datas e status.
+Na interface do usuário, as dívidas são tratadas de forma granular e agregadas logicamente:
+1. **Agrupamento por Categoria (Debtor Dashboard):** No painel de devedores, os débitos são divididos por envelopes de origem (ex: todas as compras de supermercado ficam sob "Mercado", despesas de luz ficam sob "Contas de Consumo"). Para cada grupo, calcula-se a soma dos valores que ainda restam ser pagos, permitindo expandir os itens subjacentes.
+2. **Resumo de Devedores no Envelope (Subaccount Details):** Ao acessar o detalhe interno de qualquer subconta (como "Mercado"), o sistema exibe dinamicamente o painel **"Devedores deste Envelope"** quando há pendências. Esse painel consolida de forma transparente os saldos devidos a este envelope oriundos tanto de divisões de despesas (`DebtItem`) quanto de empréstimos/débitos diretos pessoais (`Debt` onde `is_mine = False`), garantindo controle absoluto de quem deve para cada caixinha específica.
 
 ---
 

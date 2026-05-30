@@ -16,26 +16,57 @@ class AccountSerializer(serializers.ModelSerializer):
         }
 
     def get_pending_restitutions_total(self, obj):
-        from .models import DebtItem
+        from .models import DebtItem, Debt, DebtCharge, DebtPayment
+        from django.db.models import Sum
+        from decimal import Decimal
+        
         items = DebtItem.objects.filter(
             origin_subaccount=obj,
             status__in=['PENDING', 'PARTIAL']
         )
-        total = sum(item.total_amount - item.paid_amount for item in items)
-        return float(total)
+        total_items = sum(item.total_amount - item.paid_amount for item in items)
+        
+        debts = Debt.objects.filter(
+            origin_subaccount=obj,
+            is_mine=False
+        )
+        total_debts = Decimal('0.00')
+        for debt in debts:
+            total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            outstanding = (debt.original_amount + total_charges) - total_paid
+            if outstanding > 0:
+                total_debts += outstanding
+                
+        return float(total_items + total_debts)
 
     def get_debtors_summary(self, obj):
-        from .models import DebtItem
+        from .models import DebtItem, Debt, DebtCharge, DebtPayment
+        from django.db.models import Sum
         from decimal import Decimal
+        
+        debtor_map = {}
+        
         items = DebtItem.objects.filter(
             origin_subaccount=obj,
             status__in=['PENDING', 'PARTIAL']
         )
-        debtor_map = {}
         for item in items:
             name = item.debtor.name if item.debtor else "Outro"
             outstanding = item.total_amount - item.paid_amount
             debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
+            
+        debts = Debt.objects.filter(
+            origin_subaccount=obj,
+            is_mine=False
+        )
+        for debt in debts:
+            total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            outstanding = (debt.original_amount + total_charges) - total_paid
+            if outstanding > 0:
+                name = debt.counterparty_name
+                debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
         
         return [
             {"debtor_name": name, "amount": float(amount)}

@@ -5,12 +5,21 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'ynab_backend.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model
-from finance.models import Account, Transaction, TransactionInbox
+from finance.models import Debt, DebtItem, Debtor
 
 User = get_user_model()
-u = User.objects.get(username='matheuskrx@gmail.com')
-
-print(f"Transactions for user {u.username}:")
-txs = Transaction.objects.filter(account__user=u).order_by('-created_at')
-for tx in txs:
-    print(f"ID: {tx.id} | Account: {tx.account.name} (ID: {tx.account_id}) | Parent Account: {tx.account.parent_id} | Category: {tx.category.name if tx.category else 'None'} | Description: {tx.description} | Amount: {tx.amount} | Date: {tx.date} | Status: {tx.status} | Applied: {tx.is_applied_to_balance}")
+for u in User.objects.all():
+    print(f"User: {u.username} (ID: {u.id})")
+    debts = Debt.objects.filter(user=u)
+    print(f"  Debts count: {debts.count()}")
+    for d in debts:
+        print(f"    Debt: {d.counterparty_name} | {d.original_amount}")
+        
+    debtors = Debtor.objects.filter(user=u)
+    print(f"  Debtors count: {debtors.count()}")
+    for dr in debtors:
+        print(f"    Debtor: {dr.name}")
+        items = DebtItem.objects.filter(debtor=dr)
+        print(f"      DebtItems count: {items.count()}")
+        for item in items:
+            print(f"        Item: {item.product_name} | {item.total_amount}")
