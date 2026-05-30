@@ -26,6 +26,9 @@ import {
 } from "@/shared/components/ui/dropdown-menu";
 import { Badge } from "@/shared/components/ui/badge";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
+import { authenticatedFetch } from "@/shared/lib/api";
+import { toast } from "sonner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 
 interface BillDetailsViewProps {
   card: any;
@@ -33,6 +36,7 @@ interface BillDetailsViewProps {
   onEditInstallment: (inst: any) => void;
   onDeleteInstallment: (id: string) => void;
   onAnticipateInstallment: (id: string) => void;
+  onRefresh?: () => void;
   isSubmitting?: boolean;
 }
 
@@ -42,10 +46,27 @@ export const BillDetailsView = ({
   onEditInstallment,
   onDeleteInstallment,
   onAnticipateInstallment,
+  onRefresh,
   isSubmitting = false
 }: BillDetailsViewProps) => {
   const [search, setSearch] = useState("");
-  const { getCategoryName } = useAccountStore();
+  const { getCategoryName, tree } = useAccountStore();
+  const subaccounts = tree.flatMap(bank => bank.children || []);
+
+  const handleBindInstallmentToSubaccount = async (installmentId: string, subaccountId: string) => {
+    try {
+      const res = await authenticatedFetch(`/credit-cards/${card.id}/manage_installment/${installmentId}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subaccount_id: subaccountId })
+      });
+      if (!res.ok) throw new Error('Erro ao vincular subconta');
+      toast.success('Subconta vinculada retroativamente com sucesso!');
+      if (onRefresh) onRefresh();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
 
   const filteredInstallments = useMemo(() => {
     if (!bill || !bill.installments) return [];
@@ -59,6 +80,8 @@ export const BillDetailsView = ({
   const stats = useMemo(() => {
     let pending = 0;
     let paid = 0;
+    let reserved = 0;
+    const reservedMap = new Map();
     
     if (bill && bill.installments) {
       bill.installments.forEach((inst: any) => {
@@ -67,10 +90,22 @@ export const BillDetailsView = ({
         } else {
           pending += Number(inst.amount);
         }
+        
+        if (inst.subaccount && !reservedMap.has(inst.subaccount.id)) {
+          reservedMap.set(inst.subaccount.id, inst.subaccount.reserved_credit_balance || 0);
+        }
       });
+      reserved = Array.from(reservedMap.values()).reduce((acc: any, val: any) => acc + Number(val), 0);
     }
 
-    return { total: bill?.total_amount || 0, pending, paid };
+    const total = bill?.total_amount || 0;
+    return { 
+      total, 
+      pending, 
+      paid,
+      reserved,
+      isCovered: reserved >= total
+    };
   }, [bill]);
 
   // removed!
@@ -78,6 +113,34 @@ export const BillDetailsView = ({
   return (
     <div className="flex flex-col gap-4 sm:gap-6 pb-12 animate-in fade-in duration-500">
       
+      {/* Dashboard Summary Box - Status de Cobertura */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-muted/20 p-4 rounded-xl border border-border/40">
+        <div className="space-y-1 w-full sm:w-auto">
+          <p className="text-xs text-muted-foreground uppercase font-bold">Status de Cobertura</p>
+          {stats.isCovered ? (
+            <Badge className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 font-bold px-3 py-1">
+              ✓ Fatura Coberta
+            </Badge>
+          ) : (
+            <Badge className="bg-red-500/10 text-red-500 border border-red-500/20 font-bold animate-pulse px-3 py-1">
+              ⚠️ Fatura Descoberta: {formatMoney(stats.total - stats.reserved, card.currency)} em risco
+            </Badge>
+          )}
+        </div>
+        
+        <Button 
+          onClick={() => {
+            if (window.confirm('Deseja pagar a fatura e transferir os fundos dos envelopes para liquidação?')) {
+               // handleSettleInvoice logic
+            }
+          }}
+          disabled={!stats.isCovered}
+          className="w-full sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-400 text-white shadow-glow font-bold h-10 rounded-xl transition-all hover:scale-105"
+        >
+          Pagar Fatura
+        </Button>
+      </div>
+
       {/* Macro Stats */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <Card className="rounded-2xl sm:rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft">
@@ -259,9 +322,26 @@ export const BillDetailsView = ({
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal opacity-80">
-                          {tx?.category_id ? getCategoryName(tx.category_id) : "Sem Categoria"}
-                        </Badge>
+                        {inst.subaccount ? (
+                          <span className="text-xs font-medium">{inst.subaccount.name}</span>
+                        ) : tx?.category_id ? (
+                          <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal opacity-80">
+                            {getCategoryName(tx.category_id)}
+                          </Badge>
+                        ) : (
+                          <Select onValueChange={(val) => handleBindInstallmentToSubaccount(inst.id, val)}>
+                            <SelectTrigger className="h-7 text-xs bg-amber-500/10 text-amber-500 border-amber-500/30 rounded font-bold w-[140px]">
+                              <SelectValue placeholder="Vincular Envelope" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {subaccounts.map((sub: any) => (
+                                <SelectItem key={sub.id} value={sub.id.toString()} className="text-xs">
+                                  {sub.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className={cn(

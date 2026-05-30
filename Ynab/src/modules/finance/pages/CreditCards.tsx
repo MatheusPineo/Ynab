@@ -135,7 +135,7 @@ export const CreditCards = () => {
     }
   };
 
-  const fetchBillsForCard = async (cardId: string) => {
+  const fetchBillsForCard = async (cardId: string, keepSelected = false) => {
     try {
       const response = await authenticatedFetch(`/credit-cards/${cardId}/bills/`);
       if (response.ok) {
@@ -146,13 +146,22 @@ export const CreditCards = () => {
         });
         setBills(sortedBills);
         
-        const currentMonth = new Date().getMonth() + 1;
-        const currentYear = new Date().getFullYear();
-        
-        const b = sortedBills.find(bill => bill.month === currentMonth && bill.year === currentYear);
-        setSelectedBill(b || null);
-        setSelectedMonth(currentMonth - 1);
-        setSelectedYear(currentYear);
+        if (!keepSelected) {
+          const currentMonth = new Date().getMonth() + 1;
+          const currentYear = new Date().getFullYear();
+          
+          const b = sortedBills.find(bill => bill.month === currentMonth && bill.year === currentYear);
+          setSelectedBill(b || null);
+          setSelectedMonth(currentMonth - 1);
+          setSelectedYear(currentYear);
+        } else {
+          setSelectedBill((prevBill: any) => {
+             if (prevBill) {
+                return sortedBills.find(bill => bill.month === prevBill.month && bill.year === prevBill.year) || null;
+             }
+             return prevBill;
+          });
+        }
       }
     } catch (error) {
       console.error("Erro ao buscar faturas:", error);
@@ -684,6 +693,10 @@ export const CreditCards = () => {
               onDeleteInstallment={handleDeleteInstallmentClick}
               onAnticipateInstallment={handleAnticipateInstallment}
               isSubmitting={isSubmitting}
+              onRefresh={() => {
+                fetchBillsForCard(selectedCard.id, true);
+                fetchAccounts();
+              }}
             />
           </div>
         </div>

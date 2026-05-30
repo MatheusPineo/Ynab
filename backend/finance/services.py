@@ -314,6 +314,12 @@ def pay_bill(bill_id, payment_mode, payload_data=None, payment_account_id=None):
                 matrix_tx.installment_count += 1
                 matrix_tx.save()
                 
+                if new_subaccount_id is not None:
+                    from .services import YNABBudgetService
+                    # Force recalculation for the bill month
+                    for inst in installments_to_affect:
+                        YNABBudgetService.calculate_envelope_states(user, inst.bill.month, inst.bill.year)
+                
                 # Cria a parcela residual para a próxima fatura
                 Installment.objects.create(
                     transaction=matrix_tx,
@@ -378,6 +384,12 @@ def pay_bill(bill_id, payment_mode, payload_data=None, payment_account_id=None):
                 matrix_tx = inst.transaction
                 matrix_tx.installment_count += 1
                 matrix_tx.save()
+                
+                if new_subaccount_id is not None:
+                    from .services import YNABBudgetService
+                    # Force recalculation for the bill month
+                    for inst in installments_to_affect:
+                        YNABBudgetService.calculate_envelope_states(user, inst.bill.month, inst.bill.year)
                 
                 # Cria a parcela residual na próxima fatura
                 Installment.objects.create(
@@ -1256,6 +1268,7 @@ class CreditCardManagementService:
             elif action == 'edit':
                 new_amount = Decimal(str(new_data.get('amount'))) if new_data and 'amount' in new_data else None
                 new_description = new_data.get('description') if new_data else None
+                new_subaccount_id = new_data.get('subaccount_id') if new_data else None
                 old_desc = matrix_tx.description
                 
                 for inst in installments_to_affect:
@@ -1263,6 +1276,9 @@ class CreditCardManagementService:
                         diff = new_amount - inst.amount
                         matrix_tx.total_amount += diff
                         inst.amount = new_amount
+                        
+                    if new_subaccount_id is not None:
+                        inst.subaccount_id = new_subaccount_id
                         
                     inst.save()
                     
@@ -1288,12 +1304,26 @@ class CreditCardManagementService:
                             t._skip_balance_update = False
                             t.amount = new_amount
                             t.save()
+                    
+                    if new_subaccount_id is not None:
+                        ynab_txs = CoreTransaction.objects.filter(
+                            account__user=user,
+                            credit_card_bill=inst.bill,
+                            description__startswith=old_desc,
+                            description__contains=f'(Parcela {inst.number}/'
+                        )
+                        for t in ynab_txs:
+                            t._skip_balance_update = True
+                            t.account_id = new_subaccount_id
+                            t.save()
                 
                 if new_description is not None:
                     matrix_tx.description = new_description
                     
                     for inst in installments_to_affect:
                         new_parcela_desc = f"{new_description} (Parcela {inst.number}/{matrix_tx.installment_count})" if matrix_tx.installment_count > 1 else new_description
+                        inst.description = new_parcela_desc
+                        inst.save()
                         
                         cc_txs = CoreTransaction.objects.filter(
                             account=credit_card.account,
@@ -1317,6 +1347,12 @@ class CreditCardManagementService:
                             t.save()
                             
                 matrix_tx.save()
+                
+                if new_subaccount_id is not None:
+                    from .services import YNABBudgetService
+                    # Force recalculation for the bill month
+                    for inst in installments_to_affect:
+                        YNABBudgetService.calculate_envelope_states(user, inst.bill.month, inst.bill.year)
 
 
 class BudgetAutomationService:

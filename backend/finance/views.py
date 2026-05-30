@@ -1754,6 +1754,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
                 new_data = {
                     'amount': request.data.get('amount'),
                     'description': request.data.get('description'),
+                    'subaccount_id': request.data.get('subaccount_id'),
                 }
                 # Remove nulos
                 new_data = {k: v for k, v in new_data.items() if v is not None}

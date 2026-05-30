@@ -1421,3 +1421,17 @@ U p d a t e d   U I   f o r   S u b - a c c o u n t   l i s t   t o   i n c l u 
 
 
 
+
+ # # #   [ 1 . 4 1 . 0 1 ]   -   2 0 2 6 - 0 5 - 3 0 
+ # # # #   F r o n t e n d 
+ -   F e a t :   I m p l e m e n t e d   c o n t e x t - a w a r e   t a r g e t e d   r e p a y m e n t   m o d a l   ( \ R e g i s t r a r   P a g a m e n t o   D i r e c i o n a d o \ )   w i t h i n   \ D e b t s . t s x \ . 
+ -   F i x :   M u l t i - c u r r e n c y   i s o l a t i o n   e n f o r c e d   o n   d e b t   c a r d s .   S e p a r a t e   r o w s   a r e   g e n e r a t e d   f o r   d i s t i n c t   c u r r e n c i e s   i n s t e a d   o f   a r i t h m e t i c   s u m . 
+ 
+ # # # #   B a c k e n d 
+ -   F i x :   M o d i f i e d   \ g r o u p e d _ d e b t s \   e n d p o i n t   i n   \  i n a n c e / v i e w s . p y \   t o   r e t u r n   t h e   c u r r e n c y   o f   t h e   o r i g i n   s u b a c c o u n t . 
+  
+ 
+
+### [1.41.02] - Faturas e Coercao
+- **Backend**: Restricao (null=False, blank=False) em CreditCardTransaction e Installment. Dados atualizados.
+- **Frontend**: Componente BillDetailsView exibe Status de Cobertura e dropdown inline para vincular despesas.

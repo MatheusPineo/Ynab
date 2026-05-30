@@ -204,10 +204,16 @@ class SimpleCreditCardTransactionSerializer(serializers.ModelSerializer):
         model = CreditCardTransaction
         fields = ['id', 'description', 'date', 'original_currency', 'exchange_rate', 'iof_amount', 'category_id']
 
+class SimpleSubaccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ['id', 'name']
+
 class InstallmentSerializer(serializers.ModelSerializer):
     transaction = SimpleCreditCardTransactionSerializer(read_only=True)
     installment_number = serializers.IntegerField(source='number', read_only=True)
     total_installments = serializers.IntegerField(source='transaction.installment_count', read_only=True)
+    subaccount = SimpleSubaccountSerializer(read_only=True)
     
     class Meta:
         model = Installment
