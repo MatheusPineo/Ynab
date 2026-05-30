@@ -1632,16 +1632,17 @@ class DebtorPaymentService:
     @staticmethod
     @transaction.atomic
     def pay_subaccount_group(debtor_id, subaccount_id, payment_amount):
-        from .models import Debtor, DebtItem, Account, Transaction as CoreTransaction
+        from .models import Debtor, DebtItem, Account, Transaction as CoreTransaction, Debt, DebtPayment
         from django.utils import timezone
         from decimal import Decimal
+        from django.db.models import Q
 
         debtor = Debtor.objects.get(pk=debtor_id)
         subaccount = Account.objects.get(pk=subaccount_id)
         payment_amount_dec = Decimal(str(payment_amount))
 
         # 1. Inject the incoming payment_amount directly back into the targeted SubAccount
-        CoreTransaction.objects.create(
+        payment_tx = CoreTransaction.objects.create(
             account=subaccount,
             amount=payment_amount_dec,
             is_income=True,
@@ -1649,6 +1650,29 @@ class DebtorPaymentService:
             date=timezone.now().date(),
             status='realized'
         )
+
+        # Create corresponding DebtPayment to keep Debt object balance sync
+        debt = Debt.objects.filter(
+            user=debtor.user,
+            counterparty_name__iexact=debtor.name,
+            is_mine=False
+        ).first()
+        if not debt:
+            debt = Debt.objects.filter(
+                user=debtor.user,
+                is_mine=False
+            ).filter(
+                Q(counterparty_name__icontains=debtor.name)
+            ).first()
+
+        if debt:
+            DebtPayment.objects.create(
+                debt=debt,
+                amount=payment_amount_dec,
+                date=timezone.now().date(),
+                account=subaccount,
+                transaction=payment_tx
+            )
 
         # 2. Fetch all DebtItem records matching debtor_id AND subaccount_id where status in ['PENDING', 'PARTIAL'] ordered chronologically
         items = DebtItem.objects.filter(
