@@ -4,13 +4,26 @@ import django.db.models.deletion
 from django.db import migrations, models
 
 
+
+def set_default_accounts(apps, schema_editor):
+    Installment = apps.get_model('core', 'Installment')
+    CreditCardTransaction = apps.get_model('core', 'CreditCardTransaction')
+    Account = apps.get_model('core', 'Account')
+    
+    first_account = Account.objects.first()
+    if first_account:
+        Installment.objects.filter(subaccount__isnull=True).update(subaccount=first_account)
+        CreditCardTransaction.objects.filter(expense_account__isnull=True).update(expense_account=first_account)
+
 class Migration(migrations.Migration):
+
 
     dependencies = [
         ('core', '0045_alter_account_id_alter_category_id_and_more'),
     ]
 
     operations = [
+        migrations.RunPython(set_default_accounts, reverse_code=migrations.RunPython.noop),
         migrations.AlterField(
             model_name='creditcardtransaction',
             name='expense_account',
