@@ -43,8 +43,8 @@ const DebtCard = ({
   const isPaid = progress >= 100;
 
   const [groupedDebts, setGroupedDebts] = useState<{ subaccount_id: number; subaccount_name: string; total_outstanding_balance: number; currency: string; items?: any[] }[]>([]);
-  const [editingSubaccountGroupId, setEditingSubaccountGroupId] = useState<number | null>(null);
-  const [editingAmountGroupId, setEditingAmountGroupId] = useState<number | null>(null);
+  const [editingSubaccountIdx, setEditingSubaccountIdx] = useState<number | null>(null);
+  const [editingAmountIdx, setEditingAmountIdx] = useState<number | null>(null);
   const [editAmountValue, setEditAmountValue] = useState("");
 
   const { tree } = useAccountStore();
@@ -192,9 +192,9 @@ const DebtCard = ({
                 return (
                   <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/40 gap-2">
                     <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3">
-                      {editingSubaccountGroupId === g.id ? (
+                      {editingSubaccountIdx === idx ? (
                         <Select
-                          value={String(g.id)}
+                          value={g.id ? String(g.id) : "legacy"}
                           onValueChange={async (newVal) => {
                             if (targetItemId) {
                               try {
@@ -215,14 +215,17 @@ const DebtCard = ({
                               } catch (e: any) {
                                 toast.error("Erro na requisição: " + e.message);
                               }
+                            } else {
+                              toast.warning("Lançamento herdado: não é possível reassociar a subconta via API.");
                             }
-                            setEditingSubaccountGroupId(null);
+                            setEditingSubaccountIdx(null);
                           }}
                         >
                           <SelectTrigger className="h-7 w-[130px] text-xs">
                             <SelectValue placeholder="Selecione..." />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="legacy">Herdado (Geral)</SelectItem>
                             {subaccounts.map(acc => (
                               <SelectItem key={acc.id} value={String(acc.id)}>
                                 {acc.name}
@@ -233,13 +236,13 @@ const DebtCard = ({
                       ) : (
                         <span 
                           className="text-muted-foreground flex items-center gap-1.5 font-medium cursor-pointer hover:underline"
-                          onClick={() => setEditingSubaccountGroupId(g.id || null)}
+                          onClick={() => setEditingSubaccountIdx(idx)}
                         >
                           <span>📁</span> {g.name}
                         </span>
                       )}
 
-                      {editingAmountGroupId === g.id ? (
+                      {editingAmountIdx === idx ? (
                         <Input
                           type="number"
                           className="h-7 w-20 text-xs px-2"
@@ -247,37 +250,41 @@ const DebtCard = ({
                           onChange={(e) => setEditAmountValue(e.target.value)}
                           onKeyDown={async (e) => {
                             if (e.key === 'Enter') {
-                              if (targetItemId && editAmountValue) {
-                                try {
-                                  const res = await authenticatedFetch(`/debt-items/${targetItemId}/`, {
-                                    method: "PATCH",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({ total_amount: Number(editAmountValue) })
-                                  });
-                                  if (res.ok) {
-                                    toast.success("Valor total atualizado com sucesso!");
-                                    await fetchGrouped();
-                                    await useAccountStore.getState().fetchAccounts();
-                                    await useDebtStore.getState().fetchDebts();
-                                  } else {
-                                    const err = await res.json();
-                                    toast.error(err.detail || "Erro ao atualizar valor");
+                              if (targetItemId) {
+                                if (editAmountValue) {
+                                  try {
+                                    const res = await authenticatedFetch(`/debt-items/${targetItemId}/`, {
+                                      method: "PATCH",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ total_amount: Number(editAmountValue) })
+                                    });
+                                    if (res.ok) {
+                                      toast.success("Valor total atualizado com sucesso!");
+                                      await fetchGrouped();
+                                      await useAccountStore.getState().fetchAccounts();
+                                      await useDebtStore.getState().fetchDebts();
+                                    } else {
+                                      const err = await res.json();
+                                      toast.error(err.detail || "Erro ao atualizar valor");
+                                    }
+                                  } catch (err: any) {
+                                    toast.error("Erro na requisição: " + err.message);
                                   }
-                                } catch (err: any) {
-                                  toast.error("Erro na requisição: " + err.message);
                                 }
+                              } else {
+                                toast.warning("Lançamento herdado: não é possível atualizar o valor total via API.");
                               }
-                              setEditingAmountGroupId(null);
+                              setEditingAmountIdx(null);
                             }
                           }}
-                          onBlur={() => setEditingAmountGroupId(null)}
+                          onBlur={() => setEditingAmountIdx(null)}
                           autoFocus
                         />
                       ) : (
                         <span 
                           className="font-bold text-foreground cursor-pointer hover:underline"
                           onDoubleClick={() => {
-                            setEditingAmountGroupId(g.id || null);
+                            setEditingAmountIdx(idx);
                             setEditAmountValue(String(g.amount));
                           }}
                         >
@@ -298,13 +305,13 @@ const DebtCard = ({
                         </Button>
                       )}
 
-                      {targetItemId && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 cursor-pointer"
-                          onClick={async () => {
-                            if (window.confirm("Tem certeza que deseja excluir esta dívida? Isso irá estornar o valor da subconta correspondente.")) {
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 cursor-pointer"
+                        onClick={async () => {
+                          if (window.confirm("Tem certeza que deseja excluir este registro de dívida? Isso irá reverter seu peso financeiro.")) {
+                            if (targetItemId) {
                               try {
                                 const res = await authenticatedFetch(`/debt-items/${targetItemId}/`, {
                                   method: "DELETE"
@@ -321,12 +328,18 @@ const DebtCard = ({
                               } catch (err: any) {
                                 toast.error("Erro na requisição: " + err.message);
                               }
+                            } else {
+                              // Legacy delete fallback
+                              await deleteDebt(debt.id);
+                              toast.success("Dívida excluída com sucesso!");
+                              await useAccountStore.getState().fetchAccounts();
+                              await useDebtStore.getState().fetchDebts();
                             }
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
                   </div>
                 );
