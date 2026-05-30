@@ -207,7 +207,7 @@ class SimpleCreditCardTransactionSerializer(serializers.ModelSerializer):
 class SimpleSubaccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'reserved_credit_balance']
 
 class InstallmentSerializer(serializers.ModelSerializer):
     transaction = SimpleCreditCardTransactionSerializer(read_only=True)
