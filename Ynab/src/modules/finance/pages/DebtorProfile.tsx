@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, User, Wallet } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle2, User, Wallet, Trash2 } from "lucide-react";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { Button } from "@/shared/components/ui/button";
@@ -100,6 +100,24 @@ export const DebtorProfile = () => {
     }
   };
 
+  const handleDeleteDebtItem = async (itemId: number) => {
+    if (!window.confirm("Tem certeza que deseja excluir este item de débito?")) return;
+    try {
+      const res = await authenticatedFetch(`/debt-items/${itemId}/`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        toast.success("Item de débito excluído com sucesso.");
+        await fetchDebtorData();
+      } else {
+        const err = await res.json();
+        throw new Error(err.detail || "Erro ao excluir o item.");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-full w-full items-center justify-center p-6 bg-background">
@@ -194,29 +212,41 @@ export const DebtorProfile = () => {
                           <table className="w-full text-left text-xs border-collapse">
                             <thead>
                               <tr className="border-b border-sidebar-border text-muted-foreground font-mono uppercase tracking-wider text-[10px]">
-                                <th className="pb-2 font-semibold">Produto</th>
-                                <th className="pb-2 font-semibold text-right">Valor Total</th>
-                                <th className="pb-2 font-semibold text-right">Valor Pago</th>
-                                <th className="pb-2 font-semibold text-right">Status</th>
+                                <th className="pb-2 font-semibold">Data do Acréscimo</th>
+                                <th className="pb-2 font-semibold">Descrição do Débito / Produto</th>
+                                <th className="pb-2 font-semibold text-right">Valor Individual</th>
+                                <th className="pb-2 font-semibold text-right">Status / Ações</th>
                               </tr>
                             </thead>
                             <tbody>
                               {group.items.map(item => (
-                                <tr key={item.id} className="border-b border-sidebar-border/30 hover:bg-muted/5 transition-colors">
+                                <tr key={item.id} className="border-b border-sidebar-border/30 hover:bg-muted/5 transition-colors group">
+                                  <td className="py-2.5 font-medium text-muted-foreground">
+                                    {item.date_created ? new Date(item.date_created).toLocaleDateString('pt-PT') : "-"}
+                                  </td>
                                   <td className="py-2.5 font-medium text-foreground">{item.product_name}</td>
                                   <td className="py-2.5 text-right font-semibold">{formatMoney(item.total_amount, "EUR")}</td>
-                                  <td className="py-2.5 text-right font-semibold text-emerald-500">{formatMoney(item.paid_amount, "EUR")}</td>
                                   <td className="py-2.5 text-right">
-                                    <Badge 
-                                      className={cn(
-                                        "shadow-none font-semibold text-[10px] px-2 py-0.5 rounded-full",
-                                        item.status === 'SETTLED' && "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20",
-                                        item.status === 'PARTIAL' && "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
-                                        item.status === 'PENDING' && "bg-zinc-500/10 text-zinc-500 hover:bg-zinc-500/20"
-                                      )}
-                                    >
-                                      {item.status === 'SETTLED' ? 'Quitado' : item.status === 'PARTIAL' ? 'Parcial' : 'Pendente'}
-                                    </Badge>
+                                    <div className="flex items-center justify-end gap-2">
+                                      <Badge 
+                                        className={cn(
+                                          "shadow-none font-semibold text-[10px] px-2 py-0.5 rounded-full",
+                                          item.status === 'SETTLED' && "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20",
+                                          item.status === 'PARTIAL' && "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20",
+                                          item.status === 'PENDING' && "bg-zinc-500/10 text-zinc-500 hover:bg-zinc-500/20"
+                                        )}
+                                      >
+                                        {item.status === 'SETTLED' ? 'Quitado' : item.status === 'PARTIAL' ? 'Parcial' : 'Pendente'}
+                                      </Badge>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-7 w-7 rounded-full text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        onClick={() => handleDeleteDebtItem(item.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
                                   </td>
                                 </tr>
                               ))}
