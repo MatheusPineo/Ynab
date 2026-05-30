@@ -1119,12 +1119,15 @@ Para gerenciar despesas compartilhadas (roommates) e amortizar recebimentos de f
   - **Injeção Contábil:** Cria um lançamento de transação (`Transaction`) de receita (`is_income=True`) na subconta/conta de destino correspondente a `origin_subaccount`, curando o envelope de origem.
   - **Fila de Amortização:** Busca os registros de `DebtItem` não liquidados (`PENDING` ou `PARTIAL`) ordenados por `date_created` e `id` de forma ascendente. Amortiza o saldo recebido sequencialmente sobre cada item da fila. O status transiciona para `SETTLED` se totalmente quitado ou `PARTIAL` se a provisão esgotar durante a liquidação de um item específico.
 - **Agregação e Endpoint (`DebtorViewSet`):**
-  - Endpoint `@action(detail=True) grouped_debts`: Consolida no backend as dívidas do devedor agrupadas por subconta/conta, somando o saldo pendente total por grupo e aninhando a lista de itens ativos (`DebtItem`).
+  - Endpoint `@action(detail=True) grouped_debts` e `retrieve`: Consolida no backend as dívidas do devedor agrupadas por subconta/conta, somando o saldo pendente total por grupo e aninhando a lista de itens ativos. Suporta agregação híbrida de roommate splits (`DebtItem`) e dívidas/empréstimos pessoais (`Debt` onde a contraparte deve para o usuário e os nomes coincidem case-insensitivamente).
   - Endpoint `@action(detail=True) pay_group`: Aciona o serviço transacional para processar o recebimento agrupado e liquidar as dívidas no banco.
   - Endpoint `@action(detail=True) add_items`: Endpoint transacional mapeado para o serviço de criação em lote (`DebtorCreationService.register_itemized_debts`) que permite ao frontend cadastrar de uma só vez múltiplos itens de dívida vinculados a um roommate sem alterar o saldo do envelope.
 - **Mutações de Itens de Dívida (`DebtItemMutationService` - v1.41.01):**
   - **Atualização Atômica (`PATCH`):** Permite alterar o valor total (`total_amount`) e a subconta associada (`origin_subaccount_id`). Caso a subconta mude, executa o rebalanceamento atômico subtraindo o valor anterior do saldo (`balance`) da subconta antiga e somando o novo valor ao saldo da nova subconta. Caso apenas o valor mude, o saldo da subconta correspondente é ajustado pela diferença.
   - **Exclusão de Dívida (`DELETE`):** Ao excluir um item de dívida, seu peso financeiro (o `total_amount` correspondente) é removido do saldo (`balance`) da subconta associada antes da exclusão física definitiva no banco de dados (`.delete()`), estornando seu impacto financeiro.
+- **Agregação Híbrida e Unificação de Devedores (v1.41.05):**
+  - Unificação de devedores no backend (tanto na árvore de contas `/accounts/tree/` quanto no `AccountSerializer` e nos endpoints do `DebtorViewSet`), agregando de forma transparente os saldos pendentes originados de roommate splits (`DebtItem`) e de empréstimos diretos/pessoais (`Debt` onde `is_mine=False`), garantindo consistência total do saldo devido ao envelope nas visualizações interna de subconta e perfil de devedores.
+  - Inclusão de verificação de hidratação de rota no frontend (`DebtorProfile.tsx`) para evitar chamadas com IDs indefinidos e mapeamento de IDs virtuais para registros `Debt` na exibição do ledger.
 
 
 
