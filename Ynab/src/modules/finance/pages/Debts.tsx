@@ -47,6 +47,7 @@ const DebtCard = ({
   const [editingSubaccountIdx, setEditingSubaccountIdx] = useState<number | null>(null);
   const [editingAmountIdx, setEditingAmountIdx] = useState<number | null>(null);
   const [editAmountValue, setEditAmountValue] = useState("");
+  const [paymentAmounts, setPaymentAmounts] = useState<Record<number, string>>({});
 
   const { tree } = useAccountStore();
   const subaccounts: AccountNode[] = [];
@@ -71,6 +72,47 @@ const DebtCard = ({
       }
     }
   };
+
+  const handlePayPartial = async (subaccountId: number) => {
+    const amountStr = paymentAmounts[subaccountId];
+    if (!amountStr || isNaN(Number(amountStr)) || Number(amountStr) <= 0) {
+      toast.error("Por favor, insira um valor válido maior que zero.");
+      return;
+    }
+
+    const amount = Number(amountStr);
+    const debtor = debtors.find(d => d.name.toLowerCase() === debt.counterparty_name.toLowerCase());
+    if (!debtor) {
+      toast.error("Devedor não encontrado.");
+      return;
+    }
+
+    try {
+      const res = await authenticatedFetch("/debtors/pay-subaccount/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          debtor_id: debtor.id,
+          subaccount_id: subaccountId,
+          amount: amount
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Erro ao processar pagamento");
+      }
+
+      toast.success("Pagamento parcial processado com sucesso!");
+      setPaymentAmounts(prev => ({ ...prev, [subaccountId]: "" }));
+      await fetchGrouped();
+      await useAccountStore.getState().fetchAccounts();
+      await useDebtStore.getState().fetchDebts();
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
 
   useEffect(() => {
     fetchGrouped();
@@ -316,14 +358,23 @@ const DebtCard = ({
                     
                     <div className="flex items-center gap-2">
                       {g.id && !isPaid && (
-                        <Button 
-                          variant="outline"
-                          size="sm" 
-                          className="h-7 text-[10px] uppercase font-bold tracking-wider shrink-0 cursor-pointer text-primary border-primary/20 hover:bg-primary/10" 
-                          onClick={() => onTargetedPayment(debt, g.id as number, g.amount)}
-                        >
-                          Registrar Pagamento
-                        </Button>
+                        <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                          <Input
+                            type="number"
+                            placeholder="Valor"
+                            className="h-7 w-16 text-xs px-1.5 bg-background border-border/40 rounded-lg text-foreground focus:border-primary/50"
+                            value={paymentAmounts[g.id] || ""}
+                            onChange={e => setPaymentAmounts(prev => ({ ...prev, [g.id as number]: e.target.value }))}
+                          />
+                          <Button 
+                            variant="outline"
+                            size="sm" 
+                            className="h-7 text-[10px] uppercase font-bold tracking-wider shrink-0 cursor-pointer text-primary border-primary/20 hover:bg-primary/10 rounded-lg px-2" 
+                            onClick={() => handlePayPartial(g.id as number)}
+                          >
+                            Pagar Parcial
+                          </Button>
+                        </div>
                       )}
 
                       <Button
