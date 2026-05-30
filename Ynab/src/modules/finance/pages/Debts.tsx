@@ -57,21 +57,22 @@ const DebtCard = ({
   });
 
 
-  useEffect(() => {
-    const fetchGrouped = async () => {
-      const debtor = debtors.find(d => d.name.toLowerCase() === debt.counterparty_name.toLowerCase());
-      if (debtor) {
-        try {
-          const res = await authenticatedFetch(`/debtors/${debtor.id}/grouped_debts/`);
-          if (res.ok) {
-            const data = await res.json();
-            setGroupedDebts(data);
-          }
-        } catch (err) {
-          console.error("Error fetching grouped debts", err);
+  const fetchGrouped = async () => {
+    const debtor = debtors.find(d => d.name.toLowerCase() === debt.counterparty_name.toLowerCase());
+    if (debtor) {
+      try {
+        const res = await authenticatedFetch(`/debtors/${debtor.id}/grouped_debts/`);
+        if (res.ok) {
+          const data = await res.json();
+          setGroupedDebts(data);
         }
+      } catch (err) {
+        console.error("Error fetching grouped debts", err);
       }
-    };
+    }
+  };
+
+  useEffect(() => {
     fetchGrouped();
   }, [debt, debtors]);
 
@@ -782,7 +783,7 @@ export const Debts = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {meDevem.map(debt => (
                     <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onTargetedPayment={openTargetedPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
                   ))}
@@ -805,7 +806,7 @@ export const Debts = () => {
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {minhasDividas.map(debt => (
                     <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onTargetedPayment={openTargetedPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
                   ))}
