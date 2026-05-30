@@ -95,7 +95,7 @@ const DebtCard = ({
       );
     }
     if (!debtor) {
-      toast.error("Devedor não encontrado.");
+      toast.error("Devedor não encontrado. Buscando por: " + debt.counterparty_name + ", disponíveis: " + debtors.map(d => `${d.name} (id: ${d.id})`).join(", "));
       return;
     }
 
