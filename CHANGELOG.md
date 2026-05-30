@@ -1,3 +1,11 @@
+## [1.41.01] - 2026-05-30
+
+### Added
+- APIs de Atualização e Exclusão de Itens de Dívida (`DebtItem`): Implementados os métodos `PATCH` e `DELETE` em `DebtItemViewSet` no backend Django sob a rota `/api/debt-items/<id>/`.
+- Motor de Rebalanceamento Atômico de Envelopes: Desenvolvido serviço transacional `DebtItemMutationService` que subtrai o peso financeiro da dívida da subconta antiga e adiciona à nova subconta ao alterar o envelope (`origin_subaccount_id`), além de ajustar a diferença de saldos ao modificar o valor total (`total_amount`).
+- Estorno de Saldo na Exclusão: Ao remover um item de dívida, o sistema estorna automaticamente seu peso financeiro do saldo da subconta associada antes de realizar a exclusão lógica/física definitiva do registro.
+- Cobertura de Testes para Mutações: Criada suíte de testes unitários `test_debt_item_patch_and_delete` validando de ponta a ponta as requisições de PATCH e DELETE.
+
 ## [1.41.00] - 2026-05-29
 
 ### Added
@@ -1412,9 +1420,12 @@ Nascimento do Vault Finance OS.
 - **Taxonomia Global Config:** Adicionado o mapeamento centralizado de constantes de investimento em \src/constants/investmentTaxonomy.ts\ para popular formulrios dinamicamente.
 
 
-U p d a t e d   U I   f o r   S u b - a c c o u n t   l i s t   t o   i n c l u d e   m i c r o - l a b e l s  
- U p d a t e d   O v e r f u n d e d   S u b - a c c o u n t   U I   w i t h   n e w   c y a n - t o - p u r p l e   g r a d i e n t  
- F i x e d   b u t t o n   h o v e r   c o n t r a s t   g l o b a l l y  
+U p d a t e d   U I   f o r   S u b - a c c o u n t   l i s t   t o   i n c l u d e   m i c r o - l a b e l s 
+ 
+ U p d a t e d   O v e r f u n d e d   S u b - a c c o u n t   U I   w i t h   n e w   c y a n - t o - p u r p l e   g r a d i e n t 
+ 
+ F i x e d   b u t t o n   h o v e r   c o n t r a s t   g l o b a l l y 
+ 
  
 
 
@@ -1429,7 +1440,8 @@ U p d a t e d   U I   f o r   S u b - a c c o u n t   l i s t   t o   i n c l u 
  
  # # # #   B a c k e n d 
  -   F i x :   M o d i f i e d   \ g r o u p e d _ d e b t s \   e n d p o i n t   i n   \  i n a n c e / v i e w s . p y \   t o   r e t u r n   t h e   c u r r e n c y   o f   t h e   o r i g i n   s u b a c c o u n t . 
-  
+ 
+ 
  
 
 ### [1.41.02] - Faturas e Coercao

@@ -153,3 +153,62 @@ def test_bulk_debt_item_creation():
     assert res_data[0]["product_name"] == "Sabão em Pó"
     assert Decimal(str(res_data[1]["total_amount"])) == Decimal("10.00")
 
+
+@pytest.mark.django_db
+def test_debt_item_patch_and_delete():
+    user = User.objects.create_user(username="testuser", password="password")
+    client = APIClient()
+    client.force_authenticate(user=user)
+
+    sub_geral = Account.objects.create(
+        user=user, name="Geral", account_type="checking", balance=Decimal("100.00")
+    )
+    sub_mercado = Account.objects.create(
+        user=user, name="Mercado", account_type="checking", balance=Decimal("50.00")
+    )
+    debtor = Debtor.objects.create(user=user, name="Maria")
+
+    # Create debt item
+    item = DebtItem.objects.create(
+        debtor=debtor,
+        origin_subaccount=sub_geral,
+        product_name="Pizza",
+        total_amount=Decimal("40.00"),
+        paid_amount=Decimal("0.00")
+    )
+
+    # 1. PATCH - Update total_amount only (no subaccount change)
+    response = client.patch(
+        f"/api/debt-items/{item.id}/",
+        {"total_amount": "60.00"},
+        format="json"
+    )
+    assert response.status_code == 200
+    sub_geral.refresh_from_db()
+    # Geral balance should adjust: 100.00 - 40.00 + 60.00 = 120.00
+    assert sub_geral.balance == Decimal("120.00")
+
+    # 2. PATCH - Update subaccount and total_amount (atomic rebalancing)
+    response = client.patch(
+        f"/api/debt-items/{item.id}/",
+        {"origin_subaccount_id": sub_mercado.id, "total_amount": "80.00"},
+        format="json"
+    )
+    assert response.status_code == 200
+    sub_geral.refresh_from_db()
+    sub_mercado.refresh_from_db()
+    # Geral balance should be subtracted old amount (60.00): 120.00 - 60.00 = 60.00
+    assert sub_geral.balance == Decimal("60.00")
+    # Mercado balance should be added new amount (80.00): 50.00 + 80.00 = 130.00
+    assert sub_mercado.balance == Decimal("130.00")
+
+    # 3. DELETE - Delete the item
+    response = client.delete(f"/api/debt-items/{item.id}/")
+    assert response.status_code == 204
+    sub_mercado.refresh_from_db()
+    # Mercado balance should be subtracted amount (80.00): 130.00 - 80.00 = 50.00
+    assert sub_mercado.balance == Decimal("50.00")
+    # Item should be hard deleted
+    assert not DebtItem.objects.filter(id=item.id).exists()
+
+

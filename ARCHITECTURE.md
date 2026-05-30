@@ -1122,6 +1122,10 @@ Para gerenciar despesas compartilhadas (roommates) e amortizar recebimentos de f
   - Endpoint `@action(detail=True) grouped_debts`: Consolida no backend as dívidas do devedor agrupadas por subconta/conta, somando o saldo pendente total por grupo e aninhando a lista de itens ativos (`DebtItem`).
   - Endpoint `@action(detail=True) pay_group`: Aciona o serviço transacional para processar o recebimento agrupado e liquidar as dívidas no banco.
   - Endpoint `@action(detail=True) add_items`: Endpoint transacional mapeado para o serviço de criação em lote (`DebtorCreationService.register_itemized_debts`) que permite ao frontend cadastrar de uma só vez múltiplos itens de dívida vinculados a um roommate sem alterar o saldo do envelope.
+- **Mutações de Itens de Dívida (`DebtItemMutationService` - v1.41.01):**
+  - **Atualização Atômica (`PATCH`):** Permite alterar o valor total (`total_amount`) e a subconta associada (`origin_subaccount_id`). Caso a subconta mude, executa o rebalanceamento atômico subtraindo o valor anterior do saldo (`balance`) da subconta antiga e somando o novo valor ao saldo da nova subconta. Caso apenas o valor mude, o saldo da subconta correspondente é ajustado pela diferença.
+  - **Exclusão de Dívida (`DELETE`):** Ao excluir um item de dívida, seu peso financeiro (o `total_amount` correspondente) é removido do saldo (`balance`) da subconta associada antes da exclusão física definitiva no banco de dados (`.delete()`), estornando seu impacto financeiro.
+
 
 
 ## Taxonomia Global de Investimentos (Atualizado 23/05/2026)

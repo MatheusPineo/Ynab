@@ -29,6 +29,11 @@ import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
+import { Info } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+
 
 interface BillDetailsViewProps {
   card: any;
@@ -50,16 +55,18 @@ export const BillDetailsView = ({
   isSubmitting = false
 }: BillDetailsViewProps) => {
   const [search, setSearch] = useState("");
+  const [bindPrompt, setBindPrompt] = useState<{isOpen: boolean, installmentId: string, subaccountId: string} | null>(null);
   const { getCategoryName, tree } = useAccountStore();
   const subaccounts = tree.flatMap(bank => bank.children || []);
 
-  const handleBindInstallmentToSubaccount = async (installmentId: string, subaccountId: string) => {
+  const handleBindInstallmentToSubaccount = async (installmentId: string, subaccountId: string, mode: 'single' | 'future' = 'single') => {
     try {
-      const res = await authenticatedFetch(`/credit-cards/${card.id}/manage_installment/${installmentId}/`, {
+      const res = await authenticatedFetch(`/credit-cards/${card.id}/manage_installment/${installmentId}/?mode=${mode}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ subaccount_id: subaccountId })
       });
+      setBindPrompt(null);
       if (!res.ok) throw new Error('Erro ao vincular subconta');
       toast.success('Subconta vinculada retroativamente com sucesso!');
       if (onRefresh) onRefresh();
@@ -288,7 +295,21 @@ export const BillDetailsView = ({
               <TableRow className="hover:bg-transparent border-border/60">
                 <TableHead className="w-[120px]">Data</TableHead>
                 <TableHead>Descrição</TableHead>
-                <TableHead>Conta</TableHead>
+                <TableHead>
+                      <div className="flex items-center gap-1">
+                        Conta
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Info className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-[200px] text-xs">
+                              <p>Vincular a despesa a um envelope garante que o limite seja provisionado no orçamento para cobrir a fatura.</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Valor</TableHead>
                 <TableHead className="w-[70px]"></TableHead>
@@ -322,26 +343,15 @@ export const BillDetailsView = ({
                         </div>
                       </TableCell>
                       <TableCell>
-                        {inst.subaccount ? (
-                          <span className="text-xs font-medium">{inst.subaccount.name}</span>
-                        ) : tx?.category_id ? (
-                          <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal opacity-80">
-                            {getCategoryName(tx.category_id)}
-                          </Badge>
-                        ) : (
-                          <Select onValueChange={(val) => handleBindInstallmentToSubaccount(inst.id, val)}>
-                            <SelectTrigger className="h-7 text-xs bg-amber-500/10 text-amber-500 border-amber-500/30 rounded font-bold w-[140px]">
-                              <SelectValue placeholder="Vincular Envelope" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {subaccounts.map((sub: any) => (
-                                <SelectItem key={sub.id} value={sub.id.toString()} className="text-xs">
-                                  {sub.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
+                        <div className="w-[180px]">
+                          <GlobalAccountSelector
+                            value={inst.subaccount ? inst.subaccount.id.toString() : ""}
+                            onValueChange={(val) => setBindPrompt({ isOpen: true, installmentId: inst.id, subaccountId: val })}
+                            placeholder="Vincular Envelope"
+                            filterLeafOnly={true}
+                            className={`h-7 text-xs rounded-md border ${inst.subaccount ? 'bg-background border-border/50 hover:border-primary/50 font-normal text-foreground' : 'bg-amber-500/10 border-amber-500/30 font-bold text-amber-500 hover:bg-amber-500/20'}`}
+                          />
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className={cn(
@@ -398,6 +408,34 @@ export const BillDetailsView = ({
           </Table>
         </div>
       </div>
+
+      {/* Modal de Confirmação de Repasse */}
+      <Dialog open={bindPrompt?.isOpen} onOpenChange={(open) => { if (!open) setBindPrompt(null); }}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Vincular Envelope</DialogTitle>
+            <DialogDescription>
+              Deseja aplicar essa vinculação apenas nesta parcela, ou replicá-la automaticamente para todas as parcelas futuras desta compra?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => bindPrompt && handleBindInstallmentToSubaccount(bindPrompt.installmentId, bindPrompt.subaccountId, 'single')}
+              className="justify-start"
+            >
+              Somente esta parcela
+            </Button>
+            <Button 
+              variant="default" 
+              onClick={() => bindPrompt && handleBindInstallmentToSubaccount(bindPrompt.installmentId, bindPrompt.subaccountId, 'future')}
+              className="justify-start bg-primary/20 hover:bg-primary/30 text-primary border border-primary/30"
+            >
+              Todas as futuras
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

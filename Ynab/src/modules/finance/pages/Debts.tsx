@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, CreditCard, ChevronDown, ChevronUp, CheckCircle2, History, Trash, Handshake, User } from "lucide-react";
+import { Plus, CreditCard, ChevronDown, ChevronUp, CheckCircle2, History, Trash, Handshake, User, Trash2 } from "lucide-react";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { useNavigate } from "react-router-dom";
@@ -42,7 +42,19 @@ const DebtCard = ({
   const progress = Math.min(100, Math.round((debt.amount_paid / totalDebt) * 100)) || 0;
   const isPaid = progress >= 100;
 
-  const [groupedDebts, setGroupedDebts] = useState<{ subaccount_id: number; subaccount_name: string; total_outstanding_balance: number; currency: string }[]>([]);
+  const [groupedDebts, setGroupedDebts] = useState<{ subaccount_id: number; subaccount_name: string; total_outstanding_balance: number; currency: string; items?: any[] }[]>([]);
+  const [editingSubaccountGroupId, setEditingSubaccountGroupId] = useState<number | null>(null);
+  const [editingAmountGroupId, setEditingAmountGroupId] = useState<number | null>(null);
+  const [editAmountValue, setEditAmountValue] = useState("");
+
+  const { tree } = useAccountStore();
+  const subaccounts: AccountNode[] = [];
+  tree.forEach(bank => {
+    if (bank.children) {
+      bank.children.forEach(sub => subaccounts.push(sub));
+    }
+  });
+
 
   useEffect(() => {
     const fetchGrouped = async () => {
@@ -93,7 +105,7 @@ const DebtCard = ({
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Grouping logic based on groupedDebts from API or fallback
-  let activeGroups: { id?: number; name: string; amount: number; currency?: string }[] = [];
+  let activeGroups: { id?: number; name: string; amount: number; currency?: string; items?: any[] }[] = [];
   if (groupedDebts.length > 0) {
     activeGroups = groupedDebts
       .filter(g => Number(g.total_outstanding_balance) > 0)
@@ -101,7 +113,8 @@ const DebtCard = ({
         id: g.subaccount_id,
         name: g.subaccount_name,
         amount: Number(g.total_outstanding_balance),
-        currency: g.currency
+        currency: g.currency,
+        items: g.items || []
       }));
   } else {
     const fallbackGroups: Record<string, number> = {};
@@ -172,26 +185,152 @@ const DebtCard = ({
           <div className="space-y-1.5">
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Contas em Aberto por Subconta</span>
             <div className="space-y-1">
-              {activeGroups.map((g, idx) => (
-                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/40 gap-2">
-                  <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3">
-                    <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
-                      <span>📁</span> {g.name}
-                    </span>
-                    <span className="font-bold text-foreground">{formatMoney(g.amount, g.currency || debt.currency)}</span>
+              {activeGroups.map((g, idx) => {
+                const targetItem = g.items && g.items[0];
+                const targetItemId = targetItem ? targetItem.id : null;
+
+                return (
+                  <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/40 gap-2">
+                    <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3">
+                      {editingSubaccountGroupId === g.id ? (
+                        <Select
+                          value={String(g.id)}
+                          onValueChange={async (newVal) => {
+                            if (targetItemId) {
+                              try {
+                                const res = await authenticatedFetch(`/debt-items/${targetItemId}/`, {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ origin_subaccount_id: Number(newVal) })
+                                });
+                                if (res.ok) {
+                                  toast.success("Subconta atualizada com sucesso!");
+                                  await fetchGrouped();
+                                  await useAccountStore.getState().fetchAccounts();
+                                  await useDebtStore.getState().fetchDebts();
+                                } else {
+                                  const err = await res.json();
+                                  toast.error(err.detail || "Erro ao atualizar subconta");
+                                }
+                              } catch (e: any) {
+                                toast.error("Erro na requisição: " + e.message);
+                              }
+                            }
+                            setEditingSubaccountGroupId(null);
+                          }}
+                        >
+                          <SelectTrigger className="h-7 w-[130px] text-xs">
+                            <SelectValue placeholder="Selecione..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {subaccounts.map(acc => (
+                              <SelectItem key={acc.id} value={String(acc.id)}>
+                                {acc.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span 
+                          className="text-muted-foreground flex items-center gap-1.5 font-medium cursor-pointer hover:underline"
+                          onClick={() => setEditingSubaccountGroupId(g.id || null)}
+                        >
+                          <span>📁</span> {g.name}
+                        </span>
+                      )}
+
+                      {editingAmountGroupId === g.id ? (
+                        <Input
+                          type="number"
+                          className="h-7 w-20 text-xs px-2"
+                          value={editAmountValue}
+                          onChange={(e) => setEditAmountValue(e.target.value)}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter') {
+                              if (targetItemId && editAmountValue) {
+                                try {
+                                  const res = await authenticatedFetch(`/debt-items/${targetItemId}/`, {
+                                    method: "PATCH",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ total_amount: Number(editAmountValue) })
+                                  });
+                                  if (res.ok) {
+                                    toast.success("Valor total atualizado com sucesso!");
+                                    await fetchGrouped();
+                                    await useAccountStore.getState().fetchAccounts();
+                                    await useDebtStore.getState().fetchDebts();
+                                  } else {
+                                    const err = await res.json();
+                                    toast.error(err.detail || "Erro ao atualizar valor");
+                                  }
+                                } catch (err: any) {
+                                  toast.error("Erro na requisição: " + err.message);
+                                }
+                              }
+                              setEditingAmountGroupId(null);
+                            }
+                          }}
+                          onBlur={() => setEditingAmountGroupId(null)}
+                          autoFocus
+                        />
+                      ) : (
+                        <span 
+                          className="font-bold text-foreground cursor-pointer hover:underline"
+                          onDoubleClick={() => {
+                            setEditingAmountGroupId(g.id || null);
+                            setEditAmountValue(String(g.amount));
+                          }}
+                        >
+                          {formatMoney(g.amount, g.currency || debt.currency)}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      {g.id && !isPaid && (
+                        <Button 
+                          variant="outline"
+                          size="sm" 
+                          className="h-7 text-[10px] uppercase font-bold tracking-wider shrink-0 cursor-pointer text-primary border-primary/20 hover:bg-primary/10" 
+                          onClick={() => onTargetedPayment(debt, g.id as number, g.amount)}
+                        >
+                          Registrar Pagamento
+                        </Button>
+                      )}
+
+                      {targetItemId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 cursor-pointer"
+                          onClick={async () => {
+                            if (window.confirm("Tem certeza que deseja excluir esta dívida? Isso irá estornar o valor da subconta correspondente.")) {
+                              try {
+                                const res = await authenticatedFetch(`/debt-items/${targetItemId}/`, {
+                                  method: "DELETE"
+                                });
+                                if (res.ok) {
+                                  toast.success("Item de dívida excluído com sucesso!");
+                                  await fetchGrouped();
+                                  await useAccountStore.getState().fetchAccounts();
+                                  await useDebtStore.getState().fetchDebts();
+                                } else {
+                                  const err = await res.json();
+                                  toast.error(err.detail || "Erro ao excluir item");
+                                }
+                              } catch (err: any) {
+                                toast.error("Erro na requisição: " + err.message);
+                              }
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  {g.id && !isPaid && (
-                    <Button 
-                      variant="outline"
-                      size="sm" 
-                      className="h-7 text-[10px] uppercase font-bold tracking-wider shrink-0 cursor-pointer text-primary border-primary/20 hover:bg-primary/10" 
-                      onClick={() => onTargetedPayment(debt, g.id as number, g.amount)}
-                    >
-                      Registrar Pagamento
-                    </Button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (

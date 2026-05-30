@@ -2445,3 +2445,30 @@ class DebtItemViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return DebtItem.objects.filter(debtor__user=self.request.user).select_related('debtor', 'origin_subaccount').order_by('-date_created', '-id')
 
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        origin_subaccount_id = request.data.get('origin_subaccount_id')
+        total_amount = request.data.get('total_amount')
+
+        from .services import DebtItemMutationService
+        try:
+            updated_item = DebtItemMutationService.update_debt_item(
+                instance.id,
+                origin_subaccount_id=origin_subaccount_id,
+                total_amount=total_amount
+            )
+            serializer = self.get_serializer(updated_item)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        from .services import DebtItemMutationService
+        try:
+            DebtItemMutationService.delete_debt_item(instance.id)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+

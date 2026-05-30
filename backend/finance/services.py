@@ -1704,4 +1704,60 @@ class DebtorCreationService:
         return created_items
 
 
+class DebtItemMutationService:
+    @staticmethod
+    @transaction.atomic
+    def update_debt_item(debt_item_id, origin_subaccount_id=None, total_amount=None):
+        from .models import DebtItem, Account
+        from decimal import Decimal
+
+        item = DebtItem.objects.select_for_update().get(pk=debt_item_id)
+        old_subaccount = item.origin_subaccount
+        old_total_amount = item.total_amount
+
+        # Update subaccount if provided
+        if origin_subaccount_id is not None:
+            new_subaccount = Account.objects.get(pk=origin_subaccount_id)
+        else:
+            new_subaccount = old_subaccount
+
+        # Update total amount if provided
+        if total_amount is not None:
+            new_total_amount = Decimal(str(total_amount))
+        else:
+            new_total_amount = old_total_amount
+
+        # Atomic Rebalancing
+        if new_subaccount != old_subaccount:
+            old_subaccount.balance = Decimal(str(old_subaccount.balance)) - old_total_amount
+            old_subaccount.save()
+
+            new_subaccount.balance = Decimal(str(new_subaccount.balance)) + new_total_amount
+            new_subaccount.save()
+        elif new_total_amount != old_total_amount:
+            new_subaccount.balance = Decimal(str(new_subaccount.balance)) - old_total_amount + new_total_amount
+            new_subaccount.save()
+
+        item.origin_subaccount = new_subaccount
+        item.total_amount = new_total_amount
+        item.save()
+        return item
+
+    @staticmethod
+    @transaction.atomic
+    def delete_debt_item(debt_item_id):
+        from .models import DebtItem
+        from decimal import Decimal
+
+        item = DebtItem.objects.select_for_update().get(pk=debt_item_id)
+        subaccount = item.origin_subaccount
+        
+        # Remove financial weight
+        subaccount.balance = Decimal(str(subaccount.balance)) - item.total_amount
+        subaccount.save()
+        
+        item.delete()
+
+
+
 
