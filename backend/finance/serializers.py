@@ -4,6 +4,8 @@ from .models import Account, Category, Transaction, Goal, MonthlyBudget, Distrib
 class AccountSerializer(serializers.ModelSerializer):
     available_balance = serializers.ReadOnlyField()
     actual_balance = serializers.ReadOnlyField(source='balance')
+    pending_restitutions_total = serializers.SerializerMethodField()
+    debtors_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Account
@@ -12,6 +14,33 @@ class AccountSerializer(serializers.ModelSerializer):
             'parent': {'required': False, 'allow_null': True},
             'user': {'read_only': True},  # Preenchido automaticamente pela view
         }
+
+    def get_pending_restitutions_total(self, obj):
+        from .models import DebtItem
+        items = DebtItem.objects.filter(
+            origin_subaccount=obj,
+            status__in=['PENDING', 'PARTIAL']
+        )
+        total = sum(item.total_amount - item.paid_amount for item in items)
+        return float(total)
+
+    def get_debtors_summary(self, obj):
+        from .models import DebtItem
+        from decimal import Decimal
+        items = DebtItem.objects.filter(
+            origin_subaccount=obj,
+            status__in=['PENDING', 'PARTIAL']
+        )
+        debtor_map = {}
+        for item in items:
+            name = item.debtor.name if item.debtor else "Outro"
+            outstanding = item.total_amount - item.paid_amount
+            debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
+        
+        return [
+            {"debtor_name": name, "amount": float(amount)}
+            for name, amount in debtor_map.items()
+        ]
 
     def validate(self, attrs):
         parent = attrs.get('parent')

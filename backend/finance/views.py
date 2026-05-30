@@ -220,6 +220,24 @@ class AccountViewSet(viewsets.ModelViewSet):
                     else:
                         reserved_val = Decimal('0.00')
 
+                    from .models import DebtItem
+                    debt_items = DebtItem.objects.filter(
+                        origin_subaccount=account,
+                        status__in=['PENDING', 'PARTIAL']
+                    )
+                    pending_restitutions_total = sum(item.total_amount - item.paid_amount for item in debt_items)
+                    
+                    debtor_map = {}
+                    for item in debt_items:
+                        name = item.debtor.name if item.debtor else "Outro"
+                        outstanding = item.total_amount - item.paid_amount
+                        debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
+                    
+                    debtors_summary = [
+                        {"debtor_name": name, "amount": float(amount)}
+                        for name, amount in debtor_map.items()
+                    ]
+
                     acc_dict = {
                         'id': str(account.id),
                         'name': account.name,
@@ -232,6 +250,8 @@ class AccountViewSet(viewsets.ModelViewSet):
                         'parent': str(account.parent_id) if account.parent_id else None,
                         'ceiling': float(account.ceiling) if account.ceiling is not None else None,
                         'exclude_from_totals': account.exclude_from_totals,
+                        'pending_restitutions_total': float(pending_restitutions_total),
+                        'debtors_summary': debtors_summary,
                     }
                     if children:
                         acc_dict['children'] = children

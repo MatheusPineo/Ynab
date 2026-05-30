@@ -52,7 +52,6 @@ const AccountDetails = () => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
   const [accountsLoaded, setAccountsLoaded] = useState(false);
-  const [debtItems, setDebtItems] = useState<any[]>([]);
 
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
 
@@ -87,43 +86,7 @@ const AccountDetails = () => {
 
   useEffect(() => {
     fetchAccounts().finally(() => setAccountsLoaded(true));
-    const fetchDebtItems = async () => {
-      try {
-        const res = await authenticatedFetch("/debt-items/");
-        if (res.ok) {
-          const data = await res.json();
-          setDebtItems(data);
-        }
-      } catch (err) {
-        console.error("Erro ao buscar itens de dívidas", err);
-      }
-    };
-    fetchDebtItems();
   }, [fetchAccounts]);
-
-  const subaccountDebts = useMemo(() => {
-    if (!account) return { total: 0, debtors: [] };
-    const items = debtItems.filter(item => 
-      String(item.origin_subaccount) === String(account.id) &&
-      (item.status === "PENDING" || item.status === "PARTIAL")
-    );
-
-    const total = items.reduce((sum, item) => sum + (Number(item.total_amount) - Number(item.paid_amount)), 0);
-
-    const debtorMap: Record<string, number> = {};
-    items.forEach(item => {
-      const name = item.debtor_name || "Outro";
-      const outstanding = Number(item.total_amount) - Number(item.paid_amount);
-      debtorMap[name] = (debtorMap[name] || 0) + outstanding;
-    });
-
-    const debtorList = Object.entries(debtorMap)
-      .map(([name, amount]) => ({ name, amount }))
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 3); // top 3 debtors
-
-    return { total, debtors: debtorList };
-  }, [debtItems, account]);
 
   const currency = account?.currency || "EUR";
 
@@ -424,16 +387,17 @@ const AccountDetails = () => {
         </Card>
       </div>
 
-      {subaccountDebts.total > 0 && (
-        <div className="p-4 rounded-2xl bg-slate-900/40 border border-border/40 flex flex-col gap-2 shadow-soft animate-in slide-in-from-top-2 duration-300">
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
-            Este saldo possui <span className="text-foreground font-semibold">{formatMoney(subaccountDebts.total, currency)}</span> a ser restituído por terceiros.
+      {account.debtors_summary && account.debtors_summary.length > 0 && (
+        <div className="p-4 rounded-2xl bg-slate-900/40 border border-border/40 flex flex-col gap-3 shadow-soft animate-in slide-in-from-top-2 duration-300">
+          <p className="text-xs sm:text-sm text-muted-foreground font-bold leading-relaxed uppercase tracking-wider font-mono">
+            Devedores deste Envelope
           </p>
-          <div className="flex flex-wrap gap-1.5 items-center">
-            {subaccountDebts.debtors.map((d) => (
-              <Badge key={d.name} variant="outline" className="bg-background/50 text-muted-foreground border-border/40 hover:bg-background/80 shadow-none font-medium text-[10px] rounded-xl px-2.5 py-0.5">
-                {d.name}: {formatMoney(d.amount, currency)}
-              </Badge>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            {account.debtors_summary.map((d: any) => (
+              <div key={d.debtor_name} className="flex items-center justify-between p-2.5 rounded-xl bg-card/30 border border-border/20 text-xs">
+                <span className="font-semibold text-muted-foreground truncate">{d.debtor_name}</span>
+                <span className="font-bold text-foreground tabular-nums ml-2">{formatMoney(d.amount, currency)}</span>
+              </div>
             ))}
           </div>
         </div>
