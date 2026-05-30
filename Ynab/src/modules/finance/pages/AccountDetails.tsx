@@ -342,20 +342,6 @@ const AccountDetails = () => {
         </div>
       </div>
 
-      {subaccountDebts.total > 0 && (account.available_balance ?? (Number(account.balance) - (Number(account.reserved_credit_balance) || 0))) < 0 && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex flex-col gap-2 shadow-soft animate-in slide-in-from-top-2 duration-300">
-          <p className="text-xs sm:text-sm text-amber-500 font-bold leading-relaxed">
-            Este saldo negativo de {formatMoney(account.available_balance ?? (Number(account.balance) - (Number(account.reserved_credit_balance) || 0)), currency)} possui {formatMoney(subaccountDebts.total, currency)} a ser restituído por terceiros.
-          </p>
-          <div className="flex flex-wrap gap-1.5 items-center">
-            {subaccountDebts.debtors.map((d) => (
-              <Badge key={d.name} className="bg-amber-500/15 text-amber-500 border-amber-500/20 hover:bg-amber-500/25 shadow-none font-bold text-[10px] rounded-xl px-2 py-0.5">
-                {d.name}: {formatMoney(d.amount, currency)}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Period Filters */}
       <div className="flex flex-wrap items-center gap-2 pl-0">
@@ -437,6 +423,21 @@ const AccountDetails = () => {
           </CardContent>
         </Card>
       </div>
+
+      {subaccountDebts.total > 0 && (
+        <div className="p-4 rounded-2xl bg-slate-900/40 border border-border/40 flex flex-col gap-2 shadow-soft animate-in slide-in-from-top-2 duration-300">
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">
+            Este saldo possui <span className="text-foreground font-semibold">{formatMoney(subaccountDebts.total, currency)}</span> a ser restituído por terceiros.
+          </p>
+          <div className="flex flex-wrap gap-1.5 items-center">
+            {subaccountDebts.debtors.map((d) => (
+              <Badge key={d.name} variant="outline" className="bg-background/50 text-muted-foreground border-border/40 hover:bg-background/80 shadow-none font-medium text-[10px] rounded-xl px-2.5 py-0.5">
+                {d.name}: {formatMoney(d.amount, currency)}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Responsive Grid containing Transactions and Balance Lock Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
