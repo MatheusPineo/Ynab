@@ -1,5 +1,11 @@
 # Novidades e Atualizações
 
+## Edição Inline, Exclusão e Seletor de Contas Global nas Dívidas (30/05/2026) 👥⚙️
+Adicionamos recursos poderosos de edição direta e usabilidade ao painel de Dívidas:
+* **Seletor de Contas Global:** Substituímos os menus suspensos simples pelo seletor global do sistema, permitindo que você busque facilmente por nome e reassocie subcontas/envelopes para itens de dívida e modais de lançamento ("Registrar Pagamento" e "Adicionar Débito").
+* **Ajuste Rápido de Valores:** Adicionado o suporte para alterar o valor total de dívidas individuais dando um duplo clique no valor.
+* **Exclusão Estornada:** Permite excluir registros de dívidas individuais diretamente pela lixeira do card de devedores, estornando e reajustando automaticamente os saldos do orçamento.
+
 ## Mutações em Dívidas e Rebalanceamento Atômico (30/05/2026) 💸
 Implementamos melhorias críticas no gerenciamento de itens de dívida individuais para roommates:
 * **Edição de Itens de Dívida (PATCH):** Agora você pode editar o valor total (	otal_amount) ou mover um item de dívida para outra subconta/envelope (origin_subaccount_id).
@@ -90,16 +96,9 @@ Na sua tela de Transações, agora você verá um "Pacote" agrupador da Fatura.
 - **Tela de Faturas Unificada:** O visual da aba de faturas foi completamente redesenhado. Agora ele utiliza cards luxuosos para mostrar o **Total**, **Pago** e **Pendente**, mantendo essa estrutura até mesmo nos meses sem compras, preservando a imersão e consistência.
 - **Barras de Limite (Budget):** Demos adeus às barras de progresso grossas nas subcontas! O sistema agora usa linhas de preenchimento ultrafinas (6px). As porcentagens de uso ficam flutuando elegantemente como *badges* modernos acima das linhas, resultando num visual super *clean*. As contas sem limite ("Saldo Livre") ganharam o mesmo visual minimalista simétrico.
 
- # # #   P a g a m e n t o s   M a i s   P r e c i s o s   e   I s o l a m e n t o   d e   M o e d a s 
- -   * * P a g a m e n t o   D i r e c i o n a d o * * :   A o   c l i c a r   e m   \ 
- 
- R e g i s t r a r 
- 
- P a g a m e n t o \   d e n t r o   d e   u m a   s u b c o n t a   e s p e c � f i c a   d e   u m   c o l e g a ,   o   n o v o   m o d a l   j �   p u x a   a   d � v i d a   d i r e t a m e n t e   p a r a   a q u e l e   e n v e l o p e ,   a b a t e n d o   c r o n o l o g i c a m e n t e   ( F I F O )   a s   d e s p e s a s   d e l e .   M u i t o   m a i s   r � p i d o   e   l i v r e   d e   e r r o s ! 
- -   * * S o m a   C o r r e t a   p o r   M o e d a * * :   C a s o   u m   d e v e d o r   p o s s u a   d e s p e s a s   e m   E u r o   e   R e a l   m i s t u r a d a s ,   o s   v a l o r e s   t o t a i s   n � o   s e r � o   m a i s   s o m a d o s   e m   u m   � n i c o   t e x t o   c o n f u s o .   A g o r a   a s   m o e d a s   s � o   l i s t a d a s   e   s e p a r a d a s   n a   t e l a   p a r a   g a r a n t i r   i n t e g r i d a d e . 
- 
- 
- 
+### 5. Pagamentos Mais Precisos e Isolamento de Moedas
+- **Pagamento Direcionado:** Ao clicar em "Registrar Pagamento" dentro de uma subconta específica de um colega, o novo modal já puxa a dívida diretamente para aquele envelope, abatendo cronologicamente (FIFO) as despesas dele. Muito mais rápido e livre de erros!
+- **Soma Correta por Moeda:** Caso um devedor possua despesas em Euro e Real misturadas, os valores totais não serão mais somados em um único texto confuso. Agora as moedas são listadas e separadas na tela para garantir integridade.
 
 ### Seguranca nas Faturas
 - **Status de Cobertura**: Veja imediatamente um aviso caso nao tenha saldo nos envelopes para pagar a fatura.

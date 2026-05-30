@@ -14,22 +14,21 @@
 2. **Qualidade ObrigatÃƒÂ³ria:** Toda alteraÃƒÂ§ÃƒÂ£o no cÃƒÂ³digo exige a execuÃƒÂ§ÃƒÂ£o imediata da suÃƒÂ­te automatizada de testes (Pytest/Vitest/Typecheck) do respectivo projeto para garantir que tudo estÃƒÂ¡ verde.
 3. **Deploy ContÃƒÂ­nuo:** Sempre faÃƒÂ§a o envio para o servidor de produÃƒÂ§ÃƒÂ£o pelo terminal utilizando o comando `vercel --prod --yes`.
 4. **Governança de Documentação:** Sempre que alterar qualquer regra de negócio, identifique os manuais impactados (`README.md`, `ARCHITECTURE.md`, etc.) e atualize-os cirurgicamente, registrando o resumo no `CHANGELOG.md`.
-5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS
-- Frontend: Dashboard de dívidas refatorado com isolamento de multi-moedas e Modal de Pagamento Direcionado. Injeção de visualização reativa do Status de Cobertura da Fatura.
-- Backend: Endpoint de grouped_debts retornando metadados de currency da subconta. Motor de repagamento implementado. Restrição de null/blank aplicadas em modelos de CreditCardTransaction e Installment.
+5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-05-30 12:50:00): Adicionados endpoints PATCH e DELETE para DebtItem em views.py e services.py com rebalanceamento de envelopes e estorno na exclusão.
-- Frontend: Dashboard de dívidas refatorado com isolamento de multi-moedas e Modal de Pagamento Direcionado. Injeção de visualização reativa do Status de Cobertura da Fatura.
-- Backend: Endpoints PATCH e DELETE em /api/debt-items/<id>/ com serviço DebtItemMutationService.
+(Atualizado em 2026-05-30 16:42:00): Integrado GlobalAccountSelector para edição inline de subcontas/envelopes e modais de pagamentos e acréscimos nas dívidas (v1.41.02).
+- Frontend: Substituição dos selects comuns pelo seletor de contas global nas telas de Dívidas. Suporte a duplo clique para edição de valor de itens de dívida e exclusão com estorno na lixeira.
+- Backend: Manutenção de endpoints PATCH e DELETE 100% estáveis com rebalanceamento automático de envelopes.
 
-### Status Atual (Versão 1.41.01)
-- **Marco:** Mutações de Itens de Dívida e Rebalanceamento Atômico (v1.41.01).
-- **Estado:** 100% estável e finalizado.
-- **Arquitetura:** Implementação dos métodos PATCH e DELETE em DebtItemViewSet no endpoint /api/debt-items/<id>/. Ao alterar origin_subaccount_id (PATCH), o sistema executa o rebalanceamento de envelopes, subtraindo o valor do saldo da conta antiga e somando à nova conta. Mudanças de 	otal_amount ajustam proporcionalmente o saldo do envelope associado. No DELETE, o peso financeiro da dívida é estornado da subconta correspondente antes de executar o .delete().
-- **Testes:** pytest (90 passed) 100% verdes.
+### Status Atual (Versão 1.41.02)
+- **Marco:** Seletor de Contas Global e Edição Inline de Dívidas (v1.41.02).
+- **Estado:** 100% estável e implantado em produção (Vercel).
+- **Arquitetura:** Inclusão de `<GlobalAccountSelector>` com busca e navegação textual hierárquica no painel de devedores (`Debts.tsx`). A edição de valores é feita via input dinâmico por duplo clique e a exclusão aciona o DELETE da API com reversão física no banco de dados.
+- **Testes:** Suíte de testes (Vitest e Pytest) 100% verde (19 testes de dívidas e relatórios com sucesso).
 
 ### Histórico de Sprints Recentes
+- [v1.41.02] Seletor de Contas Global e Edição Inline: Substituição de dropdowns comuns por GlobalAccountSelector e suporte a edição rápida de valores e exclusão no painel de devedores.
 - [v1.41.01] Mutações de Itens de Dívida e Rebalanceamento Atômico: Implementação de PATCH e DELETE para DebtItem com rebalanceamento de saldos e estorno financeiro em subcontas/envelopes.
 - [v1.41.00] Motor de Amortização FIFO e Devedores Agrupados: Implementação de modelos granulares de devedores, engine FIFO cronológica, cadastro de dívidas em lote e agregação transacional de dívidas por envelope de origem.
 - [v1.40.00] Metas Inteligentes, Alocação Rápida e Rebalanceamento Automático: Implementação completa de metas avançadas de envelopes, serviços de distribuição proativos e ações rápidas de rebalanceamento no backend e frontend.

@@ -48,3 +48,11 @@ Para agilizar o fluxo de divisão de compras detalhadas (como notas longas de su
 2. **Registro e Rastreamento:** O serviço `register_itemized_debts` cria e persiste de forma atômica cada registro como `PENDING` (Pendente) com `paid_amount=0.00`.
 3. **Não-duplicação de Débito:** Importante ressaltar que este serviço **NÃO** subtrai saldo do envelope ou da conta física novamente. Ele apenas cria os títulos de controle de dívida. O débito financeiro real do envelope já foi registrado anteriormente quando você lançou a transação global da compra (ex: o gasto de 100€ pago no caixa do mercado).
 
+---
+
+## 5. Edição Inline e Seletor de Contas Global
+
+Para facilitar a manutenção dos registros de dívidas, a interface oferece recursos práticos de edição direta nos cards de dívidas:
+* **Alteração de Subconta (Envelope):** Ao clicar no nome da subconta/envelope associado à dívida, o sistema abre o **Seletor de Contas Global**, permitindo buscar por nome e reassociar o lançamento a outro envelope de forma instantânea (disponível para itens de dívida individuais).
+* **Edição de Valor:** Ao dar um duplo clique no valor pendente da dívida, um campo numérico é exibido para alteração rápida. Pressione *Enter* para salvar.
+* **Exclusão de Dívidas:** Um botão de lixeira (ícone de lixo) está disponível ao lado de cada linha, permitindo remover o registro e reverter automaticamente seu peso financeiro no saldo dos envelopes.

@@ -1,3 +1,9 @@
+## [1.41.02] - 2026-05-30
+
+### Added
+- Seletor de Contas Global no Painel de Dívidas: Substituição de elementos `<Select>` padrão do HTML/Radix pelo componente `<GlobalAccountSelector>` com suporte a busca textual hierárquica e navegação por teclado no editor inline de subcontas e nos modais "Registrar Pagamento" e "Adicionar Débito".
+- Edição Inline de Valores e Remoção com Estorno: Suporte a duplo clique para modificar os valores pendentes e botão de exclusão de dívidas individuais direto nos cartões, integrando com o backend para rebalancear saldos e estornar pesos financeiros.
+
 ## [1.41.01] - 2026-05-30
 
 ### Added
