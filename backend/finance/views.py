@@ -2410,10 +2410,31 @@ class DebtorViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        data = serializer.data
+        
+        from django.db.models import Sum, F
+        from decimal import Decimal
+        from .models import DebtItem
+        
+        total_outstanding = DebtItem.objects.filter(
+            debtor_id=instance.id,
+            status__in=['PENDING', 'PARTIAL']
+        ).aggregate(
+            total=Sum(F('total_amount') - F('paid_amount'))
+        )['total'] or Decimal('0.00')
+        
+        data['total_outstanding'] = float(total_outstanding)
+        return Response(data)
+
     @action(detail=True, methods=['get'])
     def grouped_debts(self, request, pk=None):
-        debtor = self.get_object()
-        items = DebtItem.objects.filter(debtor=debtor).select_related('origin_subaccount')
+        items = DebtItem.objects.filter(
+            debtor_id=pk,
+            status__in=['PENDING', 'PARTIAL']
+        ).select_related('origin_subaccount')
         
         grouped = {}
         for item in items:
@@ -2426,7 +2447,6 @@ class DebtorViewSet(viewsets.ModelViewSet):
                     'total_outstanding_balance': Decimal('0.00'),
                     'items': []
                 }
-            # Outstanding = total_amount - paid_amount
             outstanding = item.total_amount - item.paid_amount
             grouped[sub.id]['total_outstanding_balance'] += outstanding
             grouped[sub.id]['items'].append(DebtItemSerializer(item).data)

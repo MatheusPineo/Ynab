@@ -38,6 +38,7 @@ export const DebtorProfile = () => {
   const { fetchAccounts } = useAccountStore();
 
   const fetchDebtorData = async () => {
+    if (!debtorId || debtorId === "undefined" || debtorId === "null") return;
     try {
       const profileRes = await authenticatedFetch(`/debtors/${debtorId}/`);
       if (profileRes.ok) {
@@ -58,7 +59,7 @@ export const DebtorProfile = () => {
   };
 
   useEffect(() => {
-    if (debtorId) {
+    if (debtorId && debtorId !== "undefined" && debtorId !== "null") {
       fetchDebtorData();
     }
   }, [debtorId]);
