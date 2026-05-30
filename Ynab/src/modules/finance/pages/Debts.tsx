@@ -87,15 +87,42 @@ const DebtCard = ({
     }
 
     const amount = Number(amountStr);
-    let debtor = debtors.find(d => d.name.trim().toLowerCase() === debt.counterparty_name.trim().toLowerCase());
+    
+    let activeDebtors = debtors;
+    if (!activeDebtors || activeDebtors.length === 0) {
+      try {
+        const res = await authenticatedFetch("/debtors/");
+        if (res.ok) {
+          activeDebtors = await res.json();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    let debtor = activeDebtors.find(d => d.name.trim().toLowerCase() === debt.counterparty_name.trim().toLowerCase());
     if (!debtor) {
-      debtor = debtors.find(d => 
+      debtor = activeDebtors.find(d => 
         debt.counterparty_name.trim().toLowerCase().includes(d.name.trim().toLowerCase()) ||
         d.name.trim().toLowerCase().includes(debt.counterparty_name.trim().toLowerCase())
       );
     }
     if (!debtor) {
-      toast.error("Devedor não encontrado. Buscando por: " + debt.counterparty_name + ", disponíveis: " + debtors.map(d => `${d.name} (id: ${d.id})`).join(", "));
+      try {
+        const createRes = await authenticatedFetch("/debtors/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: debt.counterparty_name })
+        });
+        if (createRes.ok) {
+          debtor = await createRes.json();
+        }
+      } catch (e) {
+        console.error("Erro ao criar devedor automaticamente", e);
+      }
+    }
+    if (!debtor) {
+      toast.error("Devedor não encontrado e falha ao criar automaticamente. Buscando por: " + debt.counterparty_name + ", disponíveis: " + activeDebtors.map(d => `${d.name} (id: ${d.id})`).join(", "));
       return;
     }
 

@@ -2413,6 +2413,21 @@ class DebtorViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(detail=False, methods=['post'], url_path='pay-subaccount')
+    def pay_subaccount(self, request):
+        debtor_id = request.data.get('debtor_id')
+        subaccount_id = request.data.get('subaccount_id')
+        payment_amount = request.data.get('amount')
+        
+        if not debtor_id or not subaccount_id or not payment_amount:
+            return Response({"detail": "debtor_id, subaccount_id e amount são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            result = DebtorPaymentService.pay_subaccount_group(debtor_id, subaccount_id, payment_amount)
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=True, methods=['post'])
     def add_items(self, request, pk=None):
         debtor = self.get_object()
