@@ -12,6 +12,13 @@ export const Topbar = () => {
   const currentMonth = format(new Date(), "MMMM yyyy", { locale: ptBR });
   const firstName = user?.name ? user.name.split(" ")[0] : "Usuário";
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return "Bom dia";
+    if (hour >= 12 && hour < 19) return "Boa tarde";
+    return "Boa noite";
+  };
+
   return (
     <header className="flex h-16 items-center justify-between gap-2 sm:gap-4 px-4 sm:px-8 border-b border-sidebar-border shrink-0">
       <div className="min-w-0 flex-1">
@@ -20,7 +27,7 @@ export const Topbar = () => {
         </div>
         <h1 className="text-foreground font-semibold tracking-tight truncate">
           <span className="hidden sm:inline text-2xl">
-            Bom dia, {firstName} <span className="text-gradient-primary">👋</span>
+            {getGreeting()}, {firstName} <span className="text-gradient-primary">👋</span>
           </span>
           <span className="sm:hidden text-xl font-black tracking-tighter">
             Vault <span className="text-gradient-primary">✦</span>

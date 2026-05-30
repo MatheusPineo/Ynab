@@ -2,7 +2,7 @@ from datetime import date, timedelta
 import calendar
 from decimal import Decimal
 from django.db import transaction
-from .models import CreditCard, CreditCardBill, CreditCardTransaction, Installment, Account, Transaction as CoreTransaction
+from .models import CreditCard, CreditCardBill, CreditCardTransaction, Installment, Account, Category, Transaction as CoreTransaction
 
 @transaction.atomic
 def process_credit_card_transaction(
@@ -46,6 +46,44 @@ def process_credit_card_transaction(
         
     remainder = val_total - (base_installment_amount * installment_count)
     
+    # Resolve a subconta (envelope de despesa) antes de criar a Compra Matriz
+    expense_envelope = None
+    if expense_account_id:
+        try:
+            expense_envelope = Account.objects.get(id=expense_account_id)
+        except Account.DoesNotExist:
+            pass
+
+    if not expense_envelope:
+        category_name = "Geral"
+        if category_id:
+            try:
+                category_name = Category.objects.get(id=category_id).name
+            except Category.DoesNotExist:
+                pass
+        
+        expense_envelope = Account.objects.filter(
+            user=credit_card.account.user,
+            name=category_name,
+            currency=credit_card.account.currency,
+            parent__isnull=False
+        ).first()
+        
+        if not expense_envelope:
+            parent_acc = Account.objects.filter(user=credit_card.account.user, parent__isnull=True).first()
+            if parent_acc:
+                expense_envelope = Account.objects.create(
+                    user=credit_card.account.user,
+                    name=category_name,
+                    currency=credit_card.account.currency,
+                    parent=parent_acc,
+                    account_type='savings',
+                    balance=Decimal('0.00')
+                )
+    
+    if expense_envelope:
+        expense_account_id = expense_envelope.id
+
     # Cria a Compra Matriz (Agora que val_total já está 100% ajustado caso input_type seja PARCELA)
     matrix_tx = CreditCardTransaction.objects.create(
         credit_card=credit_card,
@@ -60,28 +98,6 @@ def process_credit_card_transaction(
         exchange_rate=val_rate,
         iof_amount=val_iof
     )
-    
-    # Resolve a subconta (envelope de despesa) antes do loop de parcelas
-    category_name = matrix_tx.category.name if matrix_tx.category else "Geral"
-    expense_envelope = matrix_tx.expense_account
-    if not expense_envelope:
-        expense_envelope = Account.objects.filter(
-            user=credit_card.account.user,
-            name=category_name,
-            currency=credit_card.account.currency,
-            parent__isnull=False
-        ).first()
-        if not expense_envelope:
-            parent_acc = Account.objects.filter(user=credit_card.account.user, parent__isnull=True).first()
-            if parent_acc:
-                expense_envelope = Account.objects.create(
-                    user=credit_card.account.user,
-                    name=category_name,
-                    currency=credit_card.account.currency,
-                    parent=parent_acc,
-                    account_type='savings',
-                    balance=Decimal('0.00')
-                )
 
     # 1. Ciclo de Fatura e "Melhor Dia":
     # Se a transação ocorrer no dia exato ou após o closing_day, vai para o mês subsequente.
@@ -314,12 +330,7 @@ def pay_bill(bill_id, payment_mode, payload_data=None, payment_account_id=None):
                 matrix_tx.installment_count += 1
                 matrix_tx.save()
                 
-                if new_subaccount_id is not None:
-                    from .services import YNABBudgetService
-                    # Force recalculation for the bill month
-                    for inst in installments_to_affect:
-                        YNABBudgetService.calculate_envelope_states(user, inst.bill.month, inst.bill.year)
-                
+
                 # Cria a parcela residual para a próxima fatura
                 Installment.objects.create(
                     transaction=matrix_tx,
@@ -385,12 +396,7 @@ def pay_bill(bill_id, payment_mode, payload_data=None, payment_account_id=None):
                 matrix_tx.installment_count += 1
                 matrix_tx.save()
                 
-                if new_subaccount_id is not None:
-                    from .services import YNABBudgetService
-                    # Force recalculation for the bill month
-                    for inst in installments_to_affect:
-                        YNABBudgetService.calculate_envelope_states(user, inst.bill.month, inst.bill.year)
-                
+
                 # Cria a parcela residual na próxima fatura
                 Installment.objects.create(
                     transaction=matrix_tx,

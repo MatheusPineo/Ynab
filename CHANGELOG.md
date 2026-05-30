@@ -1,3 +1,16 @@
+## [1.41.04] - 2026-05-30
+
+### Added
+- Saudação Dinâmica no Topbar: Substituído o cumprimento estático "Bom dia" por uma mensagem baseada na hora local do cliente (Bom dia entre 05:00 e 11:59, Boa tarde entre 12:00 e 18:59, e Boa noite entre 19:00 e 04:59), preservando a estilização e emoji wave 👋 originais.
+
+## [1.41.03] - 2026-05-30
+
+### Fixed
+- Correção de `IntegrityError` em compras de cartão de crédito no backend Django, movendo a resolução de `expense_envelope` para antes da persistência de `CreditCardTransaction` no banco de dados.
+- Resolução de `NameError: name 'Category' is not defined` importando explicitamente a classe no topo de `finance/services.py`.
+- Remoção de lógica contendo variáveis órfãs (`new_subaccount_id` e `installments_to_affect`) injetadas indevidamente nas ramificações FIFO e PERCENTAGE do serviço `pay_bill`.
+- Ajuste de chamada inválida no construtor de datas (`date`) dentro do arquivo `test_reports.py` do backend.
+
 ## [1.41.02] - 2026-05-30
 
 ### Added

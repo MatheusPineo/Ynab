@@ -17,17 +17,19 @@
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-05-30 16:42:00): Integrado GlobalAccountSelector para edição inline de subcontas/envelopes e modais de pagamentos e acréscimos nas dívidas (v1.41.02).
-- Frontend: Substituição dos selects comuns pelo seletor de contas global nas telas de Dívidas. Suporte a duplo clique para edição de valor de itens de dívida e exclusão com estorno na lixeira.
-- Backend: Manutenção de endpoints PATCH e DELETE 100% estáveis com rebalanceamento automático de envelopes.
+(Atualizado em 2026-05-30 21:46:00): Adição da saudação dinâmica no Topbar por período de horário local do navegador (v1.41.04).
+- Frontend: Implementação de getGreeting no Topbar.tsx para saudar o usuário ("Bom dia", "Boa tarde", "Boa noite") mantendo a formatação e emoji wave originais.
+- Backend: Correção de IntegrityError em compras de cartão, correção de NameError em tratamento de categoria e pay_bill, restabelecendo 100% de conformidade com pytest.
 
-### Status Atual (Versão 1.41.02)
-- **Marco:** Seletor de Contas Global e Edição Inline de Dívidas (v1.41.02).
+### Status Atual (Versão 1.41.04)
+- **Marco:** Cumprimento Dinâmico no Topbar e Testes Verdes (v1.41.04).
 - **Estado:** 100% estável e implantado em produção (Vercel).
-- **Arquitetura:** Inclusão de `<GlobalAccountSelector>` com busca e navegação textual hierárquica no painel de devedores (`Debts.tsx`). A edição de valores é feita via input dinâmico por duplo clique e a exclusão aciona o DELETE da API com reversão física no banco de dados.
-- **Testes:** Suíte de testes (Vitest e Pytest) 100% verde (19 testes de dívidas e relatórios com sucesso).
+- **Arquitetura:** Injeção de lógica condicional no Topbar.tsx com base em `getHours()` e renderização dinâmica na tag `h1` sem interferir na visualização mobile.
+- **Testes:** Suíte de testes (Vitest + Pytest) 100% verde (90 testes Django + 30 testes frontend bem-sucedidos).
 
 ### Histórico de Sprints Recentes
+- [v1.41.04] Cumprimento Inteligente no Topbar: Saudação dinâmica por hora local (Bom dia, Boa tarde, Boa noite) integrada ao componente de cabeçalho.
+- [v1.41.03] Estabilização do Motor de Faturas: Correção de conciliações e faturas do cartão, importações e integridade de banco de dados.
 - [v1.41.02] Seletor de Contas Global e Edição Inline: Substituição de dropdowns comuns por GlobalAccountSelector e suporte a edição rápida de valores e exclusão no painel de devedores.
 - [v1.41.01] Mutações de Itens de Dívida e Rebalanceamento Atômico: Implementação de PATCH e DELETE para DebtItem com rebalanceamento de saldos e estorno financeiro em subcontas/envelopes.
 - [v1.41.00] Motor de Amortização FIFO e Devedores Agrupados: Implementação de modelos granulares de devedores, engine FIFO cronológica, cadastro de dívidas em lote e agregação transacional de dívidas por envelope de origem.

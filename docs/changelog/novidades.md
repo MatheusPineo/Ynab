@@ -1,5 +1,19 @@
 # Novidades e Atualizações
 
+## Cumprimento Inteligente no Topbar (30/05/2026) ☀️🌙
+A página inicial agora se comunica com você de acordo com o período do dia:
+* **Saudação Dinâmica por Horário:** O cabeçalho superior (`Topbar.tsx`) agora analisa a hora do seu navegador.
+  * Entre **05:00 e 11:59**, você receberá um caloroso **"Bom dia"**.
+  * Entre **12:00 e 18:59**, o cumprimento muda para **"Boa tarde"**.
+  * Entre **19:00 e 04:59**, a interface exibe **"Boa noite"**.
+* O seu nome de usuário e o clássico emoji de aceno (`👋`) permanecem perfeitamente alinhados à direita do cumprimento.
+
+## Estabilidade do Sistema e Correções de Cartão (30/05/2026) 🛠️🔒
+Implementamos correções críticas de infraestrutura para garantir estabilidade absoluta no controle de faturas e processamento de compras:
+* **Segurança na Criação de Compras:** Corrigimos o fluxo de inserção de despesas de cartão de crédito no banco de dados, prevenindo falhas de integração (`IntegrityError`) ao criar a transação matriz antes de resolver a gaveta/envelope padrão de despesa.
+* **Consistência do Motor de Faturas:** Corrigimos comportamentos inesperados ao usar as estratégias FIFO e de pagamento percentual no fechamento de faturas, eliminando erros causados por variáveis órfãs em atualizações anteriores.
+* **Robustez em Relatórios e Cargas:** Ajustamos formatações de datas e importações redundantes internas de modelos.
+
 ## Edição Inline, Exclusão e Seletor de Contas Global nas Dívidas (30/05/2026) 👥⚙️
 Adicionamos recursos poderosos de edição direta e usabilidade ao painel de Dívidas:
 * **Seletor de Contas Global:** Substituímos os menus suspensos simples pelo seletor global do sistema, permitindo que você busque facilmente por nome e reassocie subcontas/envelopes para itens de dívida e modais de lançamento ("Registrar Pagamento" e "Adicionar Débito").
