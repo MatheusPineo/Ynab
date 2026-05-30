@@ -2417,22 +2417,40 @@ class DebtorViewSet(viewsets.ModelViewSet):
         
         from django.db.models import Sum, F
         from decimal import Decimal
-        from .models import DebtItem
+        from .models import DebtItem, Debt, DebtCharge, DebtPayment
         
-        total_outstanding = DebtItem.objects.filter(
+        total_items = DebtItem.objects.filter(
             debtor_id=instance.id,
             status__in=['PENDING', 'PARTIAL']
         ).aggregate(
             total=Sum(F('total_amount') - F('paid_amount'))
         )['total'] or Decimal('0.00')
         
-        data['total_outstanding'] = float(total_outstanding)
+        debts = Debt.objects.filter(
+            user=request.user,
+            counterparty_name__iexact=instance.name,
+            is_mine=False
+        )
+        total_debts = Decimal('0.00')
+        for debt in debts:
+            total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            outstanding = (debt.original_amount + total_charges) - total_paid
+            if outstanding > 0:
+                total_debts += outstanding
+                
+        data['total_outstanding'] = float(total_items + total_debts)
         return Response(data)
 
     @action(detail=True, methods=['get'])
     def grouped_debts(self, request, pk=None):
+        debtor = self.get_object()
+        from .models import DebtItem, Debt, DebtCharge, DebtPayment
+        from django.db.models import Sum
+        from decimal import Decimal
+        
         items = DebtItem.objects.filter(
-            debtor_id=pk,
+            debtor=debtor,
             status__in=['PENDING', 'PARTIAL']
         ).select_related('origin_subaccount')
         
@@ -2450,6 +2468,45 @@ class DebtorViewSet(viewsets.ModelViewSet):
             outstanding = item.total_amount - item.paid_amount
             grouped[sub.id]['total_outstanding_balance'] += outstanding
             grouped[sub.id]['items'].append(DebtItemSerializer(item).data)
+            
+        debts = Debt.objects.filter(
+            user=request.user,
+            counterparty_name__iexact=debtor.name,
+            is_mine=False
+        ).select_related('origin_subaccount')
+        
+        for debt in debts:
+            total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            outstanding = (debt.original_amount + total_charges) - total_paid
+            
+            if outstanding > 0:
+                sub = debt.origin_subaccount
+                sub_id = sub.id if sub else 0
+                sub_name = sub.name if sub else "Sem Envelope"
+                sub_currency = sub.currency if sub else "EUR"
+                
+                if sub_id not in grouped:
+                    grouped[sub_id] = {
+                        'subaccount_id': sub_id,
+                        'subaccount_name': sub_name,
+                        'currency': sub_currency,
+                        'total_outstanding_balance': Decimal('0.00'),
+                        'items': []
+                    }
+                grouped[sub_id]['total_outstanding_balance'] += outstanding
+                
+                status_str = 'PENDING' if total_paid == 0 else 'PARTIAL'
+                grouped[sub_id]['items'].append({
+                    'id': debt.id + 1000000,
+                    'product_name': debt.notes or f"Empréstimo para {debt.counterparty_name}",
+                    'total_amount': float(debt.original_amount + total_charges),
+                    'paid_amount': float(total_paid),
+                    'status': status_str,
+                    'date_created': debt.created_at.strftime('%Y-%m-%d') if debt.created_at else None,
+                    'origin_subaccount': sub_id,
+                    'origin_subaccount_name': sub_name,
+                })
             
         result = list(grouped.values())
         return Response(result)
