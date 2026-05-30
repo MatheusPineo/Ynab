@@ -38,6 +38,8 @@ export interface Debt {
   total_amount: number;
   payments: DebtPayment[];
   charges: DebtCharge[];
+  origin_subaccount?: number;
+  origin_subaccount_name?: string;
 }
 
 interface DebtState {

@@ -401,6 +401,7 @@ class Debt(models.Model):
     currency = models.CharField(max_length=3, default='BRL')
     is_mine = models.BooleanField(default=False)  # True = I owe, False = they owe me
     notes = models.TextField(blank=True, default='')
+    origin_subaccount = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='legacy_debts')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -128,11 +128,22 @@ const DebtCard = ({
       fallbackGroups[name] = (fallbackGroups[name] || 0) - Number(p.amount);
     });
     if (debt.original_amount > 0) {
-      fallbackGroups["Geral"] = (fallbackGroups["Geral"] || 0) + Number(debt.original_amount);
+      const name = debt.origin_subaccount_name || "Geral";
+      fallbackGroups[name] = (fallbackGroups[name] || 0) + Number(debt.original_amount);
     }
     activeGroups = Object.entries(fallbackGroups)
       .filter(([_, amt]) => amt > 0)
-      .map(([name, amt]) => ({ name, amount: amt }));
+      .map(([name, amt]) => {
+        let gid = undefined;
+        if (name === debt.origin_subaccount_name || (name === "Geral" && !debt.origin_subaccount_name)) {
+          gid = debt.origin_subaccount;
+        }
+        return {
+          id: gid,
+          name: name,
+          amount: amt
+        };
+      });
   }
 
   // Multi-currency header aggregation
@@ -217,7 +228,24 @@ const DebtCard = ({
                                 toast.error("Erro na requisição: " + e.message);
                               }
                             } else {
-                              toast.warning("Lançamento herdado: não é possível reassociar a subconta via API.");
+                              try {
+                                const res = await authenticatedFetch(`/debts/${debt.id}/`, {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  body: JSON.stringify({ origin_subaccount: Number(newVal) })
+                                });
+                                if (res.ok) {
+                                  toast.success("Subconta da dívida atualizada com sucesso!");
+                                  await fetchGrouped();
+                                  await useAccountStore.getState().fetchAccounts();
+                                  await useDebtStore.getState().fetchDebts();
+                                } else {
+                                  const err = await res.json();
+                                  toast.error(err.detail || "Erro ao atualizar subconta");
+                                }
+                              } catch (e: any) {
+                                toast.error("Erro na requisição: " + e.message);
+                              }
                             }
                             setEditingSubaccountIdx(null);
                           }}

@@ -147,12 +147,14 @@ class DebtSerializer(serializers.ModelSerializer):
     total_amount = serializers.SerializerMethodField()
     payments = DebtPaymentSerializer(many=True, read_only=True)
     charges = DebtChargeSerializer(many=True, read_only=True)
+    origin_subaccount_name = serializers.CharField(source='origin_subaccount.name', read_only=True)
 
     class Meta:
         model = Debt
-        fields = ['id', 'user', 'counterparty_name', 'original_amount', 'currency', 'is_mine', 'notes', 'created_at', 'amount_paid', 'amount_remaining', 'total_amount', 'payments', 'charges']
+        fields = ['id', 'user', 'counterparty_name', 'original_amount', 'currency', 'is_mine', 'notes', 'created_at', 'amount_paid', 'amount_remaining', 'total_amount', 'payments', 'charges', 'origin_subaccount', 'origin_subaccount_name']
         extra_kwargs = {
             'user': {'read_only': True},
+            'origin_subaccount': {'required': False, 'allow_null': True},
         }
 
     def get_total_amount(self, obj):
