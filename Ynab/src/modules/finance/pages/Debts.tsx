@@ -24,11 +24,13 @@ import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 const DebtCard = ({ 
   debt, 
   onAddPayment, 
-  onAddDebtAmount 
+  onAddDebtAmount,
+  debtors
 }: { 
   debt: Debt; 
   onAddPayment: (d: Debt) => void; 
   onAddDebtAmount: (d: Debt) => void; 
+  debtors: { id: number; name: string }[];
 }) => {
   const [showHistory, setShowHistory] = useState(false);
   const { deleteDebt, deletePayment, deleteCharge, updateCharge } = useDebtStore();
@@ -37,6 +39,26 @@ const DebtCard = ({
   const totalDebt = debt.total_amount || debt.original_amount;
   const progress = Math.min(100, Math.round((debt.amount_paid / totalDebt) * 100)) || 0;
   const isPaid = progress >= 100;
+
+  const [groupedDebts, setGroupedDebts] = useState<{ subaccount_name: string; total_outstanding_balance: number }[]>([]);
+
+  useEffect(() => {
+    const fetchGrouped = async () => {
+      const debtor = debtors.find(d => d.name.toLowerCase() === debt.counterparty_name.toLowerCase());
+      if (debtor) {
+        try {
+          const res = await authenticatedFetch(`/debtors/${debtor.id}/grouped_debts/`);
+          if (res.ok) {
+            const data = await res.json();
+            setGroupedDebts(data);
+          }
+        } catch (err) {
+          console.error("Error fetching grouped debts", err);
+        }
+      }
+    };
+    fetchGrouped();
+  }, [debt, debtors]);
 
   const handleDelete = async () => {
     if (window.confirm(`Tem certeza que deseja excluir a dívida de ${debt.counterparty_name}?`)) {
@@ -68,6 +90,33 @@ const DebtCard = ({
     ...(debt.charges || []).map(c => ({ ...c, type: 'charge' as const }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  // Grouping logic based on groupedDebts from API or fallback
+  let activeGroups: { name: string; amount: number }[] = [];
+  if (groupedDebts.length > 0) {
+    activeGroups = groupedDebts
+      .filter(g => Number(g.total_outstanding_balance) > 0)
+      .map(g => ({
+        name: g.subaccount_name,
+        amount: Number(g.total_outstanding_balance)
+      }));
+  } else {
+    const fallbackGroups: Record<string, number> = {};
+    (debt.charges || []).forEach(c => {
+      const name = c.account_name || "Geral";
+      fallbackGroups[name] = (fallbackGroups[name] || 0) + Number(c.amount);
+    });
+    (debt.payments || []).forEach(p => {
+      const name = p.account_name || "Geral";
+      fallbackGroups[name] = (fallbackGroups[name] || 0) - Number(p.amount);
+    });
+    if (debt.original_amount > 0) {
+      fallbackGroups["Geral"] = (fallbackGroups["Geral"] || 0) + Number(debt.original_amount);
+    }
+    activeGroups = Object.entries(fallbackGroups)
+      .filter(([_, amt]) => amt > 0)
+      .map(([name, amt]) => ({ name, amount: amt }));
+  }
+
   return (
     <Card className="overflow-hidden border-sidebar-border bg-sidebar/50 shadow-sm transition-all hover:shadow-md">
       <CardHeader className="pb-3 flex flex-row items-start justify-between">
@@ -88,35 +137,37 @@ const DebtCard = ({
               </Badge>
             )}
           </CardTitle>
-          {debt.notes && <CardDescription className="mt-1 line-clamp-2">{debt.notes}</CardDescription>}
+          <div className="text-xs text-muted-foreground mt-1 font-semibold">
+            {debt.is_mine ? "Total a Pagar: " : "Total a Receber: "}
+            <span className="text-foreground font-bold">
+              {formatMoney(debt.amount_remaining, debt.currency)}
+            </span>
+          </div>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500" onClick={handleDelete}>
           <Trash className="h-4 w-4" />
         </Button>
       </CardHeader>
-      <CardContent className="pb-4 space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Valor Total</span>
-            <div className="font-semibold text-foreground">
-              {formatMoney(totalDebt, debt.currency)}
+      <CardContent className="pb-4 space-y-3">
+        {activeGroups.length > 0 ? (
+          <div className="space-y-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Contas em Aberto por Subconta</span>
+            <div className="space-y-1">
+              {activeGroups.map((g, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-muted/30 border border-border/10">
+                  <span className="text-muted-foreground flex items-center gap-1.5">
+                    <span>📁</span> {g.name}
+                  </span>
+                  <span className="font-bold text-foreground">{formatMoney(g.amount, debt.currency)}</span>
+                </div>
+              ))}
             </div>
           </div>
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Restante</span>
-            <div className={cn("font-bold", isPaid ? "text-emerald-500" : "text-amber-500")}>
-              {formatMoney(debt.amount_remaining, debt.currency)}
-            </div>
+        ) : (
+          <div className="text-center text-muted-foreground text-xs py-2 bg-muted/20 rounded-lg">
+            Nenhuma subconta com saldo em aberto.
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <div className="flex justify-between text-xs font-medium">
-            <span className="text-muted-foreground">Progresso</span>
-            <span className={isPaid ? "text-emerald-500" : "text-foreground"}>{progress}%</span>
-          </div>
-          <Progress value={progress} className={cn("h-2", isPaid && "[&>div]:bg-emerald-500")} />
-        </div>
+        )}
       </CardContent>
       
       <div className="bg-muted/30 border-t border-sidebar-border px-4 py-3 flex flex-wrap gap-2 items-center justify-between">
@@ -144,7 +195,7 @@ const DebtCard = ({
                 Mais Débito
               </Button>
               <Button size="sm" className="h-8 text-xs shadow-soft cursor-pointer shrink-0" onClick={() => onAddPayment(debt)}>
-                Adicionar Saldo
+                Registrar Pagamento
               </Button>
             </>
           )}
@@ -469,7 +520,7 @@ export const Debts = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {meDevem.map(debt => (
-                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onAddDebtAmount={openAddAmountModal} />
+                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
                   ))}
                 </div>
               )}
@@ -492,7 +543,7 @@ export const Debts = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {minhasDividas.map(debt => (
-                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onAddDebtAmount={openAddAmountModal} />
+                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
                   ))}
                 </div>
               )}

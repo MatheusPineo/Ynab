@@ -6,6 +6,7 @@
 - Registro de Dívidas em Lote (Bulk Creation): Desenvolvido o serviço `DebtorCreationService.register_itemized_debts` transacional para cadastrar múltiplos itens de despesa vinculados a um roommate sem deduzir novamente do envelope.
 - Serialização e Agregação na API: Refatorada `DebtorViewSet` e criada `DebtItemViewSet` para expor dívidas consolidadas por envelope, totais pendentes e itens internos estruturados em formato aninhado. Adicionado endpoint `POST /api/debtors/{id}/add_items/` mapeando o serviço de lote.
 - Cobertura de Testes Automatizados: Adicionado `test_debtor_payments.py` com validações rigorosas de comportamento FIFO, criação em lote e rotas HTTP da API.
+- Visualização e Controle de Dívidas Agrupadas (Frontend): Refatorada a visualização do painel principal de devedores (`Debts.tsx`) para renderizar os saldos em aberto agrupados por subconta de destino de forma aninhada, removendo a barra de progresso linear e o subtítulo descritivo. Renomeado o botão de ação principal para "Registrar Pagamento" adjacente a "+ Mais Débito".
 
 
 ## [1.40.00] - 2026-05-29
