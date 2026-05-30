@@ -2385,6 +2385,7 @@ class DebtorViewSet(viewsets.ModelViewSet):
                 grouped[sub.id] = {
                     'subaccount_id': sub.id,
                     'subaccount_name': sub.name,
+                    'currency': sub.currency,
                     'total_outstanding_balance': Decimal('0.00'),
                     'items': []
                 }

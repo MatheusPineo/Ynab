@@ -24,11 +24,13 @@ import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 const DebtCard = ({ 
   debt, 
   onAddPayment, 
+  onTargetedPayment,
   onAddDebtAmount,
   debtors
 }: { 
   debt: Debt; 
   onAddPayment: (d: Debt) => void; 
+  onTargetedPayment: (d: Debt, subaccountId: number, amount: number) => void;
   onAddDebtAmount: (d: Debt) => void; 
   debtors: { id: number; name: string }[];
 }) => {
@@ -40,7 +42,7 @@ const DebtCard = ({
   const progress = Math.min(100, Math.round((debt.amount_paid / totalDebt) * 100)) || 0;
   const isPaid = progress >= 100;
 
-  const [groupedDebts, setGroupedDebts] = useState<{ subaccount_name: string; total_outstanding_balance: number }[]>([]);
+  const [groupedDebts, setGroupedDebts] = useState<{ subaccount_id: number; subaccount_name: string; total_outstanding_balance: number; currency: string }[]>([]);
 
   useEffect(() => {
     const fetchGrouped = async () => {
@@ -91,13 +93,15 @@ const DebtCard = ({
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // Grouping logic based on groupedDebts from API or fallback
-  let activeGroups: { name: string; amount: number }[] = [];
+  let activeGroups: { id?: number; name: string; amount: number; currency?: string }[] = [];
   if (groupedDebts.length > 0) {
     activeGroups = groupedDebts
       .filter(g => Number(g.total_outstanding_balance) > 0)
       .map(g => ({
+        id: g.subaccount_id,
         name: g.subaccount_name,
-        amount: Number(g.total_outstanding_balance)
+        amount: Number(g.total_outstanding_balance),
+        currency: g.currency
       }));
   } else {
     const fallbackGroups: Record<string, number> = {};
@@ -115,6 +119,17 @@ const DebtCard = ({
     activeGroups = Object.entries(fallbackGroups)
       .filter(([_, amt]) => amt > 0)
       .map(([name, amt]) => ({ name, amount: amt }));
+  }
+
+  // Multi-currency header aggregation
+  const currencyTotals: Record<string, number> = {};
+  if (groupedDebts.length > 0) {
+    activeGroups.forEach(g => {
+      const cur = g.currency || debt.currency;
+      currencyTotals[cur] = (currencyTotals[cur] || 0) + g.amount;
+    });
+  } else {
+    currencyTotals[debt.currency] = debt.amount_remaining;
   }
 
   return (
@@ -137,11 +152,15 @@ const DebtCard = ({
               </Badge>
             )}
           </CardTitle>
-          <div className="text-xs text-muted-foreground mt-1 font-semibold">
-            {debt.is_mine ? "Total a Pagar: " : "Total a Receber: "}
-            <span className="text-foreground font-bold">
-              {formatMoney(debt.amount_remaining, debt.currency)}
-            </span>
+          <div className="text-xs text-muted-foreground mt-1 font-semibold flex flex-col gap-0.5">
+            {Object.entries(currencyTotals).map(([cur, amount]) => (
+              <div key={cur}>
+                {debt.is_mine ? "Total a Pagar: " : "Total a Receber: "}
+                <span className="text-foreground font-bold">
+                  {formatMoney(amount, cur)}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500" onClick={handleDelete}>
@@ -154,11 +173,23 @@ const DebtCard = ({
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Contas em Aberto por Subconta</span>
             <div className="space-y-1">
               {activeGroups.map((g, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs py-1 px-2 rounded-lg bg-muted/30 border border-border/10">
-                  <span className="text-muted-foreground flex items-center gap-1.5">
-                    <span>📁</span> {g.name}
-                  </span>
-                  <span className="font-bold text-foreground">{formatMoney(g.amount, debt.currency)}</span>
+                <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs py-2 px-3 rounded-xl bg-muted/30 border border-border/40 gap-2">
+                  <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-3">
+                    <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <span>📁</span> {g.name}
+                    </span>
+                    <span className="font-bold text-foreground">{formatMoney(g.amount, g.currency || debt.currency)}</span>
+                  </div>
+                  {g.id && !isPaid && (
+                    <Button 
+                      variant="outline"
+                      size="sm" 
+                      className="h-7 text-[10px] uppercase font-bold tracking-wider shrink-0 cursor-pointer text-primary border-primary/20 hover:bg-primary/10" 
+                      onClick={() => onTargetedPayment(debt, g.id as number, g.amount)}
+                    >
+                      Registrar Pagamento
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>
@@ -195,7 +226,7 @@ const DebtCard = ({
                 Mais Débito
               </Button>
               <Button size="sm" className="h-8 text-xs shadow-soft cursor-pointer shrink-0" onClick={() => onAddPayment(debt)}>
-                Registrar Pagamento
+                Ajuste Genérico
               </Button>
             </>
           )}
@@ -278,6 +309,20 @@ export const Debts = () => {
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
   const [payAccount, setPayAccount] = useState("");
 
+  // Targeted Payment Form State
+  const [isTargetedPaymentOpen, setIsTargetedPaymentOpen] = useState(false);
+  const [targetedSubaccountId, setTargetedSubaccountId] = useState<number | null>(null);
+  const [targetedPayAmount, setTargetedPayAmount] = useState("");
+
+  const refreshStores = async () => {
+    fetchDebts();
+    if (tree.length === 0) {
+      await fetchAccounts();
+    } else {
+      fetchAccounts();
+    }
+  };
+
   // Add Debt Amount Form State
   const [isAddAmountOpen, setIsAddAmountOpen] = useState(false);
   const [addAmountValue, setAddAmountValue] = useState("");
@@ -353,6 +398,45 @@ export const Debts = () => {
       setIsPaymentOpen(false);
       setPayAmount("");
       setPayAccount("");
+      refreshStores();
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleTargetedPaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDebt || !targetedPayAmount || !targetedSubaccountId) {
+      toast.error("Preencha todos os campos do pagamento direcionado.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const debtor = debtors.find(d => d.name.toLowerCase() === selectedDebt.counterparty_name.toLowerCase());
+      if (!debtor) throw new Error("Perfil do devedor não encontrado.");
+
+      const res = await authenticatedFetch(`/debtors/${debtor.id}/pay_group/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subaccount_id: targetedSubaccountId,
+          amount: Number(targetedPayAmount)
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || "Erro ao processar pagamento");
+      }
+
+      toast.success("Pagamento direcionado registrado com sucesso!");
+      setIsTargetedPaymentOpen(false);
+      setTargetedPayAmount("");
+      setTargetedSubaccountId(null);
+      refreshStores();
+    } catch (err: any) {
+      toast.error(err.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -409,6 +493,7 @@ export const Debts = () => {
       setAddAmountDescription("");
       setAddAmountSubaccount("");
       setConciliationMode("cash_loan");
+      refreshStores();
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -420,6 +505,13 @@ export const Debts = () => {
     setSelectedDebt(debt);
     setPayAmount(debt.amount_remaining.toString());
     setIsPaymentOpen(true);
+  };
+
+  const openTargetedPaymentModal = (debt: Debt, subaccountId: number, amountRemaining: number) => {
+    setSelectedDebt(debt);
+    setTargetedSubaccountId(subaccountId);
+    setTargetedPayAmount(amountRemaining.toString());
+    setIsTargetedPaymentOpen(true);
   };
 
   const openAddAmountModal = (debt: Debt) => {
@@ -520,7 +612,7 @@ export const Debts = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {meDevem.map(debt => (
-                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
+                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onTargetedPayment={openTargetedPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
                   ))}
                 </div>
               )}
@@ -543,7 +635,7 @@ export const Debts = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {minhasDividas.map(debt => (
-                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
+                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onTargetedPayment={openTargetedPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
                   ))}
                 </div>
               )}
