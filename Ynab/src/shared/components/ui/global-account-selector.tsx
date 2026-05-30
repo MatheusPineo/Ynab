@@ -141,7 +141,7 @@ export const GlobalAccountSelector = ({
       <PopoverContent 
         className="rounded-xl border border-border/60 bg-popover/95 backdrop-blur-md shadow-glow p-2 text-xs flex flex-col gap-1.5 align-start"
         align="start"
-        style={{ width: "var(--radix-popover-trigger-width)" }}
+        style={{ width: "max(var(--radix-popover-trigger-width), 240px)" }}
       >
         <Input
           type="text"
