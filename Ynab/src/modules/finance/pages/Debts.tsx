@@ -35,6 +35,7 @@ const DebtCard = ({
   onAddDebtAmount: (d: Debt) => void; 
   debtors: { id: number; name: string }[];
 }) => {
+  const navigate = useNavigate();
   const [showHistory, setShowHistory] = useState(false);
   const { deleteDebt, deletePayment, deleteCharge, updateCharge } = useDebtStore();
   
@@ -244,7 +245,25 @@ const DebtCard = ({
       <CardHeader className="pb-3 flex flex-row items-start justify-between">
         <div>
           <CardTitle className="text-lg font-bold text-foreground flex items-center gap-2">
-            {debt.counterparty_name}
+            <span 
+              className="hover:underline cursor-pointer transition-colors hover:text-primary"
+              onClick={() => {
+                let debtor = debtors.find(d => d.name.trim().toLowerCase() === debt.counterparty_name.trim().toLowerCase());
+                if (!debtor) {
+                  debtor = debtors.find(d => 
+                    debt.counterparty_name.trim().toLowerCase().includes(d.name.trim().toLowerCase()) ||
+                    d.name.trim().toLowerCase().includes(debt.counterparty_name.trim().toLowerCase())
+                  );
+                }
+                if (debtor) {
+                  navigate(`/debtor/${debtor.id}`);
+                } else {
+                  toast.info("Perfil detalhado não disponível para este roommate legado.");
+                }
+              }}
+            >
+              {debt.counterparty_name}
+            </span>
             {isPaid ? (
               <Badge className="bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20 shadow-none font-semibold">
                 Quitado
