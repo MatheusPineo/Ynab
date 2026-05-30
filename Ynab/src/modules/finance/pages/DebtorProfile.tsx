@@ -9,6 +9,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Input } from "@/shared/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
+import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 
 interface DebtItem {
   id: number;
@@ -34,6 +35,7 @@ export const DebtorProfile = () => {
   const [expandedGroups, setExpandedGroups] = useState<Record<number, boolean>>({});
   const [paymentAmounts, setPaymentAmounts] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
+  const { fetchAccounts } = useAccountStore();
 
   const fetchDebtorData = async () => {
     try {
@@ -78,10 +80,11 @@ export const DebtorProfile = () => {
     const amount = Number(amountStr);
 
     try {
-      const res = await authenticatedFetch(`/debtors/${debtorId}/pay_group/`, {
+      const res = await authenticatedFetch("/debtors/pay-subaccount/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          debtor_id: Number(debtorId),
           subaccount_id: subaccountId,
           amount: amount
         })
@@ -92,9 +95,10 @@ export const DebtorProfile = () => {
         throw new Error(err.detail || "Erro ao processar pagamento");
       }
 
-      toast.success("Pagamento parcial processado com sucesso via FIFO!");
+      toast.success("Pagamento parcial processado com sucesso!");
       setPaymentAmounts(prev => ({ ...prev, [subaccountId]: "" }));
       await fetchDebtorData();
+      await fetchAccounts();
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -109,6 +113,7 @@ export const DebtorProfile = () => {
       if (res.ok) {
         toast.success("Item de débito excluído com sucesso.");
         await fetchDebtorData();
+        await fetchAccounts();
       } else {
         const err = await res.json();
         throw new Error(err.detail || "Erro ao excluir o item.");
@@ -157,7 +162,7 @@ export const DebtorProfile = () => {
             <Card className="border-sidebar-border bg-sidebar/50 rounded-2xl">
               <CardContent className="py-12 flex flex-col items-center justify-center text-center">
                 <CheckCircle2 className="h-12 w-12 text-emerald-500 mb-3 animate-bounce" />
-                <h3 className="text-lg font-bold text-foreground mb-1">Nenhuma pendência ativa</h3>
+                <h3 className="text-lg font-bold text-foreground mb-1">Nenhuma pendência activa</h3>
                 <p className="text-sm text-muted-foreground">Este devedor não possui dívidas pendentes.</p>
               </CardContent>
             </Card>
@@ -180,32 +185,29 @@ export const DebtorProfile = () => {
                       </CardDescription>
                     </div>
                     <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                        <Input
+                          type="number"
+                          placeholder="Valor (ex: 30)"
+                          className="rounded-xl border-border/40 bg-background/50 h-8 w-28 text-xs text-foreground focus:border-primary/50"
+                          value={paymentAmounts[group.subaccount_id] || ""}
+                          onChange={e => setPaymentAmounts(prev => ({ ...prev, [group.subaccount_id]: e.target.value }))}
+                        />
+                        <Button 
+                          size="sm" 
+                          className="h-8 text-xs font-bold shrink-0 shadow-soft cursor-pointer rounded-xl"
+                          onClick={() => handlePayPartial(group.subaccount_id)}
+                        >
+                          Pagar Parcial
+                        </Button>
+                      </div>
                       <Badge variant="outline" className="text-amber-500 border-amber-500/20 bg-amber-500/5 px-2 py-0.5">
                         {group.items.filter(i => i.status !== 'SETTLED').length} itens pendentes
                       </Badge>
                       {isExpanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     </div>
                   </CardHeader>
-
                   <CardContent className="pb-4 pt-0 space-y-4">
-                    {/* Action row inside group */}
-                    <div className="flex items-center gap-2 max-w-sm" onClick={e => e.stopPropagation()}>
-                      <Input
-                        type="number"
-                        placeholder="Valor do pagamento (ex: 30)"
-                        className="rounded-xl border-border/40 bg-background/50 h-10 text-xs sm:text-sm text-foreground focus:border-primary/50"
-                        value={paymentAmounts[group.subaccount_id] || ""}
-                        onChange={e => setPaymentAmounts(prev => ({ ...prev, [group.subaccount_id]: e.target.value }))}
-                      />
-                      <Button 
-                        size="sm" 
-                        className="h-10 text-xs font-bold shrink-0 shadow-soft cursor-pointer rounded-xl"
-                        onClick={() => handlePayPartial(group.subaccount_id)}
-                      >
-                        Pagar Parcial
-                      </Button>
-                    </div>
-
                     {isExpanded && (
                       <div className="border-t border-sidebar-border pt-4 animate-in slide-in-from-top-2 duration-200">
                         <div className="overflow-x-auto">
