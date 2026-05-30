@@ -1277,9 +1277,24 @@ class CreditCardManagementService:
                         matrix_tx.total_amount += diff
                         inst.amount = new_amount
                         
-                    if new_subaccount_id is not None:
+                    old_subaccount_id = inst.subaccount_id
+                    if new_subaccount_id is not None and old_subaccount_id != new_subaccount_id:
                         inst.subaccount_id = new_subaccount_id
                         
+                        # Update reserved credit balance manually when subaccount changes retroactively
+                        if inst.status in ['pending', 'unpaid']:
+                            from core.models import Account
+                            if old_subaccount_id:
+                                old_acc = Account.objects.filter(id=old_subaccount_id).first()
+                                if old_acc:
+                                    old_acc.reserved_credit_balance -= inst.amount
+                                    old_acc.save()
+                                    
+                            new_acc = Account.objects.filter(id=new_subaccount_id).first()
+                            if new_acc:
+                                new_acc.reserved_credit_balance += inst.amount
+                                new_acc.save()
+
                     inst.save()
                     
                     if new_amount is not None:
