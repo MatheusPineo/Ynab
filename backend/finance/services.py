@@ -1283,7 +1283,7 @@ class CreditCardManagementService:
                         
                         # Update reserved credit balance manually when subaccount changes retroactively
                         if inst.status in ['pending', 'unpaid']:
-                            from core.models import Account
+                            from finance.models import Account
                             if old_subaccount_id:
                                 old_acc = Account.objects.filter(id=old_subaccount_id).first()
                                 if old_acc:
