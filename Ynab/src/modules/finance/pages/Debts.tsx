@@ -59,7 +59,13 @@ const DebtCard = ({
 
 
   const fetchGrouped = async () => {
-    const debtor = debtors.find(d => d.name.toLowerCase() === debt.counterparty_name.toLowerCase());
+    let debtor = debtors.find(d => d.name.trim().toLowerCase() === debt.counterparty_name.trim().toLowerCase());
+    if (!debtor) {
+      debtor = debtors.find(d => 
+        debt.counterparty_name.trim().toLowerCase().includes(d.name.trim().toLowerCase()) ||
+        d.name.trim().toLowerCase().includes(debt.counterparty_name.trim().toLowerCase())
+      );
+    }
     if (debtor) {
       try {
         const res = await authenticatedFetch(`/debtors/${debtor.id}/grouped_debts/`);
@@ -81,7 +87,13 @@ const DebtCard = ({
     }
 
     const amount = Number(amountStr);
-    const debtor = debtors.find(d => d.name.toLowerCase() === debt.counterparty_name.toLowerCase());
+    let debtor = debtors.find(d => d.name.trim().toLowerCase() === debt.counterparty_name.trim().toLowerCase());
+    if (!debtor) {
+      debtor = debtors.find(d => 
+        debt.counterparty_name.trim().toLowerCase().includes(d.name.trim().toLowerCase()) ||
+        d.name.trim().toLowerCase().includes(debt.counterparty_name.trim().toLowerCase())
+      );
+    }
     if (!debtor) {
       toast.error("Devedor não encontrado.");
       return;
