@@ -1054,7 +1054,7 @@ export const Debts = () => {
                     className="rounded-xl h-10 text-xs font-bold"
                     onClick={() => setConciliationMode("roomie_split")}
                   >
-                    Divisão Roommate
+                    Despesa Compartilhada
                   </Button>
                 </div>
               </div>
@@ -1064,7 +1064,7 @@ export const Debts = () => {
                   {conciliationMode === "cash_loan" ? (
                     <span>💡 <strong>Empréstimo Direto:</strong> Deduzirá diretamente o valor do saldo físico da subconta selecionada.</span>
                   ) : (
-                    <span>💡 <strong>Divisão Roommate:</strong> Registrará a despesa compartilhada detalhada no perfil do roommate sem gerar transação física duplicada.</span>
+                    <span>💡 <strong>Despesa Compartilhada:</strong> Vincula o produto ao perfil do devedor e ao envelope de origem, sem gerar uma nova saída duplicada na sua conta bancária.</span>
                   )}
                 </p>
               </div>
