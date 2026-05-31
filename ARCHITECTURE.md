@@ -111,6 +111,11 @@ Para manter o fluxo de autenticação consistente entre o navegador web e o apli
 
 O backend Django valida a assinatura criptográfica do token usando a biblioteca oficial do Google e, caso o token seja legítimo, emite um par de tokens JWT (`Access Token` e `Refresh Token`) gerenciado pelo SimpleJWT.
 
+### Otimizações de UX e Layout Nativos (v1.41.06)
+Para garantir uma experiência de uso fluida e limpa nos aplicativos nativos:
+* **Redirecionamento Inteligente da Rota Raiz:** A rota `/` no React Router (`App.tsx`) avalia se o app está rodando de forma nativa (`Capacitor.isNativePlatform()`). Se verdadeiro, ela redireciona o fluxo diretamente para `/dashboard` (e este para `/auth` caso o usuário não possua token ativo), impedindo que a Landing Page institucional ou de marketing do site web apareça no fluxo móvel.
+* **Segurança do Topbar contra Sobreposição (Safe Area):** O cabeçalho principal (`Topbar.tsx`) recebe classes de estilização condicionais em ambiente nativo. É adicionado um padding superior de 32px (`pt-8`) e a altura total é expandida para 88px (`h-22`), criando um espaçamento de segurança para os ícones e logotipos em relação à barra de status (relógio, bateria e conexão do celular) do Android/iOS.
+
 ---
 
 ## 4. Ciclo de Vida da Transação e Ajuste de Balanço (Pendente vs. Realizada)

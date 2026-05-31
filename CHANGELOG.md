@@ -1,3 +1,9 @@
+## [1.41.06] - 2026-05-31
+
+### Fixed
+- Rota Inicial no Capacitor: Modificada a rota base '/' no frontend (App.tsx) para detectar se está rodando em ambiente nativo (Capacitor) e, caso positivo, redirecionar o usuário diretamente para '/dashboard' (que por sua vez delega para '/auth' se não autenticado), evitando que o app nativo exiba a Landing page institucional do site e garantindo uma experiência 100% isolada.
+- Safe Area no Topbar: Adicionado padding superior dinâmico (pt-8 e h-22) ao cabeçalho (Topbar.tsx) no ambiente nativo (Capacitor) para evitar sobreposição de elementos com a barra de status do Android (relógio, bateria e ícones de conexão).
+
 ## [1.41.05] - 2026-05-30
 
 ### Added

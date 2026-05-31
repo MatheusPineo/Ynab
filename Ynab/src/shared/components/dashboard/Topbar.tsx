@@ -6,6 +6,7 @@ import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { GlobalSearch } from "@/modules/finance/components/GlobalSearch";
+import { Capacitor } from "@capacitor/core";
 
 export const Topbar = () => {
   const { user } = useAuthStore();
@@ -20,7 +21,9 @@ export const Topbar = () => {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between gap-2 sm:gap-4 px-4 sm:px-8 border-b border-sidebar-border shrink-0">
+    <header className={`flex items-center justify-between gap-2 sm:gap-4 px-4 sm:px-8 border-b border-sidebar-border shrink-0 ${
+      Capacitor.isNativePlatform() ? "pt-8 h-22" : "h-16"
+    }`}>
       <div className="min-w-0 flex-1">
         <div className="hidden sm:block text-xs uppercase tracking-[0.15em] text-muted-foreground mb-1 capitalize">
           {currentMonth}

@@ -1,5 +1,12 @@
 # Novidades e Atualizações
 
+## Experiência Exclusiva e Isolada no App Android (31/05/2026) 📱🚀
+Melhoramos a experiência de uso do aplicativo móvel do Vault Finance OS para dispositivos Android:
+* **Navegação 100% Autônoma:** O aplicativo nativo construído com Capacitor agora detecta que está rodando em um celular e pula automaticamente a página institucional pública (landing page).
+* **Foco no App:** Ao abrir o app, você será direcionado instantaneamente para a tela de autenticação (`/auth`) ou diretamente para o seu Painel de Controle (`/dashboard`) se já estiver conectado, sem misturar o site institucional de marketing na navegação móvel.
+* **Ajuste de Safe Area (Layout Harmônico):** Corrigimos o espaçamento do cabeçalho superior (`Topbar`) no celular. Adicionamos uma margem de segurança no topo no ambiente nativo para que a logo do Vault e os botões de notificação/modo escuro não disputem espaço ou fiquem por baixo dos ícones de status do Android (bateria, wifi e relógio).
+
+
 ## Visualização Unificada de Devedores na Subconta (30/05/2026) 👥💼
 A tela interna de cada subconta (envelope) agora conta com um painel completo e dinâmico de devedores:
 * **Painel "Devedores deste Envelope":** Exibe de forma inteligente a lista de devedores e os respectivos saldos que cada um deve a este envelope.

@@ -76,5 +76,13 @@ Quando o roommate te paga e você registra o pagamento para um envelope específ
 ### Q9: O cadastro de itens de dívida em lote diminui o saldo do meu envelope de novo?
 Não! O cadastro em lote de itens de dívida (`add_items`) é apenas um registro de controle para futuras cobranças. Ele **não gera uma nova despesa física nem deduz saldo** do seu envelope ou conta de origem novamente. Presume-se que o débito global original já foi lançado por você ao registrar a compra principal (ex: a nota do supermercado que você pagou no caixa). O endpoint serve apenas para estruturar a fração que cabe a cada roommate.
 
+---
+
+## Categoria: Dispositivos Móveis (App Nativo)
+
+### Q10: O aplicativo Android carrega a landing page institucional do site?
+Não. Para oferecer uma experiência 100% integrada e autônoma, o aplicativo construído com Capacitor detecta que está rodando em ambiente nativo. Ao abrir o aplicativo, ele pula automaticamente o site institucional público (a landing page inicial) e te direciona diretamente para a tela de login (`/auth`) ou para o seu Painel de Controle (`/dashboard`), caso sua sessão já esteja ativa. Isso garante que a navegação do app de celular não se misture com a estrutura de marketing do site web.
+
+
 
 

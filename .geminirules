@@ -17,17 +17,18 @@
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-05-30 22:13:00): Agregação de devedores unificada nas subcontas (v1.41.05).
-- Frontend: Exibição dinâmica do card "Devedores deste Envelope" nos detalhes internos das subcontas (AccountDetails.tsx).
-- Backend: Modificadas as propriedades debtors_summary e pending_restitutions_total no AccountSerializer e no endpoint /accounts/tree/ para agregar tanto dívidas de roommates (DebtItem) quanto dívidas pessoais gerais (Debt onde is_mine = False e origin_subaccount coincide), garantindo consistência total do saldo devido.
+(Atualizado em 2026-05-31 21:47:00): Experiência Exclusiva e Ajuste de Safe Area no App Android (v1.41.06).
+- Frontend: Modificada a rota base '/' no App.tsx para redirecionar diretamente para '/dashboard' se for nativo, evitando misturar a landing page do site institucional.
+- Layout/UI: Adicionado padding superior (`pt-8`) e aumento da altura (`h-22`) dinâmicos ao cabeçalho (`Topbar.tsx`) em ambiente nativo, criando uma área de segurança para que a logo e botões não se sobreponham com os elementos de status do Android (relógio, bateria, etc.).
 
-### Status Atual (Versão 1.41.05)
-- **Marco:** Devedores Unificados nas Subcontas (v1.41.05).
-- **Estado:** 100% estável e implantado em produção (Vercel).
-- **Arquitetura:** Agregação híbrida de roommates e empréstimos diretos para exibir devedores por caixinha no frontend.
+### Status Atual (Versão 1.41.06)
+- **Marco:** Experiência Exclusiva e Safe Area no App Android (v1.41.06).
+- **Estado:** 100% estável e implantado localmente / no celular via USB.
+- **Arquitetura:** Roteamento condicional e detecção de plataforma nativa via Capacitor no React para Safe Area e bypass de landing page.
 - **Testes:** Suíte de testes (Vitest + Pytest) 100% verde (90 testes Django + 30 testes frontend bem-sucedidos).
 
 ### Histórico de Sprints Recentes
+- [v1.41.06] Safe Area & Rota Inicial no Capacitor: Adicionado padding superior de segurança no Topbar para Android e redirecionamento nativo no App.tsx para pular a landing page.
 - [v1.41.05] Agregação de Devedores Unificada nas Subcontas: Integração híbrida de roommate splits (DebtItem) e dívidas pessoais (Debt) na sumarização de devedores por subconta.
 - [v1.41.04] Cumprimento Inteligente no Topbar: Saudação dinâmica por hora local (Bom dia, Boa tarde, Boa noite) integrada ao componente de cabeçalho.
 - [v1.41.03] Estabilização do Motor de Faturas: Correção de conciliações e faturas do cartão, importações e integridade de banco de dados.

@@ -36,6 +36,8 @@ import { FinanceDataTab, FinanceTemplatesTab } from "@/modules/finance/component
 import { Database, LayoutGrid } from "lucide-react";
 import { useSidebarStore } from "@/shared/store/useSidebarStore";
 
+import { Capacitor } from "@capacitor/core";
+
 export const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -117,7 +119,7 @@ const App = () => {
             <CookieBanner />
             <ErrorBoundary>
               <Routes>
-              <Route path="/" element={<Landing />} />
+              <Route path="/" element={Capacitor.isNativePlatform() ? <Navigate to="/dashboard" replace /> : <Landing />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/termos-de-uso" element={<Navigate to="/legal?tab=termos" replace />} />
               <Route path="/politica-de-privacidade" element={<Navigate to="/legal?tab=privacidade" replace />} />
