@@ -1,5 +1,9 @@
 # Novidades e Atualizações
 
+## Identificação Precisa de Dispositivos (02/06/2026) 📱⏰
+Melhoramos a clareza e o rastreamento dos aparelhos cadastrados em sua conta:
+* **Data e Hora no Nome Padrão:** O nome sugerido do dispositivo móvel no momento do login de confiança agora inclui não apenas a data, mas também a hora e o minuto exatos (ex: `Telemóvel Android - 02/06/2026 20:44`). Isso permite diferenciar com total facilidade os dispositivos caso você possua mais de um aparelho do mesmo modelo cadastrado no mesmo dia.
+
 ## Flexibilidade no Registro de Dispositivos (02/06/2026) 🔒📱
 Corrigimos um problema de validação que impedia o registro de novos aparelhos caso eles tivessem o mesmo nome de exibição:
 * **Múltiplos Dispositivos com o Mesmo Nome:** Removida a restrição de unicidade rígida para o nome do dispositivo. Agora você pode registrar múltiplos celulares ou tablets que tenham o mesmo nome dinâmico ou genérico (por exemplo, no mesmo dia ou com o mesmo fallback), desde que a identificação interna exclusiva (chave/token do dispositivo) seja diferente. Isso resolve o erro "A device with this name is already registered."

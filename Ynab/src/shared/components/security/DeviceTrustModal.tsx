@@ -44,12 +44,14 @@ export const DeviceTrustModal: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const currentDate = new Date().toLocaleDateString("pt-BR", {
+      const currentDateTime = new Date().toLocaleString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
-        year: "numeric"
-      });
-      const genericName = `Telemóvel Android - ${currentDate}`;
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }).replace(",", "");
+      const genericName = `Telemóvel Android - ${currentDateTime}`;
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
 
       // Gera um UUID de teste aleatório para o device_key

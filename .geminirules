@@ -17,22 +17,24 @@
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-02 20:42:00): Sistema de Bloqueio de Segurança, Notificações Push Locais Nativas, Correção de Registro e Remoção de Unicidade de Nomes de Dispositivo (v1.43.01).
+(Atualizado em 2026-06-02 20:44:00): Sistema de Bloqueio de Segurança, Notificações Push Locais Nativas, Registro Flexível e Formatação Detalhada de Nome (v1.43.02).
 - Frontend: Implementado `SecurityLockProvider` para capturar eventos de segundo plano (`appStateChange`) usando `@capacitor/app`.
 - Frontend: Desenvolvido componente `SecurityLockScreen` com layout glassmorphic para bloquear a interface e ocultar dados confidenciais financeiros.
 - Frontend: Integrado teclado PIN seguro de 4 a 6 dígitos com suporte a PIN padrão de fábrica (`1234`) e autenticação biométrica via `@aparajita/capacitor-biometric-auth` automática e com botão de fallback manual.
 - Frontend: Refatoradas as chamadas de registro de dispositivos em `InboxMobileSyncActivation.tsx` e `DeviceTrustModal.tsx` para interceptar e exibir explicitamente mensagens de erro de rede e validação detalhadas vindas do Django.
+- Frontend: Melhorada a função de geração de nome de dispositivo padrão para incluir horas e minutos (`Telemóvel Android - DD/MM/YYYY HH:MM`), evitando duplicidades no mesmo dia.
 - Android Nativo: Implementada emissão de notificações push locais via `NotificationCompat.Builder` e registro de `NotificationChannel` dedicado com alta prioridade no `FinanceNotificationListener.kt` após sincronização bem-sucedida de transações em segundo plano.
 - Backend: Removida a validação de unicidade rígida para o campo `device_name` no endpoint de registro de aparelhos (`views_devices.py`), permitindo múltiplos dispositivos cadastrados com o mesmo nome para um mesmo usuário.
-- Testes/Typecheck: Atualizada a suíte de testes de backend (`test_devices.py`) para validar o sucesso no registro com nomes de aparelhos duplicados. Testes Django Pytest 100% verdes.
+- Testes/Typecheck: Atualizada a suíte de testes de backend (`test_devices.py`) para validar o sucesso no registro com nomes de aparelhos duplicados. Testes Django Pytest e Vitest 100% verdes.
 
-### Status Atual (Versão 1.43.01)
-- **Marco:** Sistema de Bloqueio de Segurança Seguro, Notificações Push Locais Nativas e Registro de Dispositivos Confiáveis Flexível (v1.43.01).
+### Status Atual (Versão 1.43.02)
+- **Marco:** Sistema de Bloqueio de Segurança Seguro, Notificações Push Locais Nativas, Registro Flexível e Formatação Detalhada de Nome (v1.43.02).
 - **Estado:** 100% estável e implantado em produção no Vercel.
-- **Arquitetura:** Bloqueio nativo do app no background com cobertura de tela blur glassmorphism, suporte automático e manual a biometria nativa, teclado de senha PIN, feedback push local nativo de transações e fluxo de registro de dispositivos confiáveis flexível sem validação de unicidade de nome no banco e serializer.
+- **Arquitetura:** Bloqueio nativo do app no background com cobertura de tela blur glassmorphism, suporte automático e manual a biometria nativa, teclado de senha PIN, feedback push local nativo de transações e fluxo de registro de dispositivos confiáveis flexível com formatação detalhada de nome de exibição com data e hora.
 - **Testes:** Suítes de testes automatizados e compilação TS 100% verdes.
 
 ### Histórico de Sprints Recentes
+- [v1.43.02] Formatação Detalhada de Nome de Dispositivo: Inclusão de horas e minutos (`Telemóvel Android - DD/MM/YYYY HH:MM`) no modal de registro para evitar colisão visual no mesmo dia.
 - [v1.43.01] Flexibilidade no Registro de Dispositivos: Remoção de unicidade do nome de dispositivos no serializer de registro e atualização correspondente de testes.
 - [v1.43.00] Sistema de Bloqueio de Segurança Seguro: Adicionado bloqueio automático por PIN de 4 dígitos e biometria nativa sempre que o app vai para background no Capacitor.
 - [v1.42.00] Inteligência de Regras e Associação de Comprovantes: Implementado modelo `LearnedTransactionRule` para pré-seleção automática e associação inteligente de comprovantes no Inbox IA.

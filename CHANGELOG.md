@@ -1,3 +1,9 @@
+## [1.43.02] - 2026-06-02
+
+### Added
+- Formatação Avançada de Nome de Dispositivo:
+  - Refatorada a geração padrão do nome de aparelhos autorizados móveis em `DeviceTrustModal.tsx` para incluir a hora e minutos do registro. O nome passa a ser gerado no formato `Telemóvel Android - DD/MM/YYYY HH:MM`, prevenindo colisões visuais de múltiplos aparelhos cadastrados no mesmo dia.
+
 ## [1.43.01] - 2026-06-02
 
 ### Fixed
