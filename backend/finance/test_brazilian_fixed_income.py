@@ -105,3 +105,55 @@ class BrazilianFixedIncomeEngineTests(TestCase):
         # Líquido esperado = 624.07 - 27.92 = 596.15
         self.assertEqual(h_mkt['ir_amount'], Decimal('27.92'))
         self.assertEqual(h_mkt['net_value'], Decimal('596.15'))
+
+    def test_asset_deletion_cascades_and_returns_204(self):
+        from django.contrib.auth.models import User
+        from finance.models import InvestmentAsset, InvestmentActivity, DailyAssetPrice
+        from rest_framework.test import APIClient
+        from rest_framework import status
+        from django.urls import reverse
+        from decimal import Decimal
+        
+        user = User.objects.create_user(username='delete_tester', password='password123')
+        client = APIClient()
+        client.force_authenticate(user=user)
+        
+        asset = InvestmentAsset.objects.create(
+            user=user,
+            ticker='PETR4',
+            name='Petrobras PN',
+            asset_type='STOCK',
+            currency='BRL'
+        )
+        
+        activity = InvestmentActivity.objects.create(
+            asset=asset,
+            activity_type='BUY',
+            date=datetime.date.today(),
+            quantity=Decimal('10.00'),
+            unit_price=Decimal('35.00'),
+            fees=Decimal('0.00')
+        )
+        
+        price = DailyAssetPrice.objects.create(
+            asset=asset,
+            date=datetime.date.today(),
+            price=Decimal('37.50')
+        )
+        
+        # Assegurar que os registros existem
+        self.assertEqual(InvestmentAsset.objects.filter(id=asset.id).count(), 1)
+        self.assertEqual(InvestmentActivity.objects.filter(asset=asset).count(), 1)
+        self.assertEqual(DailyAssetPrice.objects.filter(asset=asset).count(), 1)
+        
+        # Disparar DELETE
+        url = reverse('wealth-asset-detail', kwargs={'pk': asset.id})
+        response = client.delete(url)
+        
+        # Validar resposta 204 No Content
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        
+        # Validar exclusão em cascata
+        self.assertEqual(InvestmentAsset.objects.filter(id=asset.id).count(), 0)
+        self.assertEqual(InvestmentActivity.objects.filter(asset=asset).count(), 0)
+        self.assertEqual(DailyAssetPrice.objects.filter(asset=asset).count(), 0)
