@@ -870,6 +870,10 @@ class TrustedDevice(models.Model):
     last_used = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = 'core_trusteddevice'
+        app_label = 'core'
+
     def __str__(self):
         return f"{self.device_name} ({self.user.username})"
 
