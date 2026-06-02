@@ -1805,6 +1805,135 @@ class CreditCardViewSet(viewsets.ModelViewSet):
             traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class NotificationInboxView(APIView):
+    """
+    Endpoint DRF para processar notificações e SMS de transações financeiras.
+    Verifica se a notificação possui palavras-chave mapeadas para contas e categorias.
+    Se encontrar, faz bypass do Gemini e cria o item como pronto ('ready').
+    Caso contrário, envia para a fila assíncrona do Gemini Flash.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        text = request.data.get('text', '').strip()
+        package_name = request.data.get('package_name', '').strip()
+
+        if not text:
+            return Response(
+                {"error": "O campo 'text' é obrigatório."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        from .models import LearnedTransactionRule, TransactionInbox
+        import re
+        from datetime import date as dt_date
+
+        # Match Engine
+        matched_rule = None
+        rules = LearnedTransactionRule.objects.filter(user=request.user)
+        text_lower = text.lower()
+        
+        for rule in rules:
+            if rule.keyword.lower() in text_lower:
+                matched_rule = rule
+                break
+
+        if matched_rule:
+            # Heurísticas leves de extração
+            amount = None
+            money_match = re.search(r'(?:R\$|€|US\$|\$)\s*(\d+(?:[\.,]\d{2})?)', text, re.IGNORECASE)
+            if money_match:
+                try:
+                    val_str = money_match.group(1).replace('.', '').replace(',', '.')
+                    amount = float(val_str)
+                except Exception:
+                    pass
+            if amount is None:
+                decimal_match = re.search(r'\b(\d+[\.,]\d{2})\b', text)
+                if decimal_match:
+                    try:
+                        val_str = decimal_match.group(1).replace('.', '').replace(',', '.')
+                        amount = float(val_str)
+                    except Exception:
+                        pass
+
+            tx_date = str(dt_date.today())
+            iso_date_match = re.search(r'\b(\d{4}-\d{2}-\d{2})\b', text)
+            if iso_date_match:
+                tx_date = iso_date_match.group(1)
+            else:
+                slash_date_match = re.search(r'\b(\d{2})/(\d{2})(?:/(\d{4}))?\b', text)
+                if slash_date_match:
+                    day, month, year = slash_date_match.groups()
+                    if not year:
+                        year = str(dt_date.today().year)
+                    tx_date = f"{year}-{month}-{day}"
+
+            suggestions = {
+                "transactions": [
+                    {
+                        "amount": amount,
+                        "date": tx_date,
+                        "merchant": matched_rule.keyword.title(),
+                        "currency": matched_rule.assigned_account.currency or "BRL",
+                        "approved": False
+                    }
+                ]
+            }
+
+            # Criar TransactionInbox como ready
+            inbox = TransactionInbox.objects.create(
+                user=request.user,
+                file=None,
+                status='ready',
+                ai_suggestions=suggestions
+            )
+
+            return Response(
+                {
+                    "message": "Notificação processada via regras locais com sucesso (Gemini ignorado).",
+                    "id": str(inbox.id),
+                    "status": inbox.status,
+                    "suggestions": suggestions
+                },
+                status=status.HTTP_201_CREATED
+            )
+        else:
+            # Nenhuma regra bateu, processar via Gemini em background
+            inbox = TransactionInbox.objects.create(
+                user=request.user,
+                file=None,
+                status='pending',
+                ai_suggestions={
+                    "raw_text": text,
+                    "package_name": package_name
+                }
+            )
+
+            # Despachar a tarefa assíncrona Celery / Thread
+            def dispatch_task(inbox_id=inbox.id):
+                try:
+                    process_inbox_document.delay(inbox_id)
+                except Exception as celery_err:
+                    import threading
+                    threading.Thread(
+                        target=process_inbox_document,
+                        args=(inbox_id,),
+                        daemon=True
+                    ).start()
+
+            transaction.on_commit(dispatch_task)
+
+            return Response(
+                {
+                    "message": "Notificação recebida. Iniciando processamento via IA em segundo plano.",
+                    "id": str(inbox.id),
+                    "status": inbox.status
+                },
+                status=status.HTTP_202_ACCEPTED
+            )
+
+
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
 from .models import TransactionInbox
@@ -2249,7 +2378,27 @@ class TransactionInboxViewSet(viewsets.ModelViewSet):
                     except (ValueError, TypeError) as e:
                         logger.error(f"[Inbox Approve] Erro ao processar o índice {index}: {str(e)}")
 
-                # 3. Transiciona status e vincula transação apenas se todas as transações do lote estiverem aprovadas
+                # 3. Aprendizado de Regras Automático
+                merchant_keyword = None
+                if inbox.ai_suggestions and 'transactions' in inbox.ai_suggestions:
+                    txs = inbox.ai_suggestions.get('transactions', [])
+                    idx = int(index) if index is not None else 0
+                    if 0 <= idx < len(txs):
+                        merchant_keyword = txs[idx].get('merchant_keyword')
+                
+                if merchant_keyword:
+                    from .models import LearnedTransactionRule
+                    LearnedTransactionRule.objects.update_or_create(
+                        user=request.user,
+                        keyword=merchant_keyword.strip().lower(),
+                        defaults={
+                            "assigned_account": account,
+                            "assigned_category": category,
+                            "is_income": is_income
+                        }
+                    )
+
+                # 4. Transiciona status e vincula transação apenas se todas as transações do lote estiverem aprovadas
                 if all_approved:
                     inbox.validated_transaction = transaction_obj
                     inbox.status = 'ready'

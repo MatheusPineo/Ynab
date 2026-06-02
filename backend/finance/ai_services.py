@@ -233,3 +233,127 @@ class AIExtractionService:
             return self.get_fallback_data("Erro na Fila de Extração")
 
         return self.get_fallback_data("Limite Excedido")
+
+    def extract_notification_data(self, notification_text: str) -> dict:
+        """
+        Recebe o texto bruto de uma notificação e faz uma chamada estruturada ao Gemini 1.5 Flash
+        para extrair os metadados financeiros, incluindo uma palavra-chave estável (merchant_keyword).
+        """
+        if not self.api_key:
+            logger.warning("[AI Service] Gemini API Key não configurada. Utilizando resposta padrão de fallback.")
+            return self.get_fallback_data("Sem Chave API")
+
+        try:
+            today_str = date.today().strftime('%Y-%m-%d')
+            current_year = date.today().year
+            system_prompt = (
+                "You are an advanced financial notification parser. Your job is to extract transactional metadata "
+                "from raw notification messages, SMS, or app notifications (e.g. bank debit/credit texts). "
+                "Analyze the text and extract all transactions found inside. Also extract a single clean, lowercase, "
+                "alphanumeric merchant_keyword representing the business (e.g., 'uber', 'netflix', 'aldi') which will be used for learning rules. "
+                "Never include markdown formatting, backticks, or extra conversational text in your response. "
+                f"CRITICAL CONTEXT: Today's date is {today_str}. The current year is {current_year}. "
+                f"When the text shows a date without a year, assume it is {current_year}."
+            )
+
+            prompt_text = (
+                f"IMPORTANT: Today is {today_str} (year {current_year}). "
+                f"Please extract transaction data from this raw notification text:\n\n{notification_text}"
+            )
+
+            schema = {
+                "type": "OBJECT",
+                "properties": {
+                    "transactions": {
+                        "type": "ARRAY",
+                        "description": "List of transactions identified in the text notification.",
+                        "items": {
+                            "type": "OBJECT",
+                            "properties": {
+                                "amount": {
+                                    "type": "NUMBER",
+                                    "description": "Transaction amount as a numeric float value. Null if missing."
+                                },
+                                "date": {
+                                    "type": "STRING",
+                                    "description": f"Transaction date formatted strictly as YYYY-MM-DD. Use today's date ({today_str}) if missing."
+                                },
+                                "merchant": {
+                                    "type": "STRING",
+                                    "description": "Official store, supplier, or merchant name. 'Desconhecido' if missing."
+                                },
+                                "merchant_keyword": {
+                                    "type": "STRING",
+                                    "description": "A single clean, lowercase keyword representing the merchant (e.g. 'uber', 'netflix', 'aldi', 'continente') to be used for matching rules."
+                                },
+                                "currency": {
+                                    "type": "STRING",
+                                    "description": "3-letter ISO 4217 currency code. Default to BRL if missing."
+                                }
+                            },
+                            "required": ["amount", "date", "merchant", "merchant_keyword", "currency"]
+                        }
+                    }
+                },
+                "required": ["transactions"]
+            }
+
+            payload = {
+                "contents": [
+                    {
+                        "parts": [
+                            {"text": prompt_text}
+                        ]
+                    }
+                ],
+                "systemInstruction": {
+                    "parts": [
+                        {"text": system_prompt}
+                    ]
+                },
+                "generationConfig": {
+                    "responseMimeType": "application/json",
+                    "responseSchema": schema,
+                    "temperature": 0.1
+                }
+            }
+
+            url = f"{self.api_url}?key={self.api_key}"
+            headers = {"Content-Type": "application/json"}
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=15)
+            response.raise_for_status()
+
+            result_json = response.json()
+            candidates = result_json.get('candidates', [])
+            if not candidates:
+                return self.get_fallback_data("Sem Candidatos")
+
+            content_parts = candidates[0].get('content', {}).get('parts', [])
+            if not content_parts or 'text' not in content_parts[0]:
+                return self.get_fallback_data("Texto Vazio")
+
+            raw_text = content_parts[0]['text'].strip()
+            import json
+            parsed = json.loads(raw_text)
+            
+            transactions = []
+            for tx in parsed.get("transactions", []):
+                transactions.append({
+                    "amount": tx.get("amount"),
+                    "date": tx.get("date"),
+                    "merchant": tx.get("merchant", "Desconhecido"),
+                    "merchant_keyword": tx.get("merchant_keyword", "").strip().lower(),
+                    "currency": tx.get("currency", "BRL"),
+                    "approved": False
+                })
+                
+            if not transactions:
+                return self.get_fallback_data("Desconhecido")
+                
+            return {"transactions": transactions}
+
+        except Exception as e:
+            logger.exception(f"[AI Service] Falha ao extrair dados de notificação com o Gemini: {str(e)}")
+            return self.get_fallback_data("Erro na Fila de Extração")
+

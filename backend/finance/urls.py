@@ -6,7 +6,7 @@ from .views import (
     DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
     InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, DemoModeView,
-    ReportsViewSet, DebtorViewSet, DebtItemViewSet
+    ReportsViewSet, DebtorViewSet, DebtItemViewSet, NotificationInboxView
 )
 
 router = DefaultRouter()
@@ -34,6 +34,7 @@ urlpatterns = [
     path('onboarding/reset/', ResetDataView.as_view(), name='onboarding-reset-data'),
     path('onboarding/demo-mode/', DemoModeView.as_view(), name='onboarding-demo-mode'),
     path('inbox/upload/', InboxUploadView.as_view(), name='inbox-bulk-upload'),
+    path('inbox/notification/', NotificationInboxView.as_view(), name='inbox-notification'),
     path('wealth/summary/', WealthSummaryView.as_view(), name='wealth-summary'),
     path('', include(router.urls)),
 ]

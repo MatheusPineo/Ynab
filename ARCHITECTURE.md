@@ -1138,3 +1138,30 @@ Para gerenciar despesas compartilhadas (roommates) e amortizar recebimentos de f
 
 ## Taxonomia Global de Investimentos (Atualizado 23/05/2026)
 Os modelos InvestmentAsset e InvestmentActivity suportam rastreamento internacional (market_country, asset_category) e controle de vencimento (due_date) para rendas fixas.
+
+---
+
+##### 6. Governança e Aprendizado de Regras de Associação (`LearnedTransactionRule` - v1.42.00)
+Para otimizar o processamento inteligente da Inbox IA e automatizar a pré-identificação de dados bancários/faturas recorrentes sem intervenção manual, implementamos um modelo de aprendizado contínuo de regras de associação:
+- **Modelagem de Regras (`LearnedTransactionRule`):**
+  - Mapeia palavras-chave sanitizadas (`keyword` extraídas dos comprovantes/faturas, ex: `"ALDI"`, `"UBER"`) para entidades de contas e categorias específicas do usuário.
+  - Campos: `user` (User ForeignKey), `keyword` (CharField para o texto chave), `assigned_account` (Account ForeignKey para a conta sugerida), `assigned_category` (Category ForeignKey para o envelope de despesas sugerido) e `is_income` (BooleanField para diferenciar receitas e despesas).
+  - Impõe restrição de unicidade ACID (`unique_together = ('user', 'keyword')`) para evitar regras conflitantes por usuário.
+- **Associação de Tipos de Contas:**
+  - Se a conta `assigned_account` associada possuir o tipo `credit_card`, o processamento tratará a transação implicitamente como uma compra de cartão de crédito.
+- **Ingestão de Notificações Móveis e Motor de Match (`POST /api/inbox/notification/`):**
+  - Permite a recepção de strings brutas de SMS/Push de transações enviadas de celulares (integração via Tasker/Macrodroid).
+  - O **Match Engine** local busca palavras-chave correspondentes no banco de dados. Havendo ocorrência (`rule.keyword.lower() in text.lower()`), o sistema realiza o **bypass da API do Gemini**, extrai datas e valores por regex/heurísticas leves e cria o `TransactionInbox` com status `ready`.
+  - Se não houver correspondência, o item é inserido como `pending` e enviado à fila Celery/Thread assíncrona do Gemini Flash para extração total (solicitando que a IA gere também a palavra-chave ideal no campo `merchant_keyword`).
+  - No momento da validação do item pelo usuário no painel do Inbox, caso o item venha de captura textual e não tenha regra aprendida (acionamento inicial da IA), o sistema invoca uma rotina transacional que cria/atualiza a regra correspondente (`LearnedTransactionRule`) para automatizar lançamentos futuros.
+- **Visualização Simulada (Smartphone Mockup Preview):**
+  - Na ausência de anexo de imagem no `TransactionInbox`, o painel esquerdo da UI (`Inbox.tsx`) renderiza dinamicamente um mockup interativo de celular em modo escuro.
+  - Exibe a barra de status simulada, relógio do sistema e um balão de notificação nativo contendo o aplicativo de origem (`package_name`), a tag descriptiva "Automated Mobile Capture" e a mensagem bruta capturada, facilitando a conferência pelo usuário durante a revisão.
+  - Adicionado suporte a hidratação de formulário completo (conta, categoria e tipo de transação) e seletor ativo de envelopes/categorias para controle fino.
+
+##### 7. Rastreamento Dinâmico de Identidades de Bancos (`Account.domain`)
+Para possibilitar a renderização dinâmica de ícones/logotipos de bancos e gateways de pagamento na interface do usuário através da API do Clearbit (sem necessidade de uploads de mídias manuais), o modelo `Account` foi estendido com o campo:
+- `domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")`
+- O valor é serializado e transmitido automaticamente pelo `AccountSerializer` (`fields = '__all__'`), permitindo que a camada do cliente recupere dinamicamente a imagem no formato `https://logo.clearbit.com/{account.domain}` para maior riqueza estética.
+
+

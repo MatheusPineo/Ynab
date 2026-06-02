@@ -14,6 +14,14 @@ O módulo de Inbox Inteligente não é apenas um leitor óptico; é uma intelig�
 3. **Extração de Parâmetros:** A inteligência do Gemini mapeia os valores numéricos, datas escondidas nos parágrafos e CNPJs envolvidos.
 4. **Homologação:** Minutos (ou segundos) depois, a nota aparece na tela de **Inbox** classificada de forma amigável (Staging). Você confere a sugestão da IA de qual banco, valor, e categoria a conta pertencia e clica em **Homologar** e **Lançar**. O lançamento atinge seu saldo real naquele instante.
 
+### 1.1 Aprendizado Contínuo de Regras e Notificações (Android Integration)
+
+O Vault Finance OS estende o Inbox IA para além do upload visual de cupons, introduzindo a automação proativa baseada em texto:
+* **Endpoint de Notificações (`POST /api/inbox/notification/`):** Você pode integrar aplicativos do seu smartphone Android (como Tasker, Macrodroid ou SMS Readers) para disparar notificações em tempo real para o backend do Vault no momento do recebimento.
+* **Motor de Match Engine (Bypass do Gemini):** O sistema analisa o texto da notificação. Se uma palavra-chave como "UBER" ou "NETFLIX" já tiver uma regra aprendida no seu perfil, o Vault pula a chamada da API do Gemini e preenche a conta corrente, cartão e categoria corretos instantaneamente (status `ready`).
+* **Aprendizado de Regras Contínuo:** Se a notificação não possuir uma regra prévia, ela será enviada para o processamento assíncrono do Gemini. No momento em que você homologar a transação sugerida pela IA e confirmar a conta e o envelope, o Vault aprende a regra automaticamente para o seu perfil. As próximas notificações deste mesmo estabelecimento serão classificadas sem a necessidade de processamento por inteligência artificial.
+* **Visualização Simulada (Smartphone Preview):** Para capturas automáticas por texto (sem foto de cupom), a coluna de pré-visualização do Inbox exibe um mockup interativo de smartphone contendo o balão de notificação original. Isso permite revisar visualmente o texto bruto da mensagem capturada direto na tela de homologação.
+
 ---
 
 ## 2. Processo de Reconciliação Bancária Semanal

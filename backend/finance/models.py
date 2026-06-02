@@ -18,6 +18,7 @@ class Account(models.Model):
     balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     ceiling = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     icon_url = models.URLField(max_length=500, null=True, blank=True)
+    domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     created_at = models.DateTimeField(auto_now_add=True)
     exclude_from_totals = models.BooleanField(default=False)
@@ -827,5 +828,23 @@ class DebtItem(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
+class LearnedTransactionRule(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learned_transaction_rules')
+    keyword = models.CharField(max_length=100)
+    assigned_account = models.ForeignKey(Account, on_delete=models.CASCADE, related_name='learned_rules')
+    assigned_category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='learned_rules')
+    is_income = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'core_learnedtransactionrule'
+        app_label = 'core'
+        unique_together = ('user', 'keyword')
+
+    def __str__(self):
+        type_str = "Receita" if self.is_income else "Despesa"
+        return f"Regra Aprendida ({self.user.username}): {self.keyword} -> {self.assigned_account.name} ({type_str})"
+
 
 

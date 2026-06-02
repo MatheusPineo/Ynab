@@ -17,17 +17,19 @@
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-05-31 21:47:00): Experiência Exclusiva e Ajuste de Safe Area no App Android (v1.41.06).
-- Frontend: Modificada a rota base '/' no App.tsx para redirecionar diretamente para '/dashboard' se for nativo, evitando misturar a landing page do site institucional.
-- Layout/UI: Adicionado padding superior (`pt-8`) e aumento da altura (`h-22`) dinâmicos ao cabeçalho (`Topbar.tsx`) em ambiente nativo, criando uma área de segurança para que a logo e botões não se sobreponham com os elementos de status do Android (relógio, bateria, etc.).
+(Atualizado em 2026-06-02 10:05:00): Inteligência de Regras e Associação de Comprovantes (v1.42.00).
+- Backend/Database: Adicionado o modelo `LearnedTransactionRule` no Django com regras de associação de estabelecimentos/palavras-chave a contas e categorias financeiras para automatizar o preenchimento no Inbox IA. Adicionado o campo `domain` no modelo `Account` para renderização dinâmica de logotipos de bancos via Clearbit API.
+- Frontend: Refatorado `Inbox.tsx` para renderizar mockup de smartphone simulando balão de notificação móvel na ausência de arquivo de imagem (texto/SMS) e implementada hidratação completa da categoria, conta e tipo de transação (is_income).
+- Testes/Typecheck: TypeScript compilado sem erros (`tsc --noEmit`) e testes backend Pytest 100% verdes.
 
-### Status Atual (Versão 1.41.06)
-- **Marco:** Experiência Exclusiva e Safe Area no App Android (v1.41.06).
-- **Estado:** 100% estável e implantado localmente / no celular via USB.
-- **Arquitetura:** Roteamento condicional e detecção de plataforma nativa via Capacitor no React para Safe Area e bypass de landing page.
-- **Testes:** Suíte de testes (Vitest + Pytest) 100% verde (90 testes Django + 30 testes frontend bem-sucedidos).
+### Status Atual (Versão 1.42.00)
+- **Marco:** Inteligência de Regras e Associação de Comprovantes (v1.42.00).
+- **Estado:** 100% estável e implantado em produção no Vercel (frontend e backend).
+- **Arquitetura:** Match local com bypass de IA, fila assíncrona Celery para fallback Gemini e mockup de tela mobile na UI.
+- **Testes:** Suítes de testes automatizados e compilação TS 100% verdes.
 
 ### Histórico de Sprints Recentes
+- [v1.42.00] Inteligência de Regras e Associação de Comprovantes: Implementado modelo `LearnedTransactionRule` para pré-seleção automática e associação inteligente de comprovantes no Inbox IA.
 - [v1.41.06] Safe Area & Rota Inicial no Capacitor: Adicionado padding superior de segurança no Topbar para Android e redirecionamento nativo no App.tsx para pular a landing page.
 - [v1.41.05] Agregação de Devedores Unificada nas Subcontas: Integração híbrida de roommate splits (DebtItem) e dívidas pessoais (Debt) na sumarização de devedores por subconta.
 - [v1.41.04] Cumprimento Inteligente no Topbar: Saudação dinâmica por hora local (Bom dia, Boa tarde, Boa noite) integrada ao componente de cabeçalho.
@@ -37,11 +39,11 @@
 - [v1.41.00] Motor de Amortização FIFO e Devedores Agrupados: Implementação de modelos granulares de devedores, engine FIFO cronológica, cadastro de dívidas em lote e agregação transacional de dívidas por envelope de origem.
 - [v1.40.00] Metas Inteligentes, Alocação Rápida e Rebalanceamento Automático: Implementação completa de metas avançadas de envelopes, serviços de distribuição proativos e ações rápidas de rebalanceamento no backend e frontend.
 
-### Regras de NegÃƒÂ³cio CrÃƒÂ­ticas
-- **SeguranÃƒÂ§a:** Isolamento multitenant estrito; sem segredos no repositÃƒÂ³rio.
-- **Processamento AssÃƒÂ­ncrono:** Chamadas de IA jamais podem travar a thread HTTP principal do Django; uso obrigatÃƒÂ³rio da fila assÃƒÂ­ncrona com status 202 Accepted e conclusÃƒÂ£o via Celery.
-- **ConsistÃƒÂªncia:** SincronizaÃƒÂ§ÃƒÂ£o automÃƒÂ¡tica de versÃƒÂµes entre Changelog e RodapÃƒÂ©.
-- **Portabilidade:** Boilerplate preparado para inicializaÃƒÂ§ÃƒÂ£o rÃƒÂ¡pida via `npm/bun install` e `pip install`.
+### Regras de Negócio Críticas
+- **Segurança:** Isolamento multitenant estrito; sem segredos no repositório.
+- **Processamento Assíncrono:** Chamadas de IA jamais podem travar a thread HTTP principal do Django; uso obrigatório da fila assíncrona com status 202 Accepted e conclusão via Celery.
+- **Consistência:** Sincronização automática de versões entre Changelog e Rodapé.
+- **Portabilidade:** Boilerplate preparado para inicialização rápida via `npm/bun install` e `pip install`.
 - [v1.27.1] Script automatizado (sync_market_data.py) para buscar o indice CDI da API do SGS 4389 do Banco Central do Brasil.
 
 - [v1.35.11 ] UI Premium de CartÃµes: OtimizaÃ§Ã£o do preenchimento interno dos SVGs nos containers (`p-0.5`). Ã�cones agora ostentam peso visual maximizado com paridade exata de dimensÃ£o ao Ã­cone genÃ©rico (`h-6 w-6 strokeWidth={1.5}`).

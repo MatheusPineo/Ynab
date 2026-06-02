@@ -1,3 +1,12 @@
+## [1.42.00] - 2026-06-02
+
+### Added
+- Governança e Aprendizado de Regras de Associação: Implementado o modelo de banco de dados `LearnedTransactionRule` no backend Django para mapear palavras-chave (como nomes de estabelecimentos) a contas, categorias e tipos de transações. Ele provê aprendizado contínuo para pré-identificar dados bancários/faturas recorrentes na Inbox IA, suportando diferenciação explícita de receita/despesa (`is_income`) e integração com cartões de crédito.
+- Endpoint de Notificações de Transações (`NotificationInboxView`): Criada a rota `POST /api/inbox/notification/` que recebe notificações e SMS brutos do celular (através de integradores como Tasker/Macrodroid).
+- Motor de Match Local (Bypass de IA): Ao receber uma notificação, o sistema busca regras salvas no banco de dados e, em caso de ocorrência de palavra-chave, realiza bypass da API do Gemini, preenchendo automaticamente o item de caixa de entrada como pronto (`ready`).
+- Aprendizado Automático na Aprovação: Refatorado o endpoint de homologação/aprovação de transações da Inbox para salvar automaticamente regras de associação baseadas nas sugestões do Gemini e confirmação do usuário.
+- Mockup de Notificação Móvel na UI (`Inbox.tsx`): Integrado um mockup interativo de smartphone na coluna esquerda da Inbox para exibir de maneira elegante balões de SMS e Push originais em itens de captura por texto sem anexo de imagem. Adicionado suporte a hidratação completa da categoria, conta e tipo de transação via match engine local ou extração IA, e seletor interativo de envelopes/categorias para controle visual de auditoria antes da homologação final.
+
 ## [1.41.06] - 2026-05-31
 
 ### Fixed

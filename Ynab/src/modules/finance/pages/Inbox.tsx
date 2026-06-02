@@ -31,7 +31,9 @@ import {
   Maximize2,
   CheckCircle2,
   ArrowRightLeft,
-  DollarSign
+  DollarSign,
+  Smartphone,
+  Bell
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -112,19 +114,26 @@ const Inbox = () => {
           setMerchant(currentTx.merchant || "Desconhecido");
           setAmount(currentTx.amount !== undefined && currentTx.amount !== null ? String(currentTx.amount) : "");
           setDate(currentTx.date || new Date().toISOString().split("T")[0]);
+          setSelectedAccountId(currentTx.account || suggestions.account || "");
+          setSelectedCategoryId(currentTx.category || suggestions.category || "");
+          setIsIncome(currentTx.is_income === true || suggestions.is_income === true);
         }
       } else {
         setMerchant(suggestions.merchant || "Desconhecido");
         setAmount(suggestions.amount !== undefined && suggestions.amount !== null ? String(suggestions.amount) : "");
         setDate(suggestions.date || new Date().toISOString().split("T")[0]);
+        setSelectedAccountId(suggestions.account || "");
+        setSelectedCategoryId(suggestions.category || "");
+        setIsIncome(suggestions.is_income === true);
       }
-      setIsIncome(false); // Receitas são raras em cupons, default para Despesa
       setZoom(1);
       setRotation(0);
     } else {
       setMerchant("");
       setAmount("");
       setDate("");
+      setSelectedAccountId("");
+      setSelectedCategoryId("");
       setIsIncome(false);
     }
   }, [selectedItem, activeTxIndex]);
@@ -427,47 +436,47 @@ const Inbox = () => {
           <div className="lg:col-span-9 grid grid-cols-1 md:grid-cols-2 gap-6">
             {selectedItem && (
               <>
-                {/* Left Side - Image/Document Viewer */}
-                <Card className="rounded-2xl border-border/60 bg-card/20 backdrop-blur-sm overflow-hidden flex flex-col min-h-[580px] lg:h-[620px] shadow-soft">
-                  <div className="h-10 border-b border-border/40 bg-muted/20 px-4 flex items-center justify-between">
-                    <span className="text-xs font-semibold text-muted-foreground truncate max-w-[180px]">
-                      {selectedItem.file ? selectedItem.file.split("/").pop() : "cupom.jpg"}
-                    </span>
-                    
-                    {/* Zoom / Rotate Controls */}
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
-                        className="h-7 w-7 rounded-lg"
-                        title="Zoom Out"
-                      >
-                        <ZoomOut className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
-                        className="h-7 w-7 rounded-lg"
-                        title="Zoom In"
-                      >
-                        <ZoomIn className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setRotation((r) => (r + 90) % 360)}
-                        className="h-7 w-7 rounded-lg"
-                        title="Rotacionar"
-                      >
-                        <RotateCw className="h-3.5 w-3.5" />
-                      </Button>
+                {/* Left Side - Image/Document Viewer or Mock Notification Bubble */}
+                {selectedItem.file ? (
+                  <Card className="rounded-2xl border-border/60 bg-card/20 backdrop-blur-sm overflow-hidden flex flex-col min-h-[580px] lg:h-[620px] shadow-soft">
+                    <div className="h-10 border-b border-border/40 bg-muted/20 px-4 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground truncate max-w-[180px]">
+                        {selectedItem.file.split("/").pop()}
+                      </span>
+                      
+                      {/* Zoom / Rotate Controls */}
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setZoom((z) => Math.max(0.5, z - 0.25))}
+                          className="h-7 w-7 rounded-lg"
+                          title="Zoom Out"
+                        >
+                          <ZoomOut className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setZoom((z) => Math.min(3, z + 0.25))}
+                          className="h-7 w-7 rounded-lg"
+                          title="Zoom In"
+                        >
+                          <ZoomIn className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setRotation((r) => (r + 90) % 360)}
+                          className="h-7 w-7 rounded-lg"
+                          title="Rotacionar"
+                        >
+                          <RotateCw className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="flex-1 overflow-hidden relative flex items-center justify-center p-4 bg-muted/10">
-                    {selectedItem.file ? (
+                    <div className="flex-1 overflow-hidden relative flex items-center justify-center p-4 bg-muted/10">
                       <div
                         className="transition-transform duration-200 ease-out max-w-full max-h-full flex items-center justify-center"
                         style={{
@@ -484,14 +493,71 @@ const Inbox = () => {
                           }}
                         />
                       </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <FileText className="h-12 w-12 opacity-20" />
-                        <p className="text-xs">Sem pré-visualização de imagem</p>
+                    </div>
+                  </Card>
+                ) : (
+                  <Card className="rounded-2xl border-border/60 bg-card/20 backdrop-blur-sm overflow-hidden flex flex-col min-h-[580px] lg:h-[620px] shadow-soft justify-center items-center p-6 bg-slate-950/40 relative">
+                    {/* Background glows */}
+                    <div className="absolute top-1/4 left-1/4 w-40 h-40 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+                    <div className="absolute bottom-1/4 right-1/4 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
+                    
+                    {/* Smartphone Mockup Wrapper */}
+                    <div className="w-full max-w-[280px] h-[480px] rounded-[36px] border-8 border-slate-800 bg-slate-950 shadow-2xl relative flex flex-col overflow-hidden">
+                      {/* Speaker / Camera Notch */}
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-4 bg-slate-800 rounded-b-xl z-20 flex items-center justify-center">
+                        <div className="w-10 h-1 bg-slate-900 rounded-full" />
                       </div>
-                    )}
-                  </div>
-                </Card>
+                      
+                      {/* StatusBar mockup */}
+                      <div className="pt-5 px-5 pb-2 flex justify-between items-center text-[10px] font-medium text-slate-400 z-10">
+                        <span>09:41</span>
+                        <div className="flex items-center gap-1">
+                          <span className="w-3 h-2 bg-slate-400 rounded-sm inline-block" />
+                          <span className="w-2.5 h-2.5 bg-slate-400 rounded-full inline-block" />
+                        </div>
+                      </div>
+                      
+                      {/* Lockscreen clock */}
+                      <div className="flex flex-col items-center mt-6 mb-8 z-10">
+                        <span className="text-3xl font-light text-slate-100 tracking-wide">09:41</span>
+                        <span className="text-[10px] text-slate-400 mt-1">Terça-feira, 2 de Junho</span>
+                      </div>
+                      
+                      {/* Notification Bubble */}
+                      <div className="px-3 flex-1 z-10">
+                        <div className="bg-slate-900/90 backdrop-blur-md border border-slate-800/80 p-3.5 rounded-2xl shadow-lg flex flex-col gap-2 transition-all duration-300 hover:scale-[1.02] hover:bg-slate-900/100">
+                          {/* App Info / Header */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5">
+                              <div className="w-5 h-5 rounded-md bg-primary/20 flex items-center justify-center border border-primary/30">
+                                <Bell className="h-3 w-3 text-primary animate-bounce" />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-200 uppercase tracking-wider truncate max-w-[130px]">
+                                {selectedItem.package_name ? selectedItem.package_name.split('.').pop() : 'SMS / Push'}
+                              </span>
+                            </div>
+                            <span className="text-[9px] text-slate-400">Agora</span>
+                          </div>
+                          
+                          {/* Badge */}
+                          <div>
+                            <Badge variant="outline" className="text-[9px] font-bold bg-primary/10 text-primary border-transparent py-0.5 px-2">
+                              Automated Mobile Capture
+                            </Badge>
+                          </div>
+                          
+                          {/* Notification Text */}
+                          <p className="text-xs text-slate-200 font-normal leading-relaxed break-words line-clamp-4">
+                            {selectedItem.ai_suggestions?.raw_text || "Nenhuma notificação encontrada"}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Home Indicator */}
+                      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-28 h-1 bg-slate-700 rounded-full z-10" />
+                    </div>
+                  </Card>
+                )}
 
                 {/* Right Side - Form Validation Panel */}
                 <Card className="rounded-2xl border-border/60 bg-card/40 backdrop-blur-md p-6 flex flex-col min-h-[580px] lg:h-[620px] shadow-soft justify-between">
@@ -652,6 +718,28 @@ const Inbox = () => {
                             className="bg-muted/10 border-border/40 rounded-xl text-xs h-10 shadow-soft focus:ring-0"
                           />
                         </div>
+                      </div>
+
+                      {/* Category Selection */}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="category" className="text-xs font-semibold">Categoria</Label>
+                        <Select
+                          value={selectedCategoryId || "none"}
+                          onValueChange={(val) => setSelectedCategoryId(val === "none" ? "" : val)}
+                          disabled={selectedItem.status === "processing"}
+                        >
+                          <SelectTrigger className="bg-muted/10 border-border/40 rounded-xl text-xs h-10 shadow-soft focus:ring-0">
+                            <SelectValue placeholder="Selecione a categoria..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sem categoria (Ignorar)</SelectItem>
+                            {allCategories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
 
                       {/* Transaction Type Option */}

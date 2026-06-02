@@ -130,7 +130,7 @@ def test_pay_bill_itemized(base_data):
     matrix_tx, installments = process_credit_card_transaction(
         credit_card_id=cc.id,
         description='Teclado Mecânico',
-        date_tx=date(2026, 5, 10),
+        date_tx=date(date.today().year, date.today().month, 10),
         total_amount=Decimal('400.00'),
         category_id=cat.id,
         installment_count=2

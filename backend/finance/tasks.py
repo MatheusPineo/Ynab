@@ -25,11 +25,13 @@ def process_inbox_document(self, inbox_id):
         logger.info(f"[Celery] Status do TransactionInbox {inbox_id} atualizado para processing.")
         
         # 3. Invoca o serviço de inteligência artificial
-        if not inbox.file:
-            raise ValueError("O registro do TransactionInbox não possui um arquivo associado para análise.")
-            
         ai_service = AIExtractionService()
-        suggestions = ai_service.extract_receipt_data(inbox.file.path)
+        if inbox.file:
+            suggestions = ai_service.extract_receipt_data(inbox.file.path)
+        elif inbox.ai_suggestions and 'raw_text' in inbox.ai_suggestions:
+            suggestions = ai_service.extract_notification_data(inbox.ai_suggestions['raw_text'])
+        else:
+            raise ValueError("O registro do TransactionInbox não possui um arquivo nem texto de notificação para análise.")
         
         # 4. Grava os resultados estruturados e transiciona o status para ready
         inbox.ai_suggestions = suggestions

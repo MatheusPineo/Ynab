@@ -1,5 +1,15 @@
 # Novidades e Atualizações
 
+## Inteligência de Regras e Associação de Comprovantes (02/06/2026) 🤖🧠
+Expandimos a inteligência por trás do **Inbox IA** para tornar a homologação de comprovantes ainda mais rápida e autônoma:
+* **Aprendizado Contínuo de Estabelecimentos:** O Vault Finance OS agora aprende com base nas suas validações passadas. Ao homologar um comprovante, o sistema associa palavras-chave do estabelecimento (ex: "ALDI", "UBER") à conta e categoria financeira que você escolheu.
+* **Preenchimento Automático Proativo:** Da próxima vez que você enviar um comprovante do mesmo estabelecimento, a IA detectará a regra aprendida e pré-selecionará automaticamente a conta corrente, cartão ou envelope de gastos correto, restando apenas revisar e homologar.
+* **Detecção Automática de Tipo de Transação:** O sistema diferencia de forma transparente se o lançamento trata-se de uma despesa comum, receita ou compra de cartão de crédito.
+* **Integração de Notificações e SMS (Match Engine Local):** Lançamos um novo endpoint `/api/inbox/notification/` que permite enviar notificações de transações financeiras diretamente do seu smartphone Android (através de utilitários como Tasker ou Macrodroid). Se o estabelecimento já tiver uma regra aprendida, o sistema preencherá os dados instantaneamente sem chamar o Gemini (Bypass de IA), economizando tempo de processamento e recursos.
+* **Mockup de Notificação em Tela (Smartphone Preview):** Para capturas automáticas geradas por texto (notificações push/SMS enviadas do celular, sem imagem física de comprovante), a coluna de visualização da Inbox agora renderiza um mockup elegante de smartphone com o balão de notificação original. Isso permite realizar a conferência visual do texto recebido em tempo real na tela de homologação.
+* **Ficha de Auditoria Avançada:** Adicionado suporte para hidratação automática em tempo real do envelope/categoria, conta bancária e tipo de transação (receita/despesa) no painel de aprovação à direita da tela, além de um seletor visual de categorias para possibilitar que você re-classifique envelopes antes de consolidar os dados.
+
+
 ## Experiência Exclusiva e Isolada no App Android (31/05/2026) 📱🚀
 Melhoramos a experiência de uso do aplicativo móvel do Vault Finance OS para dispositivos Android:
 * **Navegação 100% Autônoma:** O aplicativo nativo construído com Capacitor agora detecta que está rodando em um celular e pula automaticamente a página institucional pública (landing page).
