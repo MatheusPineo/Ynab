@@ -1,3 +1,13 @@
+## [1.44.00] - 2026-06-02
+
+### Added
+- Motor Avançado de Renda Fixa e Impostos Regressivos (Backend):
+  - Refatorado o motor de carteira (`NetWorthCalculator.calculate_holdings`) para investimentos de Renda Fixa e Tesouro Direto (`FIXED_INCOME` e `TREASURY`).
+  - Implementada a convenção de cálculo brasileira baseada em 252 dias úteis (excluindo feriados nacionais e finais de semana) para a curva teórica de rendimento em ativos pós-fixados e prefixados.
+  - Implementada Marcação a Mercado via Preço Unitário (PU) com base no registro mais recente na tabela `DailyAssetPrice`.
+  - Integrado amortecimento de vendas utilizando o algoritmo padrão FIFO sobre as tranches de compras ativas do ativo.
+  - Desenvolvido o cálculo automático de alíquotas regressivas do imposto de renda brasileiro (22.5% até 180 dias, 20.0% até 360 dias, 17.5% até 720 dias, e 15.0% acima) e IOF regressivo até 30 dias para dedução direta sobre o rendimento bruto das posições.
+
 ## [1.43.02] - 2026-06-02
 
 ### Added

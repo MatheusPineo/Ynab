@@ -47,3 +47,61 @@ class BrazilianFixedIncomeEngineTests(TestCase):
         self.assertEqual(res_35['iof_amount'], 0.0)
         self.assertTrue(res_35['net_profit'] > 0.0)
         self.assertEqual(res_35['calendar_days'], 35)
+
+    def test_prefixed_and_marking_to_market_holdings(self):
+        from django.contrib.auth.models import User
+        from finance.models import InvestmentAsset, InvestmentActivity, DailyAssetPrice
+        from finance.services import NetWorthCalculator
+        from decimal import Decimal
+        
+        user = User.objects.create_user(username='fixed_income_tester', password='password123')
+        
+        # 1. Ativo Prefixado (10% a.a.)
+        asset = InvestmentAsset.objects.create(
+            user=user,
+            ticker='LTN-2026',
+            name='Tesouro Prefixado',
+            asset_type='TREASURY',
+            indexer='PRE',
+            rate_type='PREFIXED',
+            currency='BRL'
+        )
+        
+        # Compra há 180 dias
+        purchase_date = datetime.date.today() - datetime.timedelta(days=180)
+        activity = InvestmentActivity.objects.create(
+            asset=asset,
+            activity_type='BUY',
+            date=purchase_date,
+            quantity=Decimal('1.00'),
+            unit_price=Decimal('500.00'),
+            fees=Decimal('0.00'),
+            cdi_percentage=Decimal('10.00') # 10.00% a.a. prefixado
+        )
+        
+        # 2. Sem PU cadastrado -> deve calcular na curva teórica (Base 252)
+        holdings = NetWorthCalculator.calculate_holdings(user)
+        self.assertEqual(len(holdings), 1)
+        h = holdings[0]
+        self.assertEqual(h['ticker'], 'LTN-2026')
+        self.assertTrue(h['gross_value'] > Decimal('500.00'))
+        self.assertTrue(h['net_value'] > Decimal('500.00'))
+        self.assertTrue(h['net_value'] < h['gross_value'])
+        
+        # 3. Com PU de mercado atual cadastrado (Marcação a Mercado = R$ 624.07)
+        DailyAssetPrice.objects.create(
+            asset=asset,
+            date=datetime.date.today(),
+            price=Decimal('624.07')
+        )
+        
+        holdings_mkt = NetWorthCalculator.calculate_holdings(user)
+        h_mkt = holdings_mkt[0]
+        self.assertEqual(h_mkt['gross_value'], Decimal('624.07'))
+        
+        # Lucro bruto = 624.07 - 500.00 = 124.07
+        # 180 dias de custódia -> alíquota de IR = 22.5% (dias <= 180)
+        # IR = 124.07 * 0.225 = 27.91575 -> round = 27.92
+        # Líquido esperado = 624.07 - 27.92 = 596.15
+        self.assertEqual(h_mkt['ir_amount'], Decimal('27.92'))
+        self.assertEqual(h_mkt['net_value'], Decimal('596.15'))

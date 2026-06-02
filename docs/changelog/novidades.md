@@ -1,5 +1,12 @@
 # Novidades e Atualizações
 
+## Motor Avançado de Renda Fixa e Tributação Brasileira (02/06/2026) 📈🇧🇷
+Refatoramos o cálculo matemático para investimentos de Renda Fixa e Tesouro Direto:
+* **Base de 252 Dias Úteis:** O rendimento dos ativos de renda fixa agora segue a convenção brasileira oficial, desconsiderando fins de semana e feriados nacionais nos cálculos de juros acumulados diários.
+* **Marcação a Mercado por Preço Unitário (PU):** O sistema agora prioriza o valor real de liquidação do ativo com base nos preços históricos e atuais cadastrados no banco de dados (`DailyAssetPrice`). Caso não haja um preço atualizado, o sistema utiliza o cálculo teórico da curva de juros do ativo.
+* **Tributação Regressiva de IR e IOF:** Implementamos o desconto automático de Imposto de Renda Regressivo (22,5% a 15%) e IOF no rendimento com base nos dias corridos da aplicação, exibindo valores Brutos e Líquidos realistas equivalentes aos portais oficiais (como o do Tesouro Direto).
+* **Desconto FIFO nas Vendas:** Vendas parciais de ativos agora amortizam primeiro as tranches de compras mais antigas (First In, First Out), mantendo os saldos de impostos de renda e custódia perfeitamente auditáveis.
+
 ## Identificação Precisa de Dispositivos (02/06/2026) 📱⏰
 Melhoramos a clareza e o rastreamento dos aparelhos cadastrados em sua conta:
 * **Data e Hora no Nome Padrão:** O nome sugerido do dispositivo móvel no momento do login de confiança agora inclui não apenas a data, mas também a hora e o minuto exatos (ex: `Telemóvel Android - 02/06/2026 20:44`). Isso permite diferenciar com total facilidade os dispositivos caso você possua mais de um aparelho do mesmo modelo cadastrado no mesmo dia.
