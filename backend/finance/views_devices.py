@@ -1,20 +1,61 @@
+from rest_framework import serializers
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from finance.models import TrustedDevice
+import uuid
+
+class DeviceRegisterSerializer(serializers.Serializer):
+    name = serializers.CharField(required=False, allow_blank=True)
+    device_name = serializers.CharField(required=False, allow_blank=True)
+    device_key = serializers.CharField(required=True)
+
+    def validate_device_key(self, value):
+        try:
+            uuid.UUID(str(value))
+        except ValueError:
+            raise serializers.ValidationError("Invalid device key format.")
+        return value
+
+    def validate(self, data):
+        name = data.get('device_name') or data.get('name')
+        if not name:
+            raise serializers.ValidationError("O campo 'device_name' ou 'name' é obrigatório.")
+            
+        request = self.context.get('request')
+        if request and request.user:
+            if TrustedDevice.objects.filter(user=request.user, device_name=name, is_active=True).exists():
+                raise serializers.ValidationError("A device with this name is already registered.")
+                
+        return data
 
 class DeviceRegisterView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        device_name = request.data.get('device_name')
-        if not device_name:
+        serializer = DeviceRegisterSerializer(data=request.data, context={'request': request})
+        if not serializer.is_valid():
+            # Extrai o primeiro erro para manter a compatibilidade de resposta detalhada
+            errors = serializer.errors
+            detail_msg = "Dados inválidos."
+            if 'device_key' in errors:
+                detail_msg = errors['device_key'][0]
+            elif 'non_field_errors' in errors:
+                detail_msg = errors['non_field_errors'][0]
+            elif 'name' in errors:
+                detail_msg = errors['name'][0]
+            elif 'device_name' in errors:
+                detail_msg = errors['device_name'][0]
+                
             return Response(
-                {"error": "O campo 'device_name' é obrigatório."}, 
+                {"detail": detail_msg, "error": detail_msg},
                 status=status.HTTP_400_BAD_REQUEST
             )
+
+        validated_data = serializer.validated_data
+        device_name = validated_data.get('device_name') or validated_data.get('name')
 
         # Gera o token em texto puro (enviado apenas uma vez ao frontend)
         raw_token = TrustedDevice.generate_token()

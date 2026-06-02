@@ -74,7 +74,21 @@ export const DeviceTrustModal: React.FC = () => {
           statusText: response.statusText,
           data: errorData
         });
-        const detailedError = errorData.error || errorData.detail || JSON.stringify(errorData) || "Falha ao registrar dispositivo no servidor.";
+        
+        let detailedError = "Falha ao registrar dispositivo no servidor.";
+        if (errorData) {
+          if (typeof errorData === "string") {
+            detailedError = errorData;
+          } else if (errorData.error) {
+            detailedError = errorData.error;
+          } else if (errorData.detail) {
+            detailedError = errorData.detail;
+          } else if (typeof errorData === "object" && Object.keys(errorData).length > 0) {
+            const values = Object.values(errorData).flat();
+            detailedError = values.map(val => typeof val === 'object' ? JSON.stringify(val) : String(val)).join(', ');
+          }
+        }
+        
         throw new Error(detailedError);
       }
 
