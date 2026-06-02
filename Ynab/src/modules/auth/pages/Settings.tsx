@@ -10,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Label } from "@/shared/components/ui/label";
 import { Input } from "@/shared/components/ui/input";
 import { Button } from "@/shared/components/ui/button";
+import { TrustedDevicesManager } from "@/modules/finance/components/TrustedDevicesManager";
+import { InboxMobileSyncActivation } from "@/modules/finance/components/InboxMobileSyncActivation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/components/ui/avatar";
 import { Badge } from "@/shared/components/ui/badge";
@@ -415,7 +417,10 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
               <Globe className="h-4 w-4 shrink-0" />
               <span>Preferências</span>
             </TabsTrigger>
-
+            <TabsTrigger value="devices" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
+              <Smartphone className="h-4 w-4 shrink-0" />
+              <span>Dispositivos</span>
+            </TabsTrigger>
             <TabsTrigger value="subscription" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
               <CreditCard className="h-4 w-4 shrink-0" />
               <span>Assinatura</span>
@@ -844,7 +849,31 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
           <TabsContent value="subscription" className="space-y-6 animate-in fade-in duration-300">
             <SubscriptionPanel />
           </TabsContent>
+          {/* Devices Tab */}
+        <TabsContent value="devices" className="space-y-6">
+           <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm p-8">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <h3 className="font-bold text-lg flex items-center gap-2">
+                    <Smartphone className="h-5 w-5 text-primary" /> Sincronização Mobile
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Faça a gestão dos telemóveis autorizados a intercetar notificações e enviar dados para a Inbox IA.
+                  </p>
+                </div>
 
+                <div className="grid gap-6">
+                  {/* O botão que pede permissão e gera o token */}
+                  <InboxMobileSyncActivation />
+                  
+                  {/* A tabela que mostra os telemóveis autorizados */}
+                  <TrustedDevicesManager />
+                </div>
+              </div>
+           </Card>
+        </TabsContent>
+
+        
           {/* Demo & Reset Tab */}
           <TabsContent value="demo" className="space-y-6 animate-in fade-in duration-300">
             <Card className="rounded-3xl border-rose-500/20 bg-card/40 backdrop-blur-sm overflow-hidden">

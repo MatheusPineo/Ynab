@@ -7,7 +7,8 @@
     "build": "cd Ynab && bun install && bun run build && rm -rf ../dist && cp -r dist ../dist",
     "build:dev": "cd Ynab && bun install && bun run build:dev && rm -rf ../dist && cp -r dist ../dist",
     "preview": "cd Ynab && bun run preview",
-    "lint": "cd Ynab && bun run lint"
+    "lint": "cd Ynab && bun run lint",
+    "android-deploy": "cd Ynab && bun run build && npx cap sync android && cd android && cmd /c \"set JAVA_HOME=C:\\Program Files\\Android\\Android Studio\\jbr&& gradlew.bat assembleDebug && C:\\Users\\mathe\\AppData\\Local\\Android\\Sdk\\platform-tools\\adb.exe -d install -r app\\build\\outputs\\apk\\debug\\app-debug.apk\""
   },
   "dependencies": {
     "zustand": "^5.0.12"

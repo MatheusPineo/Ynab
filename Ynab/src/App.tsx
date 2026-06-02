@@ -37,6 +37,9 @@ import { Database, LayoutGrid } from "lucide-react";
 import { useSidebarStore } from "@/shared/store/useSidebarStore";
 
 import { Capacitor } from "@capacitor/core";
+import { SecurityLockProvider } from "@/shared/context/SecurityLockContext";
+import { SecurityLockScreen } from "@/shared/components/security/SecurityLockScreen";
+import { DeviceTrustModal } from "@/shared/components/security/DeviceTrustModal";
 
 export const queryClient = new QueryClient();
 
@@ -112,74 +115,78 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <CookieBanner />
-            <ErrorBoundary>
-              <Routes>
-              <Route path="/" element={Capacitor.isNativePlatform() ? <Navigate to="/dashboard" replace /> : <Landing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/termos-de-uso" element={<Navigate to="/legal?tab=termos" replace />} />
-              <Route path="/politica-de-privacidade" element={<Navigate to="/legal?tab=privacidade" replace />} />
-              <Route path="/politica-de-cookies" element={<Navigate to="/legal?tab=cookies" replace />} />
-              <Route path="/legal" element={<LegalCenter />} />
-              <Route path="/help-center" element={<HelpCenter isPublic={true} />} />
-              <Route path="/ajuda" element={<Navigate to="/help-center?tab=articles" replace />} />
+        <SecurityLockProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <SecurityLockScreen />
+            <DeviceTrustModal />
+            <BrowserRouter>
+              <CookieBanner />
+              <ErrorBoundary>
+                <Routes>
+                <Route path="/" element={Capacitor.isNativePlatform() ? <Navigate to="/dashboard" replace /> : <Landing />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/termos-de-uso" element={<Navigate to="/legal?tab=termos" replace />} />
+                <Route path="/politica-de-privacidade" element={<Navigate to="/legal?tab=privacidade" replace />} />
+                <Route path="/politica-de-cookies" element={<Navigate to="/legal?tab=cookies" replace />} />
+                <Route path="/legal" element={<LegalCenter />} />
+                <Route path="/help-center" element={<HelpCenter isPublic={true} />} />
+                <Route path="/ajuda" element={<Navigate to="/help-center?tab=articles" replace />} />
 
-              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                <Route path="dashboard" element={<FeatureProtectedRoute featureKey="dashboard"><Dashboard /></FeatureProtectedRoute>} />
-                <Route path="accounts" element={<FeatureProtectedRoute featureKey="accounts"><Accounts /></FeatureProtectedRoute>} />
-                <Route path="transactions" element={<FeatureProtectedRoute featureKey="transactions"><Transactions /></FeatureProtectedRoute>} />
-                <Route path="inbox" element={<Inbox />} />
-                <Route path="budget" element={<FeatureProtectedRoute featureKey="budget"><Budget /></FeatureProtectedRoute>} />
-                <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />
-                <Route path="debts" element={<FeatureProtectedRoute featureKey="debts"><Debts /></FeatureProtectedRoute>} />
-                <Route path="reports" element={<FeatureProtectedRoute featureKey="reports"><Reports /></FeatureProtectedRoute>} />
-                <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
-                <Route path="credit-cards" element={<FeatureProtectedRoute featureKey="credit_cards"><CreditCards /></FeatureProtectedRoute>} />
-                <Route path="investments" element={<FeatureProtectedRoute featureKey="investments"><Investments /></FeatureProtectedRoute>} />
-                <Route 
-                  path="settings" 
-                  element={
-                    <Settings 
-                      extraTabs={[
-                        {
-                          value: "data",
-                          trigger: (
-                            <>
-                              <Database className="h-4 w-4 shrink-0" />
-                              <span>Dados</span>
-                            </>
-                          ),
-                          content: <FinanceDataTab />
-                        },
-                        {
-                          value: "templates",
-                          trigger: (
-                            <>
-                              <LayoutGrid className="h-4 w-4 shrink-0" />
-                              <span>Modelos</span>
-                            </>
-                          ),
-                          content: <FinanceTemplatesTab />
-                        }
-                      ]} 
-                    />
-                  } 
-                />
-                <Route path="account/:id" element={<AccountDetails />} />
-                <Route path="debtor/:id" element={<DebtorProfile />} />
-                <Route path="bill/:cardId/:billId" element={<BillDetails />} />
-                <Route path="help" element={<HelpCenter isPublic={false} />} />
-              </Route>
+                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                  <Route path="dashboard" element={<FeatureProtectedRoute featureKey="dashboard"><Dashboard /></FeatureProtectedRoute>} />
+                  <Route path="accounts" element={<FeatureProtectedRoute featureKey="accounts"><Accounts /></FeatureProtectedRoute>} />
+                  <Route path="transactions" element={<FeatureProtectedRoute featureKey="transactions"><Transactions /></FeatureProtectedRoute>} />
+                  <Route path="inbox" element={<Inbox />} />
+                  <Route path="budget" element={<FeatureProtectedRoute featureKey="budget"><Budget /></FeatureProtectedRoute>} />
+                  <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />
+                  <Route path="debts" element={<FeatureProtectedRoute featureKey="debts"><Debts /></FeatureProtectedRoute>} />
+                  <Route path="reports" element={<FeatureProtectedRoute featureKey="reports"><Reports /></FeatureProtectedRoute>} />
+                  <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
+                  <Route path="credit-cards" element={<FeatureProtectedRoute featureKey="credit_cards"><CreditCards /></FeatureProtectedRoute>} />
+                  <Route path="investments" element={<FeatureProtectedRoute featureKey="investments"><Investments /></FeatureProtectedRoute>} />
+                  <Route 
+                    path="settings" 
+                    element={
+                      <Settings 
+                        extraTabs={[
+                          {
+                            value: "data",
+                            trigger: (
+                              <>
+                                <Database className="h-4 w-4 shrink-0" />
+                                <span>Dados</span>
+                              </>
+                            ),
+                            content: <FinanceDataTab />
+                          },
+                          {
+                            value: "templates",
+                            trigger: (
+                              <>
+                                <LayoutGrid className="h-4 w-4 shrink-0" />
+                                <span>Modelos</span>
+                              </>
+                            ),
+                            content: <FinanceTemplatesTab />
+                          }
+                        ]} 
+                      />
+                    } 
+                  />
+                  <Route path="account/:id" element={<AccountDetails />} />
+                  <Route path="debtor/:id" element={<DebtorProfile />} />
+                  <Route path="bill/:cardId/:billId" element={<BillDetails />} />
+                  <Route path="help" element={<HelpCenter isPublic={false} />} />
+                </Route>
 
-              <Route path="*" element={<NotFound />} />
-              </Routes>
-            </ErrorBoundary>
-          </BrowserRouter>
-        </TooltipProvider>
+                <Route path="*" element={<NotFound />} />
+                </Routes>
+              </ErrorBoundary>
+            </BrowserRouter>
+          </TooltipProvider>
+        </SecurityLockProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

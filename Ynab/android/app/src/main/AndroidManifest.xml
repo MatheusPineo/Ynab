@@ -8,6 +8,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        <!-- Adiciona isto dentro da tag <application> -->
+        <service 
+            android:name=".FinanceNotificationListener"
+            android:label="Vault Finance Automations"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <meta-data android:name="co.fitcom.fancyoauth.webClientId" android:value="@string/server_client_id"/>
 
@@ -40,4 +50,5 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

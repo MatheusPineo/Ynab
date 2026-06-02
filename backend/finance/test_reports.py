@@ -129,16 +129,15 @@ def test_credit_card_usage_empty(api_client, test_user):
 def test_credit_card_usage_math(api_client, test_user):
     api_client.force_authenticate(user=test_user)
     card_acc = Account.objects.create(user=test_user, name="Visa", account_type="credit_card", balance=0)
-        exp_acc, _ = Account.objects.get_or_create(user=test_user, name="Expense", account_type="expense", balance=0)
     exp_acc, _ = Account.objects.get_or_create(user=test_user, name="Expense", account_type="expense", balance=0)
     config = CreditCard.objects.create(account=card_acc, credit_limit=1000, closing_day=1, due_day=10)
 
     CreditCardTransaction.objects.create(
-        credit_card=config, description="Compra 1", date=date(2026, 5, 5, expense_account=exp_acc), expense_account=exp_acc,
+        credit_card=config, description="Compra 1", date=date(2026, 5, 5), expense_account=exp_acc,
         total_amount=Decimal('45.00'), original_amount=Decimal('45.00'), installment_count=1, original_currency='BRL'
     )
     CreditCardTransaction.objects.create(
-        credit_card=config, description="Compra 2", date=date(2026, 5, 10, expense_account=exp_acc), expense_account=exp_acc,
+        credit_card=config, description="Compra 2", date=date(2026, 5, 10), expense_account=exp_acc,
         total_amount=Decimal('55.00'), original_amount=Decimal('55.00'), installment_count=1, original_currency='BRL'
     )
     

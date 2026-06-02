@@ -9,6 +9,9 @@ from .views import (
     ReportsViewSet, DebtorViewSet, DebtItemViewSet, NotificationInboxView
 )
 
+# Novas importações para os Dispositivos Confiáveis
+from .views_devices import DeviceRegisterView, DeviceListView, DeviceRevokeView
+
 router = DefaultRouter()
 router.register(r'reports', ReportsViewSet, basename='reports')
 router.register(r'accounts', AccountViewSet, basename='account')
@@ -36,5 +39,13 @@ urlpatterns = [
     path('inbox/upload/', InboxUploadView.as_view(), name='inbox-bulk-upload'),
     path('inbox/notification/', NotificationInboxView.as_view(), name='inbox-notification'),
     path('wealth/summary/', WealthSummaryView.as_view(), name='wealth-summary'),
+    
+    # --------------------------------------------------------
+    # Rotas de Gestão de Dispositivos Confiáveis (Mobile Auth)
+    # --------------------------------------------------------
+    path('devices/register/', DeviceRegisterView.as_view(), name='device-register'),
+    path('devices/', DeviceListView.as_view(), name='device-list'),
+    path('devices/<int:pk>/revoke/', DeviceRevokeView.as_view(), name='device-revoke'),
+    
     path('', include(router.urls)),
 ]

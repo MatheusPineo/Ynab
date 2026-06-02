@@ -1,3 +1,5 @@
+import hashlib
+import secrets
 from django.db import models, transaction
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
@@ -846,5 +848,38 @@ class LearnedTransactionRule(models.Model):
         type_str = "Receita" if self.is_income else "Despesa"
         return f"Regra Aprendida ({self.user.username}): {self.keyword} -> {self.assigned_account.name} ({type_str})"
 
+class TrustedDevice(models.Model):
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name="trusted_devices"
+    )
+    device_name = models.CharField(max_length=255)
+    token_key = models.CharField(
+        max_length=8, 
+        unique=True, 
+        db_index=True,
+        help_text="Prefixo público do token para lookup rápido"
+    )
+    token_hash = models.CharField(
+        max_length=64, 
+        unique=True,
+        help_text="Hash SHA-256 do token gerado"
+    )
+    is_active = models.BooleanField(default=True)
+    last_used = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.device_name} ({self.user.username})"
+
+    @staticmethod
+    def generate_token():
+        # Gera um token seguro de 40 caracteres (20 bytes em hexadecimal)
+        return secrets.token_hex(20)
+
+    @staticmethod
+    def hash_token(token):
+        return hashlib.sha256(token.encode('utf-8')).hexdigest()
 
 

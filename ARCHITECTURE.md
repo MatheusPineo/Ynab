@@ -116,6 +116,14 @@ Para garantir uma experiência de uso fluida e limpa nos aplicativos nativos:
 * **Redirecionamento Inteligente da Rota Raiz:** A rota `/` no React Router (`App.tsx`) avalia se o app está rodando de forma nativa (`Capacitor.isNativePlatform()`). Se verdadeiro, ela redireciona o fluxo diretamente para `/dashboard` (e este para `/auth` caso o usuário não possua token ativo), impedindo que a Landing Page institucional ou de marketing do site web apareça no fluxo móvel.
 * **Segurança do Topbar contra Sobreposição (Safe Area):** O cabeçalho principal (`Topbar.tsx`) recebe classes de estilização condicionais em ambiente nativo. É adicionado um padding superior de 32px (`pt-8`) e a altura total é expandida para 88px (`h-22`), criando um espaçamento de segurança para os ícones e logotipos em relação à barra de status (relógio, bateria e conexão do celular) do Android/iOS.
 
+### Bloqueio de Segurança Híbrido Automático (PIN + Biometria - v1.43.00)
+Para proteger dados confidenciais financeiros de visualizações indesejadas, implementamos um sistema de bloqueio de segurança automatizado e reativo:
+* **Detecção de Estado do App (Lifecycle Listening):** O `SecurityLockProvider` escuta ativamente o evento `appStateChange` do Capacitor. Quando `isActive` se torna falso (aplicativo minimizado ou enviado para segundo plano), o estado `isLocked` é imediatamente setado como `true` no cliente e o timestamp é gravado no armazenamento local (`localStorage`).
+* **Proteção de Camada Glassmorphic:** Um wrapper reativo monitora `isLocked`. Se ativo, a tela de bloqueio `SecurityLockScreen` com efeito de desfoque fosco denso (`backdrop-blur-2xl bg-background/60`) é renderizada com prioridade absoluta de índice z (`z-[99999]`), obstruindo toda a árvore de renderização e ocultando tabelas, saldos e gráficos.
+* **Autenticação Dupla (Biometria & PIN Passcode):** 
+  - *Fluxo Nativo:* Ao abrir, o plugin `@aparajita/capacitor-biometric-auth` invoca o diálogo nativo do sistema operacional pedindo impressão digital ou reconhecimento facial. Em caso de cancelamento, um botão manual permite redisparar o sensor.
+  - *Teclado Numérico Passcode:* O teclado numérico minimalista processa inputs de PIN de 4 a 6 dígitos (PIN inicial de fábrica: `1234`), efetuando o desbloqueio atômico se bater com o código armazenado.
+
 ---
 
 ## 4. Ciclo de Vida da Transação e Ajuste de Balanço (Pendente vs. Realizada)

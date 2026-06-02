@@ -1,3 +1,24 @@
+## [1.43.00] - 2026-06-02
+
+### Added
+- Sistema de Bloqueio de Segurança Seguro (Capacitor/React):
+  - Criado `SecurityLockProvider` para escutar alterações de estado do aplicativo móvel (`appStateChange`) usando `@capacitor/app`.
+  - Implementado bloqueio global automático (`isLocked = true` com registro de timestamp) sempre que o aplicativo vai para o segundo plano.
+  - Desenvolvida tela de bloqueio glassmorphic `SecurityLockScreen` com desfoque de fundo de alta fidelidade para ocultar dados confidenciais financeiros.
+  - Integrado teclado numérico PIN minimalista de 4 a 6 dígitos com suporte a PIN padrão de fábrica (`1234`).
+  - Acionamento automático do sensor de biometria nativo usando `@aparajita/capacitor-biometric-auth` ao exibir a tela de segurança, incluindo um botão de fallback para disparo manual em caso de falha.
+  - Integração da lógica global no arquivo `App.tsx` para cobertura universal e proteção total da interface.
+- Feedback de Notificações Push Locais Nativas (Android):
+  - Atualizado o serviço nativo `FinanceNotificationListener.kt` para disparar uma notificação push local instantânea na tela do usuário ao sincronizar com sucesso uma transação em segundo plano.
+  - Registro de um canal de notificações dedicado (`NotificationChannel`) de alta prioridade ("Vault Finance OS") para total conformidade com o Android 8.0+.
+  - Exibição de banner heads-up com título "Vault Finance OS" e texto "Transação salva no sistema" após confirmação de envio bem-sucedido (resposta HTTP 200/201).
+
+### Fixed
+- Registro de Dispositivos Confiáveis (Frontend/Backend):
+  - Refatorada a chamada de registro de dispositivo em `InboxMobileSyncActivation.tsx` e `DeviceTrustModal.tsx` para capturar erros detalhados de rede/validação retornados pela API do Django REST Framework e exibição clara no toast, eliminando falhas silenciosas.
+  - Corrigida a declaração do campo `token_key` no modelo `TrustedDevice` de `finance/models.py` de `help_index` para `help_text` (resolvendo o TypeError no carregamento do Django).
+  - Corrigidas identações e parâmetros inválidos de testes no arquivo `finance/test_reports.py`.
+
 ## [1.42.00] - 2026-06-02
 
 ### Added

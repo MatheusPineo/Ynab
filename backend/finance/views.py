@@ -6,6 +6,7 @@ import calendar
 import io
 import csv
 import traceback
+from .authentication import DeviceTokenAuthentication
 from datetime import datetime, date, timedelta
 from decimal import Decimal, ROUND_DOWN
 
@@ -1805,6 +1806,7 @@ class CreditCardViewSet(viewsets.ModelViewSet):
             traceback.print_exc()
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class NotificationInboxView(APIView):
     """
     Endpoint DRF para processar notificações e SMS de transações financeiras.
@@ -1812,6 +1814,8 @@ class NotificationInboxView(APIView):
     Se encontrar, faz bypass do Gemini e cria o item como pronto ('ready').
     Caso contrário, envia para a fila assíncrona do Gemini Flash.
     """
+   
+    authentication_classes = [DeviceTokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
@@ -1832,6 +1836,7 @@ class NotificationInboxView(APIView):
         matched_rule = None
         rules = LearnedTransactionRule.objects.filter(user=request.user)
         text_lower = text.lower()
+        
         
         for rule in rules:
             if rule.keyword.lower() in text_lower:

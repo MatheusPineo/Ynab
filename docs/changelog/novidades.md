@@ -1,5 +1,24 @@
 # Novidades e Atualizações
 
+## Notificações Push Locais Nativas de Transações (02/06/2026) 🔔📱
+Introduzimos feedback visual e instantâneo ao capturar transações financeiras em segundo plano no Android:
+* **Feedback de Sincronização em Tempo Real:** Sempre que o aplicativo interceptar uma transação financeira em segundo plano (como uma compra via Pix ou cartão) e transmiti-la com sucesso para o backend (HTTP 200/201), uma notificação push nativa local é disparada imediatamente na tela do dispositivo.
+* **Canal Dedicado de Alta Importância:** Registramos um canal de notificações exclusivo no Android (`NotificationChannel`) com prioridade alta, garantindo a exibição do banner suspenso (*heads-up notification*) no topo da tela do usuário.
+* **Mensagem Confirmatória:** A notificação exibe o título **"Vault Finance OS"** e a mensagem **"Transação salva no sistema"**, confirmando instantaneamente que o ciclo automatizado de captura de transações em background funcionou perfeitamente.
+
+## Estabilidade no Registro de Dispositivos Móveis (02/06/2026) 🔒🛠️
+Melhoramos a robustez e o feedback durante o registro de novos aparelhos:
+* **Tratamento Fino de Erros de Rede/Validação:** Refatoramos a comunicação com a API de dispositivos (`/api/devices/register/`) tanto na tela de configuração (`InboxMobileSyncActivation.tsx`) quanto no modal de autorização de novos aparelhos (`DeviceTrustModal.tsx`). Agora, qualquer detalhe de erro ou validação do Django (como chaves duplicadas ou problemas de sessão) é capturado, logado no console e amigavelmente exibido na notificação visual Toast, eliminando falhas silenciosas.
+
+
+## Bloqueio de Segurança Seguro: PIN + Biometria (02/06/2026) 🔒📱
+Adicionamos um sistema de segurança de nível bancário ao Vault Finance OS para proteger suas informações financeiras e dados sensíveis:
+* **Bloqueio Automático em Segundo Plano:** O aplicativo monitora o ciclo de vida do sistema operacional móvel. Sempre que você colocar o aplicativo em segundo plano ou mudar de tela, o aplicativo será imediatamente bloqueado e exigirá autenticação para liberar os dados.
+* **Tela de Proteção Glassmorphic:** Ao reabrir o app, uma bela tela com efeito de vidro fosco obstrui completamente a visualização, impedindo o vazamento de saldos no gerenciador de tarefas do aparelho.
+* **Autenticação Biométrica Nativa:** O leitor de impressão digital ou reconhecimento facial do seu celular é disparado automaticamente ao carregar a tela.
+* **Teclado PIN Seguro:** Teclado numérico minimalista e responsivo que permite desbloqueio por códigos de 4 a 6 dígitos (PIN padrão de fábrica: `1234`).
+* **Botão de Fallback Biométrico:** Um botão acessível para redisparar o sensor biométrico caso ocorra falha ou cancelamento acidental.
+
 ## Inteligência de Regras e Associação de Comprovantes (02/06/2026) 🤖🧠
 Expandimos a inteligência por trás do **Inbox IA** para tornar a homologação de comprovantes ainda mais rápida e autônoma:
 * **Aprendizado Contínuo de Estabelecimentos:** O Vault Finance OS agora aprende com base nas suas validações passadas. Ao homologar um comprovante, o sistema associa palavras-chave do estabelecimento (ex: "ALDI", "UBER") à conta e categoria financeira que você escolheu.
