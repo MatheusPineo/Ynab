@@ -133,11 +133,11 @@ def test_credit_card_usage_math(api_client, test_user):
     config = CreditCard.objects.create(account=card_acc, credit_limit=1000, closing_day=1, due_day=10)
 
     CreditCardTransaction.objects.create(
-        credit_card=config, description="Compra 1", date=date(2026, 5, 5), expense_account=exp_acc,
+        credit_card=config, description="Compra 1", date=date(2026, 5, 5, expense_account=exp_acc), expense_account=exp_acc,
         total_amount=Decimal('45.00'), original_amount=Decimal('45.00'), installment_count=1, original_currency='BRL'
     )
     CreditCardTransaction.objects.create(
-        credit_card=config, description="Compra 2", date=date(2026, 5, 10), expense_account=exp_acc,
+        credit_card=config, description="Compra 2", date=date(2026, 5, 10, expense_account=exp_acc), expense_account=exp_acc,
         total_amount=Decimal('55.00'), original_amount=Decimal('55.00'), installment_count=1, original_currency='BRL'
     )
     

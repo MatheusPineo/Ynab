@@ -1,3 +1,10 @@
+## [1.43.01] - 2026-06-02
+
+### Fixed
+- Unicidade de Nomes de Dispositivos Confiáveis:
+  - Removida a validação de unicidade de `device_name` no serializer de registro no backend Django (`views_devices.py`). O sistema agora permite múltiplos registros com o mesmo nome de exibição para o mesmo usuário, evitando falhas ao registrar múltiplos aparelhos com nomes genéricos ou dinâmicos iguais.
+  - Atualizada a suíte de testes de backend (`test_devices.py`) de `test_duplicate_device_name_returns_400` para `test_duplicate_device_name_succeeds` para garantir que o registro duplicado de nome é permitido e cria múltiplos registros com chaves exclusivas.
+
 ## [1.43.00] - 2026-06-02
 
 ### Added

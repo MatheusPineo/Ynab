@@ -45,4 +45,4 @@ Para que o aplicativo móvel capte e envie transações do seu celular ao sistem
 ### Como autorizar o telemóvel:
 1. **Prompt de Confiança:** Ao fazer login pela primeira vez no app móvel nativo, um modal perguntará: **"Confiar neste aparelho?"**.
 2. **Autorização Automática:** Ao clicar em **"Sim"**, o aplicativo solicita um token criptográfico único ao backend Django e o armazena nas preferências seguras do Android.
-3. **Resolução de Problemas:** Se o registro falhar e apresentar a mensagem `"Erro ao registrar dispositivo"`, o sistema registrará os detalhes técnicos no console do desenvolvedor (`console.error`). Verifique se a sua conexão está ativa e se a sua sessão do usuário não expirou (tente fazer logout e login novamente para atualizar o token de autorização).
+3. **Resolução de Problemas:** Se o registro falhar, o sistema registrará os detalhes técnicos no console do desenvolvedor. A partir da versão v1.43.01, múltiplos dispositivos podem compartilhar o mesmo nome de exibição (resolvendo o erro `"A device with this name is already registered."`), pois a unicidade é garantida individualmente por tokens criptográficos exclusivos gerados na autorização.

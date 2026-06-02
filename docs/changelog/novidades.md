@@ -1,5 +1,9 @@
 # Novidades e Atualizações
 
+## Flexibilidade no Registro de Dispositivos (02/06/2026) 🔒📱
+Corrigimos um problema de validação que impedia o registro de novos aparelhos caso eles tivessem o mesmo nome de exibição:
+* **Múltiplos Dispositivos com o Mesmo Nome:** Removida a restrição de unicidade rígida para o nome do dispositivo. Agora você pode registrar múltiplos celulares ou tablets que tenham o mesmo nome dinâmico ou genérico (por exemplo, no mesmo dia ou com o mesmo fallback), desde que a identificação interna exclusiva (chave/token do dispositivo) seja diferente. Isso resolve o erro "A device with this name is already registered."
+
 ## Notificações Push Locais Nativas de Transações (02/06/2026) 🔔📱
 Introduzimos feedback visual e instantâneo ao capturar transações financeiras em segundo plano no Android:
 * **Feedback de Sincronização em Tempo Real:** Sempre que o aplicativo interceptar uma transação financeira em segundo plano (como uma compra via Pix ou cartão) e transmiti-la com sucesso para o backend (HTTP 200/201), uma notificação push nativa local é disparada imediatamente na tela do dispositivo.

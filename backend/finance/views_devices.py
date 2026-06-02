@@ -24,11 +24,6 @@ class DeviceRegisterSerializer(serializers.Serializer):
         if not name:
             raise serializers.ValidationError("O campo 'device_name' ou 'name' é obrigatório.")
             
-        request = self.context.get('request')
-        if request and request.user:
-            if TrustedDevice.objects.filter(user=request.user, device_name=name, is_active=True).exists():
-                raise serializers.ValidationError("A device with this name is already registered.")
-                
         return data
 
 class DeviceRegisterView(APIView):

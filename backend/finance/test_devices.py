@@ -50,8 +50,8 @@ class DeviceRegisterTests(TestCase):
         self.assertIn('detail', response.data)
         self.assertEqual(response.data['detail'], 'Invalid device key format.')
 
-    def test_duplicate_device_name_returns_400(self) -> None:
-        """Verifica que registrar um dispositivo com o mesmo nome retorna 400."""
+    def test_duplicate_device_name_succeeds(self) -> None:
+        """Verifica que registrar um dispositivo com o mesmo nome mas chaves diferentes é permitido e retorna 201."""
         self.client.force_authenticate(user=self.user)
         device_key_1 = str(uuid.uuid4())
         device_key_2 = str(uuid.uuid4())
@@ -70,5 +70,5 @@ class DeviceRegisterTests(TestCase):
             {'device_name': 'Telemóvel Android - Duplicado', 'device_key': device_key_2},
             format='json'
         )
-        self.assertEqual(response_2.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response_2.data['detail'], 'A device with this name is already registered.')
+        self.assertEqual(response_2.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(TrustedDevice.objects.filter(user=self.user, device_name='Telemóvel Android - Duplicado').count(), 2)
