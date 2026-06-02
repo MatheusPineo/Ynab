@@ -41,6 +41,9 @@ export interface AssetHolding {
   net_value?: number;
   total_profit_loss?: number;
   percentage_yield?: number;
+  indexer?: string;
+  rate_type?: string;
+  interest_rate?: number;
 }
 
 export interface WealthSummary {
@@ -62,6 +65,7 @@ interface WealthStore {
   createActivity: (data: Partial<InvestmentActivity>) => Promise<void>;
   updateActivity: (id: number, data: Partial<InvestmentActivity>) => Promise<void>;
   deleteActivity: (id: number) => Promise<void>;
+  deleteAsset: (id: number) => Promise<void>;
 }
 
 export const useWealthStore = create<WealthStore>((set) => ({
@@ -196,6 +200,28 @@ export const useWealthStore = create<WealthStore>((set) => ({
         useWealthStore.getState().fetchSummary();
       } else {
         throw new Error("Erro ao deletar atividade");
+      }
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
+
+  deleteAsset: async (id: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authenticatedFetch(`/wealth/assets/${id}/`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        set((state) => ({
+          assets: state.assets.filter(a => a.id !== id),
+          isLoading: false
+        }));
+        useWealthStore.getState().fetchSummary();
+        useWealthStore.getState().fetchActivities();
+      } else {
+        throw new Error("Erro ao deletar ativo");
       }
     } catch (err: any) {
       set({ error: err.message, isLoading: false });

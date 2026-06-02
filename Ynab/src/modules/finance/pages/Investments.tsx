@@ -4,13 +4,13 @@ import { useWealthStore } from "../store/useWealthStore";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Badge } from "@/shared/components/ui/badge";
-import { TrendingUp, TrendingDown, Landmark, Briefcase, Plus } from "lucide-react";
+import { TrendingUp, TrendingDown, Landmark, Briefcase, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { AddInvestmentActivityModal } from "../components/AddInvestmentActivityModal";
 import { InvestmentLedger } from "../components/InvestmentLedger";
 
 export default function Investments() {
-  const { summary, activities, fetchSummary, fetchActivities, isLoading } = useWealthStore();
+  const { summary, activities, fetchSummary, fetchActivities, deleteAsset, isLoading } = useWealthStore();
   
   useEffect(() => {
     fetchSummary();
@@ -110,15 +110,35 @@ export default function Investments() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {fixedIncomeHoldings.map((asset) => (
-                  <Card key={asset.asset_id} className="cursor-pointer hover:border-primary/50 transition-colors">
+                  <Card key={asset.asset_id} className="relative hover:border-primary/50 transition-colors group">
                     <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start pr-6">
                         <div>
                           <CardTitle className="text-base">{asset.ticker}</CardTitle>
                           <CardDescription className="text-xs truncate max-w-[150px]">{asset.name}</CardDescription>
                         </div>
-                        <Badge variant="outline" className="text-[10px]">100% CDI</Badge>
+                        {asset.rate_type === 'PREFIXED' || asset.indexer === 'PRE' ? (
+                          <Badge variant="outline" className="text-[10px]">
+                            {asset.interest_rate}% a.a.
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">
+                            {asset.interest_rate}% {asset.indexer || 'CDI'}
+                          </Badge>
+                        )}
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm("Deseja excluir este investimento?")) {
+                            deleteAsset(asset.asset_id);
+                          }
+                        }}
+                        className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                        title="Excluir Investimento"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{formatMoney(getNetValue(asset), asset.currency)}</div>
@@ -145,15 +165,27 @@ export default function Investments() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {stockHoldings.map((asset) => (
-                  <Card key={asset.asset_id} className="cursor-pointer hover:border-primary/50 transition-colors">
+                  <Card key={asset.asset_id} className="relative hover:border-primary/50 transition-colors group">
                     <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start pr-6">
                         <div>
                           <CardTitle className="text-base">{asset.ticker}</CardTitle>
                           <CardDescription className="text-xs truncate max-w-[150px]">{asset.name}</CardDescription>
                         </div>
                         <span className="text-xs font-mono">{asset.quantity} cotas</span>
                       </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm("Deseja excluir este investimento?")) {
+                            deleteAsset(asset.asset_id);
+                          }
+                        }}
+                        className="absolute top-4 right-4 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                        title="Excluir Investimento"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </CardHeader>
                     <CardContent>
                       <div className="flex items-end justify-between">
