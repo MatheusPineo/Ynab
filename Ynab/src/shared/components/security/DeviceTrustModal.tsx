@@ -44,6 +44,8 @@ export const DeviceTrustModal: React.FC = () => {
 
     setIsLoading(true);
     try {
+      const isWeb = Capacitor.getPlatform() === 'web';
+      
       const currentDateTime = new Date().toLocaleString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
@@ -51,10 +53,29 @@ export const DeviceTrustModal: React.FC = () => {
         hour: "2-digit",
         minute: "2-digit"
       }).replace(",", "");
-      const genericName = `Telemóvel Android - ${currentDateTime}`;
+
+      // Coleta o nome personalizado / amigável
+      let deviceName = `Web Session - ${currentDateTime}`;
+      if (!isWeb) {
+        deviceName = `Dispositivo Móvel - ${currentDateTime}`;
+      }
+
+      // Tenta detectar mais detalhes do browser ou dispositivo no Web
+      const userAgent = navigator.userAgent || "";
+      if (isWeb) {
+        if (userAgent.includes("Windows")) {
+          deviceName = `Windows PC - ${currentDateTime}`;
+        } else if (userAgent.includes("Macintosh")) {
+          deviceName = `Mac - ${currentDateTime}`;
+        } else if (userAgent.includes("Linux")) {
+          deviceName = `Linux PC - ${currentDateTime}`;
+        }
+      }
+
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
 
-      // Gera um UUID de teste aleatório para o device_key
+      // Gera um UUID para o device_key
       const randomUuid = crypto.randomUUID ? crypto.randomUUID() : "generated-" + Math.random().toString(36).substring(2, 15);
 
       const response = await fetch(`${baseUrl}/devices/register/`, {
@@ -64,8 +85,10 @@ export const DeviceTrustModal: React.FC = () => {
           "Authorization": `Bearer ${accessToken}`
         },
         body: JSON.stringify({ 
-          device_name: genericName,
-          device_key: randomUuid
+          device_name: deviceName,
+          device_key: randomUuid,
+          raw_user_agent: userAgent,
+          timezone: timezone
         })
       });
 
@@ -96,8 +119,14 @@ export const DeviceTrustModal: React.FC = () => {
 
       const data = await response.json();
 
-      // Salva no SharedPreferences do Android e no localStorage
-      await DeviceAuth.storeDeviceKey({ token: data.token });
+      // Salva no armazenamento adequado com base na plataforma (Plugin nativo ou localStorage)
+      if (!isWeb) {
+        try {
+          await DeviceAuth.storeDeviceKey({ token: data.token });
+        } catch (pluginErr) {
+          console.warn("Falha ao salvar no plugin DeviceAuth nativo, usando localStorage como fallback:", pluginErr);
+        }
+      }
       localStorage.setItem("DEVICE_KEY", data.token);
 
       toast.success("Este dispositivo agora é confiável e sincronizará notificações!");

@@ -5,8 +5,8 @@ from .views import (
     MonthlyBudgetViewSet, IconUploadView, DistributionTemplateViewSet, 
     DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
-    InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, DemoModeView,
-    ReportsViewSet, DebtorViewSet, DebtItemViewSet, NotificationInboxView
+    InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, WealthBatchUpdateView, DemoModeView,
+    ReportsViewSet, DebtorViewSet, DebtItemViewSet, NotificationInboxView, SplitRuleViewSet
 )
 
 # Novas importações para os Dispositivos Confiáveis
@@ -31,6 +31,7 @@ router.register(r'wealth/assets', InvestmentAssetViewSet, basename='wealth-asset
 router.register(r'wealth/activities', InvestmentActivityViewSet, basename='wealth-activity')
 router.register(r'debtors', DebtorViewSet, basename='debtor')
 router.register(r'debt-items', DebtItemViewSet, basename='debt-item')
+router.register(r'split-rules', SplitRuleViewSet, basename='split-rule')
 
 urlpatterns = [
     path('icons/upload/', IconUploadView.as_view(), name='account-upload-icon'),
@@ -39,6 +40,7 @@ urlpatterns = [
     path('inbox/upload/', InboxUploadView.as_view(), name='inbox-bulk-upload'),
     path('inbox/notification/', NotificationInboxView.as_view(), name='inbox-notification'),
     path('wealth/summary/', WealthSummaryView.as_view(), name='wealth-summary'),
+    path('wealth/batch-update/', WealthBatchUpdateView.as_view(), name='wealth-batch-update'),
     
     # --------------------------------------------------------
     # Rotas de Gestão de Dispositivos Confiáveis (Mobile Auth)

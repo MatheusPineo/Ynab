@@ -338,21 +338,28 @@ Isso garante que o usuário tenha um histórico de evolução patrimonial perfei
 
 ---
 
-## 9. Módulo de Custódia e Evolução de Portfólio (Wealth & Investments)
+## 9. Módulo de Custódia e Evolução de Portfólio (Wealth & Investments - Smart Ledger)
 
-Para atender carteiras de investimento avançadas com ativos híbridos (Renda Fixa Brasileira e Mercado de Capitais), o sistema dispõe de motores matemáticos desacoplados da arquitetura transacional comum.
+Para simplificar a gestão patrimonial e dar total controle ao usuário, o Vault Finance OS adota o modelo de **Smart Ledger** para investimentos, descontinuando o motor matemático complexo de cálculo de rentabilidades teóricas e curvas diárias de CDI.
 
 ### 9.1 Engenharia de Falha Tolerante (MarketDataService)
-A coleta de dados diários (`DailyAssetPrice`) implementa um fluxo ativo de _Multi-Tier Failover_ (Tolerância a Falhas em Múltiplas Camadas):
+A coleta de dados diários (`DailyAssetPrice`) implementa um fluxo ativo de _Multi-Tier Failover_ (Tolerância a Falhas em Múltiplas Camadas) para obter cotações de Renda Variável caso necessário:
 1. **Master (Alpha Vantage):** Tentativa primária de coleta.
 2. **Fallback Internacional (Twelve Data):** Ativado imediatamente se o Alpha Vantage apresentar timeout ou cota atingida.
 3. **Fallback B3 (HG Brasil Finance):** Alternativa específica para mercado nacional.
 4. **Resiliência Máxima (Cache Local):** Se todos os nós falharem, o sistema absorve o erro e retorna o último preço conhecido salvo no banco de dados (`DailyAssetPrice`).
 
-### 9.2 Motor de Composição de Portfólio (PortfolioEvolutionEngine)
-Desacoplado do ledger YNAB, este motor calcula dinamicamente a rentabilidade do patrimônio:
-* **Renda Fixa Brasileira (CDI 252 Dias Úteis):** Lê o `principal_amount` e o percentual de mercado (`cdi_percentage`). Em seguida, varre a tabela `DailyCDIRate` multiplicando e capitalizando o montante dia a dia através do fator de base 252 (excluindo feriados nacionais com o motor de Páscoa e Carnaval).
-* **Renda Variável e Estoque:** Lê sequencialmente o ledger de `InvestmentActivity` (Compras, Vendas, Desdobramentos). Recalcula progressivamente o **Preço Médio (Weighted Average Cost)** ponderado após cada evento, abatendo saídas proporcionais. Por fim, cruza a cota com a cotação ativa do `MarketDataService` para apontar o Yield dinâmico atual.
+### 9.2 Motor de Cálculo Simplificado (Smart Ledger)
+O patrimônio de investimentos é computado de forma direta a partir do livro de lançamentos reais (`InvestmentActivity`):
+* **Fórmula do Valor Bruto (Gross Value):** O valor atual acumulado de qualquer ativo é estritamente determinado por:
+  $$\text{Valor Bruto} = \sum \text{Compra} - \sum \text{Venda} + \sum \text{Rendimento (YIELD)}$$
+  Não há mais ramificações complexas, dias úteis ou cálculo de juros compostos CDI teóricos.
+* **Rendimento e Ajustes Manuais (`YIELD`):** Lançamentos de rendimentos manuais são introduzidos via endpoint em lote ou criação manual, atualizando diretamente o valor financeiro do ativo sem alterar a quantidade de cotas.
+* **Preço Médio e Lucro/Prejuízo:** O preço médio ponderado é recalculado após cada transação de Compra e Venda, e o lucro ou prejuízo é a diferença simples entre o valor bruto atualizado e a base de custo total (`total_cost_basis`).
+* **Simplificação de Impostos:** Os impostos teóricos regressivos (IR e IOF) foram totalmente zerados e descontinuados, delegando a declaração líquida ao controle de balanço do próprio usuário.
+
+### 9.3 Endpoint de Atualização em Lote (Batch Update)
+O endpoint `POST /api/wealth/batch-update/` aceita uma lista de novos saldos declarados para os ativos. Para cada ativo enviado, o sistema calcula a diferença contra o saldo atual do banco de dados e cria automaticamente uma atividade do tipo `YIELD` com a diferença, reconciliando o saldo de forma atômica e transparente.
 
 ---
 
@@ -1110,7 +1117,18 @@ Para evitar reestruturações complexas no layout do frontend SPA React que pude
 
 ##### 4. Automação de Metas, Distribuição Inteligente e Rebalanceamento (v1.40.00)
 Para expandir as capacidades contábeis e de automação, introduzimos regras de planejamento avançado:
-- **Metas de Categoria (`Category`):** Adição dos campos `target_value` (Decimal), `target_type` (FIXED ou PERCENTAGE) e `ceiling_value` (Decimal) para modelagem de metas e limites de acúmulo por envelope.
+- **Metas de Categoria (`Category`):** Adição dos campos `target_value` (Decimal), `target_type` (agora suportando `NEEDED_FOR_SPENDING`, `SAVINGS_BUILDER`, `FIXED` ou `PERCENTAGE` - v1.44.05) e `ceiling_value` (Decimal) para modelagem de metas e limites de acúmulo por envelope.
+- **Distribuição Automatizada Auto-Assign (`autoAssignFunds` - v1.44.05):**
+  - Implementado no frontend (`useAccountStore.ts`) para processamento inteligente em lote das metas orçamentárias.
+  - **Algoritmo de Priorização:** Ordena as categorias priorizando metas de necessidade de gastos obrigatórios (`NEEDED_FOR_SPENDING`) antes de metas acumuladoras de poupança (`SAVINGS_BUILDER`).
+  - **Diferenciação de Comportamento:**
+    - `NEEDED_FOR_SPENDING`: Aloca a diferença incremental `target_value - available_amount` (aloca 0 se o saldo atual for maior ou igual à meta).
+    - `SAVINGS_BUILDER`: Aloca o valor integral `target_value` de forma cumulativa, independente do saldo atual disponível.
+  - **Segurança de Limite:** Consome e decrementa o saldo `Ready to Assign` local a cada iteração, interrompendo a distribuição no momento em que o RTA chega a zero para impedir estouros e saldos negativos acidentais.
+- **Painel Analítico Regra 50/30/20 (v1.44.06):**
+  - **Modelagem Relacional:** Inclusão do campo `macro_rule` ( choices `NEEDS`, `WANTS`, `SAVINGS`, `NONE` ) na entidade `Category`.
+  - **Perfil de Usuário:** Inclusão de `needs_target_pct`, `wants_target_pct`, e `savings_target_pct` na entidade `UserProfile` permitindo a customização das metas macro.
+  - **Zustand Selector:** A função `selectMacroDistribution` filtra a árvore de categorias pelos nós de primeiro nível (grupos), acumula recursivamente as verbas designadas (`assigned_amount`) dos sub-envelopes filhos correspondentes a cada macro regra, e calcula as porcentagens dividindo o total alocado pela renda bruta acumulada no mês.
 - **Serviço de Alocação (`BudgetAutomationService`):**
   - `smart_allocate(user, amount, mode)`: Executado de forma atômica (`transaction.atomic`).
   - Modo `RECURRING_TARGETS`: Varre os envelopes, calcula a necessidade de provisão (fixa ou percentual sobre a receita total) e cria/atualiza os registros de `MonthlyBudget`.
@@ -1144,8 +1162,19 @@ Para gerenciar despesas compartilhadas (roommates) e amortizar recebimentos de f
 
 
 
-## Taxonomia Global de Investimentos (Atualizado 23/05/2026)
-Os modelos InvestmentAsset e InvestmentActivity suportam rastreamento internacional (market_country, asset_category) e controle de vencimento (due_date) para rendas fixas.
+## Taxonomia Global de Investimentos (Atualizado 03/06/2026)
+Os modelos `InvestmentAsset` e `InvestmentActivity` suportam rastreamento internacional (`market_country`, `asset_category`), classificação macro (`macro_category`) e lançamentos de rendimento/ajustes manuais (`YIELD`).
+Toda a evolução histórica baseia-se no Smart Ledger onde o saldo atual do ativo é a soma algébrica direta dos lançamentos sem matemática temporal.
+
+### Cascading Smart Ledger & Proportional Distribution Engine
+Para permitir a gestão dinâmica e intuitiva de investimentos, a camada cliente (React/Zustand) implementa um motor de distribuição hierárquico bidirecional em [useWealthStore.ts](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/store/useWealthStore.ts) auxiliado por [wealth-utils.ts](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/store/wealth-utils.ts):
+1. **Agrupamento em Árvore (`groupWealthHoldings`):** Agrupa o array plano de holdings em uma estrutura hierárquica `Account -> Macro Category -> Unitary Assets` baseando-se nas últimas atividades associadas cronologicamente a cada ativo para determinar a conta ativa.
+2. **Atualização Top-Down (Distribuição Proporcional):** Quando atualizados os totais da conta ou macro categoria, a função `distributeProportionally` recalcula o saldo individual de cada ativo na sub-árvore com a fórmula:
+   $$NovoSaldoAtivo = SaldoAntigoAtivo \times \left(\frac{NovoSaldoMacro}{SaldoAntigoMacro}\right)$$
+   * Se o saldo anterior for zero, distribui o valor total igualmente.
+   * Diferenças residuais decorrentes de arredondamentos de ponto flutuante de precisão centesimal são aplicadas no maior ativo da categoria.
+3. **Atualização Bottom-Up:** Quando alterado individualmente, o ativo folha recalcula e atualiza instantaneamente as somas na visualização dos nós superiores em tela.
+4. **Persistência em Lote (Batch Update):** Os ajustes de saldo calculados no frontend são enviados ao endpoint de conciliação em lote `/wealth/batch-update/`.
 
 ---
 

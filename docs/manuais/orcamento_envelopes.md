@@ -47,28 +47,26 @@ Diferente de sistemas tradicionais que "resetam" as categorias no dia 1º, nosso
 
 ## 4. Metas de Orçamento Inteligentes (Budget Targets)
 
-Para tornar o planejamento financeiro proativo e semi-automatizado, cada sub-envelope agora suporta regras e metas de orçamento avançadas com tetos de gastos:
-* **Tipo de Meta (Target Type):**
-  * **Fixa (FIXED):** Um valor fixo a ser orçado mensalmente no envelope (ex: R$ 500,00 para *Alimentação*).
+Para tornar o planejamento financeiro proativo e semi-automatizado, cada sub-envelope suporta regras e metas de orçamento avançadas com comportamentos e tetos de gastos específicos:
+* **Tipos de Metas (Target Type):**
+  * **Necessário para Gastos (NEEDED_FOR_SPENDING):** Focado em cobrir despesas previstas ou contas a pagar. O sistema calcula a diferença necessária para atingir a meta subtraindo o saldo atual disponível na categoria. Se você já tem R$ 100 guardados no envelope e a meta é R$ 300, o sistema aloca apenas R$ 200.
+  * **Acumulador de Poupança (SAVINGS_BUILDER):** Focado em acumular montantes independentemente de gastos. Ignora qualquer saldo acumulado no envelope e aloca o valor total da meta todos os meses (ex: economizar R$ 100 todo mês para uma viagem).
   * **Percentual (PERCENTAGE):** Um valor percentual com base em um aporte total recebido (ex: 20% do salário do mês para *Investimentos*).
+  * **Valor Fixo (FIXED):** Um valor fixo a ser orçado mensalmente no envelope.
 * **Valor Alvo (Target Value):** O valor desejado (em moeda local ou percentual).
 * **Teto de Gastos (Ceiling Value):** O limite máximo financeiro que o envelope pode acumular. Se configurado com um valor maior que 0,00, impede o acúmulo desnecessário de dinheiro no envelope caso você não o gaste (ex: teto de R$ 300,00 em *Lazer* impede que sobras acumulem infinitamente mês a mês).
 
 ---
 
-## 5. Distribuição Inteligente de Renda (Smart Income Allocation)
+## 5. Financiamento Rápido com Auto-Assign ("Financiar Metas")
 
-Ao invés de digitar manualmente em cada envelope, você pode distribuir o saldo acumulado no **RTA** (Ready to Assign) usando o modal de **Distribuição de Renda** com dois modos de automação inteligentes:
+Ao invés de digitar manualmente em cada envelope, você pode usar o botão **"Financiar Metas"** localizado no cabeçalho do Orçamento. O motor de autoatribuição segue regras estritas de segurança e priorização contábil:
 
-1. **Alocação de Metas Recorrentes (`RECURRING_TARGETS`):**
-   * O sistema analisa todos os envelopes que possuem metas configuradas.
-   * Calcula automaticamente o valor fixo ou percentual necessário para cada um deles.
-   * Preenche de forma atômica e em lote todos os envelopes a partir do RTA, poupando o trabalho manual de distribuir o dinheiro um a um.
-2. **Distribuição Proporcional de Sobras (`EXTRA_PROPORTIONAL`):**
-   * Ideal para quando entra um bônus ou renda extra.
-   * Distribui o valor excedente proporcionalmente entre os envelopes com base na proporção de suas metas padrão.
-
-No frontend, o modal de **Distribuição de Renda** permite mapear facilmente os valores de entrada diretamente para as categorias (envelopes) de destino de forma visual e intuitiva.
+1. **Priorização Inteligente:** O algoritmo distribui o dinheiro do Ready to Assign (RTA) priorizando primeiro todos os sub-envelopes marcados como `NEEDED_FOR_SPENDING` (nossas despesas de sobrevivência e contas fixas). Apenas depois de garantir a segurança dessas contas é que os recursos restantes começam a ser alocados nas contas de poupança (`SAVINGS_BUILDER`).
+2. **Preenchimento Baseado em Comportamento:**
+   - Para envelopes com comportamento `NEEDED_FOR_SPENDING`: O sistema aloca apenas `Target - Saldo Disponível Atual`.
+   - Para envelopes com comportamento `SAVINGS_BUILDER`: O sistema aloca o valor total do `Target` de forma acumulativa.
+3. **Barreira de Segurança contra RTA Negativo:** Se o seu saldo do Ready to Assign (RTA) acabar antes de financiar todos os envelopes, o sistema interrompe a distribuição imediatamente no último envelope financiado, garantindo que o seu RTA nunca fique negativo.
 
 ---
 
@@ -85,4 +83,25 @@ O motor do orçamento conta com uma ferramenta poderosa de rebalanceamento rápi
   * Retira dinheiro diretamente do pool do **RTA** para cobrir essas brechas e zerar os saldos devedores, blindando seu orçamento de estouros no mês subsequente.
 
 Todas essas ações podem ser acionadas diretamente na tela de Orçamento através do painel reativo do cabeçalho de RTA, que exibe em destaque o valor disponível: **"X€ Disponível para Atribuir"**.
+
+---
+
+## 7. Acompanhamento Analítico: Regra 50/30/20
+
+Para ajudar você a manter uma proporção saudável de gastos e poupança sem engessar suas transações reais, o Vault Finance OS traz um painel analítico dinâmico baseado na famosa regra **50/30/20**:
+
+* **Necessidades (Needs - 50%):** Envelopes com despesas essenciais à sua sobrevivência e manutenção (ex: Aluguel, Luz, Saúde, Alimentação Básica).
+* **Desejos (Wants - 30%):** Envelopes com despesas focadas em estilo de vida, lazer e conforto (ex: Viagens, Jantares Fora, Streamings, Assinaturas).
+* **Poupança (Savings - 20%):** Envelopes para reserva de emergência, aportes e investimentos de longo prazo.
+
+### Como Funciona o Termômetro Visual
+1. No topo da tela de Orçamento, o sistema agrupa dinamicamente a soma do dinheiro designado em cada grupo macro e calcula a porcentagem exata que isso representa sobre as receitas totais recebidas no mês.
+2. A barra de progresso exibe a relação entre a alocação atual e a sua meta ideal de perfil (ex: *55% alocado contra meta de 50%*).
+3. **Alertas em Cores:** As barras mudam dinamicamente de cor para servir como um termômetro visual preventivo:
+   - **Verde:** Alocação dentro do limite planejado.
+   - **Amarelo:** Alocação ligeiramente acima da meta (sinal de alerta).
+   - **Vermelho:** Alocação significativamente acima do limite da regra, indicando que este pilar está consumindo uma fatia excessiva da sua renda.
+
+Você pode reconfigurar seus percentuais ideais personalizados diretamente em sua tela de perfil de usuário.
+
 

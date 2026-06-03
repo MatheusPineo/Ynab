@@ -27,8 +27,10 @@ import { useTransactions } from "@/shared/hooks/useTransactions";
 import { type Transaction } from "@/types";
 import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
+import { RecurrenceEditModal } from "@/modules/finance/components/RecurrenceEditModal";
+import { useDebtStore } from "@/modules/finance/store/useDebtStore";
 import { authenticatedFetch } from "@/shared/lib/api";
-
+import { toast } from "sonner";
 
 interface Props {
   children?: React.ReactNode;
@@ -44,6 +46,38 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   // Estados para caixas de busca de contas
   const [accountSearch, setAccountSearch] = useState("");
   const [toAccountSearch, setToAccountSearch] = useState("");
+
+  const { splitRules, transactionDraft, fetchSplitRules, setTransactionDraft } = useDebtStore();
+  const [applySplit, setApplySplit] = useState(false);
+  const [splitRuleId, setSplitRuleId] = useState<string>("none");
+  const [sharedAmount, setSharedAmount] = useState<number>(0);
+  const [recurrenceEditModalOpen, setRecurrenceEditModalOpen] = useState(false);
+  const [date, setDate] = useState<string>(transaction?.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+
+  // Carrega regras de rateio e recupera rascunho (se houver) ao abrir o modal
+  useEffect(() => {
+    if (open) {
+      fetchSplitRules();
+      if (transactionDraft) {
+        setDescription(transactionDraft.description);
+        setAmount(transactionDraft.amount);
+        setType(transactionDraft.type);
+        setAccountId(transactionDraft.accountId);
+        setCategoryId(transactionDraft.categoryId);
+        setStatus(transactionDraft.status);
+        setDate(transactionDraft.date);
+        setIsRecurring(transactionDraft.isRecurring);
+        setRecurrenceInterval(transactionDraft.recurrenceInterval);
+        if (transactionDraft.applySplit) {
+          setApplySplit(true);
+          setSplitRuleId(transactionDraft.splitRuleId || "none");
+          setSharedAmount(transactionDraft.sharedAmount || 0);
+        }
+        // Limpa o rascunho para não reaplicar nas próximas aberturas
+        setTransactionDraft(null);
+      }
+    }
+  }, [open, transactionDraft]);
 
   // Resetar termos de busca ao fechar o modal
   useEffect(() => {
@@ -62,6 +96,21 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       setAccountId(transaction?.account ? String(transaction.account) : (initialAccountId || ""));
       setUseCategory(transaction?.category ? true : false);
       setCategoryId(transaction?.category ? String(transaction.category) : "none");
+      setDate(transaction ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+      setStatus(transaction?.status || "realized");
+      setIsRecurring(transaction?.is_recurring || false);
+      setRecurrenceInterval(transaction?.recurrence_interval || "monthly");
+      
+      const txAny = transaction as any;
+      if (txAny?.split_rule) {
+        setApplySplit(true);
+        setSplitRuleId(String(txAny.split_rule));
+        setSharedAmount(txAny.shared_amount ? Math.abs(txAny.shared_amount) : 0);
+      } else {
+        setApplySplit(false);
+        setSplitRuleId("none");
+        setSharedAmount(0);
+      }
     }
   }, [open, transaction, initialAccountId]);
 
@@ -253,6 +302,8 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       status: status,
       is_recurring: isRecurring,
       recurrence_interval: isRecurring ? recurrenceInterval : undefined,
+      split_rule: (applySplit && splitRuleId !== "none") ? splitRuleId : null,
+      shared_amount: (applySplit && sharedAmount > 0) ? sharedAmount : null,
     };
 
     if (isTransfer) {
@@ -267,7 +318,13 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       setOpen(false);
       if (onClose) onClose();
     } else if (isEdit && transaction) {
-      if (transaction.recurring_parent || transaction.is_recurring) {
+      const isScheduledTx = transaction.status === "scheduled";
+      const amountChanged = amount !== Math.abs(transaction.amount);
+
+      if (isScheduledTx && amountChanged) {
+        setRecurrenceEditModalOpen(true);
+        return;
+      } else if (transaction.recurring_parent || transaction.is_recurring) {
         setScopeModalOpen(true);
         return; // Retorna para aguardar escolha no modal
       } else {
@@ -292,7 +349,9 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             currency: currentCard.currency,
             exchange_rate: 1.0,
             iof_amount: 0.0,
-            input_type: inputType
+            input_type: inputType,
+            split_rule: (applySplit && splitRuleId !== "none") ? splitRuleId : null,
+            shared_amount: (applySplit && sharedAmount > 0) ? sharedAmount : null,
           };
           const response = await authenticatedFetch(`/credit-cards/${currentCard.id}/create_transaction/`, {
             method: "POST",
@@ -331,10 +390,38 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       date: (document.getElementById("date") as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
       category: (!useCategory || categoryId === "none") ? null : categoryId,
       status: status,
+      is_recurring: isRecurring,
+      recurrence_interval: recurrenceInterval,
+      split_rule: (applySplit && splitRuleId !== "none") ? splitRuleId : null,
+      shared_amount: (applySplit && sharedAmount > 0) ? sharedAmount : null,
     };
 
     await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData, scope });
     setScopeModalOpen(false);
+    setOpen(false);
+    if (onClose) onClose();
+  };
+
+  const handleConfirmRecurrenceEdit = async (scope: "single" | "future") => {
+    if (!transaction) return;
+    
+    const amountValue = amount;
+    const transactionData = {
+      account: accountId,
+      description: description,
+      amount: amountValue,
+      is_income: type === "income",
+      date: (document.getElementById("date") as HTMLInputElement)?.value || new Date().toISOString().split('T')[0],
+      category: (!useCategory || categoryId === "none") ? null : categoryId,
+      status: status,
+      is_recurring: isRecurring,
+      recurrence_interval: recurrenceInterval,
+      split_rule: (applySplit && splitRuleId !== "none") ? splitRuleId : null,
+      shared_amount: (applySplit && sharedAmount > 0) ? sharedAmount : null,
+    };
+
+    await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData, scope });
+    setRecurrenceEditModalOpen(false);
     setOpen(false);
     if (onClose) onClose();
   };
@@ -671,41 +758,100 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           )}
 
           {!isTransfer && (
-            <div className="flex flex-col gap-4 p-4 rounded-lg border border-border/50 bg-background/30">
+            <div className="grid gap-2">
+              <Label htmlFor="category">Categoria de Orçamento</Label>
+              <Select value={categoryId} onValueChange={setCategoryId}>
+                <SelectTrigger className="bg-background/50 border-border/60">
+                  <SelectValue placeholder="Sem categoria" />
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  <SelectItem value="none">Sem categoria</SelectItem>
+                  {categoryGroups.map(group => (
+                    <SelectGroup key={group.id}>
+                      <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
+                        {group.name}
+                      </SelectLabel>
+                      {(group.children || []).map(cat => (
+                        <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {!isTransfer && (
+            <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">
               <div className="flex items-center space-x-2">
                 <input 
                   type="checkbox" 
-                  id="use_category" 
-                  checked={useCategory}
-                  onChange={(e) => setUseCategory(e.target.checked)}
+                  id="apply_split" 
+                  checked={applySplit}
+                  onChange={(e) => setApplySplit(e.target.checked)}
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                 />
-                <Label htmlFor="use_category" className="font-medium cursor-pointer">Vincular a uma categoria?</Label>
+                <Label htmlFor="apply_split" className="font-medium cursor-pointer">Aplicar Regra de Rateio?</Label>
               </div>
 
-              {useCategory && (
-                <div className="grid gap-2 animate-in slide-in-from-top-2">
-                  <Label htmlFor="category">Categoria de Orçamento</Label>
-                  <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger className="bg-background/50 border-border/60">
-                      <SelectValue placeholder="Sem categoria" />
-                    </SelectTrigger>
-                    <SelectContent className="glass border-border/60">
-                      <SelectItem value="none">Sem categoria</SelectItem>
-                      {categoryGroups.map(group => (
-                        <SelectGroup key={group.id}>
-                          <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
-                            {group.name}
-                          </SelectLabel>
-                          {(group.children || []).map(cat => (
-                            <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
-                              {cat.name}
-                            </SelectItem>
+              {applySplit && (
+                <div className="grid gap-3 pl-6 animate-in slide-in-from-top-2">
+                  <div className="flex items-end gap-2">
+                    <div className="flex-1 grid gap-1.5">
+                      <Label htmlFor="split_rule" className="text-xs text-muted-foreground">Regra de Rateio</Label>
+                      <Select value={splitRuleId} onValueChange={setSplitRuleId}>
+                        <SelectTrigger className="bg-background/50 border-border/60">
+                          <SelectValue placeholder="Selecione uma regra" />
+                        </SelectTrigger>
+                        <SelectContent className="glass border-border/60">
+                          <SelectItem value="none">Selecione uma regra</SelectItem>
+                          {splitRules.map(rule => (
+                            <SelectItem key={rule.id} value={String(rule.id)}>{rule.name}</SelectItem>
                           ))}
-                        </SelectGroup>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Persiste o draft no Zustand para recuperar ao voltar
+                        setTransactionDraft({
+                          description,
+                          amount,
+                          type,
+                          accountId,
+                          categoryId,
+                          status,
+                          date,
+                          isRecurring,
+                          recurrenceInterval,
+                          splitRuleId,
+                          sharedAmount,
+                          applySplit: true
+                        });
+                        setOpen(false);
+                        if (onClose) onClose();
+                        // Navega para a aba de regras de rateio (Deep Link)
+                        window.location.hash = "#/settings/split-rules";
+                      }}
+                      className="text-xs font-bold text-primary hover:underline h-10 px-2 flex items-center bg-primary/10 rounded-lg border border-primary/20 cursor-pointer"
+                    >
+                      Criar/Editar
+                    </button>
+                  </div>
+
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="shared_amount" className="text-xs text-muted-foreground">Valor Compartilhado (Opcional)</Label>
+                    <CurrencyInput
+                      id="shared_amount"
+                      value={sharedAmount}
+                      onChange={setSharedAmount}
+                      placeholder="Deixe 0 para ratear valor total"
+                      className="bg-background/50 text-left"
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -758,6 +904,11 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
         onOpenChange={setScopeModalOpen}
         actionType="edit"
         onConfirm={handleConfirmEditScope}
+      />
+      <RecurrenceEditModal
+        open={recurrenceEditModalOpen}
+        onOpenChange={setRecurrenceEditModalOpen}
+        onConfirm={handleConfirmRecurrenceEdit}
       />
     </Dialog>
   );

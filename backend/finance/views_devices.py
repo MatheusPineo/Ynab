@@ -1,3 +1,4 @@
+import re
 from rest_framework import serializers
 from rest_framework import status
 from rest_framework.views import APIView
@@ -7,12 +8,63 @@ from django.shortcuts import get_object_or_404
 from finance.models import TrustedDevice
 import uuid
 
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+def parse_user_agent(ua_string):
+    if not ua_string:
+        return "Unknown"
+    # Análise básica de User-Agent
+    os_name = "Unknown OS"
+    if "Windows" in ua_string:
+        os_name = "Windows"
+    elif "Macintosh" in ua_string or "Mac OS X" in ua_string:
+        os_name = "macOS"
+    elif "Android" in ua_string:
+        os_name = "Android"
+    elif "iPhone" in ua_string or "iPad" in ua_string:
+        os_name = "iOS"
+    elif "Linux" in ua_string:
+        os_name = "Linux"
+
+    browser_name = "Unknown Browser"
+    if "Firefox" in ua_string:
+        browser_name = "Firefox"
+    elif "Chrome" in ua_string and "Safari" in ua_string:
+        browser_name = "Chrome"
+    elif "Safari" in ua_string and "Chrome" not in ua_string:
+        browser_name = "Safari"
+    elif "Edge" in ua_string:
+        browser_name = "Edge"
+    elif "Postman" in ua_string:
+        browser_name = "Postman"
+
+    return f"{browser_name} on {os_name}"
+
+def timezone_to_location(timezone):
+    if not timezone:
+        return None
+    parts = timezone.split('/')
+    if len(parts) == 2:
+        return f"{parts[1].replace('_', ' ')}, {parts[0]}"
+    return timezone
+
 class DeviceRegisterSerializer(serializers.Serializer):
-    name = serializers.CharField(required=False, allow_blank=True)
-    device_name = serializers.CharField(required=False, allow_blank=True)
-    device_key = serializers.CharField(required=True)
+    name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    device_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    custom_name = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    device_key = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    raw_user_agent = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    timezone = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def validate_device_key(self, value):
+        if not value:
+            return value
         try:
             uuid.UUID(str(value))
         except ValueError:
@@ -20,10 +72,8 @@ class DeviceRegisterSerializer(serializers.Serializer):
         return value
 
     def validate(self, data):
-        name = data.get('device_name') or data.get('name')
-        if not name:
-            raise serializers.ValidationError("O campo 'device_name' ou 'name' é obrigatório.")
-            
+        if not data.get('device_key'):
+            data['device_key'] = str(uuid.uuid4())
         return data
 
 class DeviceRegisterView(APIView):
@@ -32,17 +82,12 @@ class DeviceRegisterView(APIView):
     def post(self, request):
         serializer = DeviceRegisterSerializer(data=request.data, context={'request': request})
         if not serializer.is_valid():
-            # Extrai o primeiro erro para manter a compatibilidade de resposta detalhada
             errors = serializer.errors
             detail_msg = "Dados inválidos."
             if 'device_key' in errors:
                 detail_msg = errors['device_key'][0]
             elif 'non_field_errors' in errors:
                 detail_msg = errors['non_field_errors'][0]
-            elif 'name' in errors:
-                detail_msg = errors['name'][0]
-            elif 'device_name' in errors:
-                detail_msg = errors['device_name'][0]
                 
             return Response(
                 {"detail": detail_msg, "error": detail_msg},
@@ -50,9 +95,18 @@ class DeviceRegisterView(APIView):
             )
 
         validated_data = serializer.validated_data
-        device_name = validated_data.get('device_name') or validated_data.get('name')
+        
+        # Parsing User Agent e IP
+        ua_string = validated_data.get('raw_user_agent') or request.META.get('HTTP_USER_AGENT', '')
+        os_browser_info = parse_user_agent(ua_string)
+        ip = get_client_ip(request)
+        timezone = validated_data.get('timezone')
+        location_string = timezone_to_location(timezone)
 
-        # Gera o token em texto puro (enviado apenas uma vez ao frontend)
+        # Se name/device_name/custom_name não foi enviado, fallback para o User-Agent parsed
+        custom_name = validated_data.get('custom_name')
+        device_name = validated_data.get('device_name') or validated_data.get('name') or custom_name or os_browser_info
+
         raw_token = TrustedDevice.generate_token()
         token_key = raw_token[:8]
         token_hash = TrustedDevice.hash_token(raw_token)
@@ -60,6 +114,10 @@ class DeviceRegisterView(APIView):
         device = TrustedDevice.objects.create(
             user=request.user,
             device_name=device_name,
+            custom_name=custom_name,
+            os_browser_info=os_browser_info,
+            ip_address=ip,
+            location_string=location_string,
             token_key=token_key,
             token_hash=token_hash,
             is_active=True
@@ -68,7 +126,11 @@ class DeviceRegisterView(APIView):
         return Response({
             "id": device.id,
             "device_name": device.device_name,
-            "token": raw_token,  # Exibido APENAS neste momento
+            "custom_name": device.custom_name,
+            "os_browser_info": device.os_browser_info,
+            "ip_address": device.ip_address,
+            "location_string": device.location_string,
+            "token": raw_token,
             "token_key": token_key,
             "created_at": device.created_at
         }, status=status.HTTP_201_CREATED)
@@ -79,13 +141,23 @@ class DeviceListView(APIView):
 
     def get(self, request):
         devices = TrustedDevice.objects.filter(user=request.user, is_active=True)
+        
+        # Identificar o dispositivo da sessão atual
+        current_device = getattr(request, 'auth', None)
+        
         data = [
             {
                 "id": dev.id,
                 "device_name": dev.device_name,
+                "custom_name": dev.custom_name,
+                "os_browser_info": dev.os_browser_info,
+                "ip_address": dev.ip_address,
+                "location_string": dev.location_string,
                 "token_key": dev.token_key,
                 "last_used": dev.last_used,
-                "created_at": dev.created_at
+                "last_used_at": dev.last_used_at,
+                "created_at": dev.created_at,
+                "is_current_device": current_device == dev if current_device else False
             }
             for dev in devices
         ]
@@ -96,16 +168,9 @@ class DeviceRevokeView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, pk):
-        # Localiza o dispositivo do usuário ativo ou retorna 404
         device = get_object_or_404(TrustedDevice, id=pk, user=request.user)
-        
-        # Revoga o acesso desativando o token
         device.is_active = False
         device.save(update_fields=['is_active'])
-        
-        # Opcionalmente, pode ser deletado fisicamente:
-        # device.delete()
-
         return Response(
             {"message": "Acesso do dispositivo revogado com sucesso."}, 
             status=status.HTTP_200_OK

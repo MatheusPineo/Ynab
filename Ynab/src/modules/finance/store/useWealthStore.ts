@@ -44,6 +44,7 @@ export interface AssetHolding {
   indexer?: string;
   rate_type?: string;
   interest_rate?: number;
+  macro_category?: string;
 }
 
 export interface WealthSummary {
@@ -66,6 +67,9 @@ interface WealthStore {
   updateActivity: (id: number, data: Partial<InvestmentActivity>) => Promise<void>;
   deleteActivity: (id: number) => Promise<void>;
   deleteAsset: (id: number) => Promise<void>;
+  updateAssetBalance: (assetId: number, newBalance: number) => Promise<void>;
+  updateMacroBalance: (accountId: number | null, macroName: string, newBalance: number) => Promise<void>;
+  updateAccountBalance: (accountId: number | null, newBalance: number) => Promise<void>;
 }
 
 export const useWealthStore = create<WealthStore>((set) => ({
@@ -227,5 +231,103 @@ export const useWealthStore = create<WealthStore>((set) => ({
       set({ error: err.message, isLoading: false });
       throw err;
     }
+  },
+
+  updateAssetBalance: async (assetId: number, newBalance: number) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authenticatedFetch("/wealth/batch-update/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates: [{ asset_id: assetId, new_balance: newBalance }]
+        })
+      });
+      if (response.ok) {
+        set({ isLoading: false });
+        await useWealthStore.getState().fetchSummary();
+      } else {
+        throw new Error("Erro ao atualizar saldo do ativo");
+      }
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
+
+  updateMacroBalance: async (accountId: number | null, macroName: string, newBalance: number) => {
+    const { summary, activities } = useWealthStore.getState();
+    if (!summary) return;
+
+    // Agrupa os ativos para encontrar a macro categoria correta
+    // Para simplificar, passamos as contas como vazias já que o agrupador usa apenas para o nome da conta e IDs
+    const grouped = groupWealthHoldings(summary.holdings, activities, []);
+    const accountNode = grouped.find((acc) => acc.account_id === accountId);
+    if (!accountNode) return;
+
+    const macroNode = accountNode.macroCategories.find((m) => m.name === macroName);
+    if (!macroNode) return;
+
+    const updates = distributeProportionally(macroNode.assets, newBalance);
+    if (updates.length === 0) return;
+
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authenticatedFetch("/wealth/batch-update/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates })
+      });
+      if (response.ok) {
+        set({ isLoading: false });
+        await useWealthStore.getState().fetchSummary();
+      } else {
+        throw new Error("Erro ao atualizar saldos da categoria macro");
+      }
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
+  },
+
+  updateAccountBalance: async (accountId: number | null, newBalance: number) => {
+    const { summary, activities } = useWealthStore.getState();
+    if (!summary) return;
+
+    const grouped = groupWealthHoldings(summary.holdings, activities, []);
+    const accountNode = grouped.find((acc) => acc.account_id === accountId);
+    if (!accountNode) return;
+
+    // Distribui de cima para baixo
+    // Coleta todos os ativos da conta
+    const allAssets: UnitaryAssetNode[] = [];
+    accountNode.macroCategories.forEach((m) => {
+      allAssets.push(...m.assets);
+    });
+
+    if (allAssets.length === 0) return;
+
+    const updates = distributeProportionally(allAssets, newBalance);
+    if (updates.length === 0) return;
+
+    set({ isLoading: true, error: null });
+    try {
+      const response = await authenticatedFetch("/wealth/batch-update/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates })
+      });
+      if (response.ok) {
+        set({ isLoading: false });
+        await useWealthStore.getState().fetchSummary();
+      } else {
+        throw new Error("Erro ao atualizar saldos da conta");
+      }
+    } catch (err: any) {
+      set({ error: err.message, isLoading: false });
+      throw err;
+    }
   }
 }));
+
+import { groupWealthHoldings, distributeProportionally, UnitaryAssetNode } from "./wealth-utils";

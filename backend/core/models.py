@@ -15,6 +15,11 @@ class UserProfile(models.Model):
     language = models.CharField(max_length=10, default='pt-BR')
     hidden_sidebar_items = models.JSONField(default=list, blank=True)
     pinned_countries = models.JSONField(default=list, blank=True)
+    
+    # 50/30/20 customizable percentage targets
+    needs_target_pct = models.IntegerField(default=50)
+    wants_target_pct = models.IntegerField(default=30)
+    savings_target_pct = models.IntegerField(default=20)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

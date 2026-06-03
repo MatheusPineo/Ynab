@@ -19,6 +19,6 @@ Para registrar uma nova compra ou movimentação:
 3. **Macro Grupo:** Escolha a classe macro (Renda Variável, Renda Fixa Brasileira/Global, Criptoativos, Alternativos).
 4. **Tipo Específico:** Selecione a subdivisão exata (ex: FIIs, Tesouro Direto, Stocks, Stablecoins).
 
-O sistema adaptará o formulário automaticamente de acordo com o grupo:
-- **Para Renda Fixa Brasileira:** O formulário focará nas condições de rentabilidade (Valor Aplicado, Indexador, Taxa de Retorno, Data de Vencimento e Liquidez).
-- **Para Demais Ativos (Renda Variável Global, Renda Fixa Global, Cripto):** O foco é na negociação tradicional com inputs de Quantidade, Preço Unitário e Taxas/Custos adicionais. O Total será contabilizado na respectiva moeda base consolidada ($ ou R$).
+O formulário de lançamentos e o acompanhamento de patrimônio são unificados:
+- **Lançamento Tradicional:** Registre a Quantidade, o Preço Unitário e os Custos adicionais para calcular o custo total.
+- **Rendimento/Ajuste Manual (YIELD):** Para registrar rendimentos acumulados ou conciliar diferenças de saldo, lance a atividade do tipo Rendimento informando a diferença no valor do ativo de forma direta.

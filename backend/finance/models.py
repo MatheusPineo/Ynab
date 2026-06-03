@@ -66,6 +66,8 @@ class Account(models.Model):
 
 class Category(models.Model):
     TARGET_TYPE_CHOICES = [
+        ('NEEDED_FOR_SPENDING', 'Necessário para Gastos'),
+        ('SAVINGS_BUILDER', 'Acumulador de Poupança'),
         ('FIXED', 'Valor Fixo'),
         ('PERCENTAGE', 'Percentual da Receita'),
     ]
@@ -74,8 +76,18 @@ class Category(models.Model):
     name = models.CharField(max_length=100)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     target_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
-    target_type = models.CharField(max_length=10, choices=TARGET_TYPE_CHOICES, default='FIXED')
+    target_type = models.CharField(max_length=30, choices=TARGET_TYPE_CHOICES, default='NEEDED_FOR_SPENDING')
     ceiling_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    macro_rule = models.CharField(
+        max_length=10,
+        choices=[
+            ('NEEDS', 'Necessidades'),
+            ('WANTS', 'Desejos'),
+            ('SAVINGS', 'Poupança'),
+            ('NONE', 'Nenhum')
+        ],
+        default='NONE'
+    )
 
     class Meta:
         db_table = 'core_category'
@@ -112,6 +124,33 @@ class Payee(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class SplitRule(models.Model):
+    name = models.CharField(max_length=100)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='split_rules')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_splitrule'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+
+class SplitRuleItem(models.Model):
+    template = models.ForeignKey(SplitRule, on_delete=models.CASCADE, related_name='items')
+    debtor = models.ForeignKey('Debtor', on_delete=models.CASCADE)
+    percentage = models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)
+    fixed_amount = models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)
+
+    class Meta:
+        db_table = 'core_splitruleitem'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.debtor.name} ({self.percentage or self.fixed_amount})"
 
 
 class MonthlyBudget(models.Model):
@@ -179,6 +218,19 @@ class Transaction(models.Model):
         null=True,
         blank=True,
         related_name='mirrored_transfer'
+    )
+    split_rule = models.ForeignKey(
+        'SplitRule',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='transactions'
+    )
+    shared_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -405,6 +457,10 @@ class Debt(models.Model):
     is_mine = models.BooleanField(default=False)  # True = I owe, False = they owe me
     notes = models.TextField(blank=True, default='')
     origin_subaccount = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='legacy_debts')
+    origin_category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_debts')
+    origin_transaction = models.ForeignKey(Transaction, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_debts')
+    reimburses_category = models.BooleanField(default=True)
+    applied_rule = models.ForeignKey(SplitRule, on_delete=models.SET_NULL, null=True, blank=True, related_name='applied_debts')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -692,6 +748,7 @@ class InvestmentAsset(models.Model):
     asset_category = models.CharField(max_length=100, null=True, blank=True)
     asset_type = models.CharField(max_length=50, choices=ASSET_TYPES) # Ex: STOCK, CRYPTO, FII, BOND
     currency = models.CharField(max_length=3, default='BRL')
+    macro_category = models.CharField(max_length=100, null=True, blank=True)
     
     # Renda Fixa / Tesouro Fields
     issuer = models.CharField(max_length=150, null=True, blank=True)
@@ -716,7 +773,8 @@ class InvestmentActivity(models.Model):
         ('BUY', 'Compra'),
         ('SELL', 'Venda'),
         ('DIVIDEND', 'Dividendo'),
-        ('SPLIT', 'Desdobramento')
+        ('SPLIT', 'Desdobramento'),
+        ('YIELD', 'Rendimento/Ajuste Manual')
     ]
     asset = models.ForeignKey(InvestmentAsset, on_delete=models.CASCADE, related_name='activities')
     account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True)
@@ -855,6 +913,10 @@ class TrustedDevice(models.Model):
         related_name="trusted_devices"
     )
     device_name = models.CharField(max_length=255)
+    os_browser_info = models.CharField(max_length=255, default="Chrome on Windows")
+    custom_name = models.CharField(max_length=255, null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    location_string = models.CharField(max_length=255, null=True, blank=True)
     token_key = models.CharField(
         max_length=8, 
         unique=True, 
@@ -868,6 +930,7 @@ class TrustedDevice(models.Model):
     )
     is_active = models.BooleanField(default=True)
     last_used = models.DateTimeField(null=True, blank=True)
+    last_used_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

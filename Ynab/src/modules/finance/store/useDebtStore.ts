@@ -38,12 +38,50 @@ export interface Debt {
   total_amount: number;
   payments: DebtPayment[];
   charges: DebtCharge[];
-  origin_subaccount?: number;
-  origin_subaccount_name?: string;
+  origin_transaction?: string | null;
+  origin_category?: string | null;
+  applied_rule?: string | null;
+  reimburses_category?: boolean;
+  origin_transaction_description?: string | null;
+  origin_transaction_amount?: number | null;
+  origin_category_name?: string | null;
+  applied_rule_name?: string | null;
+}
+
+export interface SplitRuleItem {
+  id?: string;
+  debtor: string;
+  debtor_name?: string;
+  percentage?: number;
+  fixed_amount?: number;
+}
+
+export interface SplitRule {
+  id: string;
+  name: string;
+  items: SplitRuleItem[];
+  created_at: string;
+}
+
+export interface TransactionDraft {
+  description: string;
+  amount: number;
+  type: string;
+  accountId: string;
+  categoryId: string;
+  status: string;
+  date: string;
+  isRecurring: boolean;
+  recurrenceInterval: string;
+  splitRuleId?: string;
+  sharedAmount?: number;
+  applySplit?: boolean;
 }
 
 interface DebtState {
   debts: Debt[];
+  splitRules: SplitRule[];
+  transactionDraft: TransactionDraft | null;
   loading: boolean;
   fetchDebts: () => Promise<void>;
   addDebt: (data: Partial<Debt>) => Promise<void>;
@@ -54,6 +92,8 @@ interface DebtState {
   addDebtAmount: (id: string, data: { amount: number; description: string; date: string; account: string | null }) => Promise<void>;
   updateCharge: (chargeId: string, data: Partial<DebtCharge>) => Promise<void>;
   deleteCharge: (chargeId: string) => Promise<void>;
+  fetchSplitRules: () => Promise<void>;
+  setTransactionDraft: (draft: TransactionDraft | null) => void;
 }
 
 export const useDebtStore = create<DebtState>((set, get) => ({
@@ -192,5 +232,24 @@ export const useDebtStore = create<DebtState>((set, get) => ({
     } catch (error: any) {
       toast.error(error.message);
     }
+  },
+
+  splitRules: [],
+  transactionDraft: null,
+
+  fetchSplitRules: async () => {
+    try {
+      const res = await authenticatedFetch("/split-rules/");
+      if (res.ok) {
+        const data = await res.json();
+        set({ splitRules: data || [] });
+      }
+    } catch (err) {
+      console.error("Erro ao buscar regras de rateio:", err);
+    }
+  },
+
+  setTransactionDraft: (draft) => {
+    set({ transactionDraft: draft });
   },
 }));

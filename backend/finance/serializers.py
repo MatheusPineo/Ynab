@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Account, Category, Transaction, Goal, MonthlyBudget, DistributionTemplate, DistributionTemplateItem, Debt, DebtPayment
+from .models import Account, Category, Transaction, Goal, MonthlyBudget, DistributionTemplate, DistributionTemplateItem, Debt, DebtPayment, SplitRule, SplitRuleItem
 
 class AccountSerializer(serializers.ModelSerializer):
     available_balance = serializers.ReadOnlyField()
@@ -99,7 +99,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'user', 'name', 'parent', 'target_value', 'target_type', 'ceiling_value', 'assigned_amount', 'spent_amount']
+        fields = ['id', 'user', 'name', 'parent', 'target_value', 'target_type', 'ceiling_value', 'assigned_amount', 'spent_amount', 'macro_rule']
         extra_kwargs = {
             'parent': {'required': False, 'allow_null': True},
             'user': {'read_only': True},  # Preenchido automaticamente pela view
@@ -201,6 +201,40 @@ class DebtChargeSerializer(serializers.ModelSerializer):
             return obj.account.name
         return None
 
+class SplitRuleItemSerializer(serializers.ModelSerializer):
+    debtor_name = serializers.CharField(source='debtor.name', read_only=True)
+
+    class Meta:
+        model = SplitRuleItem
+        fields = ['id', 'debtor', 'debtor_name', 'percentage', 'fixed_amount']
+
+class SplitRuleSerializer(serializers.ModelSerializer):
+    items = SplitRuleItemSerializer(many=True, required=False, allow_null=True)
+
+    class Meta:
+        model = SplitRule
+        fields = ['id', 'name', 'created_at', 'items']
+        extra_kwargs = {
+            'user': {'read_only': True},
+        }
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items', [])
+        split_rule = SplitRule.objects.create(**validated_data)
+        for item_data in items_data:
+            SplitRuleItem.objects.create(template=split_rule, **item_data)
+        return split_rule
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop('items', None)
+        instance.name = validated_data.get('name', instance.name)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item_data in items_data:
+                SplitRuleItem.objects.create(template=instance, **item_data)
+        return instance
+
 class DebtSerializer(serializers.ModelSerializer):
     amount_paid = serializers.SerializerMethodField()
     amount_remaining = serializers.SerializerMethodField()
@@ -208,13 +242,25 @@ class DebtSerializer(serializers.ModelSerializer):
     payments = DebtPaymentSerializer(many=True, read_only=True)
     charges = DebtChargeSerializer(many=True, read_only=True)
     origin_subaccount_name = serializers.CharField(source='origin_subaccount.name', read_only=True)
+    origin_transaction_description = serializers.CharField(source='origin_transaction.description', read_only=True)
+    origin_transaction_amount = serializers.DecimalField(source='origin_transaction.amount', max_digits=12, decimal_places=2, read_only=True)
+    origin_category_name = serializers.CharField(source='origin_category.name', read_only=True)
+    applied_rule_name = serializers.CharField(source='applied_rule.name', read_only=True)
 
     class Meta:
         model = Debt
-        fields = ['id', 'user', 'counterparty_name', 'original_amount', 'currency', 'is_mine', 'notes', 'created_at', 'amount_paid', 'amount_remaining', 'total_amount', 'payments', 'charges', 'origin_subaccount', 'origin_subaccount_name']
+        fields = [
+            'id', 'user', 'counterparty_name', 'original_amount', 'currency', 'is_mine', 'notes', 'created_at',
+            'amount_paid', 'amount_remaining', 'total_amount', 'payments', 'charges', 'origin_subaccount',
+            'origin_subaccount_name', 'origin_transaction', 'origin_category', 'applied_rule', 'reimburses_category',
+            'origin_transaction_description', 'origin_transaction_amount', 'origin_category_name', 'applied_rule_name'
+        ]
         extra_kwargs = {
             'user': {'read_only': True},
             'origin_subaccount': {'required': False, 'allow_null': True},
+            'origin_transaction': {'required': False, 'allow_null': True},
+            'origin_category': {'required': False, 'allow_null': True},
+            'applied_rule': {'required': False, 'allow_null': True},
         }
 
     def get_total_amount(self, obj):

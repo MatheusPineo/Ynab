@@ -14,6 +14,9 @@ interface User {
   preferredCurrency?: string;
   language?: string;
   pinnedCountries?: string[];
+  needsTargetPct?: number;
+  wantsTargetPct?: number;
+  savingsTargetPct?: number;
 }
 
 
@@ -79,7 +82,10 @@ export const useAuthStore = create<AuthState>()(
             twoFactorEnabled: data.user.profile?.two_factor_enabled,
             preferredCurrency: data.user.profile?.preferred_currency,
             language: data.user.profile?.language,
-            pinnedCountries: data.user.profile?.pinned_countries
+            pinnedCountries: data.user.profile?.pinned_countries,
+            needsTargetPct: data.user.profile?.needs_target_pct,
+            wantsTargetPct: data.user.profile?.wants_target_pct,
+            savingsTargetPct: data.user.profile?.savings_target_pct
           },
         });
 
@@ -130,7 +136,10 @@ export const useAuthStore = create<AuthState>()(
             twoFactorEnabled: data.user.profile?.two_factor_enabled,
             preferredCurrency: data.user.profile?.preferred_currency,
             language: data.user.profile?.language,
-            pinnedCountries: data.user.profile?.pinned_countries
+            pinnedCountries: data.user.profile?.pinned_countries,
+            needsTargetPct: data.user.profile?.needs_target_pct,
+            wantsTargetPct: data.user.profile?.wants_target_pct,
+            savingsTargetPct: data.user.profile?.savings_target_pct
           },
         });
 
@@ -180,7 +189,10 @@ export const useAuthStore = create<AuthState>()(
             twoFactorEnabled: data.user.profile?.two_factor_enabled,
             preferredCurrency: data.user.profile?.preferred_currency,
             language: data.user.profile?.language,
-            pinnedCountries: data.user.profile?.pinned_countries
+            pinnedCountries: data.user.profile?.pinned_countries,
+            needsTargetPct: data.user.profile?.needs_target_pct,
+            wantsTargetPct: data.user.profile?.wants_target_pct,
+            savingsTargetPct: data.user.profile?.savings_target_pct
           },
         });
 

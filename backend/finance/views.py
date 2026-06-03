@@ -23,11 +23,12 @@ from rest_framework import serializers
 
 from .models import (
     Account, Category, Payee, Transaction, Goal, MonthlyBudget, 
-    DistributionTemplate, Debt, DebtPayment, CategoryGoal, TransactionRule
+    DistributionTemplate, Debt, DebtPayment, CategoryGoal, TransactionRule, SplitRule
 )
 from .serializers import (
     AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, 
-    MonthlyBudgetSerializer, DistributionTemplateSerializer, DebtSerializer, DebtPaymentSerializer
+    MonthlyBudgetSerializer, DistributionTemplateSerializer, DebtSerializer, DebtPaymentSerializer,
+    SplitRuleSerializer
 )
 from .reconciliation import AccountReconciliationService
 
@@ -71,14 +72,11 @@ def sync_recurring_transactions(user, upto_date=None):
         while template.next_recurrence_date and template.next_recurrence_date <= upto_date:
             new_date = template.next_recurrence_date
             
-            # Procura por uma transação filha existente ou exceção para esta data
+            # Procura por uma transação filha existente ou exceção para esta data por vínculo direto
             exists = Transaction.objects.filter(
-                account=template.account,
-                description=template.description,
-                amount=template.amount,
-                date=new_date,
-                is_recurring=False
-            ).filter(Q(recurring_parent=template) | Q(recurring_parent__isnull=True)).exists()
+                recurring_parent=template,
+                date=new_date
+            ).exists()
             
             if not exists:
                 # Herda o status do template, mas força para 'pending' se for no futuro
@@ -95,7 +93,9 @@ def sync_recurring_transactions(user, upto_date=None):
                     is_recurring=False,
                     status=inherited_status,
                     is_applied_to_balance=applied,
-                    recurring_parent=template
+                    recurring_parent=template,
+                    split_rule=template.split_rule,
+                    shared_amount=template.shared_amount
                 )
                 new_t._skip_balance_update = True
                 new_t.save()
@@ -655,6 +655,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
                             'goal_amount': goal_amount,
                             'underfunded_amount': float(underfunded),
                             'parent': str(category.parent_id) if category.parent_id else None,
+                            'target_value': float(category.target_value) if category.target_value else 0.00,
+                            'target_type': category.target_type,
+                            'ceiling_value': float(category.ceiling_value) if category.ceiling_value else 0.00,
+                            'macro_rule': category.macro_rule,
                         }
                     # Categoria pai (grupo de categorias) -> consolida a soma das subcategorias
                     else:
@@ -676,6 +680,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                             'goal_amount': 0.00,
                             'underfunded_amount': float(sum_underfunded),
                             'parent': str(category.parent_id) if category.parent_id else None,
+                            'macro_rule': category.macro_rule,
                             'children': children
                         }
                     
@@ -1390,6 +1395,16 @@ class DistributionTemplateViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         return DistributionTemplate.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+class SplitRuleViewSet(viewsets.ModelViewSet):
+    serializer_class = SplitRuleSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return SplitRule.objects.filter(user=self.request.user).prefetch_related('items__debtor')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -2507,6 +2522,89 @@ class WealthSummaryView(APIView):
         return Response({
             'holdings': holdings,
             'total_net_worth': round(total_net_worth, 2)
+        })
+
+class WealthBatchUpdateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        summary="Atualização em lote dos saldos declarados de ativos de investimento",
+        description="Recebe um array de ativos e seus saldos declarados. Cria atividades YIELD automáticas para ajustar a diferença de saldos.",
+        responses={200: OpenApiTypes.OBJECT}
+    )
+    def post(self, request):
+        from django.db import transaction
+        from datetime import date
+        from decimal import Decimal, InvalidOperation
+        
+        data = request.data
+        if isinstance(data, dict):
+            assets_list = data.get('assets', [])
+        elif isinstance(data, list):
+            assets_list = data
+        else:
+            return Response({"error": "Corpo da requisição inválido. Deve ser um array ou objeto contendo a lista sob a chave 'assets'."}, status=400)
+            
+        updated_assets = []
+        
+        with transaction.atomic():
+            for item in assets_list:
+                asset_id = item.get('asset_id')
+                declared_balance_raw = item.get('declared_balance')
+                
+                if asset_id is None or declared_balance_raw is None:
+                    continue
+                    
+                try:
+                    declared_balance = Decimal(str(declared_balance_raw))
+                except (ValueError, TypeError, InvalidOperation):
+                    return Response({"error": f"declared_balance inválido para o asset_id {asset_id}."}, status=400)
+                
+                try:
+                    asset = InvestmentAsset.objects.get(id=asset_id, user=request.user)
+                except InvestmentAsset.DoesNotExist:
+                    return Response({"error": f"Ativo com ID {asset_id} não encontrado ou não pertence a este usuário."}, status=404)
+                
+                activities = asset.activities.all()
+                current_db_balance = Decimal('0.00')
+                for act in activities:
+                    val = act.principal_amount
+                    if val is None:
+                        qty = act.quantity or Decimal('0.00000000')
+                        price = act.unit_price or Decimal('0.00')
+                        val = qty * price
+                    
+                    if act.activity_type == 'BUY':
+                        current_db_balance += val
+                    elif act.activity_type == 'SELL':
+                        current_db_balance -= val
+                    elif act.activity_type == 'YIELD':
+                        current_db_balance += val
+                        
+                difference = declared_balance - current_db_balance
+                
+                if difference != Decimal('0.00'):
+                    InvestmentActivity.objects.create(
+                        asset=asset,
+                        activity_type='YIELD',
+                        date=date.today(),
+                        quantity=Decimal('0.00000000'),
+                        unit_price=Decimal('0.00'),
+                        principal_amount=difference,
+                        fees=Decimal('0.00')
+                    )
+                    
+                updated_assets.append({
+                    "asset_id": asset.id,
+                    "ticker": asset.ticker,
+                    "previous_balance": float(current_db_balance),
+                    "new_balance": float(declared_balance),
+                    "adjustment_created": float(difference)
+                })
+                
+        return Response({
+            "message": "Atualização em lote concluída com sucesso.",
+            "updated_assets": updated_assets
         })
 
 from .reports import ReportEngine

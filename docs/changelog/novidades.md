@@ -1,5 +1,73 @@
 # Novidades e Atualizações
 
+## Painel de Dispositivos Crunchyroll-Style e Metadados Ricos (03/06/2026) 📱🔒
+Aprimoramos o controle de segurança e gerenciamento de dispositivos autorizados no backend com um painel no estilo Crunchyroll:
+* **Metadados Ricos:** O modelo `TrustedDevice` agora armazena informações completas de contexto:
+  - **Sistema Operacional & Navegador (`os_browser_info`):** Exibe o agente parseado de forma amigável (ex: "Chrome on Windows").
+  - **Nome Customizado (`custom_name`):** Nome opcional dado pelo usuário para identificar o aparelho (ex: "S23 Ultra de Matheus").
+  - **Endereço IP (`ip_address`):** Rastreia o endereço IP do dispositivo de conexão (considerando cabeçalhos `HTTP_X_FORWARDED_FOR`).
+  - **Localização Geográfica (`location_string`):** Traduz o fuso horário geográfico do dispositivo para um formato legível de localização (ex: `Lisbon, Europe`).
+  - **Tempo de Uso (`last_used_at`):** Registra automaticamente a última data e hora de atividade do dispositivo através de um campo com atualização automática (`auto_now=True`).
+* **Sessão Atual Ativa (`is_current_device`):** O serializer agora identifica reativamente e destaca se o dispositivo listado corresponde à sessão ativa atual que fez a requisição.
+* **Validação Resiliente e Flexível:** Tornamos o validador do serializer tolerante a campos ausentes (como `custom_name` e `device_key`), gerando fallbacks inteligentes para evitar erros do tipo "This field is required" no fluxo de registro manual.
+
+## Detecção Inteligente e Registro Robusto de Dispositivos (03/06/2026) 📱💻
+Aprimoramos o fluxo de segurança e autorização de dispositivos de forma a eliminar falhas na versão Web e coletar dados mais precisos:
+* **Prevenção de Crash em Navegadores:** O sistema agora detecta via `Capacitor.getPlatform()` se está rodando em ambiente web. Se estiver no navegador, ele ignora a chamada ao plugin nativo `DeviceAuth` (resolvendo o erro de plugin não implementado) e salva a chave de confiança localmente de forma segura.
+* **Coleta de Metadados do Aparelho (Crunchyroll-Style):** O payload de registro foi enriquecido com metadados detalhados:
+  - **Nome Inteligente por SO:** Em vez de registrar genericamente como "Telemóvel Android" no computador, o Vault detecta o User-Agent e nomeia o dispositivo de forma apropriada (ex: *Windows PC*, *Mac*, *Linux PC*).
+  - **User-Agent & Timezone:** O backend passa a receber de forma passiva a string inteira de agente (`raw_user_agent`) e o fuso horário geográfico ativo (`timezone` via Intl API) para auditoria e controle de sessões.
+* **Tratamento de Exceções Nativo:** O salvamento no plugin nativo do Capacitor agora conta com blocos robustos de `try/catch` para garantir que o fluxo de autorização nunca trave a UI do usuário caso ocorra alguma falha de hardware.
+
+## Regras de Rateio (Split Rules) & UX de Recorrência Inteligente (03/06/2026) 🤝⏰
+Implementamos novas facilidades e controles avançados para transações compartilhadas e edições de recorrência:
+* **Rastreabilidade de Devedores (Novidade v1.44.09):** O painel de roommates/devedores ganhou total transparência. Agora, cada card de dívida exibe a transação matriz de origem com o valor compartilhado original, a regra aplicada (e.g. "🔗 Divisão Casa") e o envelope que receberá o reembolso direto ("Retorna para o envelope: [Nome]").
+* **Aplicar Regras de Rateio (Split):** Agora você pode marcar a opção "Aplicar Regra de Rateio?" diretamente no lançamento de qualquer despesa ou receita comum. Ao marcar, selecione a regra cadastrada e informe um valor compartilhado opcional (caso queira ratear apenas uma parte do valor total).
+* **Deep Link Sem Perda de Dados (Criar/Editar):** Ao lado do seletor de regras, o atalho "Criar/Editar" salva instantaneamente o rascunho de todos os campos preenchidos no formulário (descrição, valor, conta, etc.), direciona você para a página de configurações de regras e restaura todo o rascunho automaticamente ao retornar.
+* **Modal de Ajuste de Recorrência:** Quando você altera o valor de uma transação agendada recorrente (`status='scheduled'`), um novo modal intercepta a ação e pergunta se deseja aplicar o novo valor apenas a esta ocorrência específica (Opção A) ou atualizar o modelo padrão para todos os meses futuros (Opção B).
+
+## Lançamento Simplificado de Transações sem Checkbox de Categoria (03/06/2026) 💸🏷️
+Simplificamos o fluxo de lançamento de receitas e despesas no sistema removendo etapas desnecessárias:
+* **Remoção do Checkbox Intermediário:** Eliminamos a pergunta opcional "Vincular a uma categoria?" e seu respectivo checkbox.
+* **Exibição Direta do Seletor:** Agora, o campo para escolher a Categoria de Orçamento (ou mantê-la como "Sem categoria") é exibido por padrão diretamente no modal para qualquer transação comum de entrada ou saída de caixa.
+
+## Painel Analítico Regra 50/30/20 no Orçamento (03/06/2026) 📈📊
+Adicionamos um painel analítico dinâmico (termômetro visual) no topo do seu Orçamento Mensal que permite acompanhar a conformidade das suas alocações com a clássica regra 50/30/20 (Necessidades/Desejos/Poupança) em tempo real:
+* **Classificação Macro de Categorias:** Os grupos de categorias principais agora podem ser classificados no sistema sob uma regra macro correspondente: **Necessidades (Needs)**, **Desejos (Wants)** ou **Poupança (Savings)**.
+* **Metas Customizáveis por Perfil:** Defina suas próprias porcentagens ideais de metas diretamente no perfil de usuário (por padrão 50% para Necessidades, 30% para Desejos e 20% para Poupança).
+* **Termômetros Visuais Dinâmicos:** Um indicador de barras de progresso no cabeçalho do Orçamento compara instantaneamente o percentual de dinheiro alocado em cada grupo macro contra a renda total recebida no mês corrente.
+* **Alertas Inteligentes de Estouro:** As barras mudam automaticamente de cor (verde para amarelo ou vermelho) caso a alocação exceda os limites planejados, fornecendo um aviso preventivo sutil sobre possíveis desequilíbrios de caixa.
+
+## Auto-Assign Inteligente e Financiamento de Metas de Orçamento (03/06/2026) 🎯💰
+Lançamos o recurso **Auto-Assign (Financiamento Inteligente de Metas)** para acelerar o planejamento financeiro do envelope com base no comportamento de cada meta de despesa ou poupança:
+* **Tipos de Metas Avançados:** O modelo de categorias agora aceita configurações específicas de comportamento:
+  - `NEEDED_FOR_SPENDING` (Necessário para Gastos): Calcula a diferença entre o saldo atual da categoria e o target desejado, alocando apenas a quantia faltante.
+  - `SAVINGS_BUILDER` (Acumulador de Poupança): Ignora o saldo disponível acumulado anteriormente e aloca o valor total da meta estipulada para o mês corrente.
+* **Algoritmo de Priorização:** O botão "Financiar Metas" executa uma varredura priorizando o preenchimento de metas de gastos obrigatórios (`NEEDED_FOR_SPENDING`) antes de alocar recursos nos acumuladores de poupança (`SAVINGS_BUILDER`).
+* **Segurança do Saldo Disponível (RTA):** O sistema monitora o saldo `Ready to Assign` e suspende a distribuição assim que o saldo atinge zero, evitando a geração de saldos vermelhos acidentais no planejamento mensal.
+* **Operação com Um Clique:** Ative o preenchimento automático das metas através do novo botão "Financiar Metas" disponível no menu superior do Orçamento Mensal.
+
+## Smart Income Splitter: Divisor Inteligente de Receitas (03/06/2026) 💸🎭
+Introduzimos o simulador **Smart Income Splitter**, uma ferramenta inovadora desenvolvida para gerenciar finanças compartilhadas e receitas variáveis com precisão contábil:
+* **Simulação de Divisão sem Lançamentos Fantasmas:** Agora, ao registrar uma receita, você pode acionar a modal de simulação de partição. Isso permite visualizar como a receita é distribuída com parceiros ou sócios antes de realizar a gravação contábil.
+* **Múltiplas Regras de Repartição:** Escolha entre regras como *Needs Fund (Fixo)*, *Divisão 50% / 50%* ou *Divisão 70% / 30%*. O sistema lê automaticamente a meta consolidada de despesas fixas (Needs) do seu orçamento para parametrizar a divisão.
+* **Isolamento de Caixa Limpo:** O lançamento final de receita gravado no sistema registra e envia apenas o valor correspondente à sua parte para custear as necessidades fixas. A sobra ou parte correspondente ao parceiro é excluída do seu livro-razão e do RTA, evitando inflar artificialmente sua renda disponível ou poluir o caixa.
+* **Acesso Simplificado:** Acesse a funcionalidade através do novo botão "Capturar Receita com Split Inteligente" localizado no cabeçalho do Orçamento Mensal.
+
+## Painel de Ajuste Cascading Smart Ledger (03/06/2026) 📊🔄
+Lançamos uma interface visual dedicada e de alto desempenho para gerenciar seus investimentos de forma dinâmica e precisa:
+* **Novo Painel de Ajustes (SmartLedgerModal):** Adicionado o botão "Ajustar Livro-Razão (Smart Ledger)" na tela de Investimentos. Ele abre um painel em árvore dinâmico mostrando as Contas, as Macro Categorias e os Ativos.
+* **Cascata Reativa (Bottom-Up):** Edite saldos de ativos unitários diretamente na árvore e assista à soma automática recalcular reativamente em tempo real no nível da Macro Categoria e da Conta correspondente.
+* **Distribuição Proporcional Inteligente (Top-Down):** Se você editar o saldo de uma Conta ou de uma Macro Categoria, a interface recalcula e redistribui proporcionalmente a diferença sobre todos os ativos sob ela, aplicando automaticamente restos centesimais ao ativo mais relevante.
+* **Persistência Consolidada:** Um botão integrado de submissão unifica todas as mudanças da árvore local e envia os novos saldos em um único lote otimizado para o backend.
+
+## Descontinuação do Motor de Investimentos & Smart Ledger (03/06/2026) 💸📈
+Realizamos a simplificação ("lobotomia") definitiva do motor de investimentos do Vault Finance OS em favor do modelo **Smart Ledger** manual direcionado pelo usuário:
+* **Fórmula Simplificada de Saldo (Smart Ledger):** O saldo (Valor Bruto) de qualquer ativo (seja ação ou renda fixa) agora é puramente a soma e subtração dos lançamentos declarados: `SUM(BUYs) - SUM(SELLs) + SUM(YIELDs)`. Não há mais juros compostos CDI projetados dinamicamente por dia útil nem acúmulo temporal matemático.
+* **Lançamentos de Rendimento Manual (`YIELD`):** Adicionada a opção de lançar atividades do tipo Rendimento/Ajuste Manual, que incrementam diretamente o valor do ativo na carteira de investimentos.
+* **Atualização de Saldos em Lote:** Novo endpoint `POST /api/wealth/batch-update/` que permite atualizar em bloco os saldos reais declarados. O sistema calcula a diferença contra o saldo atual em banco e gera de forma autônoma a transação de ajuste `YIELD` correspondente.
+* **Isenção de Impostos Teóricos Fiscais:** Descontinuamos os cálculos e provisionamento regressivo de Imposto de Renda (IR) e IOF na carteira, delegando o controle de liquidez e declaração total de forma simples e direta ao usuário.
+
 ## Motor Avançado de Renda Fixa e Tributação Brasileira (02/06/2026) 📈🇧🇷
 Refatoramos o cálculo matemático para investimentos de Renda Fixa e Tesouro Direto:
 * **Base de 252 Dias Úteis:** O rendimento dos ativos de renda fixa agora segue a convenção brasileira oficial, desconsiderando fins de semana e feriados nacionais nos cálculos de juros acumulados diários.

@@ -1,3 +1,17 @@
+## [1.44.11] - 2026-06-03
+
+### Added
+- Painel de Dispositivos Crunchyroll-Style e Metadados Ricos (Backend):
+  - Atualizado o modelo `TrustedDevice` para armazenar `os_browser_info`, `custom_name`, `ip_address`, `location_string` e `last_used_at`.
+  - Desenvolvida view reativa que retorna `is_current_device` se o dispositivo listado corresponde à sessão ativa atual.
+  - Implementado parser inteligente de User-Agent no backend para traduzir strings cruas para formatos legíveis.
+  - Adicionado conversor de fuso horário em localização geográfica amigável para `location_string` como fallback.
+  - Resolvida falha de import circular de `SplitRule` adicionando as definições de classes em `finance/models.py`.
+
+### Fixed
+- Validação Flexível no Registro de Dispositivo:
+  - Tornou-se o campo `custom_name` e `device_key` opcionais no serializer do backend para evitar erros do tipo "This field is required" no fluxo de registro manual, provendo fallbacks inteligentes de ID e nomes.
+
 ## [1.44.00] - 2026-06-02
 
 ### Added
@@ -1347,7 +1361,7 @@ Esta versÃ£o representa um marco de engenharia focando em **Clean Architecture
 ### Adicionado
 * **Isolamento de Infraestrutura SaaS (Boilerplate):** Encapsulamento completo de rotinas administrativas, JWT, perfil do usuÃ¡rio, autenticaÃ§Ã£o segura multifator 2FA (TOTP) e polÃ­ticas internacionais de dados (GDPR/LGPD) em mÃ³dulos dedicados (`core` no Django e `src/modules/auth` no React).
 * **MÃ³dulo Especializado de FinanÃ§as (Domain Core):** CriaÃ§Ã£o do mÃ³dulo financeiro autocontido (`finance` no Django e `src/modules/finance` no React), responsÃ¡vel exclusivo por Ã¡rvores de contas mestre e envelopes recursivos, algoritmos de teto/transbordo (*distribute_excess*), amortizaÃ§Ã£o de dÃ­vidas e metas.
-* **Backup de SeguranÃ§a Completo (JSON):** CorreÃ§Ã£o do botÃ£o de exportaÃ§Ã£o e implementaÃ§Ã£o de rotina para download de backup integral instantÃ¢neo contendo todas as contas, transaÃ§Ãµes, categorias, metas, dÃ­vidas e modelos.
+* **Backup de SeguranÃ§a Completo (JSON):** ImplementaÃ§Ã£o de rotina para download de backup integral instantÃ¢neo contendo todas as contas, transaÃ§Ãµes, categorias, metas, dÃ­vidas e modelos.
 * **ExportaÃ§Ã£o AnalÃ­tica para Planilha (CSV):** Adicionada funcionalidade para exportar o livro-razÃ£o de transaÃ§Ãµes do perÃ­odo ativo em formato CSV de planilha, otimizado com codificaÃ§Ã£o UTF-8 BOM para compatibilidade com Excel e Google Sheets.
 * **Estrutura Compartilhada de UI (Shared Componentry):** UnificaÃ§Ã£o de componentes genÃ©ricos e primitives do Shadcn/ui sob o diretÃ³rio `src/shared/`, otimizando a reusabilidade e blindando os mÃ³dulos de negÃ³cios contra dependÃªncias acopladas.
 * **Garantia de NÃ£o-RegressÃ£o (Zero-Regression Pipeline):** ExpansÃ£o e normalizaÃ§Ã£o da suÃ­te de testes com 100% de sucesso em todas as verificaÃ§Ãµes do backend (40 de 40 testes verdes no Pytest) e do frontend (27 de 27 testes verdes no Vitest).

@@ -31,9 +31,11 @@ export interface CategoryNode {
   rollover_amount?: number;
   overspending_type?: string | null;
   target_value?: number;
-  target_type?: 'FIXED' | 'PERCENTAGE';
+  target_type?: 'FIXED' | 'PERCENTAGE' | 'NEEDED_FOR_SPENDING' | 'SAVINGS_BUILDER';
+  target_behavior?: 'NEEDED_FOR_SPENDING' | 'SAVINGS_BUILDER';
   ceiling_value?: number;
   parent: string | null;
+  macro_rule?: 'NEEDS' | 'WANTS' | 'SAVINGS' | 'NONE';
   children?: CategoryNode[];
 }
 
@@ -110,6 +112,7 @@ interface AccountState {
   deleteGoal: (id: string) => Promise<void>;
   
   copyBudgetFromPreviousMonth: () => Promise<void>;
+  autoAssignFunds: () => Promise<void>;
   
   // Helpers
   getAccount: (id: string) => AccountNode | undefined;
@@ -117,6 +120,15 @@ interface AccountState {
   getCategoryName: (id: string) => string;
   totalsByCurrency: (tree: AccountNode[]) => Record<Currency, number>;
   getHistory: () => { date: string; balance: number }[];
+
+  // Smart Income Splitter Simulator
+  splitterDraft: {
+    grossReceived: number;
+    needsFundValue: number;
+    remainingPartner: number;
+    rule: string;
+  } | null;
+  setSplitterDraft: (draft: { grossReceived: number; needsFundValue: number; remainingPartner: number; rule: string; } | null) => void;
 }
 
 const now = new Date();
@@ -594,6 +606,101 @@ export const useAccountStore = create<AccountState>()(
         }
       },
 
+      autoAssignFunds: async () => {
+        try {
+          const { categoryGroups, readyToAssignBalance, assignMoney } = get();
+          let currentPool = readyToAssignBalance;
+
+          if (currentPool <= 0) {
+            toast.warning("Não há saldo disponível para alocar (Ready to Assign) no momento.");
+            return;
+          }
+
+          // Coleta todas as categorias folhas da árvore
+          const leaves: CategoryNode[] = [];
+          const walk = (nodes: CategoryNode[]) => {
+            if (!Array.isArray(nodes)) return;
+            for (const node of nodes) {
+              if (!node) continue;
+              if (node.children && node.children.length > 0) {
+                walk(node.children);
+              } else {
+                leaves.push(node);
+              }
+            }
+          };
+          walk(categoryGroups);
+
+          // Filtra apenas categorias que possuem metas configuradas (target_value > 0)
+          const targetCategories = leaves.filter(cat => cat.target_value && cat.target_value > 0);
+
+          if (targetCategories.length === 0) {
+            toast.warning("Nenhuma categoria com metas de provisão (target_value) cadastrada.");
+            return;
+          }
+
+          // Ordena as categorias priorizando NEEDED_FOR_SPENDING sobre SAVINGS_BUILDER
+          targetCategories.sort((a, b) => {
+            const getBehavior = (cat: CategoryNode) => 
+              cat.target_type === 'SAVINGS_BUILDER' || cat.target_behavior === 'SAVINGS_BUILDER' 
+                ? 'SAVINGS_BUILDER' 
+                : 'NEEDED_FOR_SPENDING';
+            
+            const behaviorA = getBehavior(a);
+            const behaviorB = getBehavior(b);
+
+            if (behaviorA === 'NEEDED_FOR_SPENDING' && behaviorB !== 'NEEDED_FOR_SPENDING') return -1;
+            if (behaviorA !== 'NEEDED_FOR_SPENDING' && behaviorB === 'NEEDED_FOR_SPENDING') return 1;
+            return 0;
+          });
+
+          let totalAllocatedThisRun = 0;
+
+          // Itera sobre as metas para distribuir os fundos
+          for (const cat of targetCategories) {
+            if (currentPool <= 0) {
+              toast.info("O saldo disponível para alocação esgotou durante a distribuição.");
+              break;
+            }
+
+            const targetVal = cat.target_value || 0;
+            const behavior = cat.target_type === 'SAVINGS_BUILDER' || cat.target_behavior === 'SAVINGS_BUILDER'
+              ? 'SAVINGS_BUILDER'
+              : 'NEEDED_FOR_SPENDING';
+            let amountToAssign = 0;
+
+            if (behavior === 'NEEDED_FOR_SPENDING') {
+              // Condition A: Aloca apenas a diferença necessária para atingir a meta
+              const available = cat.available_amount || 0;
+              if (available < targetVal) {
+                amountToAssign = targetVal - available;
+              }
+            } else {
+              // Condition B: SAVINGS_BUILDER - ignora o saldo atual e aloca o target completo
+              amountToAssign = targetVal;
+            }
+
+            if (amountToAssign > 0) {
+              // Garante que não alocamos mais do que temos no RTA
+              const finalAssign = Math.min(amountToAssign, currentPool);
+              
+              // O valor alocado acumula sobre o valor que a categoria já possuía de alocação no mês
+              const newAssignedAmount = (cat.assigned_amount || 0) + finalAssign;
+              
+              await assignMoney(cat.id, newAssignedAmount);
+              
+              currentPool -= finalAssign;
+              totalAllocatedThisRun += finalAssign;
+            }
+          }
+
+          await get().fetchCategoryGroups();
+          toast.success(`Distribuição concluída! R$ ${totalAllocatedThisRun.toFixed(2)} alocados com sucesso.`);
+        } catch (error: any) {
+          toast.error("Erro na distribuição das metas: " + error.message);
+        }
+      },
+
       // --- DISTRIBUTIONS ---
       fetchDistributionTemplates: async () => {
         try {
@@ -752,5 +859,65 @@ export const useAccountStore = create<AccountState>()(
         
         return history;
       },
+
+      splitterDraft: null,
+      setSplitterDraft: (draft) => set({ splitterDraft: draft }),
     })
 );
+
+export const selectMacroDistribution = (state: { categoryGroups: CategoryGroup[], transactions: Transaction[], currentMonth: number, currentYear: number }) => {
+  let needsAssigned = 0;
+  let wantsAssigned = 0;
+  let savingsAssigned = 0;
+
+  const getAssignedSum = (node: CategoryNode): number => {
+    let sum = node.assigned_amount || 0;
+    if (Array.isArray(node.children)) {
+      for (const child of node.children) {
+        sum += getAssignedSum(child);
+      }
+    }
+    return sum;
+  };
+
+  const groups = Array.isArray(state.categoryGroups) ? state.categoryGroups : [];
+  for (const group of groups) {
+    if (!group) continue;
+    const assigned = getAssignedSum(group);
+    if (group.macro_rule === 'NEEDS') {
+      needsAssigned += assigned;
+    } else if (group.macro_rule === 'WANTS') {
+      wantsAssigned += assigned;
+    } else if (group.macro_rule === 'SAVINGS') {
+      savingsAssigned += assigned;
+    }
+  }
+
+  const txs = Array.isArray(state.transactions) ? state.transactions : [];
+  const totalInc = txs.reduce((acc, t) => {
+    if (!t || !t.date || typeof t.date !== "string") return acc;
+    const parts = t.date.split('-');
+    if (parts.length < 2) return acc;
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const isCorrectPeriod = month === state.currentMonth && year === state.currentYear;
+    if (t.is_income && isCorrectPeriod) {
+      return acc + Math.abs(Number(t.amount) || 0);
+    }
+    return acc;
+  }, 0);
+
+  const needsPct = totalInc > 0 ? (needsAssigned / totalInc) * 100 : 0;
+  const wantsPct = totalInc > 0 ? (wantsAssigned / totalInc) * 100 : 0;
+  const savingsPct = totalInc > 0 ? (savingsAssigned / totalInc) * 100 : 0;
+
+  return {
+    needsAssigned,
+    wantsAssigned,
+    savingsAssigned,
+    totalIncome: totalInc,
+    needsPct,
+    wantsPct,
+    savingsPct,
+  };
+};

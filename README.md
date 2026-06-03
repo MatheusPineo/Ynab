@@ -1,6 +1,6 @@
-# ✦ Vault Finance OS (v1.43.00) ✦
+# ✦ Vault Finance OS (v1.44.08 - Split Rules & Recurrence UX) ✦
 
-> **O Sistema Operacional Financeiro Definitivo.** Uma plataforma SaaS híbrida (Web & Mobile) de alta performance inspirada na metodologia YNAB (Orçamento Base-Zero), desenvolvida com arquitetura moderna e focada em escalabilidade extrema, segurança biométrica e sincronização em tempo real de múltiplas moedas.
+> **O Sistema Operacional Financeiro Definitivo.** Uma plataforma SaaS híbrida (Web & Mobile) de alta performance inspirada na metodologia YNAB (Orçamento Base-Zero), desenvolvida com arquitetura moderna e focada em escalabilidade extrema, segurança biométrica, sincronização em tempo real de múltiplas moedas e controle de investimentos via Smart Ledger manual simplificado.
 
 ---
 

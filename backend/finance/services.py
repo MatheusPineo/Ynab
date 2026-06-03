@@ -892,6 +892,7 @@ class NetWorthCalculator:
         """
         Calcula as posições atuais e o Preço Médio (Weighted Average Cost)
         para todos os ativos baseando-se estritamente no ledger (InvestmentActivity).
+        Toda a matemática de tempo, CDI e imposto regressivo foi descontinuada.
         """
         from .models import InvestmentAsset
         from decimal import Decimal
@@ -900,141 +901,77 @@ class NetWorthCalculator:
         holdings = []
         
         for asset in assets:
-            # Substituindo por uso do PortfolioEvolutionEngine
-            if asset.asset_type in ['STOCK', 'FII', 'ETF', 'CRYPTO']:
-                position = PortfolioEvolutionEngine.calculate_stock_position(asset.id)
-                holdings.append({
-                    'asset_id': position['asset_id'],
-                    'ticker': position['ticker'],
-                    'name': asset.name,
-                    'currency': asset.currency,
-                    'asset_type': asset.asset_type,
-                    'quantity': position['quantity'],
-                    'average_cost': position['average_cost'],
-                    'total_cost_basis': position['total_cost_basis'],
-                    'current_price': position['current_price'],
-                    'net_value': position['net_value'],
-                    'total_profit_loss': position['total_profit_loss'],
-                    'percentage_yield': position['percentage_yield'],
-                })
-            elif asset.asset_type in ['FIXED_INCOME', 'TREASURY']:
-                from datetime import date
-                from .brazilian_fixed_income import BrazilianFixedIncomeEngine
-                from .models import DailyAssetPrice
+            activities = asset.activities.all().order_by('date', 'created_at')
+            
+            total_quantity = Decimal('0.00000000')
+            total_cost_basis = Decimal('0.00')
+            gross_value = Decimal('0.00')
+            
+            for act in activities:
+                qty = act.quantity or Decimal('0.00000000')
+                price = act.unit_price or Decimal('0.00')
+                fees = act.fees or Decimal('0.00')
                 
-                activities = asset.activities.all().order_by('date', 'created_at')
+                # Determina o valor financeiro da atividade
+                val = act.principal_amount
+                if val is None:
+                    val = qty * price
                 
-                # Assegura que temos o CDI atualizado para a evolução pós-fixada
-                MarketDataService.get_cdi_rate()
-                
-                # Rastreamento FIFO de tranches para fins tributários e amortização de vendas
-                tranches = []
-                for act in activities:
-                    qty = act.quantity or Decimal('0.00')
-                    price = act.unit_price or Decimal('0.00')
-                    fees = act.fees or Decimal('0.00')
-                    
-                    if act.activity_type == 'BUY':
-                        tranches.append({
-                            'qty': qty,
-                            'price': price,
-                            'fees': fees,
-                            'date': act.date,
-                            'cdi_percentage': act.cdi_percentage or Decimal('100.00'),
-                            'activity_id': act.id
-                        })
-                    elif act.activity_type == 'SELL':
-                        sell_qty = qty
-                        while sell_qty > Decimal('0.00') and tranches:
-                            first_tranche = tranches[0]
-                            if first_tranche['qty'] <= sell_qty:
-                                sell_qty -= first_tranche['qty']
-                                tranches.pop(0)
-                            else:
-                                first_tranche['qty'] -= sell_qty
-                                sell_qty = Decimal('0.00')
-
-                total_quantity = sum((t['qty'] for t in tranches), Decimal('0.00'))
-                total_cost_basis = Decimal('0.00')
-                gross_value = Decimal('0.00')
-                net_value = Decimal('0.00')
-                total_ir_amount = Decimal('0.00')
-                total_iof_amount = Decimal('0.00')
-                
-                # Obter PU atual (Marcação a Mercado) na tabela DailyAssetPrice se disponível
-                latest_price_obj = DailyAssetPrice.objects.filter(asset=asset).order_by('-date').first()
-                current_pu = latest_price_obj.price if latest_price_obj else None
-
-                for t in tranches:
-                    t_qty = t['qty']
-                    t_cost = (t_qty * t['price']) + (t['fees'] * (t_qty / (t_qty + Decimal('1e-9'))))
-                    total_cost_basis += t_cost
-                    calendar_days = (date.today() - t['date']).days
-                    
-                    if current_pu is not None:
-                        t_gross = t_qty * current_pu
+                if act.activity_type == 'BUY':
+                    gross_value += val
+                    total_quantity += qty
+                    total_cost_basis += val + fees
+                elif act.activity_type == 'SELL':
+                    gross_value -= val
+                    total_quantity -= qty
+                    # Ajusta custo médio ponderado
+                    if total_quantity + qty > Decimal('0.00000000'):
+                        avg_cost = total_cost_basis / (total_quantity + qty)
+                        total_cost_basis -= qty * avg_cost
                     else:
-                        # Fallback na evolução teórica da curva
-                        if asset.indexer == 'PRE' or asset.rate_type == 'PREFIXED':
-                            rate = t['cdi_percentage'] / Decimal('100.0')
-                            b_days = BrazilianFixedIncomeEngine.get_business_days(t['date'], date.today())
-                            t_gross = t_cost * ((Decimal('1.0') + rate) ** (Decimal(str(b_days)) / Decimal('252.0')))
-                        else:
-                            # Pós-fixado indexado a CDI
-                            orig_gross = PortfolioEvolutionEngine.calculate_fixed_income_evolution(t['activity_id'], date.today())
-                            activity_original = InvestmentActivity.objects.get(id=t['activity_id'])
-                            orig_qty = activity_original.quantity or Decimal('1.0')
-                            t_gross = t_qty * (orig_gross / orig_qty)
-
-                    t_profit = t_gross - t_cost
-                    t_iof = Decimal('0.00')
-                    t_ir = Decimal('0.00')
-                    
-                    if t_profit > Decimal('0.00'):
-                        iof_rate = Decimal(str(BrazilianFixedIncomeEngine.calculate_iof_rate(calendar_days)))
-                        t_iof = t_profit * iof_rate
-                        
-                        ir_rate = Decimal(str(BrazilianFixedIncomeEngine.calculate_ir_rate(calendar_days)))
-                        t_ir = (t_profit - t_iof) * ir_rate
-                        
-                    t_net = t_gross - t_iof - t_ir
-                    
-                    gross_value += t_gross
-                    net_value += t_net
-                    total_ir_amount += t_ir
-                    total_iof_amount += t_iof
-                
-                total_profit_loss = net_value - total_cost_basis
-                percentage_yield = Decimal('0.00')
-                if total_cost_basis > Decimal('0.00'):
-                    percentage_yield = (total_profit_loss / total_cost_basis) * Decimal('100.0')
-
+                        total_cost_basis = Decimal('0.00')
+                elif act.activity_type == 'YIELD':
+                    gross_value += val
+                    total_quantity += qty
+                elif act.activity_type == 'SPLIT':
+                    total_quantity *= qty
+            
+            if total_quantity <= Decimal('0.00000001'):
+                total_quantity = Decimal('0.00000000')
                 average_cost = Decimal('0.00')
                 current_price = Decimal('0.00')
-                if total_quantity > Decimal('0.00'):
-                    average_cost = total_cost_basis / total_quantity
-                    current_price = gross_value / total_quantity
-
-                holdings.append({
-                    'asset_id': asset.id,
-                    'ticker': asset.ticker,
-                    'name': asset.name,
-                    'currency': asset.currency,
-                    'asset_type': asset.asset_type,
-                    'quantity': total_quantity,
-                    'average_cost': round(average_cost, 4),
-                    'total_cost_basis': round(total_cost_basis, 2),
-                    'current_price': round(current_price, 4),
-                    'indexer': asset.indexer,
-                    'rate_type': asset.rate_type,
-                    'interest_rate': round(tranches[0]['cdi_percentage'], 2) if tranches else Decimal('100.00'),
-                    'gross_value': round(gross_value, 2),
-                    'ir_amount': round(total_ir_amount, 2),
-                    'iof_amount': round(total_iof_amount, 2),
-                    'net_value': round(net_value, 2),
-                    'total_profit_loss': round(total_profit_loss, 2),
-                    'percentage_yield': round(percentage_yield, 2),
-                })
+            else:
+                average_cost = total_cost_basis / total_quantity
+                current_price = gross_value / total_quantity
+            
+            net_value = gross_value
+            total_profit_loss = net_value - total_cost_basis
+            
+            percentage_yield = Decimal('0.00')
+            if total_cost_basis > Decimal('0.00'):
+                percentage_yield = (total_profit_loss / total_cost_basis) * Decimal('100.0')
+            
+            holdings.append({
+                'asset_id': asset.id,
+                'ticker': asset.ticker,
+                'name': asset.name,
+                'currency': asset.currency,
+                'asset_type': asset.asset_type,
+                'macro_category': asset.macro_category,
+                'quantity': total_quantity,
+                'average_cost': round(average_cost, 4),
+                'total_cost_basis': round(total_cost_basis, 2),
+                'current_price': round(current_price, 4),
+                'indexer': asset.indexer,
+                'rate_type': asset.rate_type,
+                'interest_rate': Decimal('0.00'),
+                'gross_value': round(gross_value, 2),
+                'ir_amount': Decimal('0.00'),
+                'iof_amount': Decimal('0.00'),
+                'net_value': round(net_value, 2),
+                'total_profit_loss': round(total_profit_loss, 2),
+                'percentage_yield': round(percentage_yield, 2),
+            })
             
         return holdings
 

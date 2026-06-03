@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
-import { useAccountStore, CategoryGroup, CategoryNode } from "@/modules/finance/store/useAccountStore";
+import { useAccountStore, CategoryGroup, CategoryNode, selectMacroDistribution } from "@/modules/finance/store/useAccountStore";
+import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { useCurrencyStore, type Currency } from "@/modules/finance/store/useCurrencyStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import {
@@ -15,7 +16,7 @@ import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown } from "lucide-react";
+import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +53,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { DistributionModal } from "@/modules/finance/components/DistributionModal";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
+import { IncomeSplitterModal } from "@/modules/finance/components/IncomeSplitterModal";
 
 // --- Month Selector Component ---
 
@@ -237,7 +239,15 @@ const Budget = () => {
     autoShield,
     surplusSweep,
     monthEndCascade,
+    autoAssignFunds,
   } = useAccountStore();
+  
+  const { user } = useAuthStore();
+  const macroDist = useAccountStore(selectMacroDistribution);
+  
+  const targetNeeds = user?.needsTargetPct ?? 50;
+  const targetWants = user?.wantsTargetPct ?? 30;
+  const targetSavings = user?.savingsTargetPct ?? 20;
   
   const { convert } = useCurrencyStore();
   
@@ -414,6 +424,15 @@ const Budget = () => {
 
           <div className="flex flex-col items-center sm:items-end gap-3">
             <div className="flex items-center gap-2">
+              <IncomeSplitterModal />
+              <Button 
+                variant="outline" 
+                onClick={autoAssignFunds}
+                className="border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-xl h-8 sm:h-10 text-[10px] sm:text-xs gap-1 sm:gap-1.5 font-bold"
+              >
+                <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                Financiar Metas
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={() => setIsGroupDialogOpen(true)}
@@ -554,6 +573,64 @@ const Budget = () => {
             </div>
           </div>
         )}
+      </section>
+
+      {/* 50/30/20 Rule Macro Tracking Panel */}
+      <section className="rounded-2xl sm:rounded-3xl bg-card/30 border border-border/40 p-4 sm:p-6 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs sm:text-sm uppercase tracking-widest text-primary font-bold">Acompanhamento Regra 50/30/20 (Alocado / Meta)</h3>
+          <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">Orçamento Base-Zero</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              label: "Necessidades (Needs)",
+              current: macroDist.needsPct,
+              target: targetNeeds,
+              amount: macroDist.needsAssigned,
+              color: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500" : macroDist.needsPct > targetNeeds ? "bg-amber-500" : "bg-emerald-500",
+              textColor: macroDist.needsPct > targetNeeds + 5 ? "text-rose-400" : macroDist.needsPct > targetNeeds ? "text-amber-400" : "text-emerald-400",
+              bgColor: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.needsPct > targetNeeds ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
+            },
+            {
+              label: "Desejos (Wants)",
+              current: macroDist.wantsPct,
+              target: targetWants,
+              amount: macroDist.wantsAssigned,
+              color: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500" : macroDist.wantsPct > targetWants ? "bg-amber-500" : "bg-emerald-500",
+              textColor: macroDist.wantsPct > targetWants + 5 ? "text-rose-400" : macroDist.wantsPct > targetWants ? "text-amber-400" : "text-emerald-400",
+              bgColor: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.wantsPct > targetWants ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
+            },
+            {
+              label: "Poupança (Savings)",
+              current: macroDist.savingsPct,
+              target: targetSavings,
+              amount: macroDist.savingsAssigned,
+              color: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500" : macroDist.savingsPct > targetSavings ? "bg-amber-500" : "bg-emerald-500",
+              textColor: macroDist.savingsPct > targetSavings + 5 ? "text-rose-400" : macroDist.savingsPct > targetSavings ? "text-amber-400" : "text-emerald-400",
+              bgColor: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.savingsPct > targetSavings ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
+            }
+          ].map((item, idx) => (
+            <div key={idx} className={cn("p-4 rounded-xl border flex flex-col gap-2 transition-all duration-300 hover:scale-[1.01]", item.bgColor)}>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-foreground">{item.label}</span>
+                <span className={cn("text-xs font-black", item.textColor)}>
+                  {item.current.toFixed(1)}% <span className="text-[10px] text-muted-foreground/60 font-normal">/ {item.target}%</span>
+                </span>
+              </div>
+              <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden">
+                <div 
+                  className={cn("h-full transition-all duration-500 rounded-full", item.color)} 
+                  style={{ width: `${Math.min(item.current, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[10px] text-muted-foreground/80 mt-1">
+                <span>Alocado: {formatMoney(item.amount, "EUR")}</span>
+                <span>Renda: {formatMoney(macroDist.totalIncome, "EUR")}</span>
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Distributed Incomes Section - Separated Container */}

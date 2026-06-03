@@ -1,53 +1,56 @@
-# Manual de Custódia: Gestão de Patrimônio e Investimentos (Wealth Tracker)
+# Manual de Custódia: Gestão de Patrimônio e Investimentos (Smart Ledger)
 
-A construção sustentável de riqueza exige uma governança milimétrica sobre a sua custódia e rentabilidade passiva. O módulo **Wealth & Investments** do Vault Finance OS atua como um livro-razão institucional, monitorando cada movimentação financeira sua — desde ações no exterior até CDBs nacionais — aplicando matemática avançada para lhe apresentar o verdadeiro ganho líquido da sua carteira.
+A construção sustentável de riqueza exige uma governança clara e sem complicações. O módulo **Wealth & Investments** do Vault Finance OS funciona como um livro-razão de controle manual (**Smart Ledger**). Em vez de depender de estimativas automáticas complexas baseadas em curvas de juros teóricas ou impostos regressivos provisionados, o sistema se torna um CRUD inteligente focado nos saldos e rendimentos exatos que você declarar.
 
-Este documento delineia o funcionamento técnico das duas vertentes de portfólio suportadas: **Renda Variável/Criptoativos** e a sofisticada arquitetura de **Renda Fixa Brasileira**.
-
----
-
-## 1. Renda Variável e Criptoativos (Preço Médio e Ledger Histórico)
-
-Ativos negociados em bolsa, fundos ou mercados descentralizados sofrem oscilação diária (marcação a mercado). O acompanhamento manual dessas movimentações, especialmente após aportes recorrentes e vendas parciais, costuma ser uma tarefa altamente complexa. 
-
-**Como gerenciar no Vault Finance OS:**
-1. **Atividades Base (Livro-Razão):** Toda nova operação no mercado deve ser lançada como uma atividade em seu painel de inventário através dos seletores: `Compra` (Aporte), `Venda` (Resgate), `Desdobramento` (Split) ou `Dividendo` (Rendimento isento/tributável).
-2. **Cálculo de Preço Médio Ponderado (Weighted Average Cost):** Quando você efetua aportes parciais (ex: compra 10 cotas a R$ 100,00 e, meses depois, 20 cotas a R$ 80,00), a `PortfolioEvolutionEngine` do sistema refaz integralmente o seu histórico. Ela calcula atômica e matematicamente o novo custo base unitário exato, ajustando automaticamente a proporção de capital comprometido caso você venda uma fatia do ativo.
-3. **Sincronia de Cotação Diária:** O sistema se conecta passivamente ao motor externo `MarketDataService` e busca a última cotação global de fechamento da bolsa, cruzando o seu *Preço Médio* com a *Cotação Atual* para gerar o indicador visual P/L (Lucro e Prejuízo) colorido em tempo real no dashboard.
+Dessa forma, o saldo de qualquer ativo e o seu patrimônio líquido consolidado refletem 100% a realidade dos seus lançamentos reais, sem surpresas matemáticas baseadas no tempo.
 
 ---
 
-## 2. Renda Fixa Pós-Fixada Brasileira (Engine Matemática CDI Base 252)
+## 1. Como Funciona o Smart Ledger (Cálculo de Saldo)
 
-A Renda Fixa não é "fixa" sem matemática robusta. O cálculo de evolução financeira no mercado nacional obedece à rígida regulamentação de 252 Dias Úteis aplicada às curvas de juros (CDI e Taxa Selic).
+O valor bruto de qualquer ativo (seja Renda Fixa ou Renda Variável) é determinado de forma estrita pela soma algébrica de suas movimentações reais declaradas:
 
-**Dinâmica de Capitalização (Acrual):**
-* Ao registrar um ativo bancário (ex: um CDB de 105% do CDI ou uma LCI Itaú), você declara o "Valor Principal" aportado.
-* Diferente da Renda Variável que oscila com oferta e demanda, a evolução da Renda Fixa Brasileira é computada **dia após dia, de forma retroativa**, desde a data da sua aplicação.
-* **O Limpador de Feriados:** A nossa Engine varre a taxa referencial da tabela histórica (`DailyCDIRate`). O capital apenas sofre capitalização diária (juros compostos) se o dia for **Útil**. Sábados, Domingos e feriados bancários (deduzidos automaticamente via cálculo de Páscoa/Carnaval) não incidem capitalização, gerando a "falsa" estagnação de saldos nos finais de semana de acordo com o padrão do Banco Central.
+$$\text{Valor Bruto} = \sum \text{Compras} - \sum \text{Vendas} + \sum \text{Rendimentos (YIELD)}$$
+
+* **Compras (BUY):** Adiciona valor financeiro ao ativo e acumula a quantidade de cotas/ações.
+* **Vendas (SELL):** Deduz valor financeiro do ativo e reduz a quantidade de cotas/ações.
+* **Rendimento/Ajuste Manual (YIELD):** Adiciona valor financeiro diretamente ao saldo do ativo para representar juros creditados, dividendos que foram reinvestidos ou ajustes manuais para conciliar o saldo com o extrato real da corretora.
 
 ---
 
-## 3. Marcação a Mercado e Dedução Automática de Impostos (IR / IOF)
+## 2. Atualização em Lote de Saldos (Batch Update)
 
-A maior ilusão de um portfólio amador é avaliar a rentabilidade baseada no saldo bruto. O Vault Finance OS blinda suas expectativas de capital fatiando agressivamente as despesas federais e fiscais *antes* de lhe mostrar seu saldo na tela.
+Para economizar seu tempo, você não precisa criar lançamentos manuais de rendimento um a um para cada ativo no final do mês. O Vault Finance OS disponibiliza a funcionalidade de **Atualização em Lote**:
 
-### Tributação Dinâmica e Provisionada
-A engine (`BrazilianFixedIncomeEngine`) aplica, de forma automatizada, um desconto de tributos projetados como se você realizasse o resgate total do ativo **hoje**:
+1. Vá para a tela de configurações ou painel de investimentos e acione a **Atualização de Saldos**.
+2. Digite o saldo atualizado (declarado) de cada um dos seus ativos com base no extrato oficial da sua corretora ou banco.
+3. O sistema calculará de forma automática a diferença:
+   $$\text{Diferença} = \text{Saldo Declarado} - \text{Saldo Atual no Banco de Dados}$$
+4. Se houver diferença, o sistema criará automaticamente um lançamento do tipo **Rendimento (YIELD)** com esse valor exato, reconciliando seu portfólio instantaneamente.
 
-* **IOF (Imposto sobre Operações Financeiras):** Se o seu título possuir menos de 30 dias na carteira, o sistema abate a tabela de IOF (que decrece diariamente e aniquila até 96% do rendimento no 1º dia).
-* **IRPF Regressivo da Renda Fixa:** Se o seu título for sujeito à taxação tributária (como CDBs ou Tesouro Direto), a inteligência do sistema calcula o seu dia exato de resgate virtual, alinha com a Tabela Regressiva Nacional da Receita Federal e provisiona apenas a alíquota respectiva em cima do juro auferido (e não do principal).
+---
 
-> [!WARNING]
-> **Dashboard Líquido (Net Wealth):** O grande número visualizado no seu cartão de "Patrimônio Total" já deduz integralmente essas variáveis operacionais. É o capital exato que entraria na sua conta corrente se o resgate ocorresse neste mesmo instante.
+## 3. Distribuição Proporcional e Atualização em Cascata (Hierarquia Dinâmica)
 
-### Referência: Tabela Regressiva do IR (Renda Fixa Brasileira)
+O Vault Finance OS suporta gerenciamento inteligente de saldos em três níveis hierárquicos: **Conta de Custódia** (ex: Corretora Rico), **Macro Categoria** (ex: Ações) e **Ativo Unitário** (ex: PETR4).
 
-A engine matemática transita fluidamente de camada tributária com base no prazo corrido de custódia (data da aplicação até o momento atual):
+### Fluxo Top-Down (De Cima para Baixo)
+Se você atualizar diretamente o saldo total de uma **Macro Categoria** ou da **Conta de Custódia**:
+* O sistema distribui automaticamente o valor novo entre os ativos filhos de forma **proporcional** ao saldo que cada um tinha anteriormente.
+* **Fórmula do Ativo:** $NovoSaldoAtivo = SaldoAntigoAtivo \times \left(\frac{NovoSaldoMacro}{SaldoAntigoMacro}\right)$.
+* **Tratamento de Zeros:** Se todos os ativos daquela categoria estivessem zerados, o novo saldo é distribuído igualmente.
+* **Ajuste de Centavos:** Para evitar erros de arredondamento inerentes a números de ponto flutuante, a diferença residual de centavos é automaticamente somada ao ativo de maior valor da categoria.
 
-| Prazo de Permanência na Custódia (Dias Corridos) | Alíquota Imposto de Renda (%) |
-| :--- | :--- |
-| **Até 180 dias** (0 a 6 meses) | 22,5% |
-| **De 181 a 360 dias** (6 meses a 1 ano) | 20,0% |
-| **De 361 a 720 dias** (1 ano a 2 anos) | 17,5% |
-| **Acima de 720 dias** (Mais de 2 anos) | 15,0% |
+### Fluxo Bottom-Up (De Baixo para Cima)
+Se você editar o saldo de um **Ativo Unitário** individualmente:
+* O sistema recalcula reativamente os totais em tela da **Macro Categoria** e da **Conta de Custódia** associada.
+* Isso garante consistência visual imediata antes de consolidar os dados.
+
+---
+
+## 4. Preço Médio e Lucro/Prejuízo
+
+O sistema gerencia de forma inteligente a base de custo do seu patrimônio:
+* **Preço Médio Ponderado:** Calculado automaticamente a cada nova compra, considerando taxas e emolumentos declarados.
+* **Lucro e Prejuízo (P/L):** Representa a diferença simples entre o saldo declarado do ativo e o seu custo de aquisição acumulado.
+* **Rendimentos Isentos de Impostos Complexos:** Toda a dedução regressiva teórica de IRPF e IOF foi descontinuada. O saldo exibido no painel de controle é exatamente o saldo que você declara e acompanha, simplificando o controle fiscal e o fechamento mensal da sua carteira.

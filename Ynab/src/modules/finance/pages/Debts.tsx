@@ -288,6 +288,37 @@ const DebtCard = ({
               </div>
             ))}
           </div>
+          
+          {/* Rastreabilidade de Origem */}
+          {(debt.origin_transaction_description || debt.applied_rule_name || debt.origin_category_name) && (
+            <div className="mt-2.5 p-2 bg-background/60 rounded-lg border border-border/30 space-y-1 text-[11px]">
+              {debt.origin_transaction_description && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <span>📄 Origem:</span>
+                  <span className="font-semibold text-foreground">
+                    {debt.origin_transaction_description} 
+                    {debt.origin_transaction_amount !== undefined && debt.origin_transaction_amount !== null && (
+                      ` (${formatMoney(Number(debt.origin_transaction_amount), debt.currency)})`
+                    )}
+                  </span>
+                </div>
+              )}
+              {debt.applied_rule_name && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <span>🔗 Regra:</span>
+                  <span className="font-semibold text-foreground">
+                    🔗 {debt.applied_rule_name}
+                  </span>
+                </div>
+              )}
+              {debt.reimburses_category && debt.origin_category_name && (
+                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium">
+                  <span>📥 Reembolso:</span>
+                  <span>Retorna para o envelope: <strong className="underline">{debt.origin_category_name}</strong></span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500" onClick={handleDelete}>
           <Trash className="h-4 w-4" />

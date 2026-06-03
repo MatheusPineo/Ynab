@@ -8,6 +8,7 @@ import { TrendingUp, TrendingDown, Landmark, Briefcase, Plus, Trash2 } from "luc
 import { Button } from "@/shared/components/ui/button";
 import { AddInvestmentActivityModal } from "../components/AddInvestmentActivityModal";
 import { InvestmentLedger } from "../components/InvestmentLedger";
+import { SmartLedgerModal } from "../components/SmartLedgerModal";
 
 export default function Investments() {
   const { summary, activities, fetchSummary, fetchActivities, deleteAsset, isLoading } = useWealthStore();
@@ -35,7 +36,10 @@ export default function Investments() {
           <h1 className="text-3xl font-bold tracking-tight">Investimentos</h1>
           <p className="text-muted-foreground mt-1">Gestão inteligente de portfólio e custódia.</p>
         </div>
-        <AddInvestmentActivityModal />
+        <div className="flex items-center gap-2 flex-wrap">
+          <SmartLedgerModal />
+          <AddInvestmentActivityModal />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

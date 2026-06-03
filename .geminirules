@@ -9,34 +9,41 @@
 - [v1.35.17] Componente Universal GlobalAccountSelector: A seleÃ§Ã£o hierÃ¡rquica avanÃ§ada com busca ("AccountCombobox") foi extraÃ­da para `src/shared/components/ui/global-account-selector.tsx` e agora Ã© o padrÃ£o global absoluto na aplicaÃ§Ã£o para todas as dropdowns de contas. Regra enforÃ§ada: Este componente SEMPRE deve ocupar `w-full` e `col-span-full` nos grids, jamais dividindo linha.
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no CartÃ£o de CrÃ©dito agora aceita nÃºmeros dinÃ¢micos e customizados de parcelamento (ex: 24x, 36x) via input numÃ©rico e a propriedade `total_amount` foi corrigida na requisiÃ§Ã£o, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitaÃ§Ãµes do select.
 - [v1.35.14] GrÃ¡ficos Reais e Vazios Elegantes (Parte 2): CorreÃ§Ã£o na lÃ³gica matemÃ¡tica de PatrimÃ´nio LÃ­quido (`is_income` em passivos) e estabilizaÃ§Ã£o das dependÃªncias do `useEffect` em `Reports.tsx`. IntegraÃ§Ã£o completa do status YNAB via backend sem mock data.
+
 # REGRAS GLOBAIS DE ENGENHARIA (NUNCA IGNORE)
-1. **Idioma:** Sempre me responda estritamente em PortuguÃƒÂªs do Brasil (pt-BR).
-2. **Qualidade ObrigatÃƒÂ³ria:** Toda alteraÃƒÂ§ÃƒÂ£o no cÃƒÂ³digo exige a execuÃƒÂ§ÃƒÂ£o imediata da suÃƒÂ­te automatizada de testes (Pytest/Vitest/Typecheck) do respectivo projeto para garantir que tudo estÃƒÂ¡ verde.
-3. **Deploy ContÃƒÂ­nuo:** Sempre faÃƒÂ§a o envio para o servidor de produÃƒÂ§ÃƒÂ£o pelo terminal utilizando o comando `vercel --prod --yes`.
+1. **Idioma:** Sempre me responda estritamente em Português do Brasil (pt-BR).
+2. **Qualidade Obrigatória:** Toda alteração no código exige a execução imediata da suíte automatizada de testes (Pytest/Vitest/Typecheck) do respectivo projeto para garantir que tudo está verde.
+3. **Deploy Contínuo:** Sempre faça o envio para o servidor de produção pelo terminal utilizando o comando `vercel --prod --yes`.
 4. **Governança de Documentação:** Sempre que alterar qualquer regra de negócio, identifique os manuais impactados (`README.md`, `ARCHITECTURE.md`, etc.) e atualize-os cirurgicamente, registrando o resumo no `CHANGELOG.md`.
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-02 21:06:00): Motor de Renda Fixa Brasileira, Marcação a Mercado por PU e Dedução de IR Regressivo (v1.44.00).
-- Frontend: Implementado `SecurityLockProvider` para capturar eventos de segundo plano (`appStateChange`) usando `@capacitor/app`.
-- Frontend: Desenvolvido componente `SecurityLockScreen` com layout glassmorphic para bloquear a interface e ocultar dados confidenciais financeiros.
-- Frontend: Integrado teclado PIN seguro de 4 a 6 dígitos com suporte a PIN padrão de fábrica (`1234`) e autenticação biométrica via `@aparajita/capacitor-biometric-auth` automática e com botão de fallback manual.
-- Frontend: Refatoradas as chamadas de registro de dispositivos em `InboxMobileSyncActivation.tsx` e `DeviceTrustModal.tsx` para interceptar e exibir explicitamente mensagens de erro de rede e validação detalhadas vindas do Django.
-- Frontend: Melhorada a função de geração de nome de dispositivo padrão para incluir horas e minutos (`Telemóvel Android - DD/MM/YYYY HH:MM`), evitando duplicidades no mesmo dia.
-- Android Nativo: Implementada emissão de notificações push locais via `NotificationCompat.Builder` e registro de `NotificationChannel` dedicado com alta prioridade no `FinanceNotificationListener.kt` após sincronização bem-sucedida de transações em segundo plano.
-- Backend: Refatorado o motor de cálculo de carteira (`NetWorthCalculator.calculate_holdings`) para investimentos em `FIXED_INCOME` e `TREASURY` para suportar marcação a mercado por preço unitário (PU) histórico/atual (`DailyAssetPrice`).
-- Backend: Integrado amortecimento FIFO de vendas de ativos e o cálculo de rendimentos teóricos na curva prefixada via dias úteis (Base 252) usando o helper do `BrazilianFixedIncomeEngine`.
-- Backend: Implementada dedução automática de impostos regressivos brasileiros (IOF e IR Regressivo de 22.5%, 20.0%, 17.5% e 15.0%) baseada no holding period em dias corridos de custódia.
-- Testes/Typecheck: Criada suíte de testes de integração cobrando a curva prefixada, marcação a mercado e descontos tributários. Todos os 82 testes do Django Pytest/TestCase 100% verdes.
+(Atualizado em 2026-06-03 21:50:00): Painel de Dispositivos Crunchyroll-Style e Metadados Ricos (v1.44.11).
+- Backend: Atualizado modelo TrustedDevice para incluir os_browser_info, custom_name, ip_address, location_string e last_used_at.
+- Backend: Views reativas e serializers que retornam a flag is_current_device e fornecem validação flexível com fallbacks para evitar erros de campo obrigatório.
+- Backend: Corrigida falha de import circular de SplitRule declarando as classes SplitRule e SplitRuleItem em finance/models.py com mapeamento adequado no banco.
+- Testes/Build: Suíte de testes Django (101/101 testes) verdes e compilação do frontend Vite via npm run build 100% bem-sucedida.
+- Deploy: Deploy em produção na Vercel atualizado com sucesso.
 
-### Status Atual (Versão 1.44.00)
-- **Marco:** Motor de Renda Fixa Brasileira, Marcação a Mercado por PU e Dedução de IR Regressivo (v1.44.00).
-- **Estado:** 100% estável e implantado em produção no Vercel.
-- **Arquitetura:** Bloqueio nativo do app no background com cobertura de tela blur glassmorphism, suporte automático e manual a biometria nativa, teclado de senha PIN, feedback push nativo de transações, e motor avançado de investimentos com tributação brasileira de renda fixa e marcação a mercado.
-- **Testes:** Suítes de testes automatizados e compilação TS 100% verdes.
+### Status Atual (Versão 1.44.11)
+- **Marco:** Painel de Dispositivos Crunchyroll-Style e Metadados Ricos (v1.44.11).
+- **Estado:** 100% estável e implantado em produção no Vercel (https://ynab-five.vercel.app).
+- **Arquitetura:** Metadados ricos integrados ao modelo de dispositivos confiáveis, permitindo auditoria no estilo Crunchyroll com tratamento de IP e fuso horário.
+- **Testes:** Suítes de testes de frontend e backend 100% verdes.
 
 ### Histórico de Sprints Recentes
-- [v1.44.00] Motor de Renda Fixa e Impostos Regressivos: Migração do cálculo de evolução para 252 dias úteis, marcação a mercado via PU do DailyAssetPrice com FIFO para amortização e aplicação de alíquotas regressivas de IOF/IR.
+- [v1.44.11] Painel de Dispositivos Crunchyroll-Style: Metadados ricos de auditoria (OS, navegador, IP, localização), detecção de sessão atual e validação tolerante no registro de novos aparelhos.
+- [v1.44.10] Detecção de Aparelhos Web: Correção de crash de DeviceAuth no browser, coleta de User-Agent, timezone e nome inteligência baseado no SO.
+- [v1.44.09] Rastreabilidade de Dívidas: Badges de origem de transação, regra de rateio e envelope de destino YNAB no DebtCard.
+- [v1.44.08] Regras de Rateio e Recorrência UX: Inclusão do checkbox de rateio e valor compartilhado no formulário com deep-link sem perda de dados, e criação do RecurrenceEditModal.
+- [v1.44.07] Lançamento de Transação Direto: Remoção do checkbox "Vincular a uma categoria?" do modal, exibindo a categoria por padrão.
+- [v1.44.06] Painel Analítico 50/30/20: Classificação macro_rule de categorias, metas de UserProfile no banco e termômetros reativos na tela de orçamento.
+- [v1.44.05] Auto-Assign e Metas de Orçamento: Criação da lógica de distribuição prioritária, suporte a metas NEEDED_FOR_SPENDING e SAVINGS_BUILDER e botão de financiamento rápido.
+- [v1.44.04] Smart Income Splitter: Criação do modal divisor de receitas com simulação reativa no cliente e integração na store Zustand de contas.
+- [v1.44.03] Painel de Ajuste em Cascata: Criação do modal SmartLedgerModal, reatividade bidirecional em árvore de inputs locais e integração no cabeçalho de investimentos.
+- [v1.44.02] Motor de Distribuição Proporcional e Cascata Hierárquica: Implementação do frontend utilitário, novos métodos na store Zustand e testes unitários de balanceamento.
+- [v1.44.01] Descontinuação do Motor de Investimentos e Smart Ledger: Simplificação de holdings, inclusão de atividades YIELD, endpoint batch-update e correção de testes unitários.
+- [v1.44.00] Motor de Renda Fixa e Impostos Regressivos: Migração do cálculo de evolução para 252 dias úteis, marcação a mercado via PU do DailyAssetPrice com FIFO para amortização e aplicação de alíquotas regressivas de IOF/IR (descontinuado em v1.44.01).
 - [v1.43.02] Formatação Detalhada de Nome de Dispositivo: Inclusão de horas e minutos (`Telemóvel Android - DD/MM/YYYY HH:MM`) no modal de registro para evitar colisão visual no mesmo dia.
 - [v1.43.01] Flexibilidade no Registro de Dispositivos: Remoção de unicidade do nome de dispositivos no serializer de registro e atualização correspondente de testes.
 - [v1.43.00] Sistema de Bloqueio de Segurança Seguro: Adicionado bloqueio automático por PIN de 4 dígitos e biometria nativa sempre que o app vai para background no Capacitor.

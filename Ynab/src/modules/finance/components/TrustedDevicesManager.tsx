@@ -6,9 +6,15 @@ import { toast } from "sonner";
 interface Device {
   id: number;
   device_name: string;
+  custom_name?: string | null;
+  os_browser_info?: string | null;
+  ip_address?: string | null;
+  location_string?: string | null;
   token_key: string;
   last_used: string | null;
+  last_used_at?: string | null;
   created_at: string;
+  is_current_device?: boolean;
 }
 
 export const TrustedDevicesManager: React.FC = () => {
@@ -70,78 +76,103 @@ export const TrustedDevicesManager: React.FC = () => {
     fetchDevices();
   }, []);
 
+  const formatDate = (dateStr: string | null | undefined) => {
+    if (!dateStr) return 'Nunca usado';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Nunca usado';
+    return date.toLocaleDateString('pt-BR');
+  };
+
   return (
-    <div className="w-full bg-slate-900/60 backdrop-blur-md rounded-2xl border border-slate-800 p-6 text-slate-100 shadow-xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="w-full bg-neutral-900 border border-neutral-800 rounded-lg p-6 text-neutral-100 shadow-2xl font-sans">
+      <div className="flex items-center justify-between mb-8 pb-4 border-b border-neutral-800">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-violet-600/20 text-violet-400 rounded-xl border border-violet-500/20">
+          <div className="p-2 bg-neutral-800 text-orange-500 rounded-lg">
             <Shield className="w-6 h-6" />
           </div>
           <div>
-            <h2 className="text-lg font-bold tracking-tight">Dispositivos Confiáveis</h2>
-            <p className="text-xs text-slate-400">Tokens de longa duração ativos para sincronização em background.</p>
+            <h2 className="text-xl font-bold tracking-tight text-white uppercase">Dispositivos Autorizados</h2>
+            <p className="text-sm text-neutral-400">Gerencie os navegadores e aplicativos autorizados a acessar sua conta.</p>
           </div>
         </div>
         <button 
           onClick={fetchDevices} 
           disabled={isLoading}
           type="button"
-          className="p-2 text-slate-400 hover:text-slate-100 hover:bg-slate-850 rounded-lg transition-all active:scale-95"
+          className="p-2 text-neutral-450 hover:text-white rounded-lg transition-all active:scale-95 hover:bg-neutral-800"
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
       {error && (
-        <div className="p-4 mb-4 bg-red-950/40 border border-red-800/40 rounded-xl text-red-300 text-xs">
+        <div className="p-4 mb-6 bg-red-950/30 border border-red-900/50 rounded-lg text-red-400 text-sm">
           {error}
         </div>
       )}
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-12 gap-3 text-slate-400">
-          <div className="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs">Carregando lista de dispositivos...</p>
+        <div className="flex flex-col items-center justify-center py-16 gap-3 text-neutral-400">
+          <div className="w-8 h-8 border-2 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm">Carregando lista de dispositivos...</p>
         </div>
       ) : devices.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-slate-800 rounded-xl">
-          <Smartphone className="w-12 h-12 mx-auto text-slate-700 mb-3" />
-          <p className="text-slate-400 font-medium">Nenhum dispositivo ativo encontrado.</p>
-          <p className="text-xs text-slate-500 mt-1">Configure o app mobile para iniciar a sincronização automática.</p>
+        <div className="text-center py-16 border border-dashed border-neutral-800 rounded-lg">
+          <Smartphone className="w-12 h-12 mx-auto text-neutral-700 mb-3" />
+          <p className="text-neutral-400 font-semibold">Nenhum dispositivo ativo encontrado.</p>
+          <p className="text-sm text-neutral-505 mt-1">Configure o app mobile para iniciar a sincronização automática.</p>
         </div>
       ) : (
-        <div className="grid gap-4">
-          {devices.map(device => (
+        <div className="flex flex-col">
+          {devices.map((device, index) => (
             <div 
               key={device.id} 
-              className="flex items-center justify-between p-4 bg-slate-950/40 border border-slate-800/80 rounded-xl hover:border-slate-700 transition-all duration-200"
+              className={`flex items-center justify-between py-6 ${
+                index !== devices.length - 1 ? 'border-b border-neutral-800' : ''
+              }`}
             >
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-slate-850 rounded-lg text-slate-300">
-                  <Smartphone className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-slate-200">{device.device_name}</span>
-                    <span className="px-2 py-0.5 text-[10px] font-mono bg-slate-850 text-slate-400 rounded-full border border-slate-800">
-                      ID: {device.token_key}***
+              <div className="flex flex-col gap-1">
+                {/* Main Title */}
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-lg text-neutral-100">
+                    {device.os_browser_info || device.device_name}
+                  </span>
+                  {device.is_current_device && (
+                    <span className="text-xs text-orange-500 font-bold uppercase tracking-wider bg-orange-500/10 px-2 py-0.5 rounded">
+                      dispositivo atual
                     </span>
+                  )}
+                </div>
+
+                {/* Subtitle (Indented) */}
+                {device.custom_name && (
+                  <div className="pl-4 text-neutral-300 text-sm font-medium">
+                    {device.custom_name}
                   </div>
-                  <div className="flex flex-col sm:flex-row sm:gap-4 text-xs text-slate-500 mt-1">
-                    <span>Registrado em: {new Date(device.created_at).toLocaleDateString('pt-BR')}</span>
-                    <span>Último uso: {device.last_used ? new Date(device.last_used).toLocaleString('pt-BR') : 'Nunca sincronizado'}</span>
+                )}
+
+                {/* Metadata (Indented, lighter text) */}
+                <div className="pl-4 mt-1.5 flex flex-col gap-1 text-xs text-neutral-400">
+                  <div>
+                    <span className="text-neutral-500">Localização:</span> {device.location_string || 'Desconhecida'}
+                  </div>
+                  <div>
+                    <span className="text-neutral-500">Data de ativação:</span> {formatDate(device.created_at)}
+                  </div>
+                  <div>
+                    <span className="text-neutral-500">Usado pela última vez:</span> {formatDate(device.last_used_at || device.last_used)}
                   </div>
                 </div>
               </div>
 
+              {/* Action Button */}
               <button
                 onClick={() => handleRevoke(device.id)}
                 disabled={revokingId === device.id}
                 type="button"
-                className="flex items-center gap-2 px-3 py-2 bg-red-950/20 hover:bg-red-900/40 text-red-400 hover:text-red-300 border border-red-900/30 rounded-lg text-xs font-medium transition-all duration-150 active:scale-95 disabled:opacity-50"
+                className="text-orange-500 hover:text-orange-400 text-sm font-black tracking-widest uppercase py-2 px-4 transition-all hover:bg-neutral-800/50 rounded-lg active:scale-95 disabled:opacity-50"
               >
-                <Trash2 className="w-4 h-4" />
-                <span className="hidden sm:inline">Revogar Acesso</span>
+                Desativar
               </button>
             </div>
           ))}
