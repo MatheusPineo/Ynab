@@ -28,7 +28,7 @@ export const TrustedDevicesManager: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
       const response = await fetch(`${baseUrl}/devices/`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
@@ -52,7 +52,7 @@ export const TrustedDevicesManager: React.FC = () => {
     
     setRevokingId(id);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
       const response = await fetch(`${baseUrl}/devices/${id}/revoke/`, {
         method: 'DELETE',
         headers: {
@@ -74,6 +74,15 @@ export const TrustedDevicesManager: React.FC = () => {
 
   useEffect(() => {
     fetchDevices();
+
+    const handleDeviceRegistered = () => {
+      fetchDevices();
+    };
+
+    window.addEventListener("device-registered", handleDeviceRegistered);
+    return () => {
+      window.removeEventListener("device-registered", handleDeviceRegistered);
+    };
   }, []);
 
   const formatDate = (dateStr: string | null | undefined) => {

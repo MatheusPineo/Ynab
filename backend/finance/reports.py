@@ -107,56 +107,56 @@ class ReportEngine:
         history = []
         now = date.today()
 
+        # Determinar os limites das datas históricas de corte
+        month_dates = []
         for i in range(months_back - 1, -1, -1):
             target_month = (now.month - 1 - i) % 12 + 1
             target_year = now.year + (now.month - 1 - i) // 12
             
-            # Se for o mês atual, a data de fim é "hoje". Se for mês passado, é o último dia do mês.
             if i == 0:
                 end_of_month = now
             else:
                 last_day = calendar.monthrange(target_year, target_month)[1]
                 end_of_month = date(target_year, target_month, last_day)
+            month_dates.append((target_year, target_month, end_of_month))
 
-            # Transações APÓS end_of_month que impactaram o saldo atual
-            # Precisamos reverter essas transações para chegar no saldo daquela época
-            txs_after = Transaction.objects.filter(
-                account__user=user,
-                date__gt=end_of_month,
-                is_applied_to_balance=True
-            ).values('account__account_type', 'is_income').annotate(total=Sum('amount'))
+        # Obter a data mais antiga de corte
+        oldest_date = month_dates[0][2]
 
+        # Fazer uma única query agrupada no banco para todas as transações após oldest_date
+        all_txs_after = Transaction.objects.filter(
+            account__user=user,
+            date__gt=oldest_date,
+            is_applied_to_balance=True
+        ).values('date', 'account__account_type', 'is_income', 'amount')
+
+        for target_year, target_month, end_of_month in month_dates:
             assets_diff = Decimal('0.00')
             liabilities_diff = Decimal('0.00')
 
-            for tx in txs_after:
-                amt = tx['total']
-                is_income = tx['is_income']
-                acc_type = tx['account__account_type']
+            # Filtrar em memória as transações posteriores a end_of_month (muito rápido, sem tocar no banco)
+            for tx in all_txs_after:
+                if tx['date'] > end_of_month:
+                    amt = tx['amount']
+                    is_income = tx['is_income']
+                    acc_type = tx['account__account_type']
 
-                if acc_type in asset_types:
-                    if is_income:
-                        assets_diff += amt
-                    else:
-                        assets_diff -= amt
-                elif acc_type in liability_types:
-                    if is_income:
-                        liabilities_diff += amt
-                    else:
-                        liabilities_diff -= amt
+                    if acc_type in asset_types:
+                        if is_income:
+                            assets_diff += amt
+                        else:
+                            assets_diff -= amt
+                    elif acc_type in liability_types:
+                        if is_income:
+                            liabilities_diff += amt
+                        else:
+                            liabilities_diff -= amt
 
-            # Reconstrói os saldos passados
             past_assets = current_assets - assets_diff
             past_liabilities = current_liabilities - liabilities_diff
-            
-            # Se as contas normais (savings, checking) guardam positivo, past_assets >= 0
-            # Se cartão de crédito guarda negativo (e debt negativo), sum é negativo. Então Patrimonio Liquido = Assets + Liabilities (sendo Liabilities negativo).
-            # Para o relatório visual, Passivos costuma ser apresentado como um número positivo.
-            
             net_worth = past_assets + past_liabilities
 
             month_abbr = calendar.month_abbr[target_month].capitalize()
-            # Adaptação para o português (opcional, mas recomendado)
             pt_months = {1:"Jan", 2:"Fev", 3:"Mar", 4:"Abr", 5:"Mai", 6:"Jun", 7:"Jul", 8:"Ago", 9:"Set", 10:"Out", 11:"Nov", 12:"Dez"}
             month_name = pt_months.get(target_month, month_abbr)
 

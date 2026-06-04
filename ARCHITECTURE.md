@@ -1201,4 +1201,59 @@ Para possibilitar a renderização dinâmica de ícones/logotipos de bancos e ga
 - `domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")`
 - O valor é serializado e transmitido automaticamente pelo `AccountSerializer` (`fields = '__all__'`), permitindo que a camada do cliente recupere dinamicamente a imagem no formato `https://logo.clearbit.com/{account.domain}` para maior riqueza estética.
 
+---
 
+## 11. Arquitetura de Performance e Otimização de Latência (v1.47.00)
+
+O Vault Finance OS implementa uma estratégia de performance em três camadas cobrindo banco de dados, lógica de servidor e renderização de cliente.
+
+### 11.1 Otimização de Queries no Backend (Django ORM)
+
+#### Eliminação Sistemática de N+1 Queries
+Todos os ViewSets críticos utilizam estratégias de carregamento antecipado:
+* **`select_related()`** para ForeignKeys: `CategoryViewSet` (`parent`), `MonthlyBudgetViewSet` (`category`).
+* **`prefetch_related()`** para relações reversas e OneToOne: `SplitRuleViewSet` (`items`), `CategoryViewSet.tree` (`active_goal`), `DebtViewSet` (`charges`, `payments`, `payments__account`), `CreditCardViewSet.bills` (parcelas e anotações agregadas).
+
+#### Índices de Banco de Dados
+Índices explícitos (`db_index=True`) aplicados em colunas filtradas com alta frequência:
+* `MonthlyBudget`: `month`, `year`
+* `Installment`: `status`
+* `Debt`: `is_mine`
+
+#### Agregações no Banco de Dados
+Cálculos pesados migrados de loops Python para anotações ORM (`annotate`, `Sum`, `Coalesce`):
+* `DebtSerializer`: `total_amount`, `amount_paid`, `amount_remaining` calculados via `Sum` no PostgreSQL.
+* `CreditCardViewSet.bills`: `total_amount` das faturas anotado diretamente na query.
+
+### 11.2 Otimização de Services Backend (Batch Queries)
+
+#### `YNABBudgetService.calculate_envelope_states`
+Refatorado para eliminar queries dentro do loop cronológico mensal:
+* **Antes:** N queries por mês (income, budgets, expenses) dentro do loop de meses.
+* **Depois:** 3 queries batch únicas no início, indexadas em memória por `(year, month)` para lookups O(1).
+
+#### `YNABGoalService.calculate_underfunded`
+* Aceita parâmetro `goal` opcional pré-carregado via `prefetch_related('active_goal')`.
+* Mantém fallback para query individual garantindo compatibilidade retroativa.
+* Elimina N queries de `CategoryGoal` (1 por categoria folha) no endpoint `/categories/tree/`.
+
+#### `ReportEngine.get_net_worth_evolution`
+* Queries de transações consolidadas em batch único com filtro por range de datas.
+
+### 11.3 Otimização do Frontend (React)
+
+#### Code-Splitting via React.lazy + Suspense
+Todos os 18 módulos principais do `App.tsx` são carregados sob demanda:
+* `Dashboard`, `Accounts`, `Transactions`, `Budget`, `Goals`, `Settings`, `Debts`, `Reports`, `CreditCards`, `Investments`, `Inbox`, `Auth`, `Landing`, `NotFound`, `LegalCenter`, `HelpCenter`, `AccountDetails`, `BillDetails`, `DebtorProfile`, `Rule503020`.
+* Bibliotecas pesadas como `recharts` (271 kB) são isoladas automaticamente no chunk da rota que as utiliza (`Reports-*.js`).
+
+#### Virtualização de Listas
+* `Transactions.tsx`: Renderização virtualizada via `react-window` tanto no modo mobile (cards) quanto desktop (tabela).
+
+#### Eliminação de Request Waterfalls
+* `Debts.tsx`: Fetch paralelo com `Promise.all()` para dívidas e contas na montagem.
+* `DebtCard`: Estado de grouped debts elevado ao componente pai para evitar 10+ requisições concorrentes.
+
+#### Memoização de Componentes
+* `CreditCards.tsx`: Funções de fetch encapsuladas em `useCallback()`.
+* `Dashboard.tsx`: Gráfico isolado em `DashboardAreaChart` com `React.memo` para prevenir re-renders no hover.

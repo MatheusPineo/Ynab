@@ -1,3 +1,63 @@
+## [1.47.00] - 2026-06-04
+
+### Performance (Fase 3 — Services & Bundle Splitting)
+- Backend: Refatoração do `YNABBudgetService.calculate_envelope_states` eliminando queries individuais dentro do loop mensal. Agora todas as transações de receita, orçamentos e despesas são pré-carregadas em batch com lookups O(1) em memória indexados por `(year, month)`.
+- Backend: Otimização do `ReportEngine.get_net_worth_evolution` consolidando queries de transações em uma única consulta batch com filtro por range de datas.
+- Backend: Eliminação de N+1 queries no `YNABGoalService.calculate_underfunded` — os `CategoryGoal` são agora pré-carregados via `prefetch_related('active_goal')` no queryset do `CategoryViewSet.tree`, evitando uma query por categoria folha.
+- Frontend: Code-splitting completo via `React.lazy()` + `Suspense` para todos os 18 módulos principais no `App.tsx` (Dashboard, Accounts, Transactions, Budget, Goals, Debts, Reports, CreditCards, Investments, Settings, etc.), reduzindo o bundle inicial e carregando cada rota sob demanda.
+- Frontend: O `recharts` (271 kB) agora é carregado apenas quando o usuário navega para `/reports`, isolado no chunk `Reports-*.js` pelo code-splitting automático do Vite.
+
+### Fixed
+- Backend: Corrigido `test_reports.py` — removida linha duplicada com indentação incorreta e corrigidas chamadas `date()` inválidas com kwargs inexistentes em `test_credit_card_usage_math`.
+
+## [1.46.00] - 2026-06-04
+
+### Added
+- Frontend: Virtualização de listas longas na tela de transações (`Transactions.tsx`) para os modos mobile e desktop table utilizando o componente `List` da biblioteca `react-window` para evitar DOM bloat.
+- Frontend: Otimização de concorrência e eliminação de waterfall em `Debts.tsx` executando a busca paralela das dívidas e contas usando `Promise.all()` na montagem do componente, e elevação do estado das dívidas agrupadas (`grouped_debts`) do `DebtCard` para o pai `Debts.tsx`.
+- Frontend: Memorização de funções sensíveis a renderização em `CreditCards.tsx` envelopadas em `useCallback` (`fetchCreditCards` e `fetchBillsForCard`) para otimizar componentes puros como `BillDetailsView`.
+- Frontend: Extração e memorização estrita do gráfico do Dashboard em componente isolado `DashboardAreaChart` encapsulado com `React.memo` para previnir re-renders de todo o DOM no mouse hover.
+- Backend: Adicionado índices no banco de dados (`db_index=True`) para `MonthlyBudget` (month, year), `Installment` (status) e `Debt` (is_mine). Criada e aplicada a migração correspondente.
+- Backend: Eliminação de consultas N+1 com `select_related('parent')` em `CategoryViewSet`, `select_related('category')` em `MonthlyBudgetViewSet`, e `prefetch_related('items')` em `SplitRuleViewSet`.
+- Backend: Otimização de `DebtViewSet` usando `prefetch_related('charges', 'payments', 'payments__account')` e fazendo anotações agregadas (`Sum`, `Coalesce`) direto no banco de dados para evitar `SerializerMethodField` lento em `DebtSerializer`.
+- Backend: Otimização do endpoint `bills` em `CreditCardViewSet` carregando faturas com `prefetch_related` de parcelas e anotação agregada direta de `total_amount` no banco de dados, reduzindo o tempo de serialização e eliminando N+1 na listagem de faturas.
+
+## [1.44.15] - 2026-06-04
+
+### Added
+- Frontend: Substituição de todas as chamadas `fetch` brutas por `authenticatedFetch` em `Settings.tsx` (configurações de perfil, senha, 2FA, demo e reset) e `App.tsx` (sincronização de idioma), garantindo suporte a renovação automática de token JWT e reportagem completa de falhas de rede à telemetria do PostHog.
+- Frontend: Corrigida a porta padrão de fallback do backend local de `8002` para `8000` na biblioteca `api.ts`.
+
+## [1.44.14] - 2026-06-04
+
+### Fixed
+- Frontend: Corrigido o React Minified Error #185 (Maximum update depth exceeded) na página de orçamento (`/budget`). O loop de renderizações era causado pelo conflito de foco (*FocusTrap*) entre o `DropdownMenu` e o `Dialog` de edição de categorias do Radix UI. Solucionado adicionando `e.preventDefault()` no `onSelect` do `DropdownMenuItem`.
+- Frontend: Otimizada a reatividade da store no `Budget.tsx` encapsulando a seleção do `selectMacroDistribution` com o hook `useShallow` do Zustand para evitar re-renders cíclicos de novos objetos literais.
+
+## [1.44.13] - 2026-06-04
+
+### Added
+- Frontend: Configuração de `esbuild: { keepNames: true }` no `vite.config.ts` para preservar os nomes de funções/classes em builds de produção, facilitando a depuração e desofuscação no PostHog.
+- Deploy: Configuração no `vercel.json` adicionando bypass na rota `/assets/(.*)` para evitar o rewrite SPA e permitir o download público de arquivos de source map (`.map`) pelo crawler do PostHog.
+
+## [1.44.12] - 2026-06-04
+
+### Added
+- Integração Completa do PostHog para Rastreamento e Observabilidade:
+  - Frontend: Inicialização do `posthog-js` no arquivo `main.tsx` condicionado à presença de `VITE_POSTHOG_KEY`, habilitando `autocapture`, `capture_pageview`, `capture_performance`, `session_recording` e modo debug em ambiente de desenvolvimento (`DEV`).
+  - Frontend: Integração do PostHog com o `ErrorBoundary` em `error-boundary.tsx` chamando explicitamente `posthog.captureException(error, { extra: errorInfo })` no método `componentDidCatch` para capturar falhas que não chegam ao `window` global.
+  - Frontend: Configuração de `sourcemap: true` em `vite.config.ts` para gerar os mapas de fontes na pasta `/dist` durante a build do Vercel, permitindo o correto re-mapeamento de erros minificados na console do PostHog.
+  - Frontend: Implementação de interceptor global de erros de API no arquivo `api.ts`, reportando respostas de erros HTTP `>= 400` como eventos `api_failure` no PostHog com detalhes higienizados de rota, verbo e payloads.
+  - Frontend: Captura de falhas físicas de rede (CORS, offline, DNS) envolvendo as chamadas de `fetch` em `api.ts` para enviar eventos `network_failure` ao PostHog.
+  - Frontend: Criação do utilitário de telemetria `telemetry.ts` exportando `trackHandledException` e `trackFormValidationFailure`, integrado no formulário `InboxMobileSyncActivation.tsx` para rastreamento inteligente de erros e falhas de validação de formulário.
+  - Backend: Criação do middleware customizado `TelemetryExceptionMiddleware` em `finance/middleware.py` (herda de `MiddlewareMixin`) para capturar exceções não tratadas (HTTP 500) com stack traces formatados completos, enviando eventos `backend_exception` ao PostHog.
+  - Backend: Adicionado o pacote `posthog` no arquivo de dependências `requirements.txt`.
+  - Backend: Configuração e inicialização global do cliente `posthog` no arquivo `settings.py`, mapeando `POSTHOG_API_KEY`, `POSTHOG_HOST` a partir de variáveis de ambiente via `os.getenv` e desativando o envio de dados caso a variável `TESTING` esteja ativa.
+  - Frontend: Criação do utilitário de Asserção de Invariantes de Negócios `businessInvariants.ts` para registrar "bugs silenciosos" na telemetria através do evento `business_logic_anomaly` no PostHog.
+  - Frontend: Integração do rastreador de invariantes em `IncomeSplitterModal.tsx` cobrindo o fechamento e divisões do Smart Income Splitter.
+  - Frontend: Adicionados testes unitários robustos em `incomeSplitter.test.ts` validando todas as regras matemáticas e o comportamento de interceptação de invariantes de negócios.
+  - Documentação: Criação do manual do usuário `docs/manuais/observabilidade_posthog.md` na Central de Ajuda VitePress detalhando o uso das chaves e a política de privacidade das métricas de telemetria de falhas, registrando-o na barra lateral do VitePress.
+
 ## [1.44.11] - 2026-06-03
 
 ### Added

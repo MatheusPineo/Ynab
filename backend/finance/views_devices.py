@@ -100,12 +100,34 @@ class DeviceRegisterView(APIView):
         ua_string = validated_data.get('raw_user_agent') or request.META.get('HTTP_USER_AGENT', '')
         os_browser_info = parse_user_agent(ua_string)
         ip = get_client_ip(request)
-        timezone = validated_data.get('timezone')
-        location_string = timezone_to_location(timezone)
+        
+        # Geolocation via ip-api.com
+        location_string = "Unknown"
+        if ip and ip != '127.0.0.1' and not ip.startswith('192.168.') and not ip.startswith('10.'):
+            try:
+                import requests
+                # Use a fast timeout (2s) to prevent blocking requests
+                response = requests.get(f"http://ip-api.com/json/{ip}", timeout=2.0)
+                if response.status_code == 200:
+                    geo_data = response.json()
+                    if geo_data.get('status') == 'success':
+                        city = geo_data.get('city', '')
+                        country = geo_data.get('country', '')
+                        if city and country:
+                            location_string = f"{city}, {country}"
+                        elif country:
+                            location_string = country
+            except Exception as e:
+                print(f"Erro ao obter geolocalização do IP {ip}: {e}")
 
-        # Se name/device_name/custom_name não foi enviado, fallback para o User-Agent parsed
+        # Se não resolveu via IP, tenta usar timezone
+        if location_string == "Unknown" or not location_string:
+            timezone = validated_data.get('timezone')
+            location_string = timezone_to_location(timezone) or "Unknown"
+
+        # Se custom_name/name/device_name foi enviado, prioritiza
         custom_name = validated_data.get('custom_name')
-        device_name = validated_data.get('device_name') or validated_data.get('name') or custom_name or os_browser_info
+        device_name = custom_name or validated_data.get('device_name') or validated_data.get('name') or os_browser_info
 
         raw_token = TrustedDevice.generate_token()
         token_key = raw_token[:8]

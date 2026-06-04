@@ -155,8 +155,8 @@ class SplitRuleItem(models.Model):
 
 class MonthlyBudget(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='monthly_budgets')
-    month = models.PositiveSmallIntegerField() # 1-12
-    year = models.PositiveSmallIntegerField()
+    month = models.PositiveSmallIntegerField(db_index=True) # 1-12
+    year = models.PositiveSmallIntegerField(db_index=True)
     amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
 
     class Meta:
@@ -174,7 +174,7 @@ class Transaction(models.Model):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.CharField(max_length=255, blank=True)
-    date = models.DateField()
+    date = models.DateField(db_index=True)
     is_income = models.BooleanField(default=False)
     is_recurring = models.BooleanField(default=False)
     recurrence_interval = models.CharField(
@@ -187,7 +187,7 @@ class Transaction(models.Model):
         ('realized', 'Efetivada'),
         ('scheduled', 'Agendada'),
     ]
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='realized')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='realized', db_index=True)
     is_applied_to_balance = models.BooleanField(default=False)
     cleared = models.BooleanField(default=False)
     reconciled = models.BooleanField(default=False)
@@ -209,7 +209,7 @@ class Transaction(models.Model):
         related_name='recurring_children'
     )
     # Marca se esta ocorrência específica foi "pulada" ou "excluída"
-    is_recurrence_exception = models.BooleanField(default=False)
+    is_recurrence_exception = models.BooleanField(default=False, db_index=True)
     
     # Campo de auto-referência para integridade referencial física de transferências espelhadas
     linked_transfer = models.OneToOneField(
@@ -454,7 +454,7 @@ class Debt(models.Model):
     counterparty_name = models.CharField(max_length=100)
     original_amount = models.DecimalField(max_digits=12, decimal_places=2)
     currency = models.CharField(max_length=3, default='BRL')
-    is_mine = models.BooleanField(default=False)  # True = I owe, False = they owe me
+    is_mine = models.BooleanField(default=False, db_index=True)  # True = I owe, False = they owe me
     notes = models.TextField(blank=True, default='')
     origin_subaccount = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='legacy_debts')
     origin_category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_debts')
@@ -587,7 +587,7 @@ class Installment(models.Model):
     bill = models.ForeignKey(CreditCardBill, on_delete=models.CASCADE, related_name='installments')
     number = models.PositiveSmallIntegerField()
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
     subaccount = models.ForeignKey(Account, on_delete=models.RESTRICT, null=False, blank=False, related_name='installments')
 
     class Meta:

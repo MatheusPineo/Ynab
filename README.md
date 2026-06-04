@@ -1,4 +1,4 @@
-# ✦ Vault Finance OS (v1.44.08 - Split Rules & Recurrence UX) ✦
+# ✦ Vault Finance OS (v1.47.00 - Performance Overhaul Complete) ✦
 
 > **O Sistema Operacional Financeiro Definitivo.** Uma plataforma SaaS híbrida (Web & Mobile) de alta performance inspirada na metodologia YNAB (Orçamento Base-Zero), desenvolvida com arquitetura moderna e focada em escalabilidade extrema, segurança biométrica, sincronização em tempo real de múltiplas moedas e controle de investimentos via Smart Ledger manual simplificado.
 
@@ -86,12 +86,17 @@ Configure os arquivos `.env` em suas respectivas pastas para garantir o correto 
 | `DEBUG` | Define o modo de depuração (ativado/desativado). | `True` (desenv) \| `False` (prod) |
 | `SECRET_KEY` | Chave secreta única do Django para assinatura criptográfica. | `django-insecure-sua-chave...` |
 | `GOOGLE_CLIENT_ID` | Identificador da aplicação no Google Cloud Console para Login Único. | `123456-abcde...apps.googleusercontent.com` |
+| `POSTHOG_API_KEY` | Chave de API do PostHog para observabilidade no backend. | `phc_suachaveaqui...` |
+| `POSTHOG_HOST` | Endpoint do PostHog para envio de dados do backend. | `https://us.i.posthog.com` |
+| `TESTING` | Desativa integrações externas de telemetria durante testes. | `True` (testes) \| `False` (padrão) |
 
 ### Frontend (`/Ynab/.env.local` ou `/Ynab/.env`)
 | Variável | Descrição | Exemplo / Padrão |
 | :--- | :--- | :--- |
 | `VITE_API_URL` | Endereço base do servidor da API do Backend. | `http://localhost:8000` |
 | `VITE_GOOGLE_CLIENT_ID` | Chave de cliente OAuth do Google para login na Web. | `123456-abcde...apps.googleusercontent.com` |
+| `VITE_POSTHOG_KEY` | Chave pública do PostHog para observabilidade no frontend. | `phc_suachaveaqui...` |
+| `VITE_POSTHOG_HOST` | Endpoint do PostHog para envio de dados do frontend. | `https://us.i.posthog.com` |
 
 ---
 
@@ -187,3 +192,4 @@ graph TD
 1. **Testes Obrigatórios:** Toda alteração efetuada nos arquivos de regras de negócio ou de interface visual deve, obrigatoriamente, passar sem erros nos comandos `pytest` e `npm run test`.
 2. **Localização Dinâmica:** Nunca insira strings de texto fixas no frontend. Sempre utilize o hook de tradução `const { t } = useTranslation();` e registre os textos no dicionário de traduções em `src/locales/`.
 3. **Padrão de Commits:** Siga o padrão de commits semânticos (*Conventional Commits*) para manter o histórico claro de correções e novas funcionalidades.
+4. **Invariantes de Negócios:** Ao codificar lógicas de cálculo críticas (ex: divisões, taxas, conversões), utilize a função `assertBusinessLogic` de `@/shared/lib/businessInvariants` para monitorar desvios silenciosos em produção de forma assíncrona.

@@ -538,42 +538,64 @@ class YNABBudgetService:
                 cur_year += 1
 
         # Dicionários de estado acumulado de rollover e overspending de meses passados
-        # available_by_cat[(year, month)][cat_id] = Decimal
         available_by_cat = {}
-        
-        # ready_to_assign[(year, month)] = Decimal
         rta_by_month = {}
 
         prev_rta = Decimal('0.00')
         prev_month_cash_overspent = Decimal('0.00')
 
+        # Pré-carregar todas as transações on-budget e orçamentos para todo o período histórico de uma vez só
+        if months_sequence:
+            start_date_seq = date(months_sequence[0][0], months_sequence[0][1], 1)
+            end_date_seq = date(months_sequence[-1][0], months_sequence[-1][1], calendar.monthrange(months_sequence[-1][0], months_sequence[-1][1])[1])
+        else:
+            start_date_seq = date(target_year, target_month, 1)
+            end_date_seq = date(target_year, target_month, calendar.monthrange(target_year, target_month)[1])
+
+        all_income_txs = Transaction.objects.filter(
+            account__user=user,
+            account__exclude_from_totals=False,
+            date__range=(start_date_seq, end_date_seq),
+            is_income=True,
+            category__isnull=True
+        ).exclude(account__account_type='investment').values('date', 'amount')
+
+        all_budgets = MonthlyBudget.objects.filter(
+            category__user=user,
+            year__range=(months_sequence[0][0] if months_sequence else target_year, months_sequence[-1][0] if months_sequence else target_year)
+        ).values('category_id', 'month', 'year', 'amount')
+
+        all_expense_txs = Transaction.objects.filter(
+            account__user=user,
+            account__exclude_from_totals=False,
+            date__range=(start_date_seq, end_date_seq),
+            category__isnull=False,
+            is_applied_to_balance=True
+        ).exclude(account__account_type='investment').values('date', 'category_id', 'is_income', 'amount', 'account__account_type')
+
+        # Indexar em memória por (year, month) para O(1) lookups
+        income_by_month = defaultdict(Decimal)
+        for tx in all_income_txs:
+            income_by_month[(tx['date'].year, tx['date'].month)] += tx['amount']
+
+        budgets_by_month = defaultdict(dict)
+        for b in all_budgets:
+            budgets_by_month[(b['year'], b['month'])][b['category_id']] = b['amount']
+
+        expense_by_month = defaultdict(list)
+        for tx in all_expense_txs:
+            expense_by_month[(tx['date'].year, tx['date'].month)].append(tx)
+
         # Loop cumulativo cronológico
         for (y, m) in months_sequence:
             # A. Receitas On-budget destinadas ao RTA no mês (y, m)
-            # Transações On-budget sem categoria com is_income=True
-            income_txs = Transaction.objects.filter(
-                account__user=user,
-                account__exclude_from_totals=False,
-                date__month=m,
-                date__year=y,
-                is_income=True,
-                category__isnull=True
-            ).exclude(
-                account__account_type='investment'
-            )
-            monthly_income = sum(tx.amount for tx in income_txs)
+            monthly_income = income_by_month[(y, m)]
 
             # B. Total alocado (Budgeted) nas categorias no mês (y, m)
-            budgets = MonthlyBudget.objects.filter(
-                category__user=user,
-                month=m,
-                year=y
-            )
-            budget_map = {b.category_id: b.amount for b in budgets}
+            budget_map = budgets_by_month[(y, m)]
             monthly_budgeted = sum(budget_map.values())
 
             # C. RTA líquido deste mês (incremental)
-            # RTA_M = RTA_prev + Income_M - Budgeted_M - CashOverspending_prev
             rta = prev_rta + monthly_income - monthly_budgeted - prev_month_cash_overspent
             rta_by_month[(y, m)] = rta
 
@@ -581,29 +603,19 @@ class YNABBudgetService:
             available_by_cat[(y, m)] = {}
 
             # Gastos líquidas (Activity) da categoria no mês (despesas e reembolsos)
-            # Apenas transações em contas On-budget contam contra o orçamento!
-            txs = Transaction.objects.filter(
-                account__user=user,
-                account__exclude_from_totals=False,
-                date__month=m,
-                date__year=y,
-                category__isnull=False,
-                is_applied_to_balance=True
-            ).exclude(
-                account__account_type='investment'
-            )
-
+            txs = expense_by_month[(y, m)]
             activity_map = defaultdict(Decimal)
             credit_spent_map = defaultdict(Decimal)
 
             for tx in txs:
-                amount = tx.amount
-                if not tx.is_income:
-                    activity_map[tx.category_id] -= amount
-                    if tx.account.account_type == 'credit_card':
-                        credit_spent_map[tx.category_id] += amount
+                amount = tx['amount']
+                cat_id = tx['category_id']
+                if not tx['is_income']:
+                    activity_map[cat_id] -= amount
+                    if tx['account__account_type'] == 'credit_card':
+                        credit_spent_map[cat_id] += amount
                 else:
-                    activity_map[tx.category_id] += amount
+                    activity_map[cat_id] += amount
 
             # Recupera o estado do mês anterior para cálculo de Rollover
             prev_year = y if m > 1 else y - 1
@@ -712,14 +724,18 @@ class YNABBudgetService:
 
 class YNABGoalService:
     @staticmethod
-    def calculate_underfunded(category, month, year, available_balance, assigned_amount):
+    def calculate_underfunded(category, month, year, available_balance, assigned_amount, goal=None):
         """
         Calcula o valor faltante de provisionamento ("Underfunded") de um envelope
         baseando-se na meta (CategoryGoal) ativa da categoria.
+
+        Args:
+            goal: (Opcional) Instância de CategoryGoal já pré-carregada via prefetch_related.
+                  Se None, faz fallback para uma query individual (compatibilidade retroativa).
         """
-        from .models import CategoryGoal
-        
-        goal = CategoryGoal.objects.filter(category=category).first()
+        if goal is None:
+            from .models import CategoryGoal
+            goal = CategoryGoal.objects.filter(category=category).first()
         if not goal:
             return Decimal('0.00')
 

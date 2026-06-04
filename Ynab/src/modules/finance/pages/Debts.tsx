@@ -27,13 +27,17 @@ const DebtCard = ({
   onAddPayment, 
   onTargetedPayment,
   onAddDebtAmount,
-  debtors
+  debtors,
+  groupedDebtsList,
+  onRefreshGrouped
 }: { 
   debt: Debt; 
   onAddPayment: (d: Debt) => void; 
   onTargetedPayment: (d: Debt, subaccountId: number, amount: number) => void;
   onAddDebtAmount: (d: Debt) => void; 
   debtors: { id: number; name: string }[];
+  groupedDebtsList: { subaccount_id: number; subaccount_name: string; total_outstanding_balance: number; currency: string; items?: any[] }[];
+  onRefreshGrouped: () => Promise<void>;
 }) => {
   const navigate = useNavigate();
   const [showHistory, setShowHistory] = useState(false);
@@ -44,7 +48,6 @@ const DebtCard = ({
   const progress = Math.min(100, Math.round((debt.amount_paid / totalDebt) * 100)) || 0;
   const isPaid = progress >= 100;
 
-  const [groupedDebts, setGroupedDebts] = useState<{ subaccount_id: number; subaccount_name: string; total_outstanding_balance: number; currency: string; items?: any[] }[]>([]);
   const [editingSubaccountIdx, setEditingSubaccountIdx] = useState<number | null>(null);
   const [editingAmountIdx, setEditingAmountIdx] = useState<number | null>(null);
   const [editAmountValue, setEditAmountValue] = useState("");
@@ -57,28 +60,6 @@ const DebtCard = ({
       bank.children.forEach(sub => subaccounts.push(sub));
     }
   });
-
-
-  const fetchGrouped = async () => {
-    let debtor = debtors.find(d => d.name.trim().toLowerCase() === debt.counterparty_name.trim().toLowerCase());
-    if (!debtor) {
-      debtor = debtors.find(d => 
-        debt.counterparty_name.trim().toLowerCase().includes(d.name.trim().toLowerCase()) ||
-        d.name.trim().toLowerCase().includes(debt.counterparty_name.trim().toLowerCase())
-      );
-    }
-    if (debtor) {
-      try {
-        const res = await authenticatedFetch(`/debtors/${debtor.id}/grouped_debts/`);
-        if (res.ok) {
-          const data = await res.json();
-          setGroupedDebts(data);
-        }
-      } catch (err) {
-        console.error("Error fetching grouped debts", err);
-      }
-    }
-  };
 
   const handlePayPartial = async (subaccountId: number) => {
     const amountStr = paymentAmounts[subaccountId];
@@ -145,18 +126,13 @@ const DebtCard = ({
 
       toast.success("Pagamento parcial processado com sucesso!");
       setPaymentAmounts(prev => ({ ...prev, [subaccountId]: "" }));
-      await fetchGrouped();
+      await onRefreshGrouped();
       await useAccountStore.getState().fetchAccounts();
       await useDebtStore.getState().fetchDebts();
     } catch (err: any) {
       toast.error(err.message);
     }
   };
-
-
-  useEffect(() => {
-    fetchGrouped();
-  }, [debt, debtors]);
 
   const handleDelete = async () => {
     if (window.confirm(`Tem certeza que deseja excluir a dívida de ${debt.counterparty_name}?`)) {
@@ -645,21 +621,71 @@ export const Debts = () => {
   const [addAmountSubaccount, setAddAmountSubaccount] = useState("");
   const [conciliationMode, setConciliationMode] = useState<"cash_loan" | "roomie_split">("cash_loan");
 
+  // Grouped debts map: debtor_id -> groupedDebts array
+  const [groupedDebtsMap, setGroupedDebtsMap] = useState<Record<number, any[]>>({});
+
+  const fetchAllGroupedDebts = async (debtorsList: { id: number; name: string }[]) => {
+    try {
+      const promises = debtorsList.map(async (d) => {
+        try {
+          const res = await authenticatedFetch(`/debtors/${d.id}/grouped_debts/`);
+          if (res.ok) {
+            const data = await res.json();
+            return { id: d.id, data };
+          }
+        } catch (err) {
+          console.error(`Erro ao buscar grouped_debts do devedor ${d.id}`, err);
+        }
+        return { id: d.id, data: [] };
+      });
+      const results = await Promise.all(promises);
+      const newMap: Record<number, any[]> = {};
+      results.forEach((r) => {
+        newMap[r.id] = r.data;
+      });
+      setGroupedDebtsMap(newMap);
+    } catch (err) {
+      console.error("Erro geral ao buscar grouped_debts", err);
+    }
+  };
+
+  const getGroupedDebtsForDebt = (debtItem: Debt) => {
+    let debtor = debtors.find(d => d.name.trim().toLowerCase() === debtItem.counterparty_name.trim().toLowerCase());
+    if (!debtor) {
+      debtor = debtors.find(d => 
+        debtItem.counterparty_name.trim().toLowerCase().includes(d.name.trim().toLowerCase()) ||
+        d.name.trim().toLowerCase().includes(debtItem.counterparty_name.trim().toLowerCase())
+      );
+    }
+    if (debtor) {
+      return groupedDebtsMap[debtor.id] || [];
+    }
+    return [];
+  };
+
+  const handleRefreshGroupedForDebtor = async () => {
+    await fetchAllGroupedDebts(debtors);
+  };
+
   useEffect(() => {
-    fetchDebts();
-    if (tree.length === 0) fetchAccounts();
-    const fetchDebtors = async () => {
+    const loadData = async () => {
       try {
-        const res = await authenticatedFetch("/debtors/");
-        if (res.ok) {
-          const data = await res.json();
-          setDebtors(data);
+        const [_, _acc, debtorsRes] = await Promise.all([
+          fetchDebts(),
+          tree.length === 0 ? fetchAccounts() : Promise.resolve(),
+          authenticatedFetch("/debtors/")
+        ]);
+
+        if (debtorsRes && debtorsRes.ok) {
+          const debtorsData = await debtorsRes.json();
+          setDebtors(debtorsData);
+          await fetchAllGroupedDebts(debtorsData);
         }
       } catch (err) {
-        console.error("Erro ao buscar devedores", err);
+        console.error("Erro no carregamento paralelo de Debts:", err);
       }
     };
-    fetchDebtors();
+    loadData();
   }, [fetchDebts, fetchAccounts, tree.length]);
 
   useEffect(() => {
@@ -925,7 +951,16 @@ export const Debts = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {meDevem.map(debt => (
-                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onTargetedPayment={openTargetedPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
+                    <DebtCard 
+                      key={debt.id} 
+                      debt={debt} 
+                      onAddPayment={openPaymentModal} 
+                      onTargetedPayment={openTargetedPaymentModal} 
+                      onAddDebtAmount={openAddAmountModal} 
+                      debtors={debtors} 
+                      groupedDebtsList={getGroupedDebtsForDebt(debt)}
+                      onRefreshGrouped={handleRefreshGroupedForDebtor}
+                    />
                   ))}
                 </div>
               )}
@@ -948,7 +983,16 @@ export const Debts = () => {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {minhasDividas.map(debt => (
-                    <DebtCard key={debt.id} debt={debt} onAddPayment={openPaymentModal} onTargetedPayment={openTargetedPaymentModal} onAddDebtAmount={openAddAmountModal} debtors={debtors} />
+                    <DebtCard 
+                      key={debt.id} 
+                      debt={debt} 
+                      onAddPayment={openPaymentModal} 
+                      onTargetedPayment={openTargetedPaymentModal} 
+                      onAddDebtAmount={openAddAmountModal} 
+                      debtors={debtors} 
+                      groupedDebtsList={getGroupedDebtsForDebt(debt)}
+                      onRefreshGrouped={handleRefreshGroupedForDebtor}
+                    />
                   ))}
                 </div>
               )}

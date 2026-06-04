@@ -9,6 +9,16 @@
 - [v1.35.17] Componente Universal GlobalAccountSelector: A seleÃ§Ã£o hierÃ¡rquica avanÃ§ada com busca ("AccountCombobox") foi extraÃ­da para `src/shared/components/ui/global-account-selector.tsx` e agora Ã© o padrÃ£o global absoluto na aplicaÃ§Ã£o para todas as dropdowns de contas. Regra enforÃ§ada: Este componente SEMPRE deve ocupar `w-full` e `col-span-full` nos grids, jamais dividindo linha.
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no CartÃ£o de CrÃ©dito agora aceita nÃºmeros dinÃ¢micos e customizados de parcelamento (ex: 24x, 36x) via input numÃ©rico e a propriedade `total_amount` foi corrigida na requisiÃ§Ã£o, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitaÃ§Ãµes do select.
 - [v1.35.14] GrÃ¡ficos Reais e Vazios Elegantes (Parte 2): CorreÃ§Ã£o na lÃ³gica matemÃ¡tica de PatrimÃ´nio LÃ­quido (`is_income` em passivos) e estabilizaÃ§Ã£o das dependÃªncias do `useEffect` em `Reports.tsx`. IntegraÃ§Ã£o completa do status YNAB via backend sem mock data.
+- [v1.35.24 ] Enxugamento da Interface: Remoção da aba de Insights e do campo de categoria (YNAB) da tela de homologação do Inbox Inteligente.
+- [v1.35.23] Estabilização de UX/UI: Correção de crash de referência (CurrencyInput) no Inbox.ts e aprimoramento da hierarquia visual do grid de subcontas (micro-labels em text-gray-500 e barras overfunded em gradiente dinâmico tailwind).
+- [v1.35.22 ] UI Progress Bar nas Subcontas: Substituição das antigas tags de limites (AccountAccordion) por uma nova barra de progresso em linha. Lida matematicamente com saldos excedentes via cores em neon-ciano (>100%) e fornece transição elegante (vermelho para verde >= 50%). Contas sem teto definido ganham barra neutra indicando "Saldo Livre".
+- [v1.35.21] Resiliência de Dados (Reports): Corrigido o Runtime Error de renderização em Análises Avançadas. Adicionados controles universais de renderização onde os gráficos apenas desenham na tela quando `isLoading` for `false` E os arrays estiverem plenamente carregados; caso contrário o Vault devolve uma UI elegante de Empty State em vez de travar. Aplicada checagem profunda por Optional Chaining em todos os laços de iteração (v1.35.21).
+- [v1.35.20] Resiliência com Error Boundary: Implementada a fronteira de erro global `ErrorBoundary` em React para capturar exceções. Adicionado aos Routes no App.tsx e aos widgets isolados do Dashboard para prevenir o colapso total da aplicação (White Screen of Death).
+- [v1.35.19] Correção de Scroll no Seletor: O `GlobalAccountSelector` foi atualizado para conter os modificadores tailwind `overflow-y-auto`, `overscroll-contain` e `max-h-[300px]` no container da listagem, assegurando navegabilidade por scroll do mouse sem vazar o conteúdo da página ou corromper a interface.
+- [v1.35.18] Quebra de Grid no AccountSelector: O `GlobalAccountSelector` e TODOS os seus wrappers (como DIVs adjacentes) agora contêm obrigatoriamente a classe `col-span-full` para quebrar layouts de múltiplas colunas e forçar 100% de largura horizontal em formulários.
+- [v1.35.17] Componente Universal GlobalAccountSelector: A seleção hierárquica avançada com busca ("AccountCombobox") foi extraída para `src/shared/components/ui/global-account-selector.tsx` e agora é o padrão global absoluto na aplicação para todas as dropdowns de contas. Regra enforçada: Este componente SEMPRE deve ocupar `w-full` e `col-span-full` nos grids, jamais dividindo linha.
+- [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no Cartão de Crédito agora aceita números dinâmicos e customizados de parcelamento (ex: 24x, 36x) via input numérico e a propriedade `total_amount` foi corrigida na requisição, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitações do select.
+- [v1.35.14] Gráficos Reais e Vazios Elegantes (Parte 2): Correção na lógica matemática de Patrimônio Líquido (`is_income` em passivos) e estabilização das dependências do `useEffect` em `Reports.tsx`. Integração completa do status YNAB via backend sem mock data.
 
 # REGRAS GLOBAIS DE ENGENHARIA (NUNCA IGNORE)
 1. **Idioma:** Sempre me responda estritamente em Português do Brasil (pt-BR).
@@ -18,26 +28,31 @@
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-03 21:50:00): Painel de Dispositivos Crunchyroll-Style e Metadados Ricos (v1.44.11).
-- Backend: Atualizado modelo TrustedDevice para incluir os_browser_info, custom_name, ip_address, location_string e last_used_at.
-- Backend: Views reativas e serializers que retornam a flag is_current_device e fornecem validação flexível com fallbacks para evitar erros de campo obrigatório.
-- Backend: Corrigida falha de import circular de SplitRule declarando as classes SplitRule e SplitRuleItem em finance/models.py com mapeamento adequado no banco.
-- Testes/Build: Suíte de testes Django (101/101 testes) verdes e compilação do frontend Vite via npm run build 100% bem-sucedida.
-- Deploy: Deploy em produção na Vercel atualizado com sucesso.
+(Atualizado em 2026-06-04 22:33:00): Otimização de Performance - Fase 3: Refinamento (v1.47.00).
+- Backend: Batch queries no `calculate_envelope_states` (pré-carregamento de income/budgets/expenses com lookups O(1) por mês).
+- Backend: Consolidação de queries em `get_net_worth_evolution` em batch único.
+- Backend: Eliminação de N+1 no `calculate_underfunded` via `prefetch_related('active_goal')` no queryset do `CategoryViewSet.tree`.
+- Frontend: Code-splitting completo via `React.lazy()` + `Suspense` para 18 módulos no `App.tsx`.
+- Frontend: `recharts` (271 kB) isolado no chunk `Reports-*.js` carregado sob demanda.
+- Deploy: Deploy contínuo em produção concluído com sucesso via Vercel CLI com build 100% livre de erros.
 
-### Status Atual (Versão 1.44.11)
-- **Marco:** Painel de Dispositivos Crunchyroll-Style e Metadados Ricos (v1.44.11).
-- **Estado:** 100% estável e implantado em produção no Vercel (https://ynab-five.vercel.app).
-- **Arquitetura:** Metadados ricos integrados ao modelo de dispositivos confiáveis, permitindo auditoria no estilo Crunchyroll com tratamento de IP e fuso horário.
-- **Testes:** Suítes de testes de frontend e backend 100% verdes.
+### Status Atual (Versão 1.47.00)
+- **Marco:** Otimização de Performance - Fase 3: Refinamento (v1.47.00).
+- **Estado:** 100% estável e implantado em produção no Vercel (https://ynab-two.vercel.app).
+- **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, serviços com batch queries, e frontend reativo com code-splitting e renderização virtualizada.
+- **Testes:** Suíte Pytest 102/102 passando. Build TypeScript/Vite 100% verde.
 
 ### Histórico de Sprints Recentes
+- [v1.47.00] Otimização de Performance - Fase 3: Refatoração de services backend (batch queries, prefetch_related) e code-splitting completo do frontend com React.lazy/Suspense.
+- [v1.46.00] Otimização de Performance do Frontend: Paralelização, memorização e virtualização de componentes para reduzir latência de renderização.
+- [v1.44.15] Unificação de API e Resiliência: Substituição de fetch bruto por `authenticatedFetch` no `App.tsx` e `Settings.tsx`, e correção da porta padrão local para `8000` em `api.ts`.
+- [v1.44.14] Correção de Loop React 185 no Orçamento: Adicionado preventDefault no onSelect de DropdownMenuItem abrindo Dialog (resolvendo FocusTrap Radix) e uso de useShallow do Zustand na página Budget.tsx.
+- [v1.44.13] Otimização de Source Maps: Configuração de `keepNames: true` no `vite.config.ts` e regras de bypass no `vercel.json` para garantir acesso e desofuscação de alta fidelidade no PostHog.
 - [v1.44.11] Painel de Dispositivos Crunchyroll-Style: Metadados ricos de auditoria (OS, navegador, IP, localização), detecção de sessão atual e validação tolerante no registro de novos aparelhos.
 - [v1.44.10] Detecção de Aparelhos Web: Correção de crash de DeviceAuth no browser, coleta de User-Agent, timezone e nome inteligência baseado no SO.
 - [v1.44.09] Rastreabilidade de Dívidas: Badges de origem de transação, regra de rateio e envelope de destino YNAB no DebtCard.
 - [v1.44.08] Regras de Rateio e Recorrência UX: Inclusão do checkbox de rateio e valor compartilhado no formulário com deep-link sem perda de dados, e criação do RecurrenceEditModal.
 - [v1.44.07] Lançamento de Transação Direto: Remoção do checkbox "Vincular a uma categoria?" do modal, exibindo a categoria por padrão.
-- [v1.44.06] Painel Analítico 50/30/20: Classificação macro_rule de categorias, metas de UserProfile no banco e termômetros reativos na tela de orçamento.
 - [v1.44.05] Auto-Assign e Metas de Orçamento: Criação da lógica de distribuição prioritária, suporte a metas NEEDED_FOR_SPENDING e SAVINGS_BUILDER e botão de financiamento rápido.
 - [v1.44.04] Smart Income Splitter: Criação do modal divisor de receitas com simulação reativa no cliente e integração na store Zustand de contas.
 - [v1.44.03] Painel de Ajuste em Cascata: Criação do modal SmartLedgerModal, reatividade bidirecional em árvore de inputs locais e integração no cabeçalho de investimentos.

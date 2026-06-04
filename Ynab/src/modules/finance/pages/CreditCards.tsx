@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { authenticatedFetch } from "@/shared/lib/api";
@@ -116,7 +116,7 @@ export const CreditCards = () => {
     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
   ];
 
-  const fetchCreditCards = async () => {
+  const fetchCreditCards = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await authenticatedFetch("/credit-cards/");
@@ -133,9 +133,9 @@ export const CreditCards = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [selectedCard]);
 
-  const fetchBillsForCard = async (cardId: string, keepSelected = false) => {
+  const fetchBillsForCard = useCallback(async (cardId: string, keepSelected = false) => {
     try {
       const response = await authenticatedFetch(`/credit-cards/${cardId}/bills/`);
       if (response.ok) {
@@ -166,7 +166,7 @@ export const CreditCards = () => {
     } catch (error) {
       console.error("Erro ao buscar faturas:", error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchAccounts();

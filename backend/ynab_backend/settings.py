@@ -64,6 +64,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'finance.middleware.TelemetryExceptionMiddleware',
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -198,4 +199,16 @@ CELERY_TASK_ALWAYS_EAGER = os.environ.get('CELERY_TASK_ALWAYS_EAGER', 'False') =
 
 # Google Gemini API Configurations
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+
+# PostHog Observability Configurations
+import posthog
+POSTHOG_API_KEY = os.getenv('POSTHOG_API_KEY', '')
+POSTHOG_HOST = os.getenv('POSTHOG_HOST', 'https://us.i.posthog.com')
+TESTING = os.getenv('TESTING', 'False') == 'True'
+
+posthog.project_api_key = POSTHOG_API_KEY
+posthog.host = POSTHOG_HOST
+
+if TESTING:
+    posthog.disabled = True
 

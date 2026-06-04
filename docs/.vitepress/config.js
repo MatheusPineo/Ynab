@@ -19,6 +19,7 @@ export default {
           { text: 'Inbox IA e Reconciliação Contábil', link: '/manuais/inbox_ia_auditoria' },
           { text: 'Gestão de Patrimônio (Wealth)', link: '/manuais/investimentos_patrimonio' },
           { text: 'Configurações e Assinatura', link: '/manuais/configuracoes_faturamento' },
+          { text: 'Estabilidade e Diagnóstico (PostHog)', link: '/manuais/observabilidade_posthog' },
           { text: 'Operação do Ledger (Antigo)', link: '/manual_actual_budget' }
         ]
       },

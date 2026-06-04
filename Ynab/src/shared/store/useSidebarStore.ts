@@ -18,7 +18,7 @@ export const useSidebarStore = create<SidebarStore>()(
             ? state.hiddenItems.filter((item) => item !== key)
             : [...state.hiddenItems, key];
           
-          authenticatedFetch("/core/profile/update/", {
+          authenticatedFetch("/auth/profile/update/", {
             method: "POST",
             body: JSON.stringify({ hidden_sidebar_items: newItems }),
           }).catch(() => {});

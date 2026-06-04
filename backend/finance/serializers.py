@@ -16,24 +16,28 @@ class AccountSerializer(serializers.ModelSerializer):
         }
 
     def get_pending_restitutions_total(self, obj):
-        from .models import DebtItem, Debt, DebtCharge, DebtPayment
+        from .models import DebtItem, Debt
         from django.db.models import Sum
         from decimal import Decimal
         
-        items = DebtItem.objects.filter(
+        # Otimização por agregação única no banco
+        total_items = DebtItem.objects.filter(
             origin_subaccount=obj,
             status__in=['PENDING', 'PARTIAL']
-        )
-        total_items = sum(item.total_amount - item.paid_amount for item in items)
+        ).aggregate(
+            total=Sum('total_amount') - Sum('paid_amount')
+        )['total'] or Decimal('0.00')
         
+        # Debts ativos (is_mine=False)
         debts = Debt.objects.filter(
             origin_subaccount=obj,
             is_mine=False
-        )
+        ).prefetch_related('charges', 'payments')
+        
         total_debts = Decimal('0.00')
         for debt in debts:
-            total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            total_charges = sum(c.amount for c in debt.charges.all())
+            total_paid = sum(p.amount for p in debt.payments.all())
             outstanding = (debt.original_amount + total_charges) - total_paid
             if outstanding > 0:
                 total_debts += outstanding
@@ -41,8 +45,7 @@ class AccountSerializer(serializers.ModelSerializer):
         return float(total_items + total_debts)
 
     def get_debtors_summary(self, obj):
-        from .models import DebtItem, Debt, DebtCharge, DebtPayment
-        from django.db.models import Sum
+        from .models import DebtItem, Debt
         from decimal import Decimal
         
         debtor_map = {}
@@ -50,7 +53,7 @@ class AccountSerializer(serializers.ModelSerializer):
         items = DebtItem.objects.filter(
             origin_subaccount=obj,
             status__in=['PENDING', 'PARTIAL']
-        )
+        ).select_related('debtor')
         for item in items:
             name = item.debtor.name if item.debtor else "Outro"
             outstanding = item.total_amount - item.paid_amount
@@ -59,10 +62,10 @@ class AccountSerializer(serializers.ModelSerializer):
         debts = Debt.objects.filter(
             origin_subaccount=obj,
             is_mine=False
-        )
+        ).prefetch_related('charges', 'payments')
         for debt in debts:
-            total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            total_charges = sum(c.amount for c in debt.charges.all())
+            total_paid = sum(p.amount for p in debt.payments.all())
             outstanding = (debt.original_amount + total_charges) - total_paid
             if outstanding > 0:
                 name = debt.counterparty_name
@@ -264,14 +267,20 @@ class DebtSerializer(serializers.ModelSerializer):
         }
 
     def get_total_amount(self, obj):
+        if hasattr(obj, 'annotated_total_amount'):
+            return float(obj.annotated_total_amount)
         total_charges = sum(c.amount for c in obj.charges.all())
         return float(obj.original_amount + total_charges)
 
     def get_amount_paid(self, obj):
+        if hasattr(obj, 'annotated_payments_sum'):
+            return float(obj.annotated_payments_sum)
         total = sum(p.amount for p in obj.payments.all())
         return float(total)
 
     def get_amount_remaining(self, obj):
+        if hasattr(obj, 'annotated_amount_remaining'):
+            return float(obj.annotated_amount_remaining)
         from decimal import Decimal
         total_paid = sum(p.amount for p in obj.payments.all())
         total_charges = sum(c.amount for c in obj.charges.all())
@@ -299,10 +308,16 @@ class CreditCardSerializer(serializers.ModelSerializer):
 
     def get_available_limit(self, obj):
         from decimal import Decimal
-        total_used = sum(
-            i.amount for bill in obj.bills.filter(is_paid=False) 
-            for i in bill.installments.filter(status__in=['pending', 'posted'])
-        )
+        from django.db.models import Sum
+        from .models import Installment
+        
+        # Agregação direta no banco de dados para evitar loops Python
+        total_used = Installment.objects.filter(
+            bill__credit_card=obj,
+            bill__is_paid=False,
+            status__in=['pending', 'posted']
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
         return float(max(obj.credit_limit - total_used, Decimal('0.00')))
 
 class SimpleCreditCardTransactionSerializer(serializers.ModelSerializer):
@@ -336,6 +351,8 @@ class CreditCardBillSerializer(serializers.ModelSerializer):
         fields = '__all__'
         
     def get_total_amount(self, obj):
+        if hasattr(obj, 'annotated_total_amount'):
+            return float(obj.annotated_total_amount)
         total = sum(i.amount for i in obj.installments.all())
         return float(total)
 

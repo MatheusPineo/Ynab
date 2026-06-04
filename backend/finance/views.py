@@ -199,49 +199,72 @@ class AccountViewSet(viewsets.ModelViewSet):
 
         accounts = self.get_queryset()
         
+        # OTIMIZAÇÃO EM LOTE (BULK PRE-FETCH) PARA EVITAR CONSULTAS N+1
+        from django.db.models import Sum
+        from decimal import Decimal
+        from .models import Transaction as CoreTx, DebtItem, Debt, DebtCharge, DebtPayment
+        
+        account_ids = [acc.id for acc in accounts]
+        
+        # 1. Pré-calcular reserved_val por conta
+        reserved_map = {}
+        if account_ids:
+            reserved_qs = CoreTx.objects.filter(
+                account_id__in=account_ids,
+                status='pending',
+                is_applied_to_balance=False,
+                credit_card_bill__isnull=False,
+                credit_card_bill__month=month,
+                credit_card_bill__year=year
+            ).values('account_id').annotate(total=Sum('amount'))
+            for r in reserved_qs:
+                reserved_map[r['account_id']] = r['total'] or Decimal('0.00')
+
+        # 2. Pré-carregar DebtItems
+        debt_items_map = {}
+        if account_ids:
+            debt_items = DebtItem.objects.filter(
+                origin_subaccount_id__in=account_ids,
+                status__in=['PENDING', 'PARTIAL']
+            ).select_related('debtor')
+            for item in debt_items:
+                debt_items_map.setdefault(item.origin_subaccount_id, []).append(item)
+
+        # 3. Pré-carregar Debts e seus correspondentes Charges & Payments
+        debts_map = {}
+        if account_ids:
+            debts = Debt.objects.filter(
+                origin_subaccount_id__in=account_ids,
+                is_mine=False
+            ).prefetch_related('charges', 'payments')
+            for debt in debts:
+                debts_map.setdefault(debt.origin_subaccount_id, []).append(debt)
+
         def build_tree(account_list, parent_id=None):
             branch = []
             for account in account_list:
                 if account.parent_id == parent_id:
                     children = build_tree(account_list, account.id)
                     
-                    from django.db.models import Sum
-                    from decimal import Decimal
-                    from .models import Transaction as CoreTx
-                    
                     if account.account_type != 'credit_card':
-                        reserved_val = CoreTx.objects.filter(
-                            account=account,
-                            status='pending',
-                            is_applied_to_balance=False,
-                            credit_card_bill__isnull=False,
-                            credit_card_bill__month=month,
-                            credit_card_bill__year=year
-                        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                        reserved_val = reserved_map.get(account.id, Decimal('0.00'))
                     else:
                         reserved_val = Decimal('0.00')
 
-                    from .models import DebtItem, Debt, DebtCharge, DebtPayment
-                    debt_items = DebtItem.objects.filter(
-                        origin_subaccount=account,
-                        status__in=['PENDING', 'PARTIAL']
-                    )
-                    total_items = sum(item.total_amount - item.paid_amount for item in debt_items)
+                    acc_debt_items = debt_items_map.get(account.id, [])
+                    total_items = sum(item.total_amount - item.paid_amount for item in acc_debt_items)
                     
                     debtor_map = {}
-                    for item in debt_items:
+                    for item in acc_debt_items:
                         name = item.debtor.name if item.debtor else "Outro"
                         outstanding = item.total_amount - item.paid_amount
                         debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
                         
-                    debts = Debt.objects.filter(
-                        origin_subaccount=account,
-                        is_mine=False
-                    )
+                    acc_debts = debts_map.get(account.id, [])
                     total_debts = Decimal('0.00')
-                    for debt in debts:
-                        total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-                        total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+                    for debt in acc_debts:
+                        total_charges = sum(c.amount for c in debt.charges.all())
+                        total_paid = sum(p.amount for p in debt.payments.all())
                         outstanding = (debt.original_amount + total_charges) - total_paid
                         if outstanding > 0:
                             total_debts += outstanding
@@ -606,7 +629,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
         last_day = calendar.monthrange(year, month)[1]
         sync_recurring_transactions(self.request.user, upto_date=date(year, month, last_day))
         
-        categories = self.get_queryset()
+        categories = self.get_queryset().prefetch_related('active_goal')
         
         # Calcula a malha contábil do orçamento usando o YNABBudgetService
         budget_data = YNABBudgetService.calculate_envelope_states(self.request.user, month, year)
@@ -636,7 +659,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
                         
                         # Computa a necessidade de metas (Goals) usando o YNABGoalService
                         from .services import YNABGoalService
-                        underfunded = YNABGoalService.calculate_underfunded(category, month, year, available, assigned)
+                        # Reutiliza o goal pré-carregado via prefetch_related para evitar N+1 queries
+                        prefetched_goal = getattr(category, 'active_goal', None)
+                        underfunded = YNABGoalService.calculate_underfunded(category, month, year, available, assigned, goal=prefetched_goal)
                         
                         # Obtém o Goal ativo se houver
                         active_goal = getattr(category, 'active_goal', None)
@@ -846,7 +871,7 @@ class MonthlyBudgetViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return MonthlyBudget.objects.filter(category__user=self.request.user)
+        return MonthlyBudget.objects.filter(category__user=self.request.user).select_related('category')
 
     @extend_schema(
         summary="Cria ou atualiza uma dotação orçamentária para uma categoria",
@@ -888,6 +913,8 @@ class MonthlyBudgetViewSet(viewsets.ModelViewSet):
 class TransactionViewSet(viewsets.ModelViewSet):
     serializer_class = TransactionSerializer
     permission_classes = [permissions.IsAuthenticated]
+    from rest_framework.pagination import LimitOffsetPagination
+    pagination_class = LimitOffsetPagination
 
     def get_queryset(self):
         month = self.request.query_params.get('month')
@@ -906,7 +933,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
         else:
             sync_recurring_transactions(self.request.user)
             
-        qs = Transaction.objects.filter(account__user=self.request.user, is_recurrence_exception=False)
+        qs = Transaction.objects.filter(account__user=self.request.user, is_recurrence_exception=False).select_related(
+            'account', 'category', 'credit_card_bill', 'credit_card_bill__credit_card'
+        )
         
         if status_param:
             qs = qs.filter(status=status_param)
@@ -1404,7 +1433,7 @@ class SplitRuleViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return SplitRule.objects.filter(user=self.request.user).prefetch_related('items__debtor')
+        return SplitRule.objects.filter(user=self.request.user).prefetch_related('items')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -1414,7 +1443,23 @@ class DebtViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Debt.objects.filter(user=self.request.user).prefetch_related('payments__account').order_by('-created_at')
+        from django.db.models import Sum, Value, F
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
+        
+        # Prefetch de charges e payments (carregando account)
+        return Debt.objects.filter(user=self.request.user).prefetch_related(
+            'charges', 'payments', 'payments__account'
+        ).annotate(
+            annotated_charges_sum=Coalesce(Sum('charges__amount'), Value(Decimal('0.00'))),
+            annotated_payments_sum=Coalesce(Sum('payments__amount'), Value(Decimal('0.00')))
+        ).annotate(
+            annotated_total_amount=F('original_amount') + F('annotated_charges_sum'),
+            annotated_amount_remaining=Coalesce(
+                F('original_amount') + F('annotated_charges_sum') - F('annotated_payments_sum'),
+                Value(Decimal('0.00'))
+            )
+        ).order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -1654,8 +1699,15 @@ class CreditCardViewSet(viewsets.ModelViewSet):
     )
     @action(detail=True, methods=['get'])
     def bills(self, request, pk=None):
+        from django.db.models import Sum, Value
+        from django.db.models.functions import Coalesce
+        from decimal import Decimal
         card = self.get_object()
-        bills_qs = CreditCardBill.objects.filter(credit_card=card).order_by('-year', '-month')
+        bills_qs = CreditCardBill.objects.filter(credit_card=card).prefetch_related(
+            'installments', 'installments__transaction', 'installments__subaccount'
+        ).annotate(
+            annotated_total_amount=Coalesce(Sum('installments__amount'), Value(Decimal('0.00')))
+        ).order_by('-year', '-month')
         serializer = CreditCardBillSerializer(bills_qs, many=True)
         return Response(serializer.data)
 
@@ -2669,7 +2721,7 @@ class DebtorViewSet(viewsets.ModelViewSet):
         
         from django.db.models import Sum, F
         from decimal import Decimal
-        from .models import DebtItem, Debt, DebtCharge, DebtPayment
+        from .models import DebtItem, Debt
         
         total_items = DebtItem.objects.filter(
             debtor_id=instance.id,
@@ -2682,11 +2734,12 @@ class DebtorViewSet(viewsets.ModelViewSet):
             user=request.user,
             counterparty_name__iexact=instance.name,
             is_mine=False
-        )
+        ).prefetch_related('charges', 'payments')
+        
         total_debts = Decimal('0.00')
         for debt in debts:
-            total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            total_charges = sum(c.amount for c in debt.charges.all())
+            total_paid = sum(p.amount for p in debt.payments.all())
             outstanding = (debt.original_amount + total_charges) - total_paid
             if outstanding > 0:
                 total_debts += outstanding
@@ -2697,8 +2750,7 @@ class DebtorViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def grouped_debts(self, request, pk=None):
         debtor = self.get_object()
-        from .models import DebtItem, Debt, DebtCharge, DebtPayment
-        from django.db.models import Sum
+        from .models import DebtItem, Debt
         from decimal import Decimal
         
         items = DebtItem.objects.filter(
@@ -2725,11 +2777,11 @@ class DebtorViewSet(viewsets.ModelViewSet):
             user=request.user,
             counterparty_name__iexact=debtor.name,
             is_mine=False
-        ).select_related('origin_subaccount')
+        ).select_related('origin_subaccount').prefetch_related('charges', 'payments')
         
         for debt in debts:
-            total_charges = DebtCharge.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
-            total_paid = DebtPayment.objects.filter(debt=debt).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            total_charges = sum(c.amount for c in debt.charges.all())
+            total_paid = sum(p.amount for p in debt.payments.all())
             outstanding = (debt.original_amount + total_charges) - total_paid
             
             if outstanding > 0:

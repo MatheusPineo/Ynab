@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { useSettingsStore } from "@/modules/auth/store/useSettingsStore";
+import { authenticatedFetch } from "@/shared/lib/api";
 
 import { formatMoney, getCurrencySymbol } from "@/shared/lib/currency-utils";
 import { useTranslation } from "react-i18next";
@@ -158,13 +159,8 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
     setIsSaving(true);
     
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-      const response = await fetch(`${baseUrl}/auth/profile/update/`, {
+      const response = await authenticatedFetch("/auth/profile/update/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
-        },
         body: JSON.stringify({ name, bio, preferred_currency: baseCurrency })
       });
 
@@ -228,13 +224,8 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
 
     setIsChangingPassword(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-      const response = await fetch(`${baseUrl}/auth/password/change/`, {
+      const response = await authenticatedFetch("/auth/password/change/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
-        },
         body: JSON.stringify({ 
           new_password: newPassword, 
           confirm_password: confirmPassword 
@@ -258,10 +249,7 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
   const handleSetup2FA = async () => {
     setIsSettingUp2FA(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-      const response = await fetch(`${baseUrl}/auth/2fa/setup/`, {
-        headers: { "Authorization": `Bearer ${accessToken}` }
-      });
+      const response = await authenticatedFetch("/auth/2fa/setup/");
       const data = await response.json();
       if (response.ok) {
         setTwoFactorURI(data.provisioning_uri);
@@ -280,13 +268,8 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
     if (twoFactorVerifyCode.length !== 6) return;
     setIsVerifying2FA(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-      const response = await fetch(`${baseUrl}/auth/2fa/verify/`, {
+      const response = await authenticatedFetch("/auth/2fa/verify/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${accessToken}`
-        },
         body: JSON.stringify({ code: twoFactorVerifyCode })
       });
       const data = await response.json();
@@ -311,10 +294,8 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
     if (!confirm("Tem certeza que deseja desativar o 2FA? Sua conta ficará menos protegida.")) return;
     
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-      const response = await fetch(`${baseUrl}/auth/2fa/disable/`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${accessToken}` }
+      const response = await authenticatedFetch("/auth/2fa/disable/", {
+        method: "POST"
       });
       if (response.ok) {
         toast.success("2FA desativado.");
@@ -337,10 +318,8 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
     if (!confirm("Isso apagará todos os seus dados atuais e carregará dados fictícios. Deseja continuar?")) return;
     setIsDemoLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-      const res = await fetch(`${baseUrl}/onboarding/demo-mode/`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${accessToken}` }
+      const res = await authenticatedFetch("/onboarding/demo-mode/", {
+        method: "POST"
       });
       if (res.ok) {
         toast.success("Modo de demonstração ativado! Recarregando dados...");
@@ -359,10 +338,8 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
     if (!confirm("ATENÇÃO: Isso apagará TODOS OS SEUS DADOS de forma permanente e irreversível. Tem certeza absoluta?")) return;
     setIsDemoLoading(true);
     try {
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-      const res = await fetch(`${baseUrl}/onboarding/reset/`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${accessToken}` }
+      const res = await authenticatedFetch("/onboarding/reset/", {
+        method: "DELETE"
       });
       if (res.ok) {
         toast.success("Todos os dados foram resetados. Começando do zero!");
@@ -696,23 +673,18 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
                           i18n.changeLanguage(val);
                           localStorage.setItem("vault_lang_explicit", "true");
                           try {
-                            const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-                            const response = await fetch(`${baseUrl}/auth/profile/update/`, {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": "Bearer " + accessToken
-                              },
-                              body: JSON.stringify({ language: val })
-                            });
-                            if (response.ok) {
-                              useAuthStore.setState((state) => ({
-                                user: state.user ? { ...state.user, language: val } : null
-                              }));
-                            }
-                          } catch (err) {
-                            console.error("Erro ao sincronizar idioma no banco:", err);
-                          }
+                             const response = await authenticatedFetch("/auth/profile/update/", {
+                               method: "POST",
+                               body: JSON.stringify({ language: val })
+                             });
+                             if (response.ok) {
+                               useAuthStore.setState((state) => ({
+                                 user: state.user ? { ...state.user, language: val } : null
+                               }));
+                             }
+                           } catch (err) {
+                             console.error("Erro ao sincronizar idioma no banco:", err);
+                           }
                         }}
                       >
                         <SelectTrigger className="bg-background/50 border-border/60 rounded-xl h-11">
@@ -850,28 +822,30 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
             <SubscriptionPanel />
           </TabsContent>
           {/* Devices Tab */}
-        <TabsContent value="devices" className="space-y-6">
-           <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm p-8">
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <h3 className="font-bold text-lg flex items-center gap-2">
-                    <Smartphone className="h-5 w-5 text-primary" /> Sincronização Mobile
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Faça a gestão dos telemóveis autorizados a intercetar notificações e enviar dados para a Inbox IA.
-                  </p>
-                </div>
+         <TabsContent value="devices" className="space-y-6">
+            <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm p-8">
+               <div className="space-y-6">
+                 <div className="space-y-2">
+                   <h3 className="font-bold text-lg flex items-center gap-2">
+                     <Smartphone className="h-5 w-5 text-primary" /> Sincronização Mobile
+                   </h3>
+                   <p className="text-sm text-muted-foreground">
+                     Faça a gestão dos telemóveis autorizados a intercetar notificações e enviar dados para a Inbox IA.
+                   </p>
+                 </div>
 
-                <div className="grid gap-6">
-                  {/* O botão que pede permissão e gera o token */}
-                  <InboxMobileSyncActivation />
-                  
-                  {/* A tabela que mostra os telemóveis autorizados */}
-                  <TrustedDevicesManager />
-                </div>
-              </div>
-           </Card>
-        </TabsContent>
+                 <div className="grid gap-6">
+                   {/* O botão que pede permissão e gera o token */}
+                   <InboxMobileSyncActivation onDeviceAdded={() => {
+                     window.dispatchEvent(new CustomEvent("device-registered"));
+                   }} />
+                   
+                   {/* A tabela que mostra os telemóveis autorizados */}
+                   <TrustedDevicesManager />
+                 </div>
+               </div>
+            </Card>
+         </TabsContent>
 
         
           {/* Demo & Reset Tab */}

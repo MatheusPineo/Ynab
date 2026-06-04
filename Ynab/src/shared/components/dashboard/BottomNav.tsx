@@ -35,7 +35,7 @@ const primaryNavItems = [
 
 const moreNavItems = [
   { icon: InboxIcon, key: "inbox", to: "/inbox" },
-  { icon: Scale, key: "rule503020", to: "/rule503020" },
+  { icon: Scale, key: "rule503020", to: "/rule-503020" },
   { icon: CreditCard, key: "credit_cards", to: "/credit-cards" },
   { icon: Handshake, key: "debts", to: "/debts" },
   { icon: Target, key: "goals", to: "/goals" },

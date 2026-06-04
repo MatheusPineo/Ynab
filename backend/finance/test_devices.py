@@ -72,3 +72,27 @@ class DeviceRegisterTests(TestCase):
         )
         self.assertEqual(response_2.status_code, status.HTTP_201_CREATED)
         self.assertEqual(TrustedDevice.objects.filter(user=self.user, device_name='Telemóvel Android - Duplicado').count(), 2)
+
+    def test_custom_name_priority_and_geolocation(self) -> None:
+        """Verifica que o custom_name tem prioridade de nome e o campo location é preenchido com a cidade/país do IP."""
+        self.client.force_authenticate(user=self.user)
+        device_key = str(uuid.uuid4())
+        
+        response = self.client.post(
+            reverse('device-register'),
+            {
+                'custom_name': 'Celular do Matheus',
+                'device_name': 'Fallback Generic',
+                'device_key': device_key,
+                'timezone': 'Europe/London'
+            },
+            HTTP_X_FORWARDED_FOR='8.8.8.8',  # IP público para disparar fluxo de geo
+            format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['device_name'], 'Celular do Matheus')
+        self.assertEqual(response.data['custom_name'], 'Celular do Matheus')
+        
+        # O IP 8.8.8.8 deve retornar "Glenmont, United States" ou similar no ip-api, ou fallback para timezone "London, Europe"
+        self.assertIsNotNone(response.data['location_string'])
+        self.assertNotEqual(response.data['location_string'], 'Unknown')

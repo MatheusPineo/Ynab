@@ -73,7 +73,7 @@ export const DeviceTrustModal: React.FC = () => {
       }
 
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
       // Gera um UUID para o device_key
       const randomUuid = crypto.randomUUID ? crypto.randomUUID() : "generated-" + Math.random().toString(36).substring(2, 15);

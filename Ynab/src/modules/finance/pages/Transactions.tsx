@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, Fragment } from "react";
+import { List } from "react-window";
 import { useNavigate } from "react-router-dom";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
@@ -350,138 +351,151 @@ const Transactions = () => {
               <p className="text-xs">Nenhuma transação encontrada.</p>
             </div>
           ) : (
-            <div className="flex flex-col gap-1.5">
-              {processedTransactions.map((t) => {
-                if (t.isGroup) {
-                  return (
-                    <div key={t.id} className="flex flex-col border border-border/40 bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden mb-1.5">
-                      <div 
-                        className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-muted/10 transition-colors"
-                        onClick={() => {
-                          if (t.items[0]?.credit_card_id) {
-                            navigate(`/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
-                          }
-                        }}
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
-                            <Receipt className="h-3.5 w-3.5 text-indigo-500" />
-                          </div>
-                          <div className="text-left min-w-0 flex-1">
-                            <p className="text-xs xs:text-sm font-semibold text-foreground truncate">{t.description}</p>
-                            <p className="text-[10px] text-muted-foreground mt-0.5">
-                              {t.items.length} Lançamentos • {new Date(t.date).toLocaleDateString('pt-PT')}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {t.status !== 'paid' && t.status !== 'realized' && (
-                            <Button 
-                              variant="default" 
-                              size="sm" 
-                              className="h-7 text-[10px] px-2 bg-indigo-600 hover:bg-indigo-700 text-white"
-                              onClick={(e) => handlePayBillClick(t, e)}
-                            >
-                              Pagar Fatura
-                            </Button>
-                          )}
-                          <p className="text-xs xs:text-sm font-bold tabular-nums text-rose-400 hidden xs:block">
-                            -{formatMoney(Math.abs(t.amount), "BRL")}
-                          </p>
-                          <CornerDownRight className="h-4 w-4 text-muted-foreground" />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                }
-
-                return (
-                  <div key={t.id} className="relative mb-1.5">
-                    <AddTransactionModal transaction={t}>
-                      <button id={`edit-trigger-${t.id}`} className="hidden" />
-                    </AddTransactionModal>
-                    <SwipeableTransactionCard
-                      onEdit={() => document.getElementById(`edit-trigger-${t.id}`)?.click()}
-                      onDelete={() => handleDeleteClick(t)}
-                    >
-                      <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm hover:border-border/80 transition-all group">
-                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                          <div className={cn(
-                            "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
-                            t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
-                          )}>
-                            {t.is_income
-                              ? <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                              : <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
-                            }
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs xs:text-sm font-semibold text-foreground truncate">{t.description}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                              <p className="text-[10px] text-muted-foreground">
-                                {new Date(t.date).toLocaleDateString('pt-PT')}
+            <div className="w-full">
+              <List
+                height={500}
+                itemCount={processedTransactions.length}
+                itemSize={68}
+                width="100%"
+                itemKey={(index) => processedTransactions[index].id}
+              >
+                {({ index, style }) => {
+                  const t = processedTransactions[index];
+                  if (t.isGroup) {
+                    return (
+                      <div style={style} className="pr-1">
+                        <div className="flex flex-col border border-border/40 bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden mb-1.5">
+                          <div 
+                            className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-muted/10 transition-colors"
+                            onClick={() => {
+                              if (t.items[0]?.credit_card_id) {
+                                navigate(`/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
+                                <Receipt className="h-3.5 w-3.5 text-indigo-500" />
+                              </div>
+                              <div className="text-left min-w-0 flex-1">
+                                <p className="text-xs xs:text-sm font-semibold text-foreground truncate">{t.description}</p>
+                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                  {t.items.length} Lançamentos • {new Date(t.date).toLocaleDateString('pt-PT')}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              {t.status !== 'paid' && t.status !== 'realized' && (
+                                <Button 
+                                  variant="default" 
+                                  size="sm" 
+                                  className="h-7 text-[10px] px-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+                                  onClick={(e) => handlePayBillClick(t, e)}
+                                >
+                                  Pagar Fatura
+                                </Button>
+                              )}
+                              <p className="text-xs xs:text-sm font-bold tabular-nums text-rose-400 hidden xs:block">
+                                -{formatMoney(Math.abs(t.amount), "BRL")}
                               </p>
-                              <span className={cn(
-                                "text-[9px] px-1 py-0.5 rounded-full flex items-center gap-0.5",
-                                t.status === "realized"
-                                  ? "text-emerald-500 bg-emerald-500/10"
-                                  : "text-amber-500 bg-amber-500/10"
-                              )}>
-                                {t.status === "realized"
-                                  ? <><CheckCircle2 className="h-2 w-2" />Efetivada</>
-                                  : <><Clock className="h-2 w-2" />Pendente</>
-                                }
-                              </span>
+                              <CornerDownRight className="h-4 w-4 text-muted-foreground" />
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
-                          <p className={cn(
-                            "text-xs xs:text-sm font-bold tabular-nums",
-                            t.is_income ? "text-emerald-400" : "text-rose-400"
-                          )}>
-                            {t.is_income ? "+" : "-"}
-                            {formatMoney(Math.abs(Number(t.amount)), (() => {
-                              const acc = useAccountStore.getState().getAccount(t.account);
-                              return acc?.currency || "EUR";
-                            })())}
-                          </p>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
-                                <MoreHorizontal className="h-3.5 w-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="glass border-border/60">
-                              <DropdownMenuLabel className="text-xs">Ações</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="cursor-pointer text-xs"
-                                onClick={() => handleStatusToggle(t)}
-                              >
-                                {t.status === "realized"
-                                  ? <><Clock className="mr-2 h-3.5 w-3.5" />Marcar Pendente</>
-                                  : <><CheckCircle2 className="mr-2 h-3.5 w-3.5" />Efetivar</>
-                                }
-                              </DropdownMenuItem>
-                              <AddTransactionModal transaction={t}>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer text-xs">
-                                  <Edit2 className="mr-2 h-3.5 w-3.5" />
-                                  Editar
-                                </DropdownMenuItem>
-                              </AddTransactionModal>
-                              <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400 text-xs" onClick={() => handleDeleteClick(t)}>
-                                <Trash2 className="mr-2 h-3.5 w-3.5" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
                       </div>
-                    </SwipeableTransactionCard>
-                  </div>
-                );
-              })}
+                    );
+                  }
+
+                  return (
+                    <div style={style} className="pr-1">
+                      <div className="relative mb-1.5">
+                        <AddTransactionModal transaction={t}>
+                          <button id={`edit-trigger-${t.id}`} className="hidden" />
+                        </AddTransactionModal>
+                        <SwipeableTransactionCard
+                          onEdit={() => document.getElementById(`edit-trigger-${t.id}`)?.click()}
+                          onDelete={() => handleDeleteClick(t)}
+                        >
+                          <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm hover:border-border/80 transition-all group">
+                            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                              <div className={cn(
+                                "h-8 w-8 rounded-lg flex items-center justify-center shrink-0",
+                                t.is_income ? "bg-emerald-500/10" : "bg-rose-500/10"
+                              )}>
+                                {t.is_income
+                                  ? <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                                  : <TrendingDown className="h-3.5 w-3.5 text-rose-500" />
+                                }
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs xs:text-sm font-semibold text-foreground truncate">{t.description}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5">
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {new Date(t.date).toLocaleDateString('pt-PT')}
+                                  </p>
+                                  <span className={cn(
+                                    "text-[9px] px-1 py-0.5 rounded-full flex items-center gap-0.5",
+                                    t.status === "realized"
+                                      ? "text-emerald-500 bg-emerald-500/10"
+                                      : "text-amber-500 bg-amber-500/10"
+                                  )}>
+                                    {t.status === "realized"
+                                      ? <><CheckCircle2 className="h-2 w-2" />Efetivada</>
+                                      : <><Clock className="h-2 w-2" />Pendente</>
+                                    }
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0 ml-1.5">
+                              <p className={cn(
+                                "text-xs xs:text-sm font-bold tabular-nums",
+                                t.is_income ? "text-emerald-400" : "text-rose-400"
+                              )}>
+                                {t.is_income ? "+" : "-"}
+                                {formatMoney(Math.abs(Number(t.amount)), (() => {
+                                  const acc = useAccountStore.getState().getAccount(t.account);
+                                  return acc?.currency || "EUR";
+                                })())}
+                              </p>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full">
+                                    <MoreHorizontal className="h-3.5 w-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="glass border-border/60">
+                                  <DropdownMenuLabel className="text-xs">Ações</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-xs"
+                                    onClick={() => handleStatusToggle(t)}
+                                  >
+                                    {t.status === "realized"
+                                      ? <><Clock className="mr-2 h-3.5 w-3.5" />Marcar Pendente</>
+                                      : <><CheckCircle2 className="mr-2 h-3.5 w-3.5" />Efetivar</>
+                                    }
+                                  </DropdownMenuItem>
+                                  <AddTransactionModal transaction={t}>
+                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer text-xs">
+                                      <Edit2 className="mr-2 h-3.5 w-3.5" />
+                                      Editar
+                                    </DropdownMenuItem>
+                                  </AddTransactionModal>
+                                  <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400 text-xs" onClick={() => handleDeleteClick(t)}>
+                                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+                          </div>
+                        </SwipeableTransactionCard>
+                      </div>
+                    </div>
+                  );
+                }}
+              </List>
             </div>
           )}
         </PullToRefresh>
@@ -514,136 +528,150 @@ const Transactions = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              processedTransactions.map((t) => {
-                if (t.isGroup) {
-                  return (
-                    <Fragment key={t.id}>
-                      {/* Master Row */}
-                      <TableRow 
-                        className="border-border/40 hover:bg-muted/10 transition-colors group cursor-pointer bg-muted/5"
-                        onClick={() => {
-                          if (t.items[0]?.credit_card_id) {
-                            navigate(`/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
-                          }
-                        }}
-                      >
-                        <TableCell className="text-xs text-muted-foreground font-semibold">
-                          {new Date(t.date).toLocaleDateString('pt-PT')}
-                        </TableCell>
-                        <TableCell className="font-bold flex items-center gap-2 text-indigo-400">
-                          <Receipt className="h-4 w-4" />
-                          {t.description}
-                          <Badge variant="outline" className="text-[10px] ml-2 font-mono bg-indigo-500/10 text-indigo-400 border-indigo-500/20">{t.items.length} Lançamentos</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal opacity-50">
-                            -
-                          </Badge>
-                        </TableCell>
-                          <TableCell>
-                            {t.status !== 'paid' && t.status !== 'realized' && (
-                              <Button 
-                                variant="default" 
-                                size="sm" 
-                                className="h-7 text-xs px-3 bg-indigo-600 hover:bg-indigo-700 text-white"
-                                onClick={(e) => handlePayBillClick(t, e)}
-                              >
-                                Pagar Fatura
-                              </Button>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right font-bold tabular-nums text-rose-400">
-                            -{formatMoney(Math.abs(t.amount), "BRL")}
-                          </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full pointer-events-none text-muted-foreground">
-                            <CornerDownRight className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    </Fragment>
-                  );
-                }
-
-                return (
-                  <TableRow key={t.id} className="border-border/40 hover:bg-muted/10 transition-colors group">
-                    <TableCell className="text-xs text-muted-foreground">
-                      {new Date(t.date).toLocaleDateString('pt-PT')}
-                    </TableCell>
-                    <TableCell className="font-medium">{t.description}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal">
-                        {getAccountName(t.account)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleStatusToggle(t)}
-                        className={cn(
-                          "h-8 px-2 rounded-lg transition-all",
-                          t.status === "realized" 
-                            ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
-                            : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
-                        )}
-                      >
-                        {t.status === "realized" ? (
-                          <div className="flex items-center gap-1.5">
-                            <CheckCircle2 className="h-4 w-4" />
-                            <span className="text-xs font-medium">Efetivada</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1.5">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-xs font-medium">Pendente</span>
-                          </div>
-                        )}
-                      </Button>
-                    </TableCell>
-                    <TableCell className={cn(
-                      "text-right font-semibold tabular",
-                      !t.is_income ? "text-rose-400" : "text-emerald-400"
-                    )}>
-                      {(() => {
-                        const acc = useAccountStore.getState().getAccount(t.account);
-                        const currency = acc?.currency || "EUR";
+              <tr className="w-full block">
+                <td colSpan={6} className="p-0 block w-full">
+                  <List
+                    height={550}
+                    itemCount={processedTransactions.length}
+                    itemSize={52}
+                    width="100%"
+                    itemKey={(index) => processedTransactions[index].id}
+                  >
+                    {({ index, style }) => {
+                      const t = processedTransactions[index];
+                      if (t.isGroup) {
                         return (
-                          <>
-                            {t.is_income ? "+" : "-"}
-                            {formatMoney(Math.abs(t.amount), currency)}
-                          </>
+                          <div
+                            style={style}
+                            className="border-b border-border/40 hover:bg-muted/10 transition-colors group cursor-pointer bg-muted/5 flex items-center w-full px-4"
+                            onClick={() => {
+                              if (t.items[0]?.credit_card_id) {
+                                navigate(`/bill/${t.items[0].credit_card_id}/${t.statement_id}`);
+                              }
+                            }}
+                          >
+                            <div className="w-[120px] text-xs text-muted-foreground font-semibold shrink-0">
+                              {new Date(t.date).toLocaleDateString('pt-PT')}
+                            </div>
+                            <div className="flex-1 min-w-0 font-bold flex items-center gap-2 text-indigo-400 truncate pr-4">
+                              <Receipt className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{t.description}</span>
+                              <Badge variant="outline" className="text-[10px] ml-2 font-mono bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shrink-0">{t.items.length} Lançamentos</Badge>
+                            </div>
+                            <div className="w-[150px] shrink-0 pr-4">
+                              <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal opacity-50">
+                                -
+                              </Badge>
+                            </div>
+                            <div className="w-[120px] shrink-0 pr-4">
+                              {t.status !== 'paid' && t.status !== 'realized' && (
+                                <Button 
+                                  variant="default" 
+                                  size="sm" 
+                                  className="h-7 text-xs px-3 bg-indigo-600 hover:bg-indigo-700 text-white"
+                                  onClick={(e) => handlePayBillClick(t, e)}
+                                >
+                                  Pagar Fatura
+                                </Button>
+                              )}
+                            </div>
+                            <div className="w-[120px] text-right font-bold tabular-nums text-rose-400 shrink-0 pr-4">
+                              -{formatMoney(Math.abs(t.amount), "BRL")}
+                            </div>
+                            <div className="w-[70px] text-right shrink-0">
+                              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full pointer-events-none text-muted-foreground">
+                                <CornerDownRight className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
                         );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="glass border-border/60">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuSeparator />
-                          
-                          <AddTransactionModal transaction={t}>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                              <Edit2 className="mr-2 h-4 w-4" />
-                              Editar
-                            </DropdownMenuItem>
-                          </AddTransactionModal>
+                      }
 
-                          <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
+                      return (
+                        <div
+                          style={style}
+                          className="border-b border-border/40 hover:bg-muted/10 transition-colors group flex items-center w-full px-4"
+                        >
+                          <div className="w-[120px] text-xs text-muted-foreground shrink-0">
+                            {new Date(t.date).toLocaleDateString('pt-PT')}
+                          </div>
+                          <div className="flex-1 min-w-0 font-medium truncate pr-4">{t.description}</div>
+                          <div className="w-[150px] shrink-0 pr-4 truncate">
+                            <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal">
+                              {getAccountName(t.account)}
+                            </Badge>
+                          </div>
+                          <div className="w-[120px] shrink-0 pr-4">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleStatusToggle(t)}
+                              className={cn(
+                                "h-8 px-2 rounded-lg transition-all",
+                                t.status === "realized" 
+                                  ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
+                                  : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
+                              )}
+                            >
+                              {t.status === "realized" ? (
+                                <div className="flex items-center gap-1.5">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                  <span className="text-xs font-medium">Efetivada</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-4 w-4" />
+                                  <span className="text-xs font-medium">Pendente</span>
+                                </div>
+                              )}
+                            </Button>
+                          </div>
+                          <div className={cn(
+                            "w-[120px] text-right font-semibold tabular shrink-0 pr-4",
+                            !t.is_income ? "text-rose-400" : "text-emerald-400"
+                          )}>
+                            {(() => {
+                              const acc = useAccountStore.getState().getAccount(t.account);
+                              const currency = acc?.currency || "EUR";
+                              return (
+                                <>
+                                  {t.is_income ? "+" : "-"}
+                                  {formatMoney(Math.abs(t.amount), currency)}
+                                </>
+                              );
+                            })()}
+                          </div>
+                          <div className="w-[70px] text-right shrink-0">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="glass border-border/60">
+                                <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                
+                                <AddTransactionModal transaction={t}>
+                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                                    <Edit2 className="mr-2 h-4 w-4" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                </AddTransactionModal>
+
+                                <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Excluir
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+                      );
+                    }}
+                  </List>
+                </td>
+              </tr>
             )}
           </TableBody>
         </Table>

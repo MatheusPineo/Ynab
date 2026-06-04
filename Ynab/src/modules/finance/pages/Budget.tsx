@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useAccountStore, CategoryGroup, CategoryNode, selectMacroDistribution } from "@/modules/finance/store/useAccountStore";
+import { useShallow } from "zustand/shallow";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { useCurrencyStore, type Currency } from "@/modules/finance/store/useCurrencyStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
@@ -136,7 +137,7 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Ações</DropdownMenuLabel>
-          <DropdownMenuItem onSelect={() => setIsEditDialogOpen(true)}>
+          <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsEditDialogOpen(true); }}>
             <Edit className="mr-2 h-4 w-4" />
             Editar
           </DropdownMenuItem>
@@ -243,7 +244,7 @@ const Budget = () => {
   } = useAccountStore();
   
   const { user } = useAuthStore();
-  const macroDist = useAccountStore(selectMacroDistribution);
+  const macroDist = useAccountStore(useShallow(selectMacroDistribution));
   
   const targetNeeds = user?.needsTargetPct ?? 50;
   const targetWants = user?.wantsTargetPct ?? 30;

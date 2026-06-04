@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { Landmark, ArrowRight, Check, AlertCircle } from "lucide-react";
 import { CurrencyInput } from "@/shared/components/ui/currency-input";
+import { assertBusinessLogic } from "@/shared/lib/businessInvariants";
 
 interface Props {
   trigger?: React.ReactNode;
@@ -96,9 +97,24 @@ export function IncomeSplitterModal({ trigger }: Props) {
       remainingPartner = Number((grossInput * 0.3).toFixed(2));
     }
 
+    const resultToFund = Number(toFundNeeds.toFixed(2));
+    const resultRemaining = Number(remainingPartner.toFixed(2));
+    const sum = Number((resultToFund + resultRemaining).toFixed(2));
+
+    // Invariante de Negócio: O valor bruto deve corresponder à soma das divisões
+    const isMatched = Math.abs(sum - grossInput) <= 0.01;
+
+    assertBusinessLogic(isMatched, "income_splitter_mismatch", {
+      grossInput,
+      selectedRule,
+      toFundNeeds: resultToFund,
+      remainingPartner: resultRemaining,
+      difference: Number((sum - grossInput).toFixed(2))
+    });
+
     return {
-      toFundNeeds: Number(toFundNeeds.toFixed(2)),
-      remainingPartner: Number(remainingPartner.toFixed(2))
+      toFundNeeds: resultToFund,
+      remainingPartner: resultRemaining
     };
   }, [grossInput, selectedRule, fixedNeedsValue]);
 

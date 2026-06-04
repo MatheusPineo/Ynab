@@ -15,6 +15,7 @@ vi.mock('@/modules/auth/store/useAuthStore', () => ({
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
     isNativePlatform: () => true,
+    getPlatform: () => 'web',
   },
   registerPlugin: () => ({
     getDeviceKey: vi.fn().mockResolvedValue({ key: null }),

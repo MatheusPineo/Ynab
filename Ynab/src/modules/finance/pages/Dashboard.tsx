@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -78,6 +78,57 @@ const CustomTooltip = ({ active, payload, label, baseCurrency }: any) => {
   }
   return null;
 };
+
+const DashboardAreaChart = React.memo(({ historyData, baseCurrency }: { historyData: any[]; baseCurrency: string }) => {
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <AreaChart data={historyData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+        <defs>
+          <linearGradient id="gradPrimary" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
+            <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.3} />
+        <XAxis
+          dataKey="date"
+          stroke="hsl(var(--muted-foreground))"
+          fontSize={10}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(val) => {
+            try {
+              return format(new Date(val), "dd MMM", { locale: ptBR });
+            } catch {
+              return val;
+            }
+          }}
+        />
+        <YAxis
+          stroke="hsl(var(--muted-foreground))"
+          fontSize={10}
+          tickLine={false}
+          axisLine={false}
+          tickFormatter={(val) =>
+            val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)
+          }
+        />
+        <Tooltip content={<CustomTooltip baseCurrency={baseCurrency} />} />
+        <Area
+          type="monotone"
+          dataKey="balance"
+          stroke="hsl(var(--primary))"
+          strokeWidth={2.5}
+          fill="url(#gradPrimary)"
+          dot={false}
+          activeDot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 0 }}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+});
+
+DashboardAreaChart.displayName = "DashboardAreaChart";
 const Dashboard = () => {
   const { 
     fetchAccounts, 
@@ -104,10 +155,12 @@ const Dashboard = () => {
   }, [currentMonth, currentYear]);
 
   useEffect(() => {
-    fetchAccounts();
-    fetchRates();
-    fetchGoals();
-    fetchTransactions();
+    Promise.all([
+      fetchAccounts(),
+      fetchRates(),
+      fetchGoals(),
+      fetchTransactions()
+    ]).catch(err => console.error("Erro no carregamento paralelo do Dashboard:", err));
   }, [fetchAccounts, fetchRates, fetchGoals, fetchTransactions, currentMonth, currentYear]);
 
   const months = [
@@ -412,50 +465,7 @@ const Dashboard = () => {
           <div className="h-[200px] sm:h-[240px]">
             {historyData.length > 0 ? (
               <ErrorBoundary>
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={historyData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="gradPrimary" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.35} />
-                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} opacity={0.3} />
-                    <XAxis
-                      dataKey="date"
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(val) => {
-                        try {
-                          return format(new Date(val), "dd MMM", { locale: ptBR });
-                        } catch {
-                          return val;
-                        }
-                      }}
-                    />
-                    <YAxis
-                      stroke="hsl(var(--muted-foreground))"
-                      fontSize={10}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(val) =>
-                        val >= 1000 ? `${(val / 1000).toFixed(0)}k` : String(val)
-                      }
-                    />
-                    <Tooltip content={<CustomTooltip baseCurrency={baseCurrency} />} />
-                    <Area
-                      type="monotone"
-                      dataKey="balance"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2.5}
-                      fill="url(#gradPrimary)"
-                      dot={false}
-                      activeDot={{ r: 5, fill: "hsl(var(--primary))", strokeWidth: 0 }}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                <DashboardAreaChart historyData={historyData} baseCurrency={baseCurrency} />
               </ErrorBoundary>
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
