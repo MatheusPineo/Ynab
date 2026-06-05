@@ -119,22 +119,48 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
   const [editedName, setEditedName] = useState(category.name);
   const [macroAllocation, setMacroAllocation] = useState<'NEEDS' | 'WANTS' | 'SAVINGS' | 'NONE'>(category.macro_allocation || 'NONE');
   const [editedCurrency, setEditedCurrency] = useState<'EUR' | 'BRL'>(category.currency as any || 'EUR');
-  const { updateCategory, deleteCategory } = useAccountStore();
+  const [editedParent, setEditedParent] = useState<string | null>(category.parent);
+  
+  const { updateCategory, deleteCategory, categoryGroups } = useAccountStore();
 
   useEffect(() => {
     if (isEditDialogOpen) {
       setEditedName(category.name);
       setMacroAllocation(category.macro_allocation || 'NONE');
       setEditedCurrency(category.currency as any || 'EUR');
+      setEditedParent(category.parent);
     }
   }, [isEditDialogOpen, category]);
+
+  // Filtra CategoryGroups com base na moeda selecionada para podermos reassociar o pai
+  const availableGroupsForCurrency = useMemo(() => {
+    const rawGroups = Array.isArray(categoryGroups) ? categoryGroups : [];
+    // Apenas grupos com parent = null e que possuam a mesma moeda
+    return rawGroups.filter(g => g && !g.parent && g.currency === editedCurrency && g.id !== category.id);
+  }, [categoryGroups, editedCurrency, category.id]);
+
+  // Se o usuário mudou a moeda, garante que o parent selecionado seja um grupo compatível com a nova moeda
+  useEffect(() => {
+    if (!isGroup) {
+      const parentIsCompatible = availableGroupsForCurrency.some(g => g.id === editedParent);
+      if (!parentIsCompatible) {
+        // Se a moeda mudou e o pai não é mais compatível, define o primeiro grupo compatível do select ou null
+        if (availableGroupsForCurrency.length > 0) {
+          setEditedParent(availableGroupsForCurrency[0].id);
+        } else {
+          setEditedParent(null);
+        }
+      }
+    }
+  }, [editedCurrency, availableGroupsForCurrency, isGroup, editedParent]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateCategory(category.id, { 
       name: editedName, 
       macro_allocation: macroAllocation,
-      currency: editedCurrency
+      currency: editedCurrency,
+      parent: isGroup ? null : editedParent
     });
     setIsEditDialogOpen(false);
   };
@@ -199,6 +225,26 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
                 </SelectContent>
               </Select>
             </div>
+
+            {!isGroup && (
+              <div className="grid gap-2">
+                <Label htmlFor="parentGroup">Grupo da Categoria</Label>
+                <Select
+                  value={editedParent || "none"}
+                  onValueChange={(val) => setEditedParent(val === "none" ? null : val)}
+                >
+                  <SelectTrigger id="parentGroup" className="bg-background/50">
+                    <SelectValue placeholder="Selecione o grupo" />
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border/60">
+                    <SelectItem value="none">Nenhum (Grupo Raiz)</SelectItem>
+                    {availableGroupsForCurrency.map(g => (
+                      <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="grid gap-2">
               <Label htmlFor="macro">Classificação 50/30/20</Label>

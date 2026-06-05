@@ -109,6 +109,24 @@ class CategorySerializer(serializers.ModelSerializer):
             'user': {'read_only': True},  # Preenchido automaticamente pela view
         }
 
+    def validate(self, attrs):
+        parent = attrs.get('parent')
+        # Se for update, mescla com o parent atual do banco caso não enviado
+        if parent is None and self.instance:
+            parent = self.instance.parent
+            
+        currency = attrs.get('currency')
+        # Se for update, mescla com a moeda atual do banco caso não enviada
+        if currency is None and self.instance:
+            currency = self.instance.currency
+            
+        if parent:
+            if parent.currency != currency:
+                raise serializers.ValidationError(
+                    {"parent": f"O grupo pai possui a moeda '{parent.currency}' que difere da moeda '{currency}' selecionada."}
+                )
+        return attrs
+
 class TransactionSerializer(serializers.ModelSerializer):
     statement_id = serializers.IntegerField(source='credit_card_bill.id', read_only=True)
     statement_name = serializers.SerializerMethodField()
