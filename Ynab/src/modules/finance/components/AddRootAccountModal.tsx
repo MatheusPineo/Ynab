@@ -17,6 +17,7 @@ import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
+import { IconPicker } from "./IconPicker";
 
 export const AddRootAccountModal = () => {
   const [open, setOpen] = useState(false);
@@ -26,6 +27,8 @@ export const AddRootAccountModal = () => {
   const [balance, setBalance] = useState(0);
   const [ceiling, setCeiling] = useState<number | null>(null);
   const [creditLimit, setCreditLimit] = useState(0);
+  const [iconUrl, setIconUrl] = useState<string>("");
+  const [isCropping, setIsCropping] = useState(false);
   const { addNode, fetchAccounts } = useAccountStore();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -42,6 +45,7 @@ export const AddRootAccountModal = () => {
           closing_day: parseInt(formData.get("closing_day") as string, 10) || 20,
           due_day: parseInt(formData.get("due_day") as string, 10) || 28,
           currency: formData.get("currency") as string,
+          icon_url: iconUrl || null
         };
 
         const response = await authenticatedFetch("/credit-cards/", {
@@ -64,6 +68,7 @@ export const AddRootAccountModal = () => {
           currency: formData.get("currency") as any,
           ceiling: ceiling,
           exclude_from_totals: accountType === "investment" ? false : excludeFromTotals,
+          icon_url: iconUrl || null
         });
 
         toast.success(`🏦 Conta "${formData.get("name") as string}" criada!`);
@@ -73,6 +78,7 @@ export const AddRootAccountModal = () => {
       setBalance(0);
       setCeiling(null);
       setCreditLimit(0);
+      setIconUrl("");
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message);
@@ -89,7 +95,7 @@ export const AddRootAccountModal = () => {
           Nova Conta
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[440px] glass border-border/60 rounded-3xl p-6 shadow-glow overflow-hidden">
+      <DialogContent className="sm:max-w-[440px] glass border-border/60 rounded-3xl p-6 shadow-glow overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
         <DialogHeader>
@@ -134,24 +140,6 @@ export const AddRootAccountModal = () => {
                 <TrendingUp className="h-4 w-4" /> Investimento
               </button>
             </div>
-            {accountType === "checking" && (
-              <div className="text-[11px] text-muted-foreground bg-primary/10 border border-primary/20 p-3 rounded-xl mt-1">
-                <strong className="text-primary font-bold text-xs block mb-1">O que é Conta Corrente?</strong>
-                Esta conta é <strong className="text-foreground">On-Budget</strong> (Dentro do Orçamento). O saldo dela estará totalmente disponível para você planejar e alocar nas suas categorias de despesas do dia a dia. Ideal para contas salário, carteiras ou contas de uso contínuo.
-              </div>
-            )}
-            {accountType === "credit_card" && (
-              <div className="text-[11px] text-muted-foreground bg-primary/10 border border-primary/20 p-3 rounded-xl mt-1">
-                <strong className="text-primary font-bold text-xs block mb-1">Como funciona o Cartão?</strong>
-                Os gastos realizados aqui geram uma <strong className="text-foreground">Fatura</strong>. Ao gastar em uma categoria usando o cartão, o sistema reserva o dinheiro dessa categoria para garantir que você tenha fundos para pagar a fatura no vencimento.
-              </div>
-            )}
-            {accountType === "investment" && (
-              <div className="text-[11px] text-muted-foreground bg-primary/10 border border-primary/20 p-3 rounded-xl mt-1">
-                <strong className="text-primary font-bold text-xs block mb-1">O que é Conta de Investimento?</strong>
-                Esta conta é <strong className="text-foreground">Off-Budget</strong> (Fora do Orçamento). O dinheiro dela será somado ao seu Patrimônio Líquido, mas não ficará disponível para você orçar nas categorias diárias. Ideal para Corretoras e Reservas.
-              </div>
-            )}
           </div>
 
           <div className="grid gap-2">
@@ -205,6 +193,17 @@ export const AddRootAccountModal = () => {
             </Select>
           </div>
 
+          <div className="grid gap-2">
+            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Ícone do Banco / Conta</Label>
+            <IconPicker 
+              currentIconUrl={iconUrl} 
+              onCroppingStateChange={setIsCropping}
+              onIconUploaded={(url) => {
+                setIconUrl(url);
+              }} 
+            />
+          </div>
+
           {accountType === "checking" && (
             <div className="flex items-center space-x-3 bg-muted/20 border border-border/40 px-3.5 py-3 rounded-xl mt-1">
               <input
@@ -225,7 +224,7 @@ export const AddRootAccountModal = () => {
 
           <DialogFooter className="pt-3 border-t border-border/20 mt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-xl border-border/60 text-xs font-bold">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting} className="gradient-primary rounded-xl font-bold text-xs shadow-glow">
+            <Button type="submit" disabled={isSubmitting || isCropping} className="gradient-primary rounded-xl font-bold text-xs shadow-glow">
               {isSubmitting ? "Cadastrando..." : "Confirmar Cadastro"}
             </Button>
           </DialogFooter>

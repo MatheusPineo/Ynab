@@ -49,3 +49,18 @@ Passivos que envolvem juros compostos agem de forma agressiva contra o seu patri
   1. **Acréscimos Contraídos (Juros):** Sempre que o banco credor aplicar a taxa de juros do mês, você registra um lançamento no card (aumentando a dívida de forma documentada).
   2. **Amortizações (Pagamentos):** Ao pagar as parcelas (usando seu dinheiro físico do envelope base), o registro aparece lado a lado subtraindo a dívida.
 * **Visibilidade Clara:** Você acompanha não apenas o número diminuir, mas exatamente *o que* está afetando o número: os juros puxando para cima, e suas amortizações puxando para baixo. Isso traz clareza tática sobre a necessidade de adiantar parcelas para fugir da taxa de financiamento.
+
+---
+
+## 4. Modelos de Distribuição Avançados (Distribution Templates)
+
+Os **Modelos de Distribuição** são gabaritos inteligentes criados para automatizar a dispersão em lote de grandes quantias recebidas de uma só vez (como salários, prêmios ou dividendos).
+
+### Como Utilizar e Gerenciar
+1. **O Atalho de Distribuição:** Ao receber uma receita (por exemplo, na homologação do Inbox Inteligente ou ao clicar em distribuir fundos), você pode abrir o modal de Distribuição Rápida.
+2. **Distribuição em Lote por Contas e Envelopes:** O modelo aceita tanto subcontas físicas (bancos e carteiras) quanto categorias de envelopes do seu orçamento YNAB. Cada linha do template pode ser configurada com:
+   * **Valor Fixo:** Garante que aquela categoria ou conta receberá exatamente o valor preestipulado (ex: R$ 1.500 para o aluguel).
+   * **Percentual:** Distribui o valor restante ou global de forma proporcional (ex: 20% para a poupança).
+3. **Navegação Inteligente de Configuração:** Se você precisar criar, editar as regras ou excluir um Modelo de Distribuição existente, clique no botão **"Gerenciar Modelos"** (ícone de engrenagem) disponível diretamente no cabeçalho do modal de distribuição. 
+4. **Sincronização Ativa de Abas:** O sistema utiliza deep links baseados em parâmetros de URL (`?tab=templates`). Ao clicar no botão de gerenciamento, o Vault Finance OS redireciona você instantaneamente para `/settings?tab=templates`, abrindo a tela de configurações diretamente na aba correta e poupando cliques desnecessários de navegação.
+

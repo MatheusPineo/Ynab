@@ -2904,3 +2904,83 @@ class DebtItemViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
+from .models import Asset
+from .serializers import AssetSerializer
+
+class AssetViewSet(viewsets.ModelViewSet):
+    serializer_class = AssetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Asset.objects.filter(user=self.request.user).select_related('linked_debt').prefetch_related('linked_debt__charges', 'linked_debt__payments')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=False, methods=['get'])
+    def runway(self, request):
+        from decimal import Decimal
+        from django.utils import timezone
+        
+        user = request.user
+        assets = self.get_queryset().filter(liquidity_tier__in=['IMMEDIATE', 'MEDIUM'])
+        
+        # 1. Totalizar ativos líquidos imediatos + médios
+        total_liquid_value = Decimal('0.00')
+        for asset in assets:
+            # Reutiliza a lógica do serializer para o valor efetivo do ativo
+            if asset.linked_debt:
+                total_charges = sum(c.amount for c in asset.linked_debt.charges.all())
+                total_paid = sum(p.amount for p in asset.linked_debt.payments.all())
+                remaining = (asset.linked_debt.original_amount + total_charges) - total_paid
+                effective = asset.current_market_value - remaining
+                effective_value = max(effective, Decimal('0.00'))
+            else:
+                effective_value = asset.current_market_value
+            total_liquid_value += effective_value
+
+        # 2. Calcular a despesa média mensal do usuário
+        # Pegar as despesas (is_income=False) dos últimos 3 meses das contas on-budget (excluir transferências internas)
+        three_months_ago = timezone.now().date() - timedelta(days=90)
+        
+        # Obter todas as transações de despesa do usuário que estão em contas On-Budget e não são transferências
+        expenses_qs = Transaction.objects.filter(
+            account__user=user,
+            account__exclude_from_totals=False,  # On-Budget
+            is_income=False,
+            is_applied_to_balance=True,
+            date__gte=three_months_ago
+        ).exclude(
+            # Exclui transferências (que possuem payee com transfer_acct ou linked_transfer)
+            Q(payee__transfer_acct__isnull=False) | Q(linked_transfer__isnull=False)
+        )
+        
+        total_expenses = expenses_qs.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
+        # Média mensal baseada em 3 meses
+        monthly_avg_expenses = total_expenses / Decimal('3.0')
+
+        # Se não houver despesas reais em transações, tentar buscar nos orçamentos (MonthlyBudget) ativos do mês atual
+        if monthly_avg_expenses <= 0:
+            today = timezone.now().date()
+            budget_total = MonthlyBudget.objects.filter(
+                category__user=user,
+                month=today.month,
+                year=today.year
+            ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+            monthly_avg_expenses = budget_total
+
+        # Calcular runway_months
+        if monthly_avg_expenses > 0:
+            runway_months = float(total_liquid_value / monthly_avg_expenses)
+        else:
+            runway_months = None  # Indica que não há despesas mensais para calcular a divisão
+
+        return Response({
+            "total_liquid_assets": float(total_liquid_value),
+            "average_monthly_expenses": float(monthly_avg_expenses),
+            "runway_months": runway_months
+        }, status=status.HTTP_200_OK)
+
+
+

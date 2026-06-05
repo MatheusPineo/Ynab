@@ -1,3 +1,46 @@
+## [1.51.00] - 2026-06-05
+
+### Added
+- Frontend: Implementado o Dropdown de Notificações de Ações Pendentes no cabeçalho global (`Topbar.tsx`), consolidando cupons pendentes no Inbox Inteligente e transações agendadas pendentes de efetivação (`status=pending`), com atalhos de roteamento direto ao clique para as rotas correspondentes.
+
+## [1.50.00] - 2026-06-05
+
+### Added
+- Frontend: Integrada a seleção visual de ícones de bancos (`IconPicker`) nos modais de criação de contas raiz (`AddRootAccountModal.tsx`) e subcontas (`AddAccountModal.tsx`), enviando o campo `icon_url` nos payloads das requisições para persistência no banco de dados.
+
+### Fixed
+- Backend: Modificada a tabela e validação do serializador de Modelos de Distribuição (`DistributionTemplateItem`) para conter a ForeignKey opcional `category` e tornar `account` opcional, permitindo a correta criação e persistência de fluxos baseados em envelopes.
+- Frontend: Corrigida a lógica de renderização, salvamento e carregamento no `DistributionModal.tsx` para sincronizar templates com categorias YNAB, e implementado o atalho "Gerenciar Modelos" com redirecionamento dinâmico via `useSearchParams` para a aba de templates em `/settings?tab=templates`.
+
+
+## [1.49.00] - 2026-06-05
+
+### Refactored
+- Frontend: Removido o campo "Categoria de Orçamento" do modal de transações `AddTransactionModal.tsx` e ajustada a validação de cartões de crédito para permitir lançamentos sem categoria.
+- Frontend: Removido o botão "+ nova transação" redundante na página de detalhes de subcontas `AccountDetails.tsx`.
+- Frontend: Implementada ordenação interativa bidirecional (crescente e decrescente) por Data, Descrição e Status na tabela de transações `Transactions.tsx`, utilizando ordenação baseada em cópias puras para não mutar o array original.
+
+
+## [1.48.00] - 2026-06-05
+
+### Added
+- Backend: Criado o modelo de banco de dados `Asset` para suporte ao cadastro e controle de bens e ativos patrimoniais.
+- Backend: Implementada a lógica de cálculo do valor efetivo do ativo (`effective_asset_value`), deduzindo dinamicamente o saldo devedor restante da dívida vinculada (`linked_debt`).
+- Backend: Criado o endpoint de Runway Financeiro (`/api/finance/assets/runway/`) para mensurar a resiliência financeira (termômetro de liquidez) com base nos ativos de liquidez imediata/média e despesas médias mensais baseadas em histórico real de transações ou orçamento do mês.
+- Backend: Criados testes robustos de integração em `finance/test_assets.py` com cobertura completa de regras de negócios e rotas da API.
+- Frontend: Criada a interface completa de gestão de ativos e termômetro de liquidez (Runway) em `Assets.tsx`.
+- Frontend: Implementado o modal/formulário de cadastro de ativos `AddAssetModal.tsx` com campos de valor de aquisição, valor de mercado atual, tier de liquidez e associação de dívidas.
+- Frontend: Adicionado widget interativo "Termômetro de Liquidez" no painel geral (`DashboardWidgets.tsx`) e atualizado cálculo de Net Worth em `Dashboard.tsx` (soma de ativos líquidos/ilíquidos e dedução de dívidas não associadas).
+- Frontend: Configurada rota preguiçosa no `App.tsx` para `/assets` e inserido o item de atalho correspondente na `Sidebar.tsx`.
+- Frontend: Desenvolvido o módulo de Planejamento e Simuladores (`Simulators.tsx`) integrado reativamente com dados do usuário de Net Worth, economias e despesas.
+- Frontend: Implementado simulador "Rumo ao Milhão" com curva de evolução interativa Recharts e calculadora "FIRE" com cálculo de cobertura e data estimada de aposentadoria.
+- Central de Ajuda: Criado manual do usuário em `docs/manuais/simuladores_financeiros.md` e mapeado na central VitePress.
+- Testes: Criada a suíte de testes unitários `Ynab/src/test/simulators.test.ts` para validação matemática de projeções.
+- Localização: Adicionadas as chaves de tradução necessárias em `pt-BR.json` e `en.json` para suportar a nova navegação de ativos e simuladores.
+
+### Fixed
+- Frontend: Corrigidos dead clicks e rage clicks no modal `AddTransactionModal.tsx` adicionando IDs correspondentes aos `SelectTrigger` de Categoria (`#category`), Tipo (`#type`) e Status (`#status`). Isso garante que as respectivas etiquetas (`Label`) foquem e abram os seletores corretos ao serem clicadas.
+
 ## [1.47.00] - 2026-06-04
 
 ### Performance (Fase 3 — Services & Bundle Splitting)

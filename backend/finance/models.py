@@ -438,7 +438,8 @@ class DistributionTemplate(models.Model):
 
 class DistributionTemplateItem(models.Model):
     template = models.ForeignKey(DistributionTemplate, on_delete=models.CASCADE, related_name='items')
-    account = models.ForeignKey(Account, on_delete=models.CASCADE)
+    account = models.ForeignKey(Account, on_delete=models.CASCADE, null=True, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=True)
     percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
     fixed_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
 
@@ -447,7 +448,8 @@ class DistributionTemplateItem(models.Model):
         app_label = 'core'
 
     def __str__(self):
-        return f"{self.account.name} - {self.percentage}% or {self.fixed_amount}"
+        target_name = self.account.name if self.account else (self.category.name if self.category else "Nenhum")
+        return f"{target_name} - {self.percentage}% or {self.fixed_amount}"
 
 class Debt(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='debts')
@@ -948,5 +950,39 @@ class TrustedDevice(models.Model):
     @staticmethod
     def hash_token(token):
         return hashlib.sha256(token.encode('utf-8')).hexdigest()
+
+
+class Asset(models.Model):
+    LIQUIDITY_TIER_CHOICES = [
+        ('IMMEDIATE', 'Liquidez Imediata'),
+        ('MEDIUM', 'Liquidez Média'),
+        ('ILLIQUID', 'Ilíquido / Sem Liquidez'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='assets')
+    name = models.CharField(max_length=150)
+    purchase_value = models.DecimalField(max_digits=12, decimal_places=2)
+    current_market_value = models.DecimalField(max_digits=12, decimal_places=2)
+    liquidity_tier = models.CharField(
+        max_length=20, 
+        choices=LIQUIDITY_TIER_CHOICES, 
+        default='IMMEDIATE'
+    )
+    linked_debt = models.ForeignKey(
+        'Debt', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        related_name='linked_assets'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_asset'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.name} ({self.get_liquidity_tier_display()}): {self.current_market_value}"
+
 
 

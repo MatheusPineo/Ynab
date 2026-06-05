@@ -334,10 +334,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       }
     } else {
       if (type === "expense" && currentCard) {
-        if (!useCategory || categoryId === "none") {
-          toast.error("Por favor, selecione uma Categoria de Orçamento para o cartão.");
-          return;
-        }
         try {
           const payload = {
             description: formData.get("description") as string,
@@ -345,7 +341,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             total_installments: Number(totalInstallments),
             starting_installment: Number(startingInstallment),
             date: formData.get("date") as string || new Date().toISOString().split('T')[0],
-            expense_account_id: categoryId,
+            expense_account_id: (!useCategory || categoryId === "none") ? null : categoryId,
             currency: currentCard.currency,
             exchange_rate: 1.0,
             iof_amount: 0.0,
@@ -551,7 +547,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             <div className="grid gap-2">
               <Label htmlFor="type">Tipo</Label>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger className="bg-background/50 border-border/60">
+                <SelectTrigger id="type" className="bg-background/50 border-border/60">
                   <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent className="glass border-border/60">
@@ -605,7 +601,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             <div className="grid gap-2">
               <Label htmlFor="status">Status</Label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger className="bg-background/50 border-border/60">
+                <SelectTrigger id="status" className="bg-background/50 border-border/60">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent className="glass border-border/60">
@@ -757,31 +753,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             </div>
           )}
 
-          {!isTransfer && (
-            <div className="grid gap-2">
-              <Label htmlFor="category">Categoria de Orçamento</Label>
-              <Select value={categoryId} onValueChange={setCategoryId}>
-                <SelectTrigger className="bg-background/50 border-border/60">
-                  <SelectValue placeholder="Sem categoria" />
-                </SelectTrigger>
-                <SelectContent className="glass border-border/60">
-                  <SelectItem value="none">Sem categoria</SelectItem>
-                  {categoryGroups.map(group => (
-                    <SelectGroup key={group.id}>
-                      <SelectLabel className="px-2 py-1.5 text-xs font-semibold text-muted-foreground opacity-70">
-                        {group.name}
-                      </SelectLabel>
-                      {(group.children || []).map(cat => (
-                        <SelectItem key={cat.id} value={String(cat.id)} className="pl-6">
-                          {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
+
 
           {!isTransfer && (
             <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">

@@ -1,5 +1,34 @@
 # Novidades e Atualizações
 
+## Central de Alertas Globais e Ações Pendentes (05/06/2026) 🔔🛠️
+Implementamos um hub centralizado de notificações para ajudar você a gerenciar e resolver pendências operacionais no Vault Finance OS instantaneamente:
+* **Sino de Ações Pendentes:** O ícone de sino de notificação no cabeçalho global monitora continuamente o seu banco de dados e exibe um indicador de alerta dinâmico caso existam ações urgentes exigindo sua atenção.
+* **Agrupamento Inteligente de Pendências:** O menu dropdown de notificações consolida de forma amigável:
+  - **Homologação de Comprovantes:** Cupons fiscais ou recibos que o Gemini AI processou na Inbox Inteligente e aguardam sua conferência e confirmação em lote.
+  - **Transações Agendadas Pendentes:** Transações futuras ou lançamentos agendados que chegaram ao vencimento e precisam ser efetivados no sistema.
+* **Roteamento Inteligente e Resolução com Um Clique:** Clicar em qualquer pendência dentro do dropdown de notificações redireciona você instantaneamente para a tela correta (como a Inbox de IA ou a listagem filtrada de transações pendentes) onde você pode homologar e resolver o item imediatamente.
+
+## Modelos de Distribuição e Seleção Visual de Bancos (05/06/2026) ⚙️🏦
+Aprimoramos o ecossistema do Vault Finance OS com suporte expandido para distribuição de receitas e identificação visual de suas contas financeiras:
+* **Modelos de Distribuição por Envelopes (Templates):** Agora os Modelos de Distribuição suportam o direcionamento de fundos diretamente para **Categorias de Envelopes** do seu orçamento YNAB, além de subcontas financeiras tradicionais. O motor do backend foi totalmente corrigido para aceitar a criação e persistência de payloads mistos com total segurança.
+* **Atalho Direto para Configuração (Gerenciar Modelos):** Adicionamos um botão de engrenagem ("Gerenciar Modelos") diretamente no modal de distribuição. Ao clicar nele, o sistema te redireciona automaticamente para as Configurações (`/settings?tab=templates`) abrindo de forma reativa a aba correspondente sem exigir cliques adicionais.
+* **Seleção Visual de Ícones de Conta:** Implementamos um seletor visual interativo de logomarcas de bancos (**IconPicker**) no formulário de criação e edição de Contas e Subcontas. Escolha a marca oficial da sua instituição financeira (ex: Nubank, Itaú, Bradesco, Banco do Brasil, Santander, Caixa, Inter, etc.) e o sistema salvará a referência para exibi-la reativamente em todos os menus do aplicativo.
+
+
+## Refatoração de UI e Ordenação de Transações (05/06/2026) 🧹📊
+Realizamos uma série de melhorias de usabilidade e limpeza visual nas telas de transações e contas:
+* **Remoção de Campos Redundantes:** Eliminamos o campo "Categoria de Orçamento" do modal de novos lançamentos para simplificar a criação de transações diárias. Ajustamos também os fluxos de cartões de crédito para permitir compras rápidas sem categoria.
+* **Limpeza na Visualização de Subcontas:** Removemos o botão "+ nova transação" de dentro das páginas individuais das subcontas, já que o botão global de lançamento no cabeçalho cumpre essa função perfeitamente, limpando a tela de controles redundantes.
+* **Ordenação Interativa Completa:** Agora você pode clicar nos cabeçalhos das colunas **Data**, **Descrição** e **Status** na tabela de transações para ordenar seus dados de forma crescente ou decrescente instantaneamente. A ordenação é executada localmente de forma extremamente rápida e sem alterar a integridade dos dados originais.
+
+
+## Patrimônio Líquido e Controle de Ativos (Net Worth & Assets) (05/06/2026) 🏢📈
+Lançamos o módulo completo de **Ativos Patrimoniais e Runway Financeiro (Termômetro de Liquidez)** no Vault Finance OS:
+* **Cadastro de Bens e Ativos:** Agora você pode cadastrar ativos de forma integrada no sistema (ex: Imóveis, Carros, Equipamentos, Jóias, além de contas financeiras de investimento). Cada ativo armazena dados de valor de compra, valor atual de mercado e nível de liquidez.
+* **Vínculo Transparente com Dívidas:** Vincule seus ativos diretamente a dívidas registradas no sistema (ex: financiamento do carro ou hipoteca da casa).
+* **Cálculo de Valor Efetivo:** O sistema calcula automaticamente o valor real e líquido que você detém daquele bem deduzindo o saldo devedor restante: `Valor Efetivo = Valor de Mercado - Dívida Restante`. Se o valor for negativo (ex: desvalorização do bem abaixo do financiamento), o sistema limita a zero para proteger seu cálculo patrimonial.
+* **Runway Financeiro (Termômetro de Liquidez):** O novo endpoint calcula reativamente quantos meses você consegue se sustentar sem novas receitas. A engine soma o valor dos seus ativos de liquidez imediata e média e divide pela sua despesa mensal média real (calculada a partir do histórico de transações dos últimos 90 dias ou do orçamento ativo como fallback).
+
 ## Otimização de Performance Profunda - Fase 3 (04/06/2026) ⚡🧠
 Concluímos a terceira e última fase do nosso plano de otimização de performance, agora focada em tornar os cálculos internos e o carregamento inicial da aplicação significativamente mais rápidos:
 * **Motor de Orçamento Turbinado:** Os cálculos internos que processam todo o seu histórico de receitas, alocações e gastos por envelope foram completamente reestruturados. O sistema agora recolhe todos os dados necessários de uma só vez e processa mês a mês com consultas otimizadas, em vez de buscar os dados repetidamente a cada mês. Isso torna a abertura da tela de **Orçamento** muito mais responsiva, especialmente para usuários com vários meses de histórico.

@@ -20,9 +20,9 @@ import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { useAccountStore, DistributionTemplate, CategoryNode } from "@/modules/finance/store/useAccountStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
-import { Split, Plus, Trash, Save } from "lucide-react";
+import { Split, Plus, Trash, Save, Settings } from "lucide-react";
 import { toast } from "sonner";
-
+import { useNavigate } from "react-router-dom";
 
 interface EnvelopeRow {
   category: string;
@@ -39,6 +39,7 @@ interface DistributionModalProps {
 
 export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceTransactionId, trigger }: DistributionModalProps) => {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const { 
     categoryGroups,
     distributionTemplates,
@@ -139,9 +140,9 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
     
     const t = distributionTemplates.find(t => String(t.id) === String(id));
     if (t) {
-      // Map old account-based templates to category rows as best effort
+      // Map templates to category rows
       setRows(t.items.map(item => ({
-        category: String(item.account),
+        category: String(item.category || ""),
         percentage: item.percentage ? Number(item.percentage) : 0,
         fixed_amount: item.fixed_amount ? Number(item.fixed_amount) : 0
       })));
@@ -164,7 +165,8 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
       id: selectedTemplate !== "none" ? selectedTemplate : undefined,
       name: templateName,
       items: validRows.map(r => ({
-        account: Number(r.category),
+        account: "",
+        category: String(r.category),
         percentage: typeof r.percentage === 'number' ? Number(r.percentage.toFixed(2)) : null,
         fixed_amount: typeof r.fixed_amount === 'number' ? Number(r.fixed_amount.toFixed(2)) : null
       }))
@@ -242,7 +244,21 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
 
           {/* Templates */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-t border-border/40 pt-4">
-            <Label className="text-xs sm:text-sm font-bold text-foreground">Regras de Divisão (Modelos)</Label>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs sm:text-sm font-bold text-foreground">Regras de Divisão (Modelos)</Label>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-7 w-7 rounded-lg text-muted-foreground hover:text-primary hover:bg-primary/10"
+                title="Gerenciar Modelos nas Configurações"
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/settings?tab=templates");
+                }}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
             <Select value={selectedTemplate} onValueChange={loadTemplate}>
               <SelectTrigger className="w-full sm:w-[200px] h-9 text-xs bg-background/50 rounded-xl border-border/40">
                 <SelectValue placeholder="Carregar Modelo..." />

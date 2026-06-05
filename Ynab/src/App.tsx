@@ -24,6 +24,8 @@ const Rule503020 = React.lazy(() => import("@/modules/finance/pages/Rule503020")
 const Reports = React.lazy(() => import("@/modules/finance/pages/Reports"));
 const CreditCards = React.lazy(() => import("@/modules/finance/pages/CreditCards"));
 const Investments = React.lazy(() => import("@/modules/finance/pages/Investments"));
+const Assets = React.lazy(() => import("@/modules/finance/pages/Assets"));
+const Simulators = React.lazy(() => import("@/modules/finance/pages/Simulators"));
 const Inbox = React.lazy(() => import("@/modules/finance/pages/Inbox"));
 const Auth = React.lazy(() => import("@/modules/auth/pages/Auth"));
 const Landing = React.lazy(() => import("@/modules/auth/pages/Landing"));
@@ -148,6 +150,8 @@ const App = () => {
                     <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
                     <Route path="credit-cards" element={<FeatureProtectedRoute featureKey="credit_cards"><CreditCards /></FeatureProtectedRoute>} />
                     <Route path="investments" element={<FeatureProtectedRoute featureKey="investments"><Investments /></FeatureProtectedRoute>} />
+                    <Route path="assets" element={<FeatureProtectedRoute featureKey="assets"><Assets /></FeatureProtectedRoute>} />
+                    <Route path="simulators" element={<FeatureProtectedRoute featureKey="simulators"><Simulators /></FeatureProtectedRoute>} />
                     <Route 
                       path="settings" 
                       element={

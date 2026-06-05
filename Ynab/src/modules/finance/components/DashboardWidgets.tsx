@@ -48,7 +48,8 @@ type WidgetId =
   | "topAccounts"
   | "quickActions"
   | "debtSummary"
-  | "activity";
+  | "activity"
+  | "runwayThermometer";
 
 interface WidgetMeta {
   id: WidgetId;
@@ -65,7 +66,9 @@ const WIDGETS: WidgetMeta[] = [
   { id: "topAccounts", title: "Top Contas", description: "Maiores saldos.", icon: Wallet, size: "sm" },
   { id: "debtSummary", title: "Resumo de Dívidas", description: "Visão geral das dívidas.", icon: HandCoins, size: "sm" },
   { id: "activity", title: "Atividade (14d)", description: "Heatmap de movimentações.", icon: Activity, size: "md" },
+  { id: "runwayThermometer", title: "Termômetro de Liquidez", description: "Autonomia financeira (runway).", icon: Sparkles, size: "sm" },
 ];
+
 
 const DEFAULT_WIDGETS: WidgetId[] = ["quickActions", "categoryDonut", "weeklyFlow"];
 const STORAGE_KEY = "dashboard_widgets_v1";
@@ -454,6 +457,50 @@ const ActivityHeatmap = () => {
   );
 };
 
+import { useAssetStore } from "@/modules/finance/store/useAssetStore";
+import { Progress } from "@/shared/components/ui/progress";
+
+const RunwayThermometer = () => {
+  const { runway, fetchRunway } = useAssetStore();
+  const { baseCurrency } = useCurrencyStore();
+
+  useEffect(() => {
+    fetchRunway();
+  }, [fetchRunway]);
+
+  const runwayProgress = useMemo(() => {
+    if (!runway || runway.runway_months === null) return 0;
+    return Math.min(100, (runway.runway_months / 12) * 100);
+  }, [runway]);
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex justify-between items-baseline">
+        <span className="text-xs text-muted-foreground">Autonomia</span>
+        <span className="text-lg font-bold text-foreground">
+          {runway && runway.runway_months !== null ? `${runway.runway_months.toFixed(1)} meses` : "Sem dados"}
+        </span>
+      </div>
+
+      <div className="space-y-1">
+        <Progress value={runwayProgress} className="h-2 rounded-full" />
+        <div className="flex justify-between text-[9px] text-muted-foreground">
+          <span>0 meses</span>
+          <span>Meta: 12 meses</span>
+        </div>
+      </div>
+
+      <div className="text-[10px] text-muted-foreground leading-relaxed bg-muted/10 p-2 rounded-lg border border-border/20">
+        Disponível Líquido: <strong className="text-foreground">{runway ? fmt(runway.total_liquid_assets, baseCurrency) : "€0,00"}</strong>
+      </div>
+      <Link to="/assets" className="text-[11px] text-primary hover:underline text-center">
+        Ver Detalhes do Patrimônio
+      </Link>
+    </div>
+  );
+};
+
+
 // ── Main exported component ───────────────────────────────
 export const DashboardWidgets = () => {
   const [active, setActive] = useState<WidgetId[]>(() => {
@@ -492,6 +539,7 @@ export const DashboardWidgets = () => {
       case "topAccounts": body = <TopAccounts />; break;
       case "debtSummary": body = <DebtSummary />; break;
       case "activity": body = <ActivityHeatmap />; break;
+      case "runwayThermometer": body = <RunwayThermometer />; break;
     }
 
     return (

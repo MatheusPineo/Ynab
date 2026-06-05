@@ -12,6 +12,8 @@
     "credit_cards": "Cartões de Crédito",
     "inbox": "Inbox IA",
     "investments": "Investimentos",
+    "assets": "Ativos",
+    "simulators": "Planejamento",
     "settings": "Configurações",
     "help": "Ajuda e Suporte"
   },
@@ -28,6 +30,8 @@
     "rule503020": "Organize sua renda pela técnica 50-30-20: Necessidades, Desejos e Futuro.",
     "credit_cards": "Acompanhe faturas, compras parceladas e alocações do YNAB.",
     "investments": "Acompanhe a evolução, o rendimento e a distribuição da sua carteira.",
+    "assets": "Gerencie seus bens e acompanhe a sua sobrevivência financeira (Runway).",
+    "simulators": "Simule objetivos como Rumo ao Milhão e FIRE com base no seu padrão de vida real.",
     "settings": "Ajustes da conta, perfil e modelo de distribuição de renda.",
     "collapse_expand": "Recolher menu lateral",
     "collapse_collapsed": "Expandir menu lateral",

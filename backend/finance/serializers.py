@@ -134,8 +134,10 @@ class GoalSerializer(serializers.ModelSerializer):
 class DistributionTemplateItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = DistributionTemplateItem
-        fields = ['id', 'account', 'percentage', 'fixed_amount']
+        fields = ['id', 'account', 'category', 'percentage', 'fixed_amount']
         extra_kwargs = {
+            'account': {'required': False, 'allow_null': True},
+            'category': {'required': False, 'allow_null': True},
             'percentage': {'required': False, 'allow_null': True},
             'fixed_amount': {'required': False, 'allow_null': True},
         }
@@ -394,7 +396,7 @@ class InvestmentActivitySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-from .models import Debtor, DebtItem
+from .models import Debtor, DebtItem, Asset
 
 class DebtItemSerializer(serializers.ModelSerializer):
     origin_subaccount_name = serializers.CharField(source='origin_subaccount.name', read_only=True)
@@ -411,4 +413,34 @@ class DebtorSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'user': {'read_only': True},
         }
+
+
+class AssetSerializer(serializers.ModelSerializer):
+    effective_asset_value = serializers.SerializerMethodField()
+    linked_debt_name = serializers.CharField(source='linked_debt.counterparty_name', read_only=True)
+
+    class Meta:
+        model = Asset
+        fields = [
+            'id', 'user', 'name', 'purchase_value', 'current_market_value', 
+            'liquidity_tier', 'linked_debt', 'linked_debt_name', 
+            'effective_asset_value', 'created_at'
+        ]
+        extra_kwargs = {
+            'user': {'read_only': True},
+            'linked_debt': {'required': False, 'allow_null': True},
+        }
+
+    def get_effective_asset_value(self, obj):
+        from decimal import Decimal
+        if obj.linked_debt:
+            # Pega o remaining amount da divida usando o serializer ou calculando direto
+            # Vamos calcular direto para manter performance
+            total_charges = sum(c.amount for c in obj.linked_debt.charges.all())
+            total_paid = sum(p.amount for p in obj.linked_debt.payments.all())
+            remaining = (obj.linked_debt.original_amount + total_charges) - total_paid
+            effective = obj.current_market_value - remaining
+            return float(max(effective, Decimal('0.00')))
+        return float(obj.current_market_value)
+
 

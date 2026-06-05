@@ -423,7 +423,6 @@ const AccountDetails = () => {
               </div>
               
               <ImportModal />
-              <AddTransactionModal initialAccountId={id} />
             </div>
           </div>
 

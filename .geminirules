@@ -28,21 +28,26 @@
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-04 22:33:00): Otimização de Performance - Fase 3: Refinamento (v1.47.00).
-- Backend: Batch queries no `calculate_envelope_states` (pré-carregamento de income/budgets/expenses com lookups O(1) por mês).
-- Backend: Consolidação de queries em `get_net_worth_evolution` em batch único.
-- Backend: Eliminação de N+1 no `calculate_underfunded` via `prefetch_related('active_goal')` no queryset do `CategoryViewSet.tree`.
-- Frontend: Code-splitting completo via `React.lazy()` + `Suspense` para 18 módulos no `App.tsx`.
-- Frontend: `recharts` (271 kB) isolado no chunk `Reports-*.js` carregado sob demanda.
-- Deploy: Deploy contínuo em produção concluído com sucesso via Vercel CLI com build 100% livre de erros.
+(Atualizado em 2026-06-05 09:40:00): Central de Alertas Globais e Ações Pendentes Ativa (v1.51.00).
+- Frontend: Implementado o Dropdown de Notificações de Ações Pendentes no cabeçalho global (`Topbar.tsx`) buscando dados da Inbox e transações com `status=pending`.
+- Frontend: Lógica de roteamento reativo ao clicar nos itens de pendência para navegar diretamente para as respectivas telas de resolução (/inbox e /transactions).
+- Testes: Vitest suite (50/50) e Pytest (105/105) 100% verdes. Build local e em nuvem compilados com sucesso.
+- Deploy: Produção atualizada com sucesso via Vercel (https://ynab-five.vercel.app).
+- Documentação: README.md, CHANGELOG.md, docs/changelog/novidades.md, docs/faq/perguntas.md, docs/manuais/relatorios_analise.md e `.geminirules` sincronizados.
 
-### Status Atual (Versão 1.47.00)
-- **Marco:** Otimização de Performance - Fase 3: Refinamento (v1.47.00).
-- **Estado:** 100% estável e implantado em produção no Vercel (https://ynab-two.vercel.app).
-- **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, serviços com batch queries, e frontend reativo com code-splitting e renderização virtualizada.
-- **Testes:** Suíte Pytest 102/102 passando. Build TypeScript/Vite 100% verde.
+### Status Atual (Versão 1.51.00)
+- **Marco:** Central de Alertas Globais e Ações Pendentes Ativa (v1.51.00).
+- **Estado:** 100% estável e implantado em produção no Vercel (https://ynab-five.vercel.app).
+- **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, módulo de Ativos & Runway, simuladores dinâmicos (FIRE/Milhão), frontend reativo virtualizado, ordenação pura de transações, modelos de distribuição por categoria/conta, redirecionamento via `useSearchParams`, upload/seleção de ícones de conta e dropdown de ações pendentes global na Topbar.
+- **Testes:** Suíte Pytest (105/105) e Vitest (50/50) passando. Build TypeScript/Vite 100% verde.
 
 ### Histórico de Sprints Recentes
+- [v1.51.00] Central de Alertas Globais: Sino de Notificação na Topbar consolidando comprovantes pendentes do Inbox Inteligente e transações agendadas do backend com roteamento direto para resolução.
+- [v1.50.00] Modelos de Distribuição & Ícones de Conta: Correção de templates para envelopes no backend e frontend, atalho de gerenciamento com aba dinâmica de configurações, e seleção de logomarca de banco via `IconPicker`.
+- [v1.49.00] Refatoração de UI e Ordenação de Transações: remoção do campo Categoria no lançamento, remoção do botão redundante na subconta e ordenação bidirecional por Data, Descrição e Status.
+
+
+- [v1.48.00] Módulo de Patrimônio Líquido & Ativos: modelo de banco de dados para ativos patrimoniais, vinculação a dívidas e cálculo de termômetro de liquidez (financial runway).
 - [v1.47.00] Otimização de Performance - Fase 3: Refatoração de services backend (batch queries, prefetch_related) e code-splitting completo do frontend com React.lazy/Suspense.
 - [v1.46.00] Otimização de Performance do Frontend: Paralelização, memorização e virtualização de componentes para reduzir latência de renderização.
 - [v1.44.15] Unificação de API e Resiliência: Substituição de fetch bruto por `authenticatedFetch` no `App.tsx` e `Settings.tsx`, e correção da porta padrão local para `8000` em `api.ts`.
@@ -86,9 +91,11 @@
 - [v1.35.7] Backend agora suporta Account/Subcontas diretamente nas matrizes de transaÃ§Ã£o de CartÃ£o de CrÃ©dito. Modificado frontend de CreditCards para usar AccountCombobox no lugar de CategoryCombobox para refletir o uso de Accounts como subcontas de despesa.
 - [v1.35.4] FormataÃ§Ã£o de Moeda Global RTL: Auditoria global finalizada. Inputs nativos 	ype="number" para valores monetÃ¡rios foram completamente substituÃ­dos pelo CurrencyInput da direita para a esquerda. Removidos os spinners up/down no CSS (index.css). MÃ³dulos afetados: OrÃ§amento, Contas, CartÃµes, Investimentos, DÃ­vidas, Metas e Inbox.
 # REGRAS GLOBAIS DE ENGENHARIA (NUNCA IGNORE)
-1. **Idioma:** Sempre me responda estritamente em PortuguÃƒÂªs do Brasil (pt-BR).
-2. **Qualidade ObrigatÃƒÂ³ria:** Toda alteraÃƒÂ§ÃƒÂ£o no cÃƒÂ³digo exige a execuÃƒÂ§ÃƒÂ£o imediata da suÃƒÂ­te automatizada de testes (Pytest/Vitest/Typecheck) do respectivo projeto para garantir que tudo estÃƒÂ¡ verde.
-3. **Deploy ContÃƒÂ­nuo:** Sempre faÃƒÂ§a o envio para o servidor de produÃƒÂ§ÃƒÂ£o pelo terminal utilizando o comando `vercel --prod --yes`.
-4. **GovernanÃƒÂ§a de DocumentaÃƒÂ§ÃƒÂ£o:** Sempre que alterar qualquer regra de negÃƒÂ³cio, identifique os manuais impactados (`README.md`, `ARCHITECTURE.md`, etc.) e atualize-os cirurgicamente, registrando o resumo no `CHANGELOG.md`.
-5. **GovernanÃƒÂ§a da MemÃƒÂ³ria do Agente:** Sempre que o usuÃƒÂ¡rio pedir para atualizar a memÃƒÂ³ria do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. AlÃƒÂ©m disso, sempre que vocÃƒÂª atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), vocÃƒÂª DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÃƒâ€œRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicaÃƒÂ§ÃƒÂ£o.
+1. **Idioma:** Sempre me responda estritamente em Português do Brasil (pt-BR).
+2. **Qualidade Obrigatória:** Toda alteração no código exige a execução imediata da suíte automatizada de testes (Pytest/Vitest/Typecheck) do respectivo projeto para garantir que tudo está verde.
+3. **Deploy Contínuo:** Sempre faça o envio para o servidor de produção pelo terminal utilizando o comando `vercel --prod --yes`.
+4. **Governança de Documentação:** Sempre que alterar qualquer regra de negócio, identifique os manuais impactados (`README.md`, `ARCHITECTURE.md`, etc.) e atualize-os cirurgicamente, registrando o resumo no `CHANGELOG.md`.
+5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
+6. **Protocolo Permanente de Alertas Globais:** De forma proativa e obrigatória, sempre que você for instruído a implementar uma nova funcionalidade que gere tarefas pendentes ou demande atenção/ação imediata do usuário, você DEVE escrever a lógica para plugar essa nova funcionalidade ao sistema de Notificações Globais de Ações Pendentes (`Topbar.tsx` / `Bell`).
+
 

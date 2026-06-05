@@ -23,6 +23,8 @@ import {
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
+import { useAssetStore } from "@/modules/finance/store/useAssetStore";
+import { useDebtStore } from "@/modules/finance/store/useDebtStore";
 import {
   AreaChart,
   Area,
@@ -145,6 +147,8 @@ const Dashboard = () => {
     setCurrentPeriod
   } = useAccountStore();
   const { fetchRates, convert, baseCurrency, setBaseCurrency } = useCurrencyStore();
+  const { fetchAssets, assets } = useAssetStore();
+  const { fetchDebts, debts } = useDebtStore();
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth - 1);
   const [selectedYear, setSelectedYear] = useState(currentYear);
@@ -159,9 +163,11 @@ const Dashboard = () => {
       fetchAccounts(),
       fetchRates(),
       fetchGoals(),
-      fetchTransactions()
+      fetchTransactions(),
+      fetchAssets(),
+      fetchDebts()
     ]).catch(err => console.error("Erro no carregamento paralelo do Dashboard:", err));
-  }, [fetchAccounts, fetchRates, fetchGoals, fetchTransactions, currentMonth, currentYear]);
+  }, [fetchAccounts, fetchRates, fetchGoals, fetchTransactions, fetchAssets, fetchDebts, currentMonth, currentYear]);
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -176,6 +182,8 @@ const Dashboard = () => {
       fetchRates(),
       fetchGoals(),
       fetchTransactions(),
+      fetchAssets(),
+      fetchDebts()
     ]);
   };
 
@@ -183,11 +191,26 @@ const Dashboard = () => {
 
   const netWorth = useMemo(() => {
     const totalsByCur = useAccountStore.getState().totalsByCurrency(tree);
-    return Object.entries(totalsByCur).reduce(
+    const cash = Object.entries(totalsByCur).reduce(
       (acc, [cur, amount]) => acc + convert(amount, cur as any, baseCurrency),
       0
     );
-  }, [tree, convert, baseCurrency]);
+
+    const sumEffectiveAssets = assets.reduce(
+      (acc, asset) => acc + (Number(asset.effective_asset_value) || 0),
+      0
+    );
+
+    const linkedDebtIds = new Set(assets.map(a => a.linked_debt).filter(Boolean));
+    const unlinkedDebtsAmount = debts
+      .filter(d => d.is_mine && !linkedDebtIds.has(d.id))
+      .reduce(
+        (acc, d) => acc + convert(Number(d.amount_remaining) || 0, (d.currency || baseCurrency) as any, baseCurrency),
+        0
+      );
+
+    return cash + sumEffectiveAssets - unlinkedDebtsAmount;
+  }, [tree, convert, baseCurrency, assets, debts]);
 
   const monthlyStats = useMemo(() => {
     const targetPeriod = `${currentYear}-${String(currentMonth).padStart(2, "0")}`;

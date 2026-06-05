@@ -17,6 +17,7 @@ import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { toast } from "sonner";
 import { type AccountNode } from "@/types";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
+import { IconPicker } from "./IconPicker";
 
 interface Props {
   parentAccount: AccountNode;
@@ -28,6 +29,8 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
   const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const [balance, setBalance] = useState(0);
   const [ceiling, setCeiling] = useState<number | null>(null);
+  const [iconUrl, setIconUrl] = useState<string>("");
+  const [isCropping, setIsCropping] = useState(false);
   const { addNode } = useAccountStore();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -41,12 +44,14 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
       currency: formData.get("currency") as any,
       ceiling: ceiling,
       exclude_from_totals: excludeFromTotals,
+      icon_url: iconUrl || null
     });
 
     toast.success(`Sub-conta criada em "${parentAccount.name}"`);
     setExcludeFromTotals(false);
     setBalance(0);
     setCeiling(null);
+    setIconUrl("");
     setOpen(false);
   };
 
@@ -59,7 +64,7 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
           </button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] glass border-border/60">
+      <DialogContent className="sm:max-w-[425px] glass border-border/60 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Sub-conta em {parentAccount.name}</DialogTitle>
         </DialogHeader>
@@ -93,6 +98,17 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
             </Select>
           </div>
 
+          <div className="grid gap-2">
+            <Label className="text-sm font-semibold">Ícone da Conta</Label>
+            <IconPicker 
+              currentIconUrl={iconUrl} 
+              onCroppingStateChange={setIsCropping}
+              onIconUploaded={(url) => {
+                setIconUrl(url);
+              }} 
+            />
+          </div>
+
           <div className="flex items-center space-x-3 py-1 bg-muted/20 border border-border/40 px-3.5 py-3 rounded-xl">
             <input
               id="sub_exclude_from_totals"
@@ -110,7 +126,7 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
           </div>
 
           <DialogFooter>
-            <Button type="submit" className="w-full gradient-primary">Criar Conta</Button>
+            <Button type="submit" disabled={isCropping} className="w-full gradient-primary">Criar Conta</Button>
           </DialogFooter>
         </form>
       </DialogContent>

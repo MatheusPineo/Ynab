@@ -6,7 +6,7 @@ import { useTransactions } from "@/shared/hooks/useTransactions";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { TableSkeleton } from "@/shared/components/dashboard/TableSkeleton";
 import { EmptyState } from "@/shared/components/dashboard/EmptyState";
-import { Receipt, TrendingUp, TrendingDown, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, ChevronDown, ChevronUp, CornerDownRight } from "lucide-react";
+import { Receipt, TrendingUp, TrendingDown, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, ChevronDown, ChevronUp, CornerDownRight, ArrowUpDown } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -54,6 +54,26 @@ const Transactions = () => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const navigate = useNavigate();
+  const [sortField, setSortField] = useState<'date' | 'description' | 'status' | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  const handleSort = (field: 'date' | 'description' | 'status') => {
+    if (sortField === field) {
+      if (sortOrder === 'asc') {
+        setSortOrder('desc');
+      } else {
+        setSortField(null);
+      }
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const getSortIcon = (field: 'date' | 'description' | 'status') => {
+    if (sortField !== field) return <ArrowUpDown className="ml-1 h-3.5 w-3.5 opacity-40 hover:opacity-100 transition-opacity" />;
+    return sortOrder === 'asc' ? <ChevronUp className="ml-1 h-3.5 w-3.5 text-primary" /> : <ChevronDown className="ml-1 h-3.5 w-3.5 text-primary" />;
+  };
 
   // States for Pay Bill
   const [payBillModalOpen, setPayBillModalOpen] = useState(false);
@@ -188,6 +208,34 @@ const Transactions = () => {
     }
     return result;
   }, [filteredTransactions]);
+
+  const sortedTransactions = useMemo(() => {
+    if (!sortField) return processedTransactions;
+    return [...processedTransactions].sort((a, b) => {
+      let valA: any = a[sortField];
+      let valB: any = b[sortField];
+
+      if (sortField === 'description') {
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+        return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+
+      if (sortField === 'date') {
+        const timeA = new Date(valA || 0).getTime();
+        const timeB = new Date(valB || 0).getTime();
+        return sortOrder === 'asc' ? timeA - timeB : timeB - timeA;
+      }
+
+      if (sortField === 'status') {
+        valA = String(valA || '').toLowerCase();
+        valB = String(valB || '').toLowerCase();
+        return sortOrder === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+
+      return 0;
+    });
+  }, [processedTransactions, sortField, sortOrder]);
 
   const [scopeModalOpen, setScopeModalOpen] = useState(false);
   const [transactionToDelete, setTransactionToDelete] = useState<any>(null);
@@ -345,7 +393,7 @@ const Transactions = () => {
                 <div key={i} className="h-14 rounded-xl bg-muted/20 animate-pulse" />
               ))}
             </div>
-          ) : processedTransactions.length === 0 ? (
+          ) : sortedTransactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-2 py-12 text-muted-foreground border border-dashed border-border/60 rounded-xl">
               <Receipt className="h-6 w-6 opacity-20" />
               <p className="text-xs">Nenhuma transação encontrada.</p>
@@ -354,13 +402,13 @@ const Transactions = () => {
             <div className="w-full">
               <List
                 height={500}
-                itemCount={processedTransactions.length}
+                itemCount={sortedTransactions.length}
                 itemSize={68}
                 width="100%"
-                itemKey={(index) => processedTransactions[index].id}
+                itemKey={(index) => sortedTransactions[index].id}
               >
                 {({ index, style }) => {
-                  const t = processedTransactions[index];
+                  const t = sortedTransactions[index];
                   if (t.isGroup) {
                     return (
                       <div style={style} className="pr-1">
@@ -506,10 +554,25 @@ const Transactions = () => {
         <Table>
           <TableHeader className="bg-muted/30">
             <TableRow className="hover:bg-transparent border-border/60">
-              <TableHead className="w-[120px]">Data</TableHead>
-              <TableHead>Descrição</TableHead>
+              <TableHead className="w-[120px] cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('date')}>
+                <div className="flex items-center">
+                  Data
+                  {getSortIcon('date')}
+                </div>
+              </TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('description')}>
+                <div className="flex items-center">
+                  Descrição
+                  {getSortIcon('description')}
+                </div>
+              </TableHead>
               <TableHead>Conta</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead className="cursor-pointer select-none hover:text-foreground transition-colors" onClick={() => handleSort('status')}>
+                <div className="flex items-center">
+                  Status
+                  {getSortIcon('status')}
+                </div>
+              </TableHead>
               <TableHead className="text-right">Valor</TableHead>
               <TableHead className="w-[70px]"></TableHead>
             </TableRow>
@@ -517,7 +580,7 @@ const Transactions = () => {
           <TableBody>
             {isLoading ? (
                 <TableSkeleton rows={8} />
-            ) : processedTransactions.length === 0 ? (
+            ) : sortedTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6}>
                   <EmptyState 
@@ -532,13 +595,13 @@ const Transactions = () => {
                 <td colSpan={6} className="p-0 block w-full">
                   <List
                     height={550}
-                    itemCount={processedTransactions.length}
+                    itemCount={sortedTransactions.length}
                     itemSize={52}
                     width="100%"
-                    itemKey={(index) => processedTransactions[index].id}
+                    itemKey={(index) => sortedTransactions[index].id}
                   >
                     {({ index, style }) => {
-                      const t = processedTransactions[index];
+                      const t = sortedTransactions[index];
                       if (t.isGroup) {
                         return (
                           <div

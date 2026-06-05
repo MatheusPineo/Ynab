@@ -83,6 +83,20 @@ Não! O cadastro em lote de itens de dívida (`add_items`) é apenas um registro
 ### Q10: O aplicativo Android carrega a landing page institucional do site?
 Não. Para oferecer uma experiência 100% integrada e autônoma, o aplicativo construído com Capacitor detecta que está rodando em ambiente nativo. Ao abrir o aplicativo, ele pula automaticamente o site institucional público (a landing page inicial) e te direciona diretamente para a tela de login (`/auth`) ou para o seu Painel de Controle (`/dashboard`), caso sua sessão já esteja ativa. Isso garante que a navegação do app de celular não se misture com a estrutura de marketing do site web.
 
+---
 
+## Categoria: Transações e Usabilidade
 
+### Q11: Onde foi parar o campo "Categoria de Orçamento" ao cadastrar uma transação?
+Para simplificar e agilizar o fluxo de lançamento de receitas e despesas no dia a dia, removemos o campo "Categoria de Orçamento" do modal de transações. As transações são criadas e o controle orçamentário deve ser planejado a partir das seções e fluxos específicos de alocação de envelopes.
 
+### Q12: Como posso ordenar a visualização das minhas transações na tabela?
+Na tabela de transações (exibição em desktop), você pode clicar diretamente nos cabeçalhos das colunas **Data**, **Descrição** e **Status**. Cada clique alterna entre ordenação crescente (A-Z/Mais antiga para mais recente), decrescente (Z-A/Mais recente para mais antiga) e o estado padrão. As setas indicativas ao lado dos títulos mostram a ordenação ativa no momento.
+
+---
+
+### Q13: Os Modelos de Distribuição (Templates) podem distribuir fundos diretamente para categorias/envelopes?
+Sim! Atualizamos o motor de distribuição para que seus templates suportem o vínculo direto com **Categorias de Envelopes**, além de subcontas físicas. Isso permite dividir uma receita recebida (como seu salário) diretamente entre envelopes de despesas e contas de poupança com um único clique. Na edição do template, você pode alternar livremente entre associar cada linha a uma subconta ou a uma categoria de envelope específica, combinando valores fixos e percentuais.
+
+### Q14: Como posso anexar um ícone visual à minha conta corrente ou cartão?
+Ao criar ou editar qualquer conta (seja uma Conta Raiz, Banco, Cartão de Crédito ou Subconta) no painel do Vault, você verá o seletor visual de ícones (**IconPicker**). Clique no seletor para escolher a logomarca oficial do seu banco (ex: Nubank, Itaú, Bradesco, Banco do Brasil, Santander, Caixa, Inter, etc.) ou selecione um ícone genérico. O ícone selecionado será salvo no backend (`icon_url`) e passará a ilustrar a conta em todos os menus, listas e seletores globais da plataforma para uma navegação muito mais intuitiva.

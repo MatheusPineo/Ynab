@@ -6,7 +6,7 @@ from .views import (
     DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
     InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, WealthBatchUpdateView, DemoModeView,
-    ReportsViewSet, DebtorViewSet, DebtItemViewSet, NotificationInboxView, SplitRuleViewSet
+    ReportsViewSet, DebtorViewSet, DebtItemViewSet, NotificationInboxView, SplitRuleViewSet, AssetViewSet
 )
 
 # Novas importações para os Dispositivos Confiáveis
@@ -32,6 +32,8 @@ router.register(r'wealth/activities', InvestmentActivityViewSet, basename='wealt
 router.register(r'debtors', DebtorViewSet, basename='debtor')
 router.register(r'debt-items', DebtItemViewSet, basename='debt-item')
 router.register(r'split-rules', SplitRuleViewSet, basename='split-rule')
+router.register(r'assets', AssetViewSet, basename='asset')
+
 
 urlpatterns = [
     path('icons/upload/', IconUploadView.as_view(), name='account-upload-icon'),

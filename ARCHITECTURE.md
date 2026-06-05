@@ -1257,3 +1257,252 @@ Todos os 18 módulos principais do `App.tsx` são carregados sob demanda:
 #### Memoização de Componentes
 * `CreditCards.tsx`: Funções de fetch encapsuladas em `useCallback()`.
 * `Dashboard.tsx`: Gráfico isolado em `DashboardAreaChart` com `React.memo` para prevenir re-renders no hover.
+
+---
+
+## 12. Módulo de Patrimônio Líquido & Ativos (Net Worth & Assets) (v1.48.00)
+
+O módulo de **Ativos (Assets)** estende o gerenciamento patrimonial da plataforma, permitindo o registro de bens físicos e financeiros, vinculação com dívidas e a mensuração de resiliência financeira.
+
+### 12.1 Cálculo de Valor Efetivo do Ativo
+O valor efetivo é definido de forma dinâmica para deduzir o saldo devedor restante:
+$$\text{Valor Efetivo} = \max(\text{current\_market\_value} - \text{linked\_debt.amount\_remaining}, 0)$$
+Isso garante que um ativo financiado (ex: carro ou imóvel) apresente apenas a fatia de patrimônio real já quitada pelo usuário.
+
+### 12.2 Engine de Runway Financeiro (Termômetro de Liquidez)
+O termômetro de liquidez divide os ativos disponíveis pela despesa mensal média para responder a quantos meses o usuário consegue manter o seu padrão de vida em caso de interrupção de renda:
+1. **Total de Ativos Líquidos:** Soma do valor efetivo de todos os ativos classificados como `IMMEDIATE` ou `MEDIUM` em sua liquidez. Ativos `ILLIQUID` são omitidos desta conta por não poderem ser convertidos em caixa no curto prazo.
+2. **Despesa Média Mensal:**
+   - O sistema calcula a soma de despesas reais (excluindo transferências internas) nos últimos 90 dias nas contas *on-budget* e divide por 3.
+   - Caso não haja histórico de transações, busca o somatório do orçamento (`MonthlyBudget`) ativo do mês corrente.
+3. **Runway Months:**
+    $$\text{Runway Months} = \frac{\text{Total de Ativos Líquidos}}{\text{Despesa Média Mensal}}$$
+
+### 12.3 Interface do Usuário e Gerenciamento de Estado (Frontend)
+A interface de usuário do módulo de Ativos foi implementada com foco em reatividade, concorrência e eficiência de renderização:
+1. **Zustand Store (`useAssetStore.ts`):** Centraliza o estado local dos ativos (`assets`) e do resumo do runway (`runway`). Utiliza requisições paralelas via `Promise.all` nas operações de sincronização e mutações para minimizar a latência percebida.
+  const matchesAccount = selectedAccountId === "all" || String(t.account) === selectedAccountId;
+  ```
+- **Resultado:** Elimina o bug silencioso em que a seleção de uma conta específica na tabela global ocultava incorretamente todos os registros da tela.
+
+#### 3. Mapeamento Estrito de Paridade Metodológica e Regras Contábeis YNAB (v1.29.0)
+Para alcançar paridade contábil absoluta com a engine padrão-ouro do **Actual Budget** (`actual-master`), implementamos um motor de orçamentação cumulativa retrospectiva que processa cronologicamente toda a história transacional e de alocações do usuário.
+
+##### 1. Arquitetura Retrospectiva da Engine Contábil (`YNABBudgetService`)
+O cálculo do saldo disponível em um envelope base-zero não pode ser feito de forma isolada para cada mês, pois o dinheiro não alocado ou os estouros de meses anteriores se propagam continuamente. O serviço `YNABBudgetService.calculate_envelope_states` processa:
+- **Janela de Processamento Dinâmica:** Identifica o início histórico de transações ou orçamentos do usuário e varre mês a mês de forma cumulativa e ordenada até o mês solicitado.
+- **RTA Consolidado (Ready to Assign):** O pool de renda não alocada é calculado de forma incremental:
+  $$RTA_M = RTA_{M-1} + Renda_M - Alocado_M - CashOverspending_{M-1}$$
+  Isso garante que toda a renda On-budget seja concentrada de forma contábil e distribuída fielmente.
+
+##### 2. Governança Contábil de Estouros (Cash vs. Credit Overspending)
+Uma das regras de ouro do YNAB é como os estouros de envelope (disponível negativo) são tratados no mês subsequente:
+- **Cash Overspending (Dinheiro):** Um estouro em dinheiro (deduzido de contas correntes/cash) representa um "buraco na realidade". Ele não rola como saldo negativo no envelope no mês seguinte (o envelope zera), mas é **subtraído diretamente do pool Ready to Assign (RTA) do próximo mês**, forçando o usuário a cobrir o rombo com renda futura.
+- **Credit Overspending (Cartão de Crédito):** Um estouro gerado por compras em cartão de crédito representa uma criação de dívida financeira. Ele não rola como saldo negativo no envelope no mês seguinte, e **não reduz o RTA do próximo mês**, transformando-se de forma automática em dívida passiva acumulada na fatura do cartão de crédito.
+- **Split Overspending (Híbrido):** Caso um envelope sofra despesas mistas (dinheiro e cartão) que gerem estouro, a engine calcula proporcionalmente a fatia creditícia e a fatia monetária do estouro:
+  $$CreditOverspent = \min(OverspentTotal, CreditSpent)$$
+  $$CashOverspent = OverspentTotal - CreditOverspent$$
+  Reduzindo o RTA do mês subsequente apenas pela fatia exata de estouro em dinheiro real.
+
+##### 3. Compatibilidade Híbrida de Apresentação (API & Frontend)
+Para evitar reestruturações complexas no layout do frontend SPA React que pudessem quebrar a renderização de grupos e subcategorias:
+- **Payload Raiz Preservado:** O endpoint `/api/finance/categories/tree/` continua retornando o array plano nativo que o React espera, garantindo compatibilidade imediata.
+- **Cabeçalho Customizado `X-Ready-To-Assign`:** O valor calculado do RTA mensal é enviado de forma transparente no cabeçalho HTTP customizado `X-Ready-To-Assign` da resposta da API.
+- **Propriedades Enriquecidas de Envelope:** Cada nó folha da árvore de categorias agora carrega no JSON as propriedades físicas calculadas pelo backend: `'rollover_amount'`, `'available_amount'` e `'overspending_type'`.
+
+##### 4. Automação de Metas, Distribuição Inteligente e Rebalanceamento (v1.40.00)
+Para expandir as capacidades contábeis e de automação, introduzimos regras de planejamento avançado:
+- **Metas de Categoria (`Category`):** Adição dos campos `target_value` (Decimal), `target_type` (agora suportando `NEEDED_FOR_SPENDING`, `SAVINGS_BUILDER`, `FIXED` ou `PERCENTAGE` - v1.44.05) e `ceiling_value` (Decimal) para modelagem de metas e limites de acúmulo por envelope.
+- **Distribuição Automatizada Auto-Assign (`autoAssignFunds` - v1.44.05):**
+  - Implementado no frontend (`useAccountStore.ts`) para processamento inteligente em lote das metas orçamentárias.
+  - **Algoritmo de Priorização:** Ordena as categorias priorizando metas de necessidade de gastos obrigatórios (`NEEDED_FOR_SPENDING`) antes de metas acumuladoras de poupança (`SAVINGS_BUILDER`).
+  - **Diferenciação de Comportamento:**
+    - `NEEDED_FOR_SPENDING`: Aloca a diferença incremental `target_value - available_amount` (aloca 0 se o saldo atual for maior ou igual à meta).
+    - `SAVINGS_BUILDER`: Aloca o valor integral `target_value` de forma cumulativa, independente do saldo atual disponível.
+  - **Segurança de Limite:** Consome e decrementa o saldo `Ready to Assign` local a cada iteração, interrompendo a distribuição no momento em que o RTA chega a zero para impedir estouros e saldos negativos acidentais.
+- **Painel Analítico Regra 50/30/20 (v1.44.06):**
+  - **Modelagem Relacional:** Inclusão do campo `macro_rule` ( choices `NEEDS`, `WANTS`, `SAVINGS`, `NONE` ) na entidade `Category`.
+  - **Perfil de Usuário:** Inclusão de `needs_target_pct`, `wants_target_pct`, e `savings_target_pct` na entidade `UserProfile` permitindo a customização das metas macro.
+  - **Zustand Selector:** A função `selectMacroDistribution` filtra a árvore de categorias pelos nós de primeiro nível (grupos), acumula recursivamente as verbas designadas (`assigned_amount`) dos sub-envelopes filhos correspondentes a cada macro regra, e calcula as porcentagens dividindo o total alocado pela renda bruta acumulada no mês.
+- **Serviço de Alocação (`BudgetAutomationService`):**
+  - `smart_allocate(user, amount, mode)`: Executado de forma atômica (`transaction.atomic`).
+  - Modo `RECURRING_TARGETS`: Varre os envelopes, calcula a necessidade de provisão (fixa ou percentual sobre a receita total) e cria/atualiza os registros de `MonthlyBudget`.
+  - Modo `EXTRA_PROPORTIONAL`: Divide a sobra do RTA proporcionalmente entre os sub-envelopes ativos baseado na relevância de suas metas.
+- **Ações de Rebalanceamento Automático:**
+  - `REBALANCE_TO_CEILING`: Identifica envelopes com saldo acumulado acima de seu `ceiling_value`, retira o excesso e repatria a liquidez para o `RTA`.
+  - `REBALANCE_ZERO_OVERSPENT`: Localiza envelopes com saldo disponível negativo e retira a provisão necessária do `RTA` para restaurar o equilíbrio do envelope a zero.
+- **Integração de Estado (Zustand & Headers):**
+  - O cabeçalho HTTP `X-Ready-To-Assign` é capturado pelo interceptor de rede na store do Zustand (`useAccountStore.ts`) e armazenado em `readyToAssignBalance`.
+  - O componente `Budget.tsx` consome esse estado e renderiza o painel de distribuição, acionando as chamadas para o backend na reconfiguração ou distribuição em lote.
+
+##### 5. Motor de Repagamento FIFO e Devedores Agrupados (v1.41.00)
+Para gerenciar despesas compartilhadas (roommates) e amortizar recebimentos de forma integrada aos envelopes de orçamento, implementamos um motor de repagamento cronológico atômico:
+- **Modelagem de Dados (`Debtor` e `DebtItem`):**
+  - `Debtor`: Representa o devedor associado a um usuário (`user`).
+  - `DebtItem`: Itens de dívida individuais vinculados à subconta/conta de origem (`origin_subaccount`) contendo descrição (`product_name`), valor total (`total_amount`), valor pago (`paid_amount`) e status (`status` em `PENDING`, `PARTIAL`, `SETTLED`).
+- **Motor FIFO (`DebtorPaymentService.pay_subaccount_group`):**
+  - Executado dentro de uma transação atômica (`@transaction.atomic`).
+  - **Injeção Contábil:** Cria um lançamento de transação (`Transaction`) de receita (`is_income=True`) na subconta/conta de destino correspondente a `origin_subaccount`, curando o envelope de origem.
+  - **Fila de Amortização:** Busca os registros de `DebtItem` não liquidados (`PENDING` ou `PARTIAL`) ordenados por `date_created` e `id` de forma ascendente. Amortiza o saldo recebido sequencialmente sobre cada item da fila. O status transiciona para `SETTLED` se totalmente quitado ou `PARTIAL` se a provisão esgotar durante a liquidação de um item específico.
+- **Agregação e Endpoint (`DebtorViewSet`):**
+  - Endpoint `@action(detail=True) grouped_debts` e `retrieve`: Consolida no backend as dívidas do devedor agrupadas por subconta/conta, somando o saldo pendente total por grupo e aninhando a lista de itens ativos. Suporta agregação híbrida de roommate splits (`DebtItem`) e dívidas/empréstimos pessoais (`Debt` onde a contraparte deve para o usuário e os nomes coincidem case-insensitivamente).
+  - Endpoint `@action(detail=True) pay_group`: Aciona o serviço transacional para processar o recebimento agrupado e liquidar as dívidas no banco.
+  - Endpoint `@action(detail=True) add_items`: Endpoint transacional mapeado para o serviço de criação em lote (`DebtorCreationService.register_itemized_debts`) que permite ao frontend cadastrar de uma só vez múltiplos itens de dívida vinculados a um roommate sem alterar o saldo do envelope.
+- **Mutações de Itens de Dívida (`DebtItemMutationService` - v1.41.01):**
+  - **Atualização Atômica (`PATCH`):** Permite alterar o valor total (`total_amount`) e a subconta associada (`origin_subaccount_id`). Caso a subconta mude, executa o rebalanceamento atômico subtraindo o valor anterior do saldo (`balance`) da subconta antiga e somando o novo valor ao saldo da nova subconta. Caso apenas o valor mude, o saldo da subconta correspondente é ajustado pela diferença.
+  - **Exclusão de Dívida (`DELETE`):** Ao excluir um item de dívida, seu peso financeiro (o `total_amount` correspondente) é removido do saldo (`balance`) da subconta associada antes da exclusão física definitiva no banco de dados (`.delete()`), estornando seu impacto financeiro.
+- **Agregação Híbrida e Unificação de Devedores (v1.41.05):**
+  - Unificação de devedores no backend (tanto na árvore de contas `/accounts/tree/` quanto no `AccountSerializer` e nos endpoints do `DebtorViewSet`), agregando de forma transparente os saldos pendentes originados de roommate splits (`DebtItem`) e de empréstimos diretos/pessoais (`Debt` onde `is_mine=False`), garantindo consistência total do saldo devido ao envelope nas visualizações interna de subconta e perfil de devedores.
+  - Inclusão de verificação de hidratação de rota no frontend (`DebtorProfile.tsx`) para evitar chamadas com IDs indefinidos e mapeamento de IDs virtuais para registros `Debt` na exibição do ledger.
+
+
+
+## Taxonomia Global de Investimentos (Atualizado 03/06/2026)
+Os modelos `InvestmentAsset` e `InvestmentActivity` suportam rastreamento internacional (`market_country`, `asset_category`), classificação macro (`macro_category`) e lançamentos de rendimento/ajustes manuais (`YIELD`).
+Toda a evolução histórica baseia-se no Smart Ledger onde o saldo atual do ativo é a soma algébrica direta dos lançamentos sem matemática temporal.
+
+### Cascading Smart Ledger & Proportional Distribution Engine
+Para permitir a gestão dinâmica e intuitiva de investimentos, a camada cliente (React/Zustand) implementa um motor de distribuição hierárquico bidirecional em [useWealthStore.ts](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/store/useWealthStore.ts) auxiliado por [wealth-utils.ts](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/src/modules/finance/store/wealth-utils.ts):
+1. **Agrupamento em Árvore (`groupWealthHoldings`):** Agrupa o array plano de holdings em uma estrutura hierárquica `Account -> Macro Category -> Unitary Assets` baseando-se nas últimas atividades associadas cronologicamente a cada ativo para determinar a conta ativa.
+2. **Atualização Top-Down (Distribuição Proporcional):** Quando atualizados os totais da conta ou macro categoria, a função `distributeProportionally` recalcula o saldo individual de cada ativo na sub-árvore com a fórmula:
+   $$NovoSaldoAtivo = SaldoAntigoAtivo \times \left(\frac{NovoSaldoMacro}{SaldoAntigoMacro}\right)$$
+   * Se o saldo anterior for zero, distribui o valor total igualmente.
+   * Diferenças residuais decorrentes de arredondamentos de ponto flutuante de precisão centesimal são aplicadas no maior ativo da categoria.
+3. **Atualização Bottom-Up:** Quando alterado individualmente, o ativo folha recalcula e atualiza instantaneamente as somas na visualização dos nós superiores em tela.
+4. **Persistência em Lote (Batch Update):** Os ajustes de saldo calculados no frontend são enviados ao endpoint de conciliação em lote `/wealth/batch-update/`.
+
+---
+
+##### 6. Governança e Aprendizado de Regras de Associação (`LearnedTransactionRule` - v1.42.00)
+Para otimizar o processamento inteligente da Inbox IA e automatizar a pré-identificação de dados bancários/faturas recorrentes sem intervenção manual, implementamos um modelo de aprendizado contínuo de regras de associação:
+- **Modelagem de Regras (`LearnedTransactionRule`):**
+  - Mapeia palavras-chave sanitizadas (`keyword` extraídas dos comprovantes/faturas, ex: `"ALDI"`, `"UBER"`) para entidades de contas e categorias específicas do usuário.
+  - Campos: `user` (User ForeignKey), `keyword` (CharField para o texto chave), `assigned_account` (Account ForeignKey para a conta sugerida), `assigned_category` (Category ForeignKey para o envelope de despesas sugerido) e `is_income` (BooleanField para diferenciar receitas e despesas).
+  - Impõe restrição de unicidade ACID (`unique_together = ('user', 'keyword')`) para evitar regras conflitantes por usuário.
+- **Associação de Tipos de Contas:**
+  - Se a conta `assigned_account` associada possuir o tipo `credit_card`, o processamento tratará a transação implicitamente como uma compra de cartão de crédito.
+- **Ingestão de Notificações Móveis e Motor de Match (`POST /api/inbox/notification/`):**
+  - Permite a recepção de strings brutas de SMS/Push de transações enviadas de celulares (integração via Tasker/Macrodroid).
+  - O **Match Engine** local busca palavras-chave correspondentes no banco de dados. Havendo ocorrência (`rule.keyword.lower() in text.lower()`), o sistema realiza o **bypass da API do Gemini**, extrai datas e valores por regex/heurísticas leves e cria o `TransactionInbox` com status `ready`.
+  - Se não houver correspondência, o item é inserido como `pending` e enviado à fila Celery/Thread assíncrona do Gemini Flash para extração total (solicitando que a IA gere também a palavra-chave ideal no campo `merchant_keyword`).
+  - No momento da validação do item pelo usuário no painel do Inbox, caso o item venha de captura textual e não tenha regra aprendida (acionamento inicial da IA), o sistema invoca uma rotina transacional que cria/atualiza a regra correspondente (`LearnedTransactionRule`) para automatizar lançamentos futuros.
+- **Visualização Simulada (Smartphone Mockup Preview):**
+  - Na ausência de anexo de imagem no `TransactionInbox`, o painel esquerdo da UI (`Inbox.tsx`) renderiza dinamicamente um mockup interativo de celular em modo escuro.
+  - Exibe a barra de status simulada, relógio do sistema e um balão de notificação nativo contendo o aplicativo de origem (`package_name`), a tag descriptiva "Automated Mobile Capture" e a mensagem bruta capturada, facilitando a conferência pelo usuário durante a revisão.
+  - Adicionado suporte a hidratação de formulário completo (conta, categoria e tipo de transação) e seletor ativo de envelopes/categorias para controle fino.
+
+##### 7. Rastreamento Dinâmico de Identidades de Bancos (`Account.domain`)
+Para possibilitar a renderização dinâmica de ícones/logotipos de bancos e gateways de pagamento na interface do usuário através da API do Clearbit (sem necessidade de uploads de mídias manuais), o modelo `Account` foi estendido com o campo:
+- `domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")`
+- O valor é serializado e transmitido automaticamente pelo `AccountSerializer` (`fields = '__all__'`), permitindo que a camada do cliente recupere dinamicamente a imagem no formato `https://logo.clearbit.com/{account.domain}` para maior riqueza estética.
+
+---
+
+## 11. Arquitetura de Performance e Otimização de Latência (v1.47.00)
+
+O Vault Finance OS implementa uma estratégia de performance em três camadas cobrindo banco de dados, lógica de servidor e renderização de cliente.
+
+### 11.1 Otimização de Queries no Backend (Django ORM)
+
+#### Eliminação Sistemática de N+1 Queries
+Todos os ViewSets críticos utilizam estratégias de carregamento antecipado:
+* **`select_related()`** para ForeignKeys: `CategoryViewSet` (`parent`), `MonthlyBudgetViewSet` (`category`).
+* **`prefetch_related()`** para relações reversas e OneToOne: `SplitRuleViewSet` (`items`), `CategoryViewSet.tree` (`active_goal`), `DebtViewSet` (`charges`, `payments`, `payments__account`), `CreditCardViewSet.bills` (parcelas e anotações agregadas).
+
+#### Índices de Banco de Dados
+Índices explícitos (`db_index=True`) aplicados em colunas filtradas com alta frequência:
+* `MonthlyBudget`: `month`, `year`
+* `Installment`: `status`
+* `Debt`: `is_mine`
+
+#### Agregações no Banco de Dados
+Cálculos pesados migrados de loops Python para anotações ORM (`annotate`, `Sum`, `Coalesce`):
+* `DebtSerializer`: `total_amount`, `amount_paid`, `amount_remaining` calculados via `Sum` no PostgreSQL.
+* `CreditCardViewSet.bills`: `total_amount` das faturas anotado diretamente na query.
+
+### 11.2 Otimização de Services Backend (Batch Queries)
+
+#### `YNABBudgetService.calculate_envelope_states`
+Refatorado para eliminar queries dentro do loop cronológico mensal:
+* **Antes:** N queries por mês (income, budgets, expenses) dentro do loop de meses.
+* **Depois:** 3 queries batch únicas no início, indexadas em memória por `(year, month)` para lookups O(1).
+
+#### `YNABGoalService.calculate_underfunded`
+* Aceita parâmetro `goal` opcional pré-carregado via `prefetch_related('active_goal')`.
+* Mantém fallback para query individual garantindo compatibilidade retroativa.
+* Elimina N queries de `CategoryGoal` (1 por categoria folha) no endpoint `/categories/tree/`.
+
+#### `ReportEngine.get_net_worth_evolution`
+* Queries de transações consolidadas em batch único com filtro por range de datas.
+
+### 11.3 Otimização do Frontend (React)
+
+#### Code-Splitting via React.lazy + Suspense
+Todos os 18 módulos principais do `App.tsx` são carregados sob demanda:
+* `Dashboard`, `Accounts`, `Transactions`, `Budget`, `Goals`, `Settings`, `Debts`, `Reports`, `CreditCards`, `Investments`, `Inbox`, `Auth`, `Landing`, `NotFound`, `LegalCenter`, `HelpCenter`, `AccountDetails`, `BillDetails`, `DebtorProfile`, `Rule503020`.
+* Bibliotecas pesadas como `recharts` (271 kB) são isoladas automaticamente no chunk da rota que as utiliza (`Reports-*.js`).
+
+#### Virtualização de Listas
+* `Transactions.tsx`: Renderização virtualizada via `react-window` tanto no modo mobile (cards) quanto desktop (tabela).
+
+#### Eliminação de Request Waterfalls
+* `Debts.tsx`: Fetch paralelo com `Promise.all()` para dívidas e contas na montagem.
+* `DebtCard`: Estado de grouped debts elevado ao componente pai para evitar 10+ requisições concorrentes.
+
+#### Memoização de Componentes
+* `CreditCards.tsx`: Funções de fetch encapsuladas em `useCallback()`.
+* `Dashboard.tsx`: Gráfico isolado em `DashboardAreaChart` com `React.memo` para prevenir re-renders no hover.
+
+---
+
+## 12. Módulo de Patrimônio Líquido & Ativos (Net Worth & Assets) (v1.48.00)
+
+O módulo de **Ativos (Assets)** estende o gerenciamento patrimonial da plataforma, permitindo o registro de bens físicos e financeiros, vinculação com dívidas e a mensuração de resiliência financeira.
+
+### 12.1 Cálculo de Valor Efetivo do Ativo
+O valor efetivo é definido de forma dinâmica para deduzir o saldo devedor restante:
+$$\text{Valor Efetivo} = \max(\text{current\_market\_value} - \text{linked\_debt.amount\_remaining}, 0)$$
+Isso garante que um ativo financiado (ex: carro ou imóvel) apresente apenas a fatia de patrimônio real já quitada pelo usuário.
+
+### 12.2 Engine de Runway Financeiro (Termômetro de Liquidez)
+O termômetro de liquidez divide os ativos disponíveis pela despesa mensal média para responder a quantos meses o usuário consegue manter o seu padrão de vida em caso de interrupção de renda:
+1. **Total de Ativos Líquidos:** Soma do valor efetivo de todos os ativos classificados como `IMMEDIATE` ou `MEDIUM` em sua liquidez. Ativos `ILLIQUID` são omitidos desta conta por não poderem ser convertidos em caixa no curto prazo.
+2. **Despesa Média Mensal:**
+   - O sistema calcula a soma de despesas reais (excluindo transferências internas) nos últimos 90 dias nas contas *on-budget* e divide por 3.
+   - Caso não haja histórico de transações, busca o somatório do orçamento (`MonthlyBudget`) ativo do mês corrente.
+3. **Runway Months:**
+    $$\text{Runway Months} = \frac{\text{Total de Ativos Líquidos}}{\text{Despesa Média Mensal}}$$
+
+### 12.3 Interface do Usuário e Gerenciamento de Estado (Frontend)
+A interface de usuário do módulo de Ativos foi implementada com foco em reatividade, concorrência e eficiência de renderização:
+1. **Zustand Store (`useAssetStore.ts`):** Centraliza o estado local dos ativos (`assets`) e do resumo do runway (`runway`). Utiliza requisições paralelas via `Promise.all` nas operações de sincronização e mutações para minimizar a latência percebida.
+2. **Formulário de Cadastro (`AddAssetModal.tsx`):** Modal reativo para criação e edição de ativos. Integra dinamicamente a listagem de dívidas do `useDebtStore` para permitir a associação opcional de financiamentos/hipotecas.
+3. **Página de Ativos e Runway (`Assets.tsx`):** Apresenta a visão geral dos bens, exibindo o termômetro de liquidez baseado em uma barra de progresso com meta recomendada de 12 meses de despesas. Mostra a variação de valor dos ativos (`purchase_value` vs `current_market_value`) e seu respectivo valor líquido efetivo.
+4. **Widget de Dashboard (`DashboardWidgets.tsx`):** O termômetro de liquidez foi disponibilizado como um widget ativável no dashboard inicial do usuário.
+5. **Net Worth Consolidado (`Dashboard.tsx`):** A fórmula de cálculo de Patrimônio Líquido no Dashboard foi atualizada no frontend para computar:
+   $$\text{Net Worth Consolidado} = \text{Saldo das Contas (Cash)} + \sum \text{Valor Efetivo dos Ativos} - \sum \text{Dívidas não Vinculadas}$$
+   Isso evita a dupla contagem de dívidas que já estão abatendo o valor de mercado de seus respectivos ativos vinculados.
+
+---
+
+## 13. Módulo de Simuladores Financeiros Dinâmicos (Planning) (v1.48.00)
+
+O módulo de **Simuladores (Planning)** introduz ferramentas dinâmicas de projeção baseadas diretamente na realidade financeira e no comportamento do usuário no sistema.
+
+### 13.1 Coleta de Dados e Metadados do Usuário
+Os simuladores evitam inputs estáticos manuais e utilizam dados reativos calculados localmente:
+1. **Patrimônio Inicial:** Consome o valor consolidado de `Net Worth` calculado em tempo real (contas + ativos - dívidas).
+2. **Aporte Mensal Histórico:** Calcula a média de economias agrupadas mensalmente a partir do histórico completo de transações (`transactions` de `useAccountStore` filtradas por `status='realized'`).
+3. **Despesas Mensais de Base:** Consome a despesa mensal média obtida do endpoint de Runway (`runway.average_monthly_expenses`).
+
+### 13.2 Simulador Rumo ao Milhão (Millionaire Calculator)
+Calcula o número de meses necessários ($n$) para atingir a meta de $M = 1.000.000$ sob uma taxa mensal de juros $r_m = (1 + r_a)^{1/12} - 1$ (onde $r_a$ é a taxa de retorno anual configurada) e aportes mensais constantes $A$:
+$$V_{n} = P \times (1 + r_m)^n + A \times \frac{(1 + r_m)^n - 1}{r_m}$$
+Onde $P$ é o patrimônio inicial. A simulação roda até que $V_n \ge M$, gerando o mapeamento de crescimento de patrimônio bruto e de capital acumulado por aportes.
+
+### 13.3 Simulador de Independência Financeira (FIRE Calculator)
+Calcula a meta de patrimônio necessária para independência financeira ($Meta_{FIRE}$) e a data prevista de atingimento com base na regra empírica da taxa de retirada segura ($r_{retirada}$):
+$$Meta_{FIRE} = \frac{\text{Despesa Mensal} \times 12}{r_{retirada}}$$
+A projeção de data utiliza a mesma capitalização mensal para simular quantos meses decorrerão até que o patrimônio acumulado atinja o valor de $Meta_{FIRE}$.
+    O progresso percentual de cobertura é determinado por:
+   $$\text{Progresso FIRE} = \min\left(100, \frac{\text{Patrimônio Atual}}{Meta_{FIRE}} \times 100\right)$$

@@ -51,7 +51,7 @@ import {
   SelectValue,
 } from "@/shared/components/ui/select";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -78,6 +78,12 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
   const { isPrivateMode, showDecimals, togglePrivateMode, toggleDecimals } = useSettingsStore();
 
   const { t, i18n } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "profile";
+  
+  const handleTabChange = (val: string) => {
+    setSearchParams({ tab: val });
+  };
 
   // Preferências Regionais de Moeda (Mockadas no Boilerplate se não houver cotações ou lendo do Settings se necessário)
   // Como o Boilerplate precisa rodar de forma autônoma, definimos uma lista simples de moedas comuns e usamos o EUR/BRL/USD/GBP padrão.
@@ -383,7 +389,7 @@ const Settings = ({ extraTabs = [] }: SettingsProps) => {
         </Button>
       </div>
 
-      <Tabs defaultValue="profile" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <div className="overflow-x-auto pb-1">
           <TabsList className="bg-muted/20 border border-border/60 p-1 mb-6 sm:mb-8 rounded-xl flex-nowrap w-max sm:w-full min-w-full">
             <TabsTrigger value="profile" className="gap-1.5 rounded-lg data-[state=active]:bg-background text-xs sm:text-sm">
