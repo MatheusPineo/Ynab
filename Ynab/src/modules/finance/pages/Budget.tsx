@@ -118,11 +118,16 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedName, setEditedName] = useState(category.name);
   const [macroAllocation, setMacroAllocation] = useState<'NEEDS' | 'WANTS' | 'SAVINGS' | 'NONE'>(category.macro_allocation || 'NONE');
+  const [editedCurrency, setEditedCurrency] = useState<'EUR' | 'BRL'>(category.currency as any || 'EUR');
   const { updateCategory, deleteCategory } = useAccountStore();
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateCategory(category.id, { name: editedName, macro_allocation: macroAllocation });
+    await updateCategory(category.id, { 
+      name: editedName, 
+      macro_allocation: macroAllocation,
+      currency: editedCurrency
+    });
     setIsEditDialogOpen(false);
   };
 
@@ -169,6 +174,22 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
                 required
                 className="bg-background/50"
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="currency">Moeda</Label>
+              <Select
+                value={editedCurrency}
+                onValueChange={(val: any) => setEditedCurrency(val)}
+              >
+                <SelectTrigger id="currency" className="bg-background/50">
+                  <SelectValue placeholder="Selecione a moeda" />
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  <SelectItem value="EUR">Euro (€)</SelectItem>
+                  <SelectItem value="BRL">Real (R$)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="grid gap-2">
@@ -640,6 +661,34 @@ const Budget = () => {
             </SortableContext>
           </DndContext>
         )}
+        {/* Modal local de criação de grupo específico para este board */}
+        <Dialog open={isGroupDialogOpen && groupCurrency === boardCurrency} onOpenChange={(open) => {
+          if (!open) {
+            setIsGroupDialogOpen(false);
+          }
+        }}>
+          <DialogContent className="glass border-border/60">
+            <DialogHeader>
+              <DialogTitle>Novo Grupo de Categorias ({boardCurrency})</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleAddGroup} className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor={`groupName-${boardCurrency}`}>Nome do Grupo</Label>
+                <Input 
+                  id={`groupName-${boardCurrency}`}
+                  value={newGroupName} 
+                  onChange={(e) => setNewGroupName(e.target.value)} 
+                  placeholder="Ex: Contas de Consumo..." 
+                  className="bg-background/50" 
+                  required
+                />
+              </div>
+              <DialogFooter>
+                <Button type="submit" className="gradient-primary w-full">Adicionar Grupo</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   };
@@ -974,32 +1023,6 @@ const Budget = () => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Standalone Dialog for Creating a New Category Group */}
-      <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
-        <DialogContent className="glass border-border/60">
-          <DialogHeader>
-            <DialogTitle>Novo Grupo de Categorias</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleAddGroup} className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="groupName">Nome do Grupo</Label>
-              <Input 
-                id="groupName" 
-                value={newGroupName} 
-                onChange={(e) => setNewGroupName(e.target.value)} 
-                placeholder="Ex: Contas de Consumo..." 
-                className="bg-background/50" 
-                required
-              />
-            </div>
-            <DialogFooter>
-              <Button type="submit" className="gradient-primary w-full">Adicionar Grupo</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
       <div className="h-20" />
     </div>
   );
