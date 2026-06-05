@@ -30,22 +30,23 @@
 6. **Protocolo Permanente de Alertas Globais:** De forma proativa e obrigatória, sempre que você for instruído a implementar uma nova funcionalidade que gere tarefas pendentes ou demande atenção/ação imediata do usuário, você DEVE escrever a lógica para plugar essa nova funcionalidade ao sistema de Notificações Globais de Ações Pendentes (`Topbar.tsx` / `Bell`).
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-05 15:50:00): Integrada a exibição dinâmica de logos via Google Favicon API (v1.56.00).
-- Backend: Exposto `bank_domain` e a propriedade `@property bank_logo_url` no modelo `Account` e nos serializers. Corrigido o método `tree` no `AccountViewSet` para serializar e retornar recursivamente os novos campos. Adicionada sanitização robusta do domínio com regex e parser `urllib.parse` para remover esquemas, subdomínio www e caminhos extras no método save e em tempo de execução no getter.
-- Backend/Frontend: Substituída a API Clearbit Logo pela Google Favicon API (`sz=128`) para evitar bloqueios de AdBlockers e shields de privacidade no cliente.
-- Frontend: Adicionado o campo "Website / Domínio do Banco" nos formulários de criação e edição.
-- Frontend: Implementada a renderização de logotipos via Google Favicon API no menu de contas (`AccountAccordion`), detalhes de conta e widget "Top Contas", com fallbacks inteligentes e reativos que resetam o estado de erro ao salvar novas URLs. Padronizada a exibição de avatares com o ícone genérico `Landmark` para todas as contas e subcontas.
-- Testes: Vitest (50/50) e Pytest (107/107) passando. Build TypeScript/Vite 100% verde.
-- Deploy: Produção atualizada com sucesso via Vercel (https://ynab-five.vercel.app).
-- Documentação: CHANGELOG.md, docs/changelog/novidades.md, docs/manuais/cartoes_credito.md, README.md, ARCHITECTURE.md e `.geminirules` sincronizados.
+(Atualizado em 2026-06-05 18:36:00): Management command de migração Phase 1+2+3 — Sub-contas → Categorias YNAB (v1.57.00).
+- Backend: `migrate_subaccounts.py` em `management/commands/` contém Phase 1 (Clonagem), Phase 2 (Rebinding) e Phase 3 (Safe Purge).
+  - Phase 1: Clona sub-contas em Categories sob CategoryGroup "Sub-contas Migradas" com mapeamento `ceiling → target_value`.
+  - Phase 2: Re-aponta 6 tabelas de FKs via `QuerySet.update()`: Transaction (account→parent, category→mapped), CreditCardTransaction (expense_account→parent, RESTRICT), Installment (subaccount→parent, RESTRICT), DebtItem (origin_subaccount→parent, CASCADE), DistributionTemplateItem (account→NULL, category→mapped), LearnedTransactionRule (assigned_account→parent, assigned_category→mapped).
+  - Phase 3: Apaga individualmente de forma segura as sub-contas migradas tratando ProtectedError para registrar avisos detalhados e ignorar deleções com FKs deon_delete=PROTECT.
+- Segurança: `transaction.atomic()`, `--dry-run`, `--user-id`, idempotência. QuerySet.update() evita Transaction.save() customizado.
+- Testes: Pytest (`test_accounts.py` 14/14 passed) e TypeScript (`tsc --noEmit` compilado 100% verde).
+- Documentação: README.md, ARCHITECTURE.md, CHANGELOG.md, docs/manuais/migracao_subcontas.md, docs/changelog/novidades.md e `.geminirules` sincronizados.
 
-### Status Atual (Versão 1.56.00)
-- **Marco:** Integração Dinâmica da Clearbit Logo API (v1.56.00).
-- **Estado:** 100% estável e implantado em produção no Vercel (https://ynab-five.vercel.app).
-- **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, módulo de Ativos & Runway, simuladores dinâmicos (FIRE/Milhão), frontend reativo virtualizado com guard clauses defensivas no react-window, auto-recuperação de chunks obsoletos via `lazyWithRetry`, ordenação pura de transações, modelos de distribuição por categoria/conta, redirecionamento via `useSearchParams`, upload/seleção de ícones de conta, dropdown de ações pendentes global na Topbar, conversão/normalização cambial retrospectiva no motor YNAB, interface minimalista decluttered com ações consolidadas e métrica RTA centralizada na página Budget, classificação de macroalocação 50/30/20 em modal e seletor recursivo com badges visuais discretos integrados, integração dinâmica de logos de bancos oficiais com Clearbit Logo API, serialização recursiva em árvore no endpoint do backend e fallbacks robustos.
-- **Testes:** Suíte Pytest (107/107) e Vitest (50/50) passando. Build TypeScript/Vite 100% verde.
+### Status Atual (Versão 1.57.00)
+- **Marco:** Migração Arquitetural Phase 1+2+3 — Clonagem, Rebinding e Purge Seguro de Sub-contas (v1.57.00).
+- **Estado:** Script finalizado, testado localmente em dry-run e pronto para execução manual em produção pelo usuário no terminal.
+- **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, módulo de Ativos & Runway, simuladores dinâmicos (FIRE/Milhão), frontend reativo virtualizado com guard clauses defensivas no react-window, auto-recuperação de chunks obsoletos via `lazyWithRetry`, ordenação pura de transações, modelos de distribuição por categoria/conta, redirecionamento via `useSearchParams`, upload/seleção de ícones de conta, dropdown de ações pendentes global na Topbar, conversão/normalização cambial retrospectiva no motor YNAB, interface minimalista decluttered com ações consolidadas e métrica RTA centralizada na página Budget, classificação de macroalocação 50/30/20 em modal e seletor recursivo com badges visuais discretos integrados, integração dinâmica de logos de bancos oficiais com Google Favicon API, serialização recursiva em árvore no endpoint do backend, fallbacks robustos, avatares circulares perfeitamente alinhados e ferramenta de migração Sub-contas→Categories Phase 1+2+3 (Clonagem + Rebinding + Safe Purge).
+- **Testes:** Pytest (`test_accounts.py` 14/14 passed) e TypeScript (`tsc --noEmit` compilado 100% verde).
 
 ### Histórico de Sprints Recentes
+- [v1.57.00] Migração Phase 1+2+3: Management command `migrate_subaccounts.py` completo com clonagem de sub-contas em Categories YNAB, rebinding de FKs (Transaction, CreditCardTransaction, Installment, DebtItem, DistributionTemplateItem, LearnedTransactionRule) e Safe Purge com tratamento individual de `ProtectedError` para prevenir crashes.
 - [v1.56.00] Integração Clearbit Logo API: Exposição de `bank_domain` e `bank_logo_url` no backend Django, incluindo correção de serialização recursiva no endpoint de árvore (`tree`), criação do campo input website/domínio no frontend (criação e edição de contas) e renderização dinâmica das logos no menu de contas, cabeçalhos de detalhes e widget das Top Contas com fallbacks graciosos para ícones ou símbolos de moedas.
 - [v1.55.00] Classificação 50/30/20 na UI: Adicionado seletor dropdown no form de edição, seletor de store Zustand recursivo para o widget de análises e badges visuais nas linhas da tabela de orçamento.
 - [v1.54.00] Camada Analítica de Macroalocação: Adicionado o campo `macro_allocation` no modelo `Category` no Django, geradas e aplicadas as migrações, e atualizados os serializers e a view de árvore para expor a classificação 50/30/20.

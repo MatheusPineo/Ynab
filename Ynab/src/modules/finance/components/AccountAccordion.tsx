@@ -206,43 +206,47 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         style={{ paddingLeft: `calc(var(--pad-base) + ${depth} * var(--pad-indent))` }}
       >
         <div className="flex w-full items-center gap-1.5 sm:gap-2">
-        {/* Drag handle */}
-        {isMaster && (
-          <span
-            {...attributes}
-            {...listeners}
-            className="text-muted-foreground/40 group-hover:text-muted-foreground/70 transition-colors shrink-0 p-1 -ml-1 cursor-grab active:cursor-grabbing"
-            title="Arraste para reordenar"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="h-4 w-4" />
-          </span>
-        )}
+        {/* Drag handle — fixed-width wrapper for strict alignment */}
+        <span
+          {...(isMaster ? { ...attributes, ...listeners } : {})}
+          className={cn(
+            "shrink-0 w-6 flex items-center justify-center p-1 -ml-1 transition-colors",
+            isMaster
+              ? "text-muted-foreground/40 group-hover:text-muted-foreground/70 cursor-grab active:cursor-grabbing"
+              : "pointer-events-none"
+          )}
+          title={isMaster ? "Arraste para reordenar" : undefined}
+          onClick={isMaster ? (e: React.MouseEvent) => e.stopPropagation() : undefined}
+        >
+          <GripVertical className={cn("h-4 w-4", !isMaster && "opacity-0")} />
+        </span>
 
-        {/* Chevron */}
-        {hasChildren ? (
-          <span
-            className={cn(
-              "shrink-0 inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-transform duration-300 ease-out",
-              open && "rotate-90 text-primary",
-            )}
-          >
-            <ChevronRight className="h-4 w-4" />
-          </span>
-        ) : (
-          <div className="w-1.5 sm:w-2 shrink-0" />
-        )}
+        {/* Chevron Wrapper for Strict Horizontal Alignment */}
+        <span className="w-5 h-5 flex items-center justify-center shrink-0">
+          {hasChildren ? (
+            <span
+              className={cn(
+                "inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-transform duration-300 ease-out",
+                open && "rotate-90 text-primary",
+              )}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </span>
+          ) : (
+            <ChevronRight className="h-4 w-4 opacity-0 pointer-events-none" />
+          )}
+        </span>
 
         {/* Unified Bank Icon / Custom Icon / Generic Fallback */}
         <div className={cn(
-          "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-background/50 flex items-center justify-center p-0.5",
+          "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-white flex items-center justify-center",
           isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
         )}>
           {node.bank_logo_url && !logoError ? (
             <img 
               src={node.bank_logo_url} 
               alt="" 
-              className="h-full w-full object-contain" 
+              className="h-6 w-6 rounded-full object-contain" 
               onError={() => {
                 console.warn("❌ Erro ao carregar logo do banco, aplicando fallback:", node.bank_logo_url);
                 setLogoError(true);
@@ -252,7 +256,7 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
             <img 
               src={node.icon_url} 
               alt="" 
-              className="h-full w-full object-cover" 
+              className="h-full w-full rounded-full object-cover" 
               onError={() => {
                 console.warn("❌ Erro ao carregar imagem, aplicando fallback:", node.icon_url);
                 setImageError(true);

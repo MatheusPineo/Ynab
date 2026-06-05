@@ -1506,3 +1506,34 @@ $$Meta_{FIRE} = \frac{\text{Despesa Mensal} \times 12}{r_{retirada}}$$
 A projeção de data utiliza a mesma capitalização mensal para simular quantos meses decorrerão até que o patrimônio acumulado atinja o valor de $Meta_{FIRE}$.
     O progresso percentual de cobertura é determinado por:
    $$\text{Progresso FIRE} = \min\left(100, \frac{\text{Patrimônio Atual}}{Meta_{FIRE}} \times 100\right)$$
+
+---
+
+## 14. Ferramenta de Migração Arquitetural — Sub-contas para Categorias (v1.57.00)
+
+O Vault Finance OS implementa um duto de migração robusto no backend para fazer a transição estrutural do modelo de sub-contas (`Account` com `parent != NULL`) para o modelo clássico YNAB de envelopes de orçamento (`Category`).
+
+### 14.1 Lógica Multicrescente e Operações em Lote
+
+Para garantir a atomicidade e a integridade referencial do banco de dados, o processo foi desenvolvido como um Django Management Command (`migrate_subaccounts.py`) estruturado em três fases contidas dentro de um bloco de transação isolado (`transaction.atomic()`):
+
+1. **Phase 1: Clonagem e Meta-mapeamento**
+   - Cria um `CategoryGroup` chamado "Sub-contas Migradas" para cada usuário que possui sub-contas.
+   - Clona cada sub-conta como uma `Category` dentro deste grupo, convertendo o limite/teto original (`ceiling`) na meta financeira mensal (`target_value`).
+   - Retorna um mapeamento em memória de `subaccount_id` para a nova `category_id`.
+   
+2. **Phase 2: Re-vínculo de Chaves Estrangeiras (Rebinding)**
+   - Desvincula as dependências das sub-contas em lote através de consultas `QuerySet.update()` diretas ao banco para evitar gatilhos (signals) de recálculo de saldo.
+   - Atualiza as tabelas referenciadas:
+     - `Transaction`: Atualiza `account_id` para a conta-mãe real e `category_id` para o novo envelope.
+     - `CreditCardTransaction`: Re-aponta `expense_account_id` para a conta-mãe.
+     - `Installment`: Re-aponta `subaccount_id` para a conta-mãe.
+     - `DebtItem`: Re-aponta `origin_subaccount_id` para a conta-mãe.
+     - `DistributionTemplateItem`: Nulifica `account_id` e aponta `category_id` para a categoria correspondente.
+     - `LearnedTransactionRule`: Re-aponta `assigned_account_id` para a conta-mãe e `assigned_category_id` para a categoria.
+
+3. **Phase 3: Remoção Segura de Sub-contas (Safe Purge)**
+   - Percorre individualmente as sub-contas migradas executando `.delete()`.
+   - Modela um encapsulador com tratamento de exceção `ProtectedError` (on_delete=PROTECT do Django).
+   - Se uma sub-conta ainda estiver vinculada a outros modelos não abrangidos pela migração em lote, o erro é interceptado, as referências remanescentes são logadas no terminal como um aviso, e a deleção daquela linha específica é ignorada para permitir o fluxo completo sem quebra catastrófica do banco.
+

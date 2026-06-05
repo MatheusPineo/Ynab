@@ -1,3 +1,18 @@
+## [1.57.00] - 2026-06-05
+
+### Added
+- Backend: Criado management command `migrate_subaccounts.py` (Phase 1+2+3) para a migração arquitetural de Sub-contas → Categorias YNAB.
+  - **Phase 1 — Clonagem:** Clona todas as `Account` com `parent != NULL` em `Category` espelhadas, agrupadas sob um `CategoryGroup` "Sub-contas Migradas", com mapeamento `ceiling → target_value`. Idempotente via detecção de duplicatas.
+  - **Phase 2 — Rebinding:** Re-aponta 6 tabelas de Foreign Keys via `QuerySet.update()` para desacoplar sub-contas: `Transaction` (account→parent, category→mapped), `CreditCardTransaction` (expense_account→parent, RESTRICT), `Installment` (subaccount→parent, RESTRICT), `DebtItem` (origin_subaccount→parent, CASCADE), `DistributionTemplateItem` (account→NULL, category→mapped, CASCADE), `LearnedTransactionRule` (assigned_account→parent, assigned_category→mapped, CASCADE).
+  - **Phase 3 — Safe Purge:** Remove de forma segura as sub-contas legadas migradas utilizando deleção individual protegida. Envolve a deleção em um bloco `try/except ProtectedError` para registrar avisos detalhados listando os objetos relacionados que impediram a remoção de sub-contas específicas, garantindo que o processo não sofra quebras catastróficas.
+  - **Segurança:** Envolvido em `transaction.atomic()` para rollback total. Suporta `--dry-run` para simulação segura e `--user-id` para migração por usuário. Usa `QuerySet.update()` para evitar disparar o `save()` customizado do Transaction (balance sync).
+
+## [1.56.01] - 2026-06-05
+
+### Fixed
+- Frontend: Correção de avatares circulares distorcidos no menu de contas (`AccountAccordion.tsx`). Removido `p-0.5` do container do avatar e aplicado tamanho fixo `h-6 w-6 rounded-full object-contain` na `<img>` do banco, eliminando artefatos pretos de PNGs transparentes ao renderizar favicons quadrados em containers circulares.
+- Frontend: Correção de desalinhamento horizontal no menu de contas. O `GripVertical` (drag handle) agora renderiza em **todas** as linhas com um wrapper de largura fixa (`w-6`). Nas subcontas (não-master), o ícone é mantido invisível (`opacity-0 pointer-events-none`), funcionando como placeholder espacial. Isso garante que as logos dos bancos formem uma coluna vertical perfeitamente alinhada, independentemente de a conta possuir subcontas ou não.
+
 ## [1.56.00] - 2026-06-05
 
 ### Added

@@ -1,5 +1,18 @@
 # Novidades e Atualizações
 
+## Ferramenta de Migração Arquitetural — Phase 1+2+3: Clonagem, Rebinding e Purge Seguro (05/06/2026) 🔄🏗️
+Avançamos na preparação técnica para a grande migração de "Sub-contas" para "Categorias YNAB" (envelopes de orçamento) com o fechamento do script:
+* **Phase 1 — Clonagem:** O comando `migrate_subaccounts` analisa todas as sub-contas existentes e cria Categorias espelhadas dentro de um grupo chamado "Sub-contas Migradas".
+* **Phase 2 — Rebinding:** Re-aponta automaticamente todas as transações, parcelas de cartão, itens de dívida, templates de distribuição e regras aprendidas pela IA das sub-contas para as contas bancárias principais e as novas categorias. Isso libera as sub-contas de todas as dependências do banco de dados.
+* **Phase 3 — Safe Purge (Purge Seguro):** Remove de forma limpa as sub-contas que não possuem mais vínculos ativos. Caso alguma sub-conta ainda esteja amarrada a outros registros (on_delete=PROTECT), o script captura a exceção `ProtectedError`, loga um aviso listando os objetos pendentes e pula a deleção, evitando crashs e falhas no banco.
+* **Segurança Total:** O script opera dentro de uma transação atômica — se qualquer etapa falhar, nenhuma alteração é salva no banco de dados.
+* **Simulação Segura:** Use a flag `--dry-run` para visualizar o que seria feito sem alterar nada. Ideal para revisão prévia.
+
+## Refinamento Visual de Avatares e Alinhamento no Menu de Contas (05/06/2026) 🎨✨
+Corrigimos dois detalhes visuais no painel de contas para uma experiência impecável:
+* **Avatares Perfeitamente Circulares:** As logos dos bancos (obtidas via Google Favicon API) agora são exibidas dentro de círculos perfeitos, sem distorções ou artefatos visuais de fundo preto. A imagem quadrada do favicon é redimensionada e recortada harmoniosamente dentro do container circular branco.
+* **Alinhamento Horizontal Preciso:** Todas as linhas do menu de contas agora estão alinhadas na mesma posição horizontal, independentemente de a conta ter ou não subcontas. O ícone de arraste (grip) ocupa um espaço fixo mesmo quando invisível, garantindo que as logos formem uma coluna reta e elegante.
+
 ## Transição para Google Favicon API e Higienização de Logos Bancárias (05/06/2026) 🏦✨
 Corrigimos e completamos a integração de logotipos de instituições financeiras no Vault Finance OS migrando a infraestrutura externa e aplicando regras de integridade de dados rigorosas:
 * **Substituição pela Google Favicon API:** Para contornar bloqueios de AdBlockers agressivos e shields de privacidade nos navegadores que barravam a API Clearbit, migramos completamente a busca para a API oficial de Favicons do Google (`https://www.google.com/s2/favicons?domain={domain}&sz=128`). O parâmetro `sz=128` foi enforçado para renderizar logotipos em alta definição.
