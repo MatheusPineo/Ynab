@@ -1,10 +1,12 @@
 # Novidades e Atualizações
 
-## Ferramenta de Migração Arquitetural — Phase 1+2+3: Clonagem, Rebinding e Purge Seguro (05/06/2026) 🔄🏗️
-Avançamos na preparação técnica para a grande migração de "Sub-contas" para "Categorias YNAB" (envelopes de orçamento) com o fechamento do script:
+## Ferramenta de Migração Arquitetural — Phase 1+2+3: Clonagem, Rebinding, Purge Seguro e Cleanup de UI (05/06/2026) 🔄🏗️
+Avançamos na preparação técnica e visual para a grande migração de "Sub-contas" para "Categorias YNAB" (envelopes de orçamento):
 * **Phase 1 — Clonagem:** O comando `migrate_subaccounts` analisa todas as sub-contas existentes e cria Categorias espelhadas dentro de um grupo chamado "Sub-contas Migradas".
 * **Phase 2 — Rebinding:** Re-aponta automaticamente todas as transações, parcelas de cartão, itens de dívida, templates de distribuição e regras aprendidas pela IA das sub-contas para as contas bancárias principais e as novas categorias. Isso libera as sub-contas de todas as dependências do banco de dados.
 * **Phase 3 — Safe Purge (Purge Seguro):** Remove de forma limpa as sub-contas que não possuem mais vínculos ativos. Caso alguma sub-conta ainda esteja amarrada a outros registros (on_delete=PROTECT), o script captura a exceção `ProtectedError`, loga um aviso listando os objetos pendentes e pula a deleção, evitando crashs e falhas no banco.
+* **Limpeza da Interface de Contas (Cleanup):** Removemos todos os resquícios da mecânica de orçamento antiga do menu de contas (`AccountAccordion.tsx`). As barras de progresso (linhas horizontais), as marcações de teto/valor alocado e as porcentagens foram totalmente eliminadas. As contas agora funcionam estritamente como livros de registro físico (ledgers), exibindo apenas o avatar do banco, o nome da conta corrente/poupança e o saldo consolidado real.
+* **Simplificação do Cabeçalho:** O botão de ordenação alfabética de sub-contas foi removido da tela de visualização de contas, uma vez que as contas correntes principais não exigem sub-ordenação de envelopes.
 * **Segurança Total:** O script opera dentro de uma transação atômica — se qualquer etapa falhar, nenhuma alteração é salva no banco de dados.
 * **Simulação Segura:** Use a flag `--dry-run` para visualizar o que seria feito sem alterar nada. Ideal para revisão prévia.
 

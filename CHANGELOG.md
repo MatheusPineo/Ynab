@@ -6,6 +6,8 @@
   - **Phase 2 — Rebinding:** Re-aponta 6 tabelas de Foreign Keys via `QuerySet.update()` para desacoplar sub-contas: `Transaction` (account→parent, category→mapped), `CreditCardTransaction` (expense_account→parent, RESTRICT), `Installment` (subaccount→parent, RESTRICT), `DebtItem` (origin_subaccount→parent, CASCADE), `DistributionTemplateItem` (account→NULL, category→mapped, CASCADE), `LearnedTransactionRule` (assigned_account→parent, assigned_category→mapped, CASCADE).
   - **Phase 3 — Safe Purge:** Remove de forma segura as sub-contas legadas migradas utilizando deleção individual protegida. Envolve a deleção em um bloco `try/except ProtectedError` para registrar avisos detalhados listando os objetos relacionados que impediram a remoção de sub-contas específicas, garantindo que o processo não sofra quebras catastróficas.
   - **Segurança:** Envolvido em `transaction.atomic()` para rollback total. Suporta `--dry-run` para simulação segura e `--user-id` para migração por usuário. Usa `QuerySet.update()` para evitar disparar o `save()` customizado do Transaction (balance sync).
+- Frontend: Removidos todos os elementos visuais de orçamento (barras de progresso, labels de teto/valor alocado e porcentagens) da visualização de contas (`AccountAccordion.tsx`), transformando a tela em um extrato financeiro (ledger) minimalista focado em saldo e marca do banco.
+- Frontend: Removido o botão de ordenação alfabética de sub-contas do cabeçalho da visualização de contas para refletir a nova estrutura focada em contas bancárias reais.
 
 ## [1.56.01] - 2026-06-05
 

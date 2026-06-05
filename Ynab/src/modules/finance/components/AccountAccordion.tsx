@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { ChevronRight, Plus, GripVertical, Target, Move, ArrowDownAZ, EyeOff, Landmark } from "lucide-react";
+import { ChevronRight, GripVertical, EyeOff, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import {
   type AccountNode,
   type Currency,
 } from "@/types";
-import { CURRENCY_SYMBOL, formatMoney } from "@/shared/lib/currency-utils";
+import { formatMoney } from "@/shared/lib/currency-utils";
 import { cn } from "@/shared/lib/utils";
 import { useNavigate } from "react-router-dom";
-import { AccountActions } from "./AccountActions"; // Importa o novo componente
+import { AccountActions } from "./AccountActions";
 import {
   DndContext,
   closestCenter,
@@ -32,10 +32,8 @@ interface AccountRowProps {
   node: AccountNode;
   depth: number;
   parentCurrency: Currency;
-  sortByAlphabet?: boolean;
 }
 
-// Subtle background per depth — kept inside the dark theme palette
 const depthBg = [
   "bg-card/80",          // 0 — master
   "bg-muted/30",         // 1
@@ -44,7 +42,7 @@ const depthBg = [
 ];
 const bgFor = (d: number) => depthBg[Math.min(d, depthBg.length - 1)];
 
-const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowProps) => {
+const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
   const [open, setOpen] = useState(depth === 0);
   const currency = nodeCurrency(node, parentCurrency);
   const hasChildren = !!node.children?.length;
@@ -52,7 +50,6 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
   const [logoError, setLogoError] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  // Reset logoError if bank_logo_url changes
   const [lastLogoUrl, setLastLogoUrl] = useState(node.bank_logo_url);
   if (node.bank_logo_url !== lastLogoUrl) {
     setLastLogoUrl(node.bank_logo_url);
@@ -64,31 +61,7 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
   const total = sumNode(node);
   const isMaster = depth === 0;
   const isExcluded = !!node.exclude_from_totals;
-  const hasCeiling = node.ceiling && Number(node.ceiling) > 0;
-  const ceilVal = hasCeiling ? Number(node.ceiling) : 0;
   
-  let rawPct = 0;
-  let displayPct = 0;
-  let barWidth = 0;
-  let barColor = "bg-rose-500";
-  let textColor = "text-rose-500";
-  let glowClass = "";
-
-  if (hasCeiling) {
-    rawPct = (total / ceilVal) * 100;
-    displayPct = Math.round(rawPct);
-    barWidth = Math.min(rawPct, 100);
-    
-    if (rawPct > 100) {
-      barColor = "bg-gradient-to-r from-cyan-400 to-purple-500";
-      textColor = "text-cyan-400";
-      glowClass = "shadow-[0_0_12px_rgba(168,85,247,0.6)]";
-    } else if (rawPct >= 50) {
-      barColor = "bg-emerald-500";
-      textColor = "text-emerald-500";
-    }
-  }
-
   const {
     attributes,
     listeners,
@@ -105,7 +78,6 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
     zIndex: isDragging ? 10 : 1,
   };
 
-  // HTML5 Drag & Drop Nativo para movimentação hierárquica
   const handleDragStart = (e: React.DragEvent) => {
     e.stopPropagation();
     e.dataTransfer.setData("text/plain", node.id.toString());
@@ -143,7 +115,6 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
 
     if (draggedId === targetId) return;
 
-    // Verificar se o targetId é descendente do draggedId (evitar loops)
     const isDescendant = (parent: AccountNode, childId: number): boolean => {
       if (!parent.children) return false;
       return parent.children.some(child => child.id === childId || isDescendant(child, childId));
@@ -186,8 +157,8 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
       onDrop={handleDrop}
       className={cn(
         "transition-all duration-300 ease-in-out border border-transparent rounded-xl",
-        !isMaster && "mx-1 sm:mx-3 mb-2 w-[calc(100%-8px)] sm:w-[calc(100%-24px)]", // Reduz largura de tudo que não for raiz
-        hasChildren && "border border-border/60 rounded-xl overflow-hidden bg-background/20 shadow-soft", // Estilo pasta (para quem tem filhos)
+        !isMaster && "mx-1 sm:mx-3 mb-2 w-[calc(100%-8px)] sm:w-[calc(100%-24px)]",
+        hasChildren && "border border-border/60 rounded-xl overflow-hidden bg-background/20 shadow-soft",
         isDragging && "shadow-elevated z-10"
       )}
     >
@@ -197,7 +168,7 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         className={cn(
           "group flex flex-col w-full text-left transition-colors duration-200",
           bgFor(depth),
-          hasChildren ? "px-3 sm:px-4 py-3 sm:py-4 border-b border-border/40" : "px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl border border-border/50 shadow-sm", // Papel vs Topo de Pasta
+          hasChildren ? "px-3 sm:px-4 py-3 sm:py-4 border-b border-border/40" : "px-2.5 sm:px-3 py-2.5 sm:py-3 rounded-xl border border-border/50 shadow-sm",
           hasChildren && "hover:bg-muted/60 cursor-pointer",
           !hasChildren && "hover:bg-muted/40 cursor-pointer",
           isExcluded && "border-l-4 border-l-purple-500/70 bg-purple-950/5 hover:bg-purple-950/10",
@@ -206,168 +177,110 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         style={{ paddingLeft: `calc(var(--pad-base) + ${depth} * var(--pad-indent))` }}
       >
         <div className="flex w-full items-center gap-1.5 sm:gap-2">
-        {/* Drag handle — fixed-width wrapper for strict alignment */}
-        <span
-          {...(isMaster ? { ...attributes, ...listeners } : {})}
-          className={cn(
-            "shrink-0 w-6 flex items-center justify-center p-1 -ml-1 transition-colors",
-            isMaster
-              ? "text-muted-foreground/40 group-hover:text-muted-foreground/70 cursor-grab active:cursor-grabbing"
-              : "pointer-events-none"
-          )}
-          title={isMaster ? "Arraste para reordenar" : undefined}
-          onClick={isMaster ? (e: React.MouseEvent) => e.stopPropagation() : undefined}
-        >
-          <GripVertical className={cn("h-4 w-4", !isMaster && "opacity-0")} />
-        </span>
+          {/* Drag handle — fixed-width wrapper for strict alignment */}
+          <span
+            {...(isMaster ? { ...attributes, ...listeners } : {})}
+            className={cn(
+              "shrink-0 w-6 flex items-center justify-center p-1 -ml-1 transition-colors",
+              isMaster
+                ? "text-muted-foreground/40 group-hover:text-muted-foreground/70 cursor-grab active:cursor-grabbing"
+                : "pointer-events-none"
+            )}
+            title={isMaster ? "Arraste para reordenar" : undefined}
+            onClick={isMaster ? (e: React.MouseEvent) => e.stopPropagation() : undefined}
+          >
+            <GripVertical className={cn("h-4 w-4", !isMaster && "opacity-0")} />
+          </span>
 
-        {/* Chevron Wrapper for Strict Horizontal Alignment */}
-        <span className="w-5 h-5 flex items-center justify-center shrink-0">
-          {hasChildren ? (
-            <span
-              className={cn(
-                "inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-transform duration-300 ease-out",
-                open && "rotate-90 text-primary",
-              )}
-            >
-              <ChevronRight className="h-4 w-4" />
+          {/* Chevron Wrapper for Strict Horizontal Alignment */}
+          <span className="w-5 h-5 flex items-center justify-center shrink-0">
+            {hasChildren ? (
+              <span
+                className={cn(
+                  "inline-flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-transform duration-300 ease-out",
+                  open && "rotate-90 text-primary",
+                )}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </span>
+            ) : (
+              <ChevronRight className="h-4 w-4 opacity-0 pointer-events-none" />
+            )}
+          </span>
+
+          {/* Unified Bank Icon / Custom Icon / Generic Fallback */}
+          <div className={cn(
+            "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-white flex items-center justify-center",
+            isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
+          )}>
+            {node.bank_logo_url && !logoError ? (
+              <img 
+                src={node.bank_logo_url} 
+                alt="" 
+                className="h-6 w-6 rounded-full object-contain" 
+                onError={() => {
+                  console.warn("❌ Erro ao carregar logo do banco, aplicando fallback:", node.bank_logo_url);
+                  setLogoError(true);
+                }}
+              />
+            ) : node.icon_url && !imageError ? (
+              <img 
+                src={node.icon_url} 
+                alt="" 
+                className="h-full w-full rounded-full object-cover" 
+                onError={() => {
+                  console.warn("❌ Erro ao carregar imagem, aplicando fallback:", node.icon_url);
+                  setImageError(true);
+                }}
+              />
+            ) : (
+              <Landmark className="h-4 w-4 text-muted-foreground/80" />
+            )}
+          </div>
+
+          {/* Name */}
+          <span
+            className={cn(
+              "min-w-0 truncate flex items-center gap-1.5 sm:gap-2",
+              isMaster ? "text-base font-semibold text-foreground" : "text-sm text-foreground/90",
+              isExcluded && "text-foreground/75 italic"
+            )}
+          >
+            <span className="truncate">{node.name}</span>
+            {isExcluded && (
+              <span 
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/25 select-none"
+                title="Este saldo e suas subcontas foram desconsiderados na somatória dos totais globais."
+              >
+                <EyeOff className="h-2.5 w-2.5 text-purple-400 shrink-0" />
+                Fora da Soma
+              </span>
+            )}
+          </span>
+
+          <span className="flex-1" />
+
+          {/* Current Balance */}
+          <div
+            className="shrink-0 flex flex-col items-end mr-2"
+            title={isExcluded ? "Este saldo está desconsiderado do cálculo total." : undefined}
+          >
+            <span className={cn(
+              "tabular tracking-tight",
+              isMaster ? "text-base font-bold" : "text-sm font-medium",
+              isExcluded
+                ? "text-purple-300/60"
+                : (total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
+            )}>
+              {formatMoney(total, currency)}
             </span>
-          ) : (
-            <ChevronRight className="h-4 w-4 opacity-0 pointer-events-none" />
-          )}
-        </span>
+          </div>
 
-        {/* Unified Bank Icon / Custom Icon / Generic Fallback */}
-        <div className={cn(
-          "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-white flex items-center justify-center",
-          isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
-        )}>
-          {node.bank_logo_url && !logoError ? (
-            <img 
-              src={node.bank_logo_url} 
-              alt="" 
-              className="h-6 w-6 rounded-full object-contain" 
-              onError={() => {
-                console.warn("❌ Erro ao carregar logo do banco, aplicando fallback:", node.bank_logo_url);
-                setLogoError(true);
-              }}
-            />
-          ) : node.icon_url && !imageError ? (
-            <img 
-              src={node.icon_url} 
-              alt="" 
-              className="h-full w-full rounded-full object-cover" 
-              onError={() => {
-                console.warn("❌ Erro ao carregar imagem, aplicando fallback:", node.icon_url);
-                setImageError(true);
-              }}
-            />
-          ) : (
-            <Landmark className="h-4 w-4 text-muted-foreground/80" />
-          )}
+          {/* Account Actions */}
+          <div onClick={(e) => e.stopPropagation()}>
+            <AccountActions account={node} />
+          </div>
         </div>
-
-        {/* Name */}
-        <span
-          className={cn(
-            "min-w-0 truncate flex items-center gap-1.5 sm:gap-2",
-            isMaster ? "text-base font-semibold text-foreground" : "text-sm text-foreground/90",
-            isExcluded && "text-foreground/75 italic"
-          )}
-        >
-          <span className="truncate">{node.name}</span>
-          {isExcluded && (
-            <span 
-              className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/25 select-none"
-              title="Este saldo e suas subcontas foram desconsiderados na somatória dos totais globais."
-            >
-              <EyeOff className="h-2.5 w-2.5 text-purple-400 shrink-0" />
-              Fora da Soma
-            </span>
-          )}
-        </span>
-
-        <span className="flex-1" />
-
-        <div
-          className="shrink-0 flex flex-col items-end mr-2"
-          title={isExcluded ? "Este saldo está desconsiderado do cálculo total." : undefined}
-        >
-          {hasCeiling ? (
-            <>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold select-none">
-                  Valor Alocado / Teto
-                </span>
-              </div>
-              <span className={cn(
-                "tabular tracking-tight flex items-center gap-1.5",
-                isMaster ? "text-base font-bold" : "text-sm font-medium",
-                isExcluded
-                  ? "text-purple-300/60"
-                  : (total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
-              )}>
-                <span>{formatMoney(total, currency)}</span>
-                <span className="text-muted-foreground/60 font-normal text-xs">/</span>
-                <span className="text-muted-foreground text-xs">{formatMoney(Number(node.ceiling), currency)}</span>
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-0.5 select-none">
-                Valor Alocado
-              </span>
-              <span className={cn(
-                "tabular tracking-tight",
-                isMaster ? "text-base font-bold" : "text-sm font-medium",
-                isExcluded
-                  ? "text-purple-300/60"
-                  : (total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
-              )}>
-                {formatMoney(total, currency)}
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* Account Actions */}
-        <div onClick={(e) => e.stopPropagation()}>
-          <AccountActions account={node} />
-        </div>
-        </div>
-
-        {/* Bottom Row: Progress Bar */}
-        {(!isMaster || (node.ceiling && Number(node.ceiling) > 0)) && (() => {
-          if (!hasCeiling) {
-            return (
-              <div className="w-full relative mt-4">
-                <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-[9px] uppercase tracking-wider font-bold text-muted-foreground drop-shadow-sm select-none">
-                  Saldo Livre
-                </span>
-                <div className="w-full h-1.5 bg-slate-800/80 rounded-full relative overflow-hidden shadow-inner">
-                  <div 
-                    className="absolute left-0 top-0 h-full rounded-full transition-all duration-500 bg-slate-700"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-            );
-          }
-
-          return (
-            <div className="w-full relative mt-4">
-              <span className={cn("absolute -top-3.5 left-1/2 -translate-x-1/2 text-[10px] font-bold drop-shadow-sm", textColor)}>
-                {displayPct}%
-              </span>
-              <div className="w-full h-1.5 bg-muted/30 rounded-full relative overflow-hidden shadow-inner">
-                <div 
-                  className={cn("absolute left-0 top-0 h-full rounded-full transition-all duration-500", barColor, glowClass)}
-                  style={{ width: `${barWidth}%` }}
-                />
-              </div>
-            </div>
-          );
-        })()}
       </button>
 
       {/* Children */}
@@ -380,21 +293,14 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         >
           <div className="overflow-hidden">
             <div className={cn("flex flex-col pt-3 pb-1")}>
-              {(() => {
-                const displayChildren = node.children ? [...node.children] : [];
-                if (sortByAlphabet) {
-                  displayChildren.sort((a, b) => a.name.localeCompare(b.name, 'pt-BR'));
-                }
-                return displayChildren.map((child) => (
-                  <AccountRow
-                    key={child.id}
-                    node={child}
-                    depth={depth + 1}
-                    parentCurrency={currency}
-                    sortByAlphabet={sortByAlphabet}
-                  />
-                ));
-              })()}
+              {(node.children || []).map((child) => (
+                <AccountRow
+                  key={child.id}
+                  node={child}
+                  depth={depth + 1}
+                  parentCurrency={currency}
+                />
+              ))}
             </div>
           </div>
         </div>
@@ -413,22 +319,11 @@ interface Props {
 
 export const AccountAccordion = ({ tree }: Props) => {
   const { setTree } = useAccountStore();
-  const [sortByAlphabet, setSortByAlphabet] = useState<boolean>(() => {
-    return localStorage.getItem("vault_sort_subaccounts_az") === "true";
-  });
-
-  const handleToggleSort = () => {
-    setSortByAlphabet((prev) => {
-      const newVal = !prev;
-      localStorage.setItem("vault_sort_subaccounts_az", String(newVal));
-      return newVal;
-    });
-  };
   
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8, // Avoid accidental drags when clicking
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -450,22 +345,6 @@ export const AccountAccordion = ({ tree }: Props) => {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-end items-center px-1">
-        <button
-          type="button"
-          onClick={handleToggleSort}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all duration-300 shadow-sm cursor-pointer select-none",
-            sortByAlphabet
-              ? "bg-primary/10 border-primary/40 text-primary hover:bg-primary/15"
-              : "bg-muted/15 border-border/50 text-muted-foreground hover:bg-muted/25 hover:text-foreground"
-          )}
-        >
-          <ArrowDownAZ className="h-3.5 w-3.5" />
-          <span>Ordenar Subcontas A-Z</span>
-        </button>
-      </div>
-
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -479,7 +358,6 @@ export const AccountAccordion = ({ tree }: Props) => {
                 node={root}
                 depth={0}
                 parentCurrency={nodeCurrency(root)}
-                sortByAlphabet={sortByAlphabet}
               />
             ))}
           </SortableContext>
