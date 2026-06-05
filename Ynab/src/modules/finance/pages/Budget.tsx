@@ -283,6 +283,7 @@ const Budget = () => {
   const [cascadeOpen, setCascadeOpen] = useState(false);
   const [rebalancing, setRebalancing] = useState<string | null>(null);
   const [isPendingIncomesModalOpen, setIsPendingIncomesModalOpen] = useState(false);
+  const [groupCurrency, setGroupCurrency] = useState<'EUR' | 'BRL'>('EUR');
 
   useEffect(() => {
     fetchCategoryGroups();
@@ -406,6 +407,65 @@ const Budget = () => {
     });
   }, [categoryGroups]);
 
+  const isBrlGroup = (g: CategoryNode) => g.currency === 'BRL' || (Array.isArray(g.children) && g.children.length > 0 && g.children.some(c => c.currency === 'BRL'));
+  
+  const eurGroups = useMemo(() => activeGroups.filter(g => !isBrlGroup(g)), [activeGroups]);
+  const brlGroups = useMemo(() => activeGroups.filter(g => isBrlGroup(g)), [activeGroups]);
+
+  const accountTotals = useMemo(() => {
+    const totals = { EUR: 0, BRL: 0 };
+    const walk = (nodes: any[]) => {
+      if (!Array.isArray(nodes)) return;
+      for (const node of nodes) {
+        if (!node) continue;
+        if (!node.exclude_from_totals && node.account_type !== 'investment') {
+          const currency = node.currency || 'EUR';
+          if (currency === 'EUR') {
+            totals.EUR += Number(node.balance) || 0;
+          } else if (currency === 'BRL') {
+            totals.BRL += Number(node.balance) || 0;
+          }
+        }
+        if (Array.isArray(node.children)) {
+          walk(node.children);
+        }
+      }
+    };
+    walk(tree);
+    return totals;
+  }, [tree]);
+
+  const categoryAvailableTotals = useMemo(() => {
+    const totals = { EUR: 0, BRL: 0 };
+    const walk = (nodes: CategoryNode[]) => {
+      if (!Array.isArray(nodes)) return;
+      for (const node of nodes) {
+        if (!node) continue;
+        if (node.children && node.children.length > 0) {
+          walk(node.children);
+        } else {
+          const currency = node.currency || 'EUR';
+          const available = node.available_amount ?? ((node.assigned_amount || 0) - (node.spent_amount || 0));
+          if (currency === 'EUR') {
+            totals.EUR += available;
+          } else if (currency === 'BRL') {
+            totals.BRL += available;
+          }
+        }
+      }
+    };
+    walk(categoryGroups);
+    return totals;
+  }, [categoryGroups]);
+
+  const rtaEUR = useMemo(() => {
+    return accountTotals.EUR - categoryAvailableTotals.EUR;
+  }, [accountTotals.EUR, categoryAvailableTotals.EUR]);
+
+  const rtaBRL = useMemo(() => {
+    return accountTotals.BRL - categoryAvailableTotals.BRL;
+  }, [accountTotals.BRL, categoryAvailableTotals.BRL]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -427,15 +487,161 @@ const Budget = () => {
   const handleAddGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName.trim()) return;
-    await addCategoryGroup(newGroupName);
+    await addCategoryGroup(newGroupName, groupCurrency);
     setNewGroupName("");
     setIsGroupDialogOpen(false); // Fecha a modal após criar
   };
 
-  const handleAddCategory = async (groupId: string) => {
+  const handleAddCategory = async (groupId: string, currency: 'EUR' | 'BRL') => {
     if (!newCatName.trim()) return;
-    await addCategory(groupId, newCatName);
+    await addCategory(groupId, newCatName, currency);
     setNewCatName("");
+  };
+
+  const renderBudgetBoard = (groups: CategoryNode[], boardCurrency: 'EUR' | 'BRL') => {
+    const isBrl = boardCurrency === 'BRL';
+    
+    const handleDragEndBoard = (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const allGroups = Array.isArray(categoryGroups) ? categoryGroups : [];
+      const isActiveGroup = groups.some(g => g && g.id === active.id);
+      if (isActiveGroup) {
+        const oldIndex = allGroups.findIndex(g => g && g.id === active.id);
+        const newIndex = allGroups.findIndex(g => g && g.id === over.id);
+        setCategoryGroups(arrayMove(allGroups, oldIndex, newIndex));
+      }
+    };
+
+    return (
+      <div className="flex flex-col gap-6 bg-card/10 border border-border/40 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm">
+        <div className="flex items-center justify-between border-b border-border/40 pb-2">
+          <h2 className="text-base font-black uppercase tracking-wider text-primary">
+            Quadro de Orçamento — {boardCurrency} ({isBrl ? 'R$' : '€'})
+          </h2>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              setGroupCurrency(boardCurrency);
+              setIsGroupDialogOpen(true);
+            }}
+            className="rounded-xl border-primary/20 hover:bg-primary/10 hover:text-primary h-8 gap-1.5 font-bold"
+          >
+            <FolderPlus className="h-4 w-4" />
+            Novo Grupo
+          </Button>
+        </div>
+
+        {groups.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center p-6 border border-dashed border-border/60 rounded-2xl bg-card/25 gap-2">
+            <span className="text-xs text-muted-foreground">
+              Nenhum grupo de categorias cadastrado em {boardCurrency}.
+            </span>
+          </div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndBoard}>
+            <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
+              <div className="flex flex-col">
+                {groups.map((group) => (
+                  <SortableItem key={group.id} id={group.id} isGroup>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between px-2">
+                        <div className="flex items-center gap-3">
+                          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">{group.name}</h2>
+                          
+                          <div className="flex items-center gap-1">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <button data-testid="add-category-button" className="h-5 w-5 rounded-md bg-muted/40 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </DialogTrigger>
+                              <DialogContent className="glass border-border/60">
+                                <DialogHeader><DialogTitle>Nova Categoria em "{group.name}"</DialogTitle></DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                  <div className="grid gap-2">
+                                    <Label htmlFor="catName">Nome da Categoria</Label>
+                                    <Input id="catName" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Ex: Cinema..." className="bg-background/50" />
+                                  </div>
+                                  <DialogFooter>
+                                    <Button onClick={() => handleAddCategory(group.id, boardCurrency)} className="gradient-primary w-full">Adicionar Categoria</Button>
+                                  </DialogFooter>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
+                            
+                            <CategoryActions category={group} isGroup />
+                          </div>
+                        </div>
+                        <span className="text-xs font-medium text-muted-foreground">
+                          Total: {formatMoney((Array.isArray(group.children) ? group.children : []).reduce((a, b) => a + ((b && b.assigned_amount) || 0), 0), boardCurrency)}
+                        </span>
+                      </div>
+
+                      <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden shadow-sm">
+                        <Table>
+                          <TableHeader className="bg-muted/30">
+                            <TableRow className="hover:bg-transparent border-border/40">
+                              <TableHead className="w-[40px] p-2 sm:p-4 h-auto"></TableHead>
+                              <TableHead className="w-1/2 p-2 sm:p-4 h-auto text-xs sm:text-sm">Categoria</TableHead>
+                              <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                                <div className="flex items-center justify-end gap-1">
+                                  Reservado
+                                  <HelpTooltip content="O valor que você planejou gastar nesta categoria." side="top" />
+                                </div>
+                              </TableHead>
+                              <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                                <div className="flex items-center justify-end gap-1">
+                                  Gasto
+                                  <HelpTooltip content="O quanto já foi de fato gasto." side="top" />
+                                </div>
+                              </TableHead>
+                              <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">
+                                <div className="flex items-center justify-end gap-1">
+                                  Disponível
+                                  <HelpTooltip content="Quanto ainda resta para você gastar nesta categoria." side="top" />
+                                </div>
+                              </TableHead>
+                              <TableHead className="w-[50px] hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {(() => {
+                              const rawChildren = (Array.isArray(group.children) ? group.children : [])
+                                .filter(c => c && c.id && (typeof c.id === "string" || typeof c.id === "number"));
+                              const seenChildren = new Set();
+                              const children = rawChildren.filter(c => {
+                                if (seenChildren.has(c.id)) return false;
+                                seenChildren.add(c.id);
+                                return true;
+                              });
+
+                              return (
+                                <SortableContext items={children.map(c => c.id)} strategy={verticalListSortingStrategy}>
+                                  {children.length === 0 ? (
+                                    <TableRow><TableCell colSpan={6} className="h-16 text-center text-muted-foreground italic text-xs">Vazio.</TableCell></TableRow>
+                                  ) : (
+                                    children.map((cat) => (
+                                      <SortableCategoryRow key={cat.id} cat={cat} assignMoney={assignMoney} />
+                                    ))
+                                  )}
+                                </SortableContext>
+                              );
+                            })()}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+                  </SortableItem>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -510,20 +716,37 @@ const Budget = () => {
           </div>
         </div>
 
-        {/* Highlighted Core Metric (Ready to Assign) */}
-        <div className="w-full flex justify-center py-3 sm:py-5">
+        {/* Highlighted Core Metrics (Ready to Assign) */}
+        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto py-3 sm:py-5">
+          {/* Card EUR */}
           <div className={cn(
-            "flex flex-col items-center justify-center text-center px-8 py-5 sm:px-12 sm:py-6 rounded-2xl sm:rounded-3xl border shadow-lg transition-all duration-300 w-full max-w-sm sm:max-w-md",
-            readyToAssignBalance > 0
+            "flex flex-col items-center justify-center text-center px-6 py-4 rounded-2xl border shadow-md transition-all duration-300",
+            rtaEUR > 0
               ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-              : readyToAssignBalance < 0
+              : rtaEUR < 0
                 ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
                 : "bg-muted/20 border-border/40 text-muted-foreground"
           )}>
-            <Wallet className="h-6 w-6 sm:h-8 sm:w-8 mb-2 shrink-0 text-primary animate-pulse" />
-            <span className="text-[10px] sm:text-xs uppercase tracking-widest font-black opacity-70 mb-1">Disponível para Alocar</span>
-            <span className="text-2xl sm:text-4xl font-black tracking-tight leading-none" data-testid="rta-balance">
-              {formatMoney(readyToAssignBalance, "EUR")}
+            <Wallet className="h-5 w-5 mb-1 text-primary shrink-0 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-widest font-black opacity-70 mb-0.5">Disponível para Alocar (EUR)</span>
+            <span className="text-xl sm:text-2xl font-black tracking-tight leading-none" data-testid="rta-balance-eur">
+              {formatMoney(rtaEUR, "EUR")}
+            </span>
+          </div>
+
+          {/* Card BRL */}
+          <div className={cn(
+            "flex flex-col items-center justify-center text-center px-6 py-4 rounded-2xl border shadow-md transition-all duration-300",
+            rtaBRL > 0
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
+              : rtaBRL < 0
+                ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
+                : "bg-muted/20 border-border/40 text-muted-foreground"
+          )}>
+            <Wallet className="h-5 w-5 mb-1 text-primary shrink-0 animate-pulse" />
+            <span className="text-[10px] uppercase tracking-widest font-black opacity-70 mb-0.5">Disponível para Alocar (BRL)</span>
+            <span className="text-xl sm:text-2xl font-black tracking-tight leading-none" data-testid="rta-balance-brl">
+              {formatMoney(rtaBRL, "BRL")}
             </span>
           </div>
         </div>
@@ -622,122 +845,11 @@ const Budget = () => {
         </section>
       )}
 
-      {activeGroups.length === 0 ? (
-        <div className="flex flex-col items-center justify-center text-center p-8 sm:p-16 border border-dashed border-border/60 rounded-3xl bg-card/25 backdrop-blur-sm gap-4 animate-in fade-in duration-300">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-            <Wallet className="h-8 w-8" />
-          </div>
-          <div className="max-w-md space-y-1">
-            <h3 className="text-base sm:text-lg font-bold text-foreground">Sem Grupos de Categorias</h3>
-            <p className="text-xs sm:text-sm text-muted-foreground">
-              Você ainda não possui nenhum grupo de categorias de orçamento configurado neste período. Crie o seu primeiro grupo de planejamento para começar.
-            </p>
-          </div>
-          <Button onClick={() => setIsGroupDialogOpen(true)} className="gradient-primary rounded-xl gap-1.5 font-bold px-5">
-            <FolderPlus className="h-4 w-4" />
-            Criar Primeiro Grupo
-          </Button>
-        </div>
-      ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={activeGroups.map(g => g.id)} strategy={verticalListSortingStrategy}>
-            <div className="flex flex-col">
-              {activeGroups.map((group) => (
-                <SortableItem key={group.id} id={group.id} isGroup>
-                  <div className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between px-2">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">{group.name}</h2>
-                        
-                        <div className="flex items-center gap-1">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <button data-testid="add-category-button" className="h-5 w-5 rounded-md bg-muted/40 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </DialogTrigger>
-                            <DialogContent className="glass border-border/60">
-                              <DialogHeader><DialogTitle>Nova Categoria em "{group.name}"</DialogTitle></DialogHeader>
-                              <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                  <Label htmlFor="catName">Nome da Categoria</Label>
-                                  <Input id="catName" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Ex: Cinema..." className="bg-background/50" />
-                                </div>
-                                <DialogFooter>
-                                  <Button onClick={() => handleAddCategory(group.id)} className="gradient-primary w-full">Adicionar Categoria</Button>
-                                </DialogFooter>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                          
-                          <CategoryActions category={group} isGroup />
-                        </div>
-                      </div>
-                      <span className="text-xs font-medium text-muted-foreground">
-                        Total: {formatMoney((Array.isArray(group.children) ? group.children : []).reduce((a, b) => a + ((b && b.assigned_amount) || 0), 0), "EUR")}
-                      </span>
-                    </div>
-
-                    <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden shadow-sm">
-                      <Table>
-                        <TableHeader className="bg-muted/30">
-                          <TableRow className="hover:bg-transparent border-border/40">
-                            <TableHead className="w-[40px] p-2 sm:p-4 h-auto"></TableHead>
-                            <TableHead className="w-1/2 p-2 sm:p-4 h-auto text-xs sm:text-sm">Categoria</TableHead>
-                            <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                              <div className="flex items-center justify-end gap-1">
-                                Reservado
-                                <HelpTooltip content="O valor que você planejou gastar nesta categoria." side="top" />
-                              </div>
-                            </TableHead>
-                            <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                              <div className="flex items-center justify-end gap-1">
-                                Gasto
-                                <HelpTooltip content="O quanto já foi de fato gasto." side="top" />
-                              </div>
-                            </TableHead>
-                            <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                              <div className="flex items-center justify-end gap-1">
-                                Disponível
-                                <HelpTooltip content="Quanto ainda resta para você gastar nesta categoria." side="top" />
-                              </div>
-                            </TableHead>
-                            <TableHead className="w-[50px] hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm"></TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {(() => {
-                            const rawChildren = (Array.isArray(group.children) ? group.children : [])
-                              .filter(c => c && c.id && (typeof c.id === "string" || typeof c.id === "number"));
-                            const seenChildren = new Set();
-                            const children = rawChildren.filter(c => {
-                              if (seenChildren.has(c.id)) return false;
-                              seenChildren.add(c.id);
-                              return true;
-                            });
-
-                            return (
-                              <SortableContext items={children.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                                {children.length === 0 ? (
-                                  <TableRow><TableCell colSpan={6} className="h-16 text-center text-muted-foreground italic text-xs">Vazio.</TableCell></TableRow>
-                                ) : (
-                                  children.map((cat) => (
-                                    <SortableCategoryRow key={cat.id} cat={cat} assignMoney={assignMoney} />
-                                  ))
-                                )}
-                              </SortableContext>
-                            );
-                          })()}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </div>
-                </SortableItem>
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
-      )}
+      {/* Quadro de Moedas Isoladas */}
+      <div className="flex flex-col gap-10">
+        {renderBudgetBoard(eurGroups, 'EUR')}
+        {renderBudgetBoard(brlGroups, 'BRL')}
+      </div>
 
       {/* 50/30/20 Rule Macro Tracking Panel - Relocated to the bottom */}
       <section className="rounded-2xl sm:rounded-3xl bg-card/30 border border-border/40 p-4 sm:p-6 shadow-sm mt-8">
@@ -945,13 +1057,13 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
         />
       </TableCell>
       <TableCell className="text-right text-muted-foreground font-medium italic hidden sm:table-cell p-2 sm:p-4">
-        {formatMoney(cat.spent_amount || 0, "EUR")}
+        {formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}
       </TableCell>
       <TableCell className={cn(
         "text-right font-bold tabular text-xs sm:text-sm p-2 sm:p-4",
         available > 0 ? "text-emerald-400" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
       )}>
-        {formatMoney(available, "EUR")}
+        {formatMoney(available, cat.currency as any || "EUR")}
       </TableCell>
       <TableCell className="hidden sm:table-cell p-2 sm:p-4">
         <CategoryActions category={cat} />

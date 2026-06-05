@@ -1,3 +1,11 @@
+## [1.59.00] - 2026-06-05
+
+### Added
+- Frontend: Divisão da interface de orçamento (`Budget.tsx`) em dois quadros independentes e isolados de moedas (`EUR` e `BRL`).
+- Frontend: Implementado o cálculo individual de Ready to Assign (RTA) em tempo real no cliente para EUR e BRL baseados nas respectivas contas on-budget e envelopes.
+- Frontend: Atualizada a store do Zustand `useAccountStore.ts` (`addCategoryGroup` e `addCategory`) para passar e persistir a moeda das categorias no backend.
+- Frontend: Formatação monetária rigorosa usando o símbolo de moeda correspondente de acordo com o quadro ativo (`R$` para BRL, `€` para EUR) e controle interno de DnD por bloco de moeda para evitar misturas.
+
 ## [1.58.00] - 2026-06-05
 
 ### Added

@@ -1,5 +1,13 @@
 # Novidades e Atualizações
 
+## Quadros de Orçamentos Separados por Moedas (EUR e BRL) (05/06/2026) 💸⚖️
+Separamos completamente os ambientes de planejamento orçamentário no frontend para eliminar qualquer confusão aritmética ou erro visual de exibição cambial:
+* **Segregação de Quadros na UI:** A aba de Orçamento (`Budget.tsx`) agora exibe dois quadros de orçamento independentes e empilhados: um dedicado estritamente a **EUR** e outro a **BRL**.
+* **Duplo Ready to Assign (RTA):** O indicador consolidado anterior foi substituído por dois cards de "Disponível para Alocar" lado a lado, calculando em tempo real no cliente o saldo disponível para EUR (em `€`) e BRL (em `R$`) a partir de suas respectivas contas bancárias on-budget e envelopes.
+* **Isolamento de Drag & Drop (DnD):** O arraste de categorias por ordenação foi isolado por quadro. O usuário não pode mais misturar acidentalmente categorias em EUR com grupos em BRL.
+* **Criação Direta com Moeda Correta:** Ao criar novos grupos ou subcategorias em um quadro específico, a moeda correta é automaticamente persistida no backend (`addCategoryGroup` e `addCategory` atualizados).
+* **Formatação Visual Perfeita:** As categorias sob o quadro BRL formatam todas as quantias monetárias com o símbolo `R$` e no locale `pt-BR`, enquanto o quadro EUR exibe os valores com o símbolo `€`.
+
 ## Isolamento de Moedas em Categorias e Restauração de Valores em BRL (05/06/2026) 💸⚖️
 Implementamos maior controle monetário sobre o orçamento e corrigimos com precisão a conversão cambial indesejada sobre contas em BRL:
 * **Isolamento de Moeda por Categoria:** O modelo de categorias (`Category`) agora armazena explicitamente se pertence a `EUR` ou `BRL` (com padrão `EUR`). Isso impede misturas acidentais de moedas durante o planejamento de envelopes.

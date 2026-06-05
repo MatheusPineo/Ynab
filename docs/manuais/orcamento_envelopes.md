@@ -121,5 +121,8 @@ Com a maturidade da nossa engine de orçamentos, o sistema impõe isolamento est
 
 * **Moeda por Categoria:** Cada envelope/categoria agora carrega o atributo de moeda (`currency`), que pode ser `EUR` ou `BRL` (sendo `EUR` o padrão global do sistema).
 * **Restauração de Saldos Nubank (BRL):** Corrigimos o comportamento que aplicava taxas de conversão automáticas sobre categorias associadas a contas em BRL (como a conta Nubank). Todos os valores antigos convertidos indevidamente para EUR foram multiplicados de volta pela taxa histórica correta (`~6.00085`) e salvos com precisão de duas casas decimais no banco de dados. Isso restabeleceu os valores originais em reais (ex: 23.33 € voltou para R$ 140,00).
+* **Quadros de Orçamentos Isolados (EUR e BRL):** A página de Orçamento (`Budget.tsx`) foi segregada em dois quadros visuais independentes: um com os envelopes e contas em **EUR** e outro com envelopes e contas em **BRL**. Isso elimina qualquer mistura de moedas ou erro aritmético de conversão.
+* **Duplo Ready to Assign (RTA):** Em vez de um indicador consolidado de "Disponível para Alocar", o painel superior renderiza dois cards lado a lado exibindo o RTA de EUR (em `€`) e o RTA de BRL (em `R$`), calculados dinamicamente no cliente com base nas respectivas contas bancárias e envelopes.
+* **Formatação Visual Consistente:** O quadro BRL exibe e formata todos os valores financeiros seguindo as convenções de localidade `pt-BR` (com o símbolo `R$`), enquanto o quadro EUR exibe os valores com o símbolo `€`.
 
 

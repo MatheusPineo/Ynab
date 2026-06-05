@@ -95,8 +95,8 @@ interface AccountState {
   fetchCategoryGroups: () => Promise<void>;
   assignMoney: (categoryId: string, amount: number) => Promise<void>;
   autoAssign: (rule: string) => Promise<void>;
-  addCategoryGroup: (name: string) => Promise<void>;
-  addCategory: (groupId: string, name: string) => Promise<void>;
+  addCategoryGroup: (name: string, currency?: 'EUR' | 'BRL') => Promise<void>;
+  addCategory: (groupId: string, name: string, currency?: 'EUR' | 'BRL') => Promise<void>;
   updateCategory: (id: string, updates: Partial<CategoryNode>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   setCategoryGroups: (groups: CategoryGroup[]) => void;
@@ -408,12 +408,12 @@ export const useAccountStore = create<AccountState>()(
         }
       },
 
-      addCategoryGroup: async (name) => {
+      addCategoryGroup: async (name, currency) => {
         try {
           const response = await authenticatedFetch("/categories/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, parent: null }),
+            body: JSON.stringify({ name, parent: null, currency: currency || "EUR" }),
           });
           if (!response.ok) throw new Error("Falha ao criar grupo");
           await get().fetchCategoryGroups();
@@ -423,12 +423,12 @@ export const useAccountStore = create<AccountState>()(
         }
       },
 
-      addCategory: async (gId, name) => {
+      addCategory: async (gId, name, currency) => {
         try {
           const response = await authenticatedFetch("/categories/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, parent: gId }),
+            body: JSON.stringify({ name, parent: gId, currency: currency || "EUR" }),
           });
           if (!response.ok) throw new Error("Falha ao criar categoria");
           await get().fetchCategoryGroups();
