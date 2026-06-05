@@ -20,19 +20,20 @@
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no CartÃ£o de CrÃ©dito agora aceita nÃºmeros dinÃ¢micos e customizados de parcelamento (ex: 24x, 36x) via input numÃ©rico e a propriedade `total_amount` foi corrigida na requisiÃ§Ã£o, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitaÃ§Ãµes do select.
 - [v1.35.14] GrÃ¡ficos Reais e Vazios Elegantes (Parte 2): CorreÃ§Ã£o na lÃ³gica matemÃ¡tica de PatrimÃ´nio LÃ­quido (`is_income` em passivos) e estabilizaÃ§Ã£o das dependÃªncias do `useEffect` em `Reports.tsx`. IntegraÃ§Ã£o completa do status YNAB via backend sem mock data.
 - [v1.35.14] GrÃÂ¡ficos Reais e Vazios Elegantes (Parte 2): CorreÃ§Ã£o na lÃ³gica matemÃ¡tica de PatrimÃ´nio LÃ­quido (`is_income` em passivos) e estabilizaÃ§Ã£o das dependÃªncias do `useEffect` em `Reports.tsx`. IntegraÃ§Ã£o completa do status YNAB via backend sem mock data.
-- [v1.35.31] UI de Faturas e Budget Bars: Refatoração completa da tela de faturas do cartão de crédito. Agora é uma view separada e unificada que abandonou os acordeões, usando cards dedicados (Total, Pago, Pendente). As barras de budget (AccountAccordion) foram afinadas para 6px, e as porcentagens e "Saldo Livre" agor# MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-05 20:45:00): Comando de Restauração Definitiva e Separação de Moedas (v1.62.00).
+- [v1.62.00] Comando de Restauração Definitiva e Separação de Moedas: Criação do Django Management Command `fix_currency_mess` e migrações profundas de dados do ledger (multiplicador 6.000857) para restauração de valores em BRL. Implementado isolamento total dos quadros EUR e BRL no frontend, sincronização com reatividade na alteração de moedas, e validação no serializer do Django.
+# MEMÓRIA DE DESENVOLVIMENTO E STATUS
+(Atualizado em 2026-06-05 22:30:00): Comando de Restauração Definitiva, Separação de Moedas e Alinhamento Técnico (v1.62.00).
 - Backend: Criação do Django Management Command `fix_currency_mess` em `finance/management/commands/fix_currency_mess.py`.
-- Backend: O comando divide cirurgicamente categorias Nubank para "Sub-contas (BRL)" (muda para BRL e reverte a conversão dividindo por ~6.000857) e categorias Novo Banco para "Sub-contas (EUR)" (muda para EUR).
-- Testes: TypeScript (`tsc --noEmit`) e pytest (107/107 passed) compilando e executando 100% verde.
-- Deploy: Deploy contínuo ativado e atualizado na Vercel.
+- Backend: Migrações 0002 e 0003 para rodar a restauração estrutural e matemática profunda do ledger (ajuste multiplicador 6.000857) de forma atômica no PostgreSQL do Render.
+- Frontend: Divisão em boards EUR/BRL, filtragem dinâmica de grupos baseada na moeda selecionada, e reatividade automática via React Query.
+- Testes: Vitest (50/50 passed) e pytest (107/107 passed) executando 100% verde.
+- Deploy: Deploy contínuo ativado e atualizado na Vercel e Render.
 
 ### Status Atual (Versão 1.62.00)
 - **Marco:** Comando de Restauração Definitiva e Roteamento de Moedas (v1.62.00).
-- **Estado:** Backend atualizado com o novo comando pronto para execução manual no terminal, testes locais verdes e deploy executado na Vercel.
+- **Estado:** Backend e frontend 100% sincronizados, testes verdes e documentação atualizada.
 - **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, módulo de Ativos & Runway, simuladores dinâmicos (FIRE/Milhão), frontend reativo virtualizado com guard clauses defensivas no react-window, auto-recuperação de chunks obsoletos via `lazyWithRetry`, ordenação pura de transações, modelos de distribuição por categoria/conta, redirecionamento via `useSearchParams`, upload/seleção de ícones de conta, dropdown de ações pendentes global na Topbar, conversão/normalização cambial retrospectiva no motor YNAB, interface de orçamento minimalista decluttered com ações de orçamento por moeda, pronto para assign (RTA) individual por quadro de moeda, criação de grupos locais por board de moeda e capacidade de mover envelopes e grupos de categorias entre as moedas BRL e EUR.
-- **Testes:** Pytest (107/107 passed) e TypeScript (`tsc --noEmit` compilado 100% verde).SearchParams`, upload/seleção de ícones de conta, dropdown de ações pendentes global na Topbar, conversão/normalização cambial retrospectiva no motor YNAB, interface de orçamento minimalista decluttered com ações de orçamento por moeda, pronto para assign (RTA) individual por quadro de moeda, criação de grupos locais por board de moeda e capacidade de mover envelopes e grupos de categorias entre as moedas BRL e EUR.
-- **Testes:** Pytest (107/107 passed) e TypeScript (`tsc --noEmit` compilado 100% verde).
+- **Testes:** Pytest (107/107 passed) e Vitest (50/50 passed) compilados 100% verde.
 
 - [v1.55.00] ClassificaÃ§Ã£o 50/30/20 na UI: Adicionado seletor dropdown no form de ediÃ§Ã£o, seletor de store Zustand recursivo para o widget de anÃ¡lises e badges visuais nas linhas da tabela de orÃ§amento.
 - [v1.54.00] Camada AnalÃ­tica de MacroalocaÃ§Ã£o: Adicionado o campo `macro_allocation` no modelo `Category` no Django, geradas e aplicadas as migraÃ§Ãµes, e atualizados os serializers e a view de Ã¡rvore para expor a classificaÃ§Ã£o 50/30/20.

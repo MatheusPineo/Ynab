@@ -1537,3 +1537,32 @@ Para garantir a atomicidade e a integridade referencial do banco de dados, o pro
    - Modela um encapsulador com tratamento de exceção `ProtectedError` (on_delete=PROTECT do Django).
    - Se uma sub-conta ainda estiver vinculada a outros modelos não abrangidos pela migração em lote, o erro é interceptado, as referências remanescentes são logadas no terminal como um aviso, e a deleção daquela linha específica é ignorada para permitir o fluxo completo sem quebra catastrófica do banco.
 
+---
+
+## 15. Isolamento de Moedas e Restauração do Ledger (v1.62.00)
+
+O Vault Finance OS implementa uma arquitetura robusta de isolamento de moedas no planejamento financeiro base-zero e um pipeline retrospectivo de restauração matemática para corrigir conversões cambiais incorretas.
+
+### 15.1 Segregação do Orçamento no Frontend (React)
+- **Quadros de Moedas Independentes:** A tela de Orçamento (`Budget.tsx`) divide a visualização em dois quadros empilhados isolados para EUR e BRL. Cada quadro possui seu próprio indicador de Ready to Assign (RTA) e envelopes específicos de sua respectiva moeda.
+- **Roteamento de Categorias:** No formulário de edição de categorias (`CategoryActions` / `EditCategoryModal`), a seleção de moeda altera dinamicamente a listagem de Grupos de Categorias (`CategoryGroup`) disponíveis. Apenas grupos com moeda compatível são apresentados, prevenindo erros de associação na hierarquia.
+- **Mutação e Invalidação:** Alterações de moeda disparam requisições `PATCH` contendo a moeda e o novo grupo pai. A invalidação da query de árvore YNAB força o reposicionamento instantâneo do envelope no quadro correto da UI.
+
+### 15.2 Validação de Consistência no Backend (Django REST Framework)
+- **Regra de Integridade:** No `CategorySerializer` (`backend/finance/serializers.py`), implementamos uma validação de consistência estrita no método `validate()`:
+  $$\text{Category.currency} == \text{Category.parent.currency}$$
+  Caso haja incompatibilidade entre a moeda da categoria e de seu grupo pai, a API rejeita a requisição retornando um erro HTTP 400 Bad Request, protegendo o banco contra desvios relacionais.
+
+### 15.3 Restauração Matemática e Roteamento Profundo (Deep Ledger Restoration)
+- **Django Management Command `fix_currency_mess`:** Criado para reorganizar as categorias estruturalmente e ajustar os valores.
+  - **Fase 1: Estruturação dos Grupos:** Garante a existência dos grupos "Sub-contas (EUR)" (`currency='EUR'`) e "Sub-contas (BRL)" (`currency='BRL'`).
+  - **Fase 2: Roteamento:** Direciona cirurgicamente as categorias (ex: Novo Banco para EUR, Nubank para BRL), reassociando-as aos grupos correspondentes à sua moeda.
+- **Migração Automatizada profunda do Ledger (`0003_restore_brl_deep_ledger`):**
+  Para reverter de forma atômica e retrospectiva a conversão indevida dos saldos em BRL (que haviam sido gravados como EUR na migração inicial), a migração de dados executa de forma transparente em lote:
+  - Multiplica todos os valores de `ceiling_value` e `target_value` das categorias BRL pelo fator histórico exato $\approx 6.000857$.
+  - Atualiza todos os lançamentos de orçamentos mensais (`MonthlyBudget.amount` e `MonthlyBudget.budgeted`) das categorias afetadas.
+  - Atualiza retrospectivamente os valores das transações associadas (`Transaction.amount`).
+  - Atualiza os valores das metas dinâmicas das categorias (`CategoryGoal.target_value` e `CategoryGoal.ceiling_value`).
+  - Garante a integridade da moeda setando o campo `currency='BRL'` em todas as entidades dependentes.
+  - Todo o pipeline roda em transação atômica (`transaction.atomic`) e executa de forma transparente no pipeline do Render durante a etapa de build (`python manage.py migrate`).
+
