@@ -113,4 +113,13 @@ Essa propriedade é exposta em todas as listagens de categorias e integrada de f
 
 Você pode reconfigurar seus percentuais ideais personalizados diretamente em sua tela de perfil de usuário.
 
+---
+
+## 8. Isolamento de Moedas em Categorias (BRL / EUR)
+
+Com a maturidade da nossa engine de orçamentos, o sistema impõe isolamento estrito de moeda no nível de categorias.
+
+* **Moeda por Categoria:** Cada envelope/categoria agora carrega o atributo de moeda (`currency`), que pode ser `EUR` ou `BRL` (sendo `EUR` o padrão global do sistema).
+* **Restauração de Saldos Nubank (BRL):** Corrigimos o comportamento que aplicava taxas de conversão automáticas sobre categorias associadas a contas em BRL (como a conta Nubank). Todos os valores antigos convertidos indevidamente para EUR foram multiplicados de volta pela taxa histórica correta (`~6.00085`) e salvos com precisão de duas casas decimais no banco de dados. Isso restabeleceu os valores originais em reais (ex: 23.33 € voltou para R$ 140,00).
+
 

@@ -288,7 +288,7 @@ O backend Django divide rigidamente a infraestrutura administrativa e de seguran
   * Envio de e-mails para ativação e recuperação de credenciais de acesso.
   * Endpoints utilitários de termos de uso e reset de dados corporativos (`ProfileResetView`).
 * **`finance/` (Domínio de Negócio Financeiro):**
-  * Modelos matemáticos e lógicas de integridade (`Account`, `Transaction`, `CategoryGroup`, `Category`, `Debt`, `Goal`, `CurrencyRate`).
+  * Modelos matemáticos e lógicas de integridade (`Account`, `Transaction`, `CategoryGroup`, `Category`, `Debt`, `Goal`, `CurrencyRate`). O modelo `Category` suporta isolamento estrito de moeda (`currency`: BRL/EUR) e reversão de taxas de conversão cambial.
   * Algoritmo de distribuição sistemática de excessos (*distribute_excess*) e automação de conciliação transacional.
   * **Proteção ativa anti-IDOR/BOLA via querysets escopados a `request.user`.**
 

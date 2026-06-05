@@ -102,10 +102,15 @@ class Category(models.Model):
         ('FIXED', 'Valor Fixo'),
         ('PERCENTAGE', 'Percentual da Receita'),
     ]
+    CURRENCY_CHOICES = [
+        ('EUR', 'EUR'),
+        ('BRL', 'BRL'),
+    ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='categories')
     name = models.CharField(max_length=100)
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
+    currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default='EUR')
     target_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
     target_type = models.CharField(max_length=30, choices=TARGET_TYPE_CHOICES, default='NEEDED_FOR_SPENDING')
     ceiling_value = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))

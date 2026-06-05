@@ -1,3 +1,11 @@
+## [1.58.00] - 2026-06-05
+
+### Added
+- Backend: Introduzido campo `currency` no modelo `Category` em `finance/models.py` para isolar moedas das categorias (`BRL` / `EUR`).
+- Backend: Criadas e aplicadas migrações estruturais e de dados (`core.0065` e `core.0066`).
+- Backend: Criada migração de dados que identifica categorias associadas à conta "Nubank" e define sua moeda como `BRL`, revertendo a conversão automática indevida de EUR multiplicando os campos `target_value`, `ceiling_value` e `MonthlyBudget.amount` pela taxa histórica correta (`~6.000857265323617`), arredondando para 2 casas decimais.
+- Backend: Atualizado `CategorySerializer` em `finance/serializers.py` para expor o novo campo `currency` na API REST.
+
 ## [1.57.00] - 2026-06-05
 
 ### Added

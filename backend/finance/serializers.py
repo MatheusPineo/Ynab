@@ -103,7 +103,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'user', 'name', 'parent', 'target_value', 'target_type', 'ceiling_value', 'assigned_amount', 'spent_amount', 'macro_rule', 'macro_allocation']
+        fields = ['id', 'user', 'name', 'parent', 'target_value', 'target_type', 'ceiling_value', 'assigned_amount', 'spent_amount', 'macro_rule', 'macro_allocation', 'currency']
         extra_kwargs = {
             'parent': {'required': False, 'allow_null': True},
             'user': {'read_only': True},  # Preenchido automaticamente pela view

@@ -1,5 +1,11 @@
 # Novidades e Atualizações
 
+## Isolamento de Moedas em Categorias e Restauração de Valores em BRL (05/06/2026) 💸⚖️
+Implementamos maior controle monetário sobre o orçamento e corrigimos com precisão a conversão cambial indesejada sobre contas em BRL:
+* **Isolamento de Moeda por Categoria:** O modelo de categorias (`Category`) agora armazena explicitamente se pertence a `EUR` ou `BRL` (com padrão `EUR`). Isso impede misturas acidentais de moedas durante o planejamento de envelopes.
+* **Restauração Cirúrgica de Saldos do Nubank (BRL):** Revertemos a conversão cambial indevida que transformou saldos das subcontas Nubank (em BRL) para EUR na migração anterior. Usando a taxa de conversão exata (`~6.00085`), multiplicamos os valores e reestabelecemos as quantias originais na moeda brasileira com precisão de centavos no banco de dados.
+* **Exposição na API REST:** O `CategorySerializer` foi atualizado para propagar e expor o campo `currency` no frontend.
+
 ## Ferramenta de Migração Arquitetural — Phase 1+2+3: Clonagem, Rebinding, Purge Seguro e Cleanup de UI (05/06/2026) 🔄🏗️
 Avançamos na preparação técnica e visual para a grande migração de "Sub-contas" para "Categorias YNAB" (envelopes de orçamento):
 * **Phase 1 — Clonagem:** O comando `migrate_subaccounts` analisa todas as sub-contas existentes e cria Categorias espelhadas dentro de um grupo chamado "Sub-contas Migradas".
