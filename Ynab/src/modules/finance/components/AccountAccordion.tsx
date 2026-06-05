@@ -233,56 +233,35 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
           <div className="w-1.5 sm:w-2 shrink-0" />
         )}
 
-        {/* Icon or Currency badge */}
-        {node.bank_logo_url ? (
-          <div className={cn(
-            "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-background/50 flex items-center justify-center p-0.5",
-            isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
-          )}>
-            {!logoError ? (
-              <img 
-                src={node.bank_logo_url} 
-                alt="" 
-                className="h-full w-full object-contain" 
-                onError={() => {
-                  console.warn("❌ Erro ao carregar logo do banco, aplicando fallback de Landmark:", node.bank_logo_url);
-                  setLogoError(true);
-                }}
-              />
-            ) : (
-              <Landmark className="h-4 w-4 text-muted-foreground/80" />
-            )}
-          </div>
-        ) : (node.icon_url && !imageError) ? (
-          <div className={cn(
-            "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-background/50 flex items-center justify-center",
-            isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
-          )}>
+        {/* Unified Bank Icon / Custom Icon / Generic Fallback */}
+        <div className={cn(
+          "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-background/50 flex items-center justify-center p-0.5",
+          isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
+        )}>
+          {node.bank_logo_url && !logoError ? (
+            <img 
+              src={node.bank_logo_url} 
+              alt="" 
+              className="h-full w-full object-contain" 
+              onError={() => {
+                console.warn("❌ Erro ao carregar logo do banco, aplicando fallback:", node.bank_logo_url);
+                setLogoError(true);
+              }}
+            />
+          ) : node.icon_url && !imageError ? (
             <img 
               src={node.icon_url} 
               alt="" 
               className="h-full w-full object-cover" 
               onError={() => {
-                console.warn("❌ Erro ao carregar imagem, aplicando fallback de moeda:", node.icon_url);
+                console.warn("❌ Erro ao carregar imagem, aplicando fallback:", node.icon_url);
                 setImageError(true);
               }}
             />
-          </div>
-        ) : (
-          <span
-            className={cn(
-              "shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-full text-[11px] font-bold tabular",
-              isExcluded
-                ? "bg-purple-950/50 text-purple-400 border border-purple-500/30 shadow-[0_0_10px_rgba(168,85,247,0.2)]"
-                : (isMaster || hasChildren
-                  ? "gradient-primary text-primary-foreground shadow-glow"
-                  : "bg-secondary/15 text-secondary border border-secondary/20")
-            )}
-            title={currency}
-          >
-            {CURRENCY_SYMBOL[currency]}
-          </span>
-        )}
+          ) : (
+            <Landmark className="h-4 w-4 text-muted-foreground/80" />
+          )}
+        </div>
 
         {/* Name */}
         <span
@@ -418,6 +397,8 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
       )}
     </div>
   );
+
+  console.log("Account:", node.name, "Domain:", node.bank_domain);
 
   return RowContent;
 };

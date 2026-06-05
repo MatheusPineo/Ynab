@@ -12,6 +12,8 @@
 - Backend: Sanitização do campo `bank_domain` no método `save` do modelo `Account` para remover protocolos (`http://`, `https://`), prefixos (`www.`) e caminhos extras, mantendo estritamente o domínio base.
 - Frontend: Implementado reset do estado de erro da logo (`logoError`) ao alterar a URL no menu de contas (`AccountAccordion.tsx`), página de detalhes (`AccountDetails.tsx`) e no dashboard (`DashboardWidgets.tsx`), permitindo re-renderização reativa e imediata no DOM.
 - Frontend: Adicionado ícone de fallback esteticamente elegante (`Landmark` de `lucide-react`) caso a Clearbit Logo API retorne erro ao carregar a imagem do banco.
+- Frontend: Padronizada a exibição de avatares/ícones de todas as contas no menu lateral (`AccountAccordion.tsx`), removendo o fallback antigo de sigla/moeda (ex: "R$", "€") em círculos coloridos e adotando o ícone genérico `Landmark` como padrão estético absoluto para contas sem logo ou imagem customizada.
+- Frontend: Adicionado log de rastreamento de depuração (`console.log`) no render do `AccountAccordion.tsx` para validação imediata da integridade de dados do domínio recebidos do backend.
 
 ## [1.55.00] - 2026-06-05
 
