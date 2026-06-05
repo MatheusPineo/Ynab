@@ -1,3 +1,15 @@
+## [1.61.00] - 2026-06-05
+
+### Added
+- Backend: Criação do endpoint `POST /api/finance/categories/restore_brl/` no `CategoryViewSet` do Django para forçar a restauração retrospectiva dos valores em BRL (multiplicando os campos `target_value`, `ceiling_value` e orçamentos mensais `MonthlyBudget.amount` por `6.000857` e convertendo a moeda para `BRL`).
+- Backend: Exposição garantida da moeda das categorias e grupos de categorias no payload do serializer e no retorno da árvore (`CategoryViewSet.tree`).
+
+## [1.60.00] - 2026-06-05
+
+### Added
+- Frontend: Mover o diálogo de criação de novos grupos de categorias (`handleAddGroup`) para o escopo local de `renderBudgetBoard` no arquivo `Budget.tsx`, forçando a criação a respeitar estritamente a moeda ativa do board e eliminando o estado global redundante `groupCurrency`.
+- Frontend: Implementado seletor de moeda dropdown ("Moeda": Euro e Real) no modal de edição de categorias (`CategoryActions`), enviando o campo `currency` no patch (`updateCategory`). Isso permite que os envelopes de categoria e grupos transitem reativamente entre os quadros EUR e BRL na UI quando sua moeda é editada.
+
 ## [1.59.00] - 2026-06-05
 
 ### Added

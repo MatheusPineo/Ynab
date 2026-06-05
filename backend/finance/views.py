@@ -687,6 +687,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                             'ceiling_value': float(category.ceiling_value) if category.ceiling_value else 0.00,
                             'macro_rule': category.macro_rule,
                             'macro_allocation': category.macro_allocation,
+                            'currency': category.currency,
                         }
                     # Categoria pai (grupo de categorias) -> consolida a soma das subcategorias
                     else:
@@ -710,6 +711,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                             'parent': str(category.parent_id) if category.parent_id else None,
                             'macro_rule': category.macro_rule,
                             'macro_allocation': category.macro_allocation,
+                            'currency': category.currency,
                             'children': children
                         }
                     
@@ -868,6 +870,43 @@ class CategoryViewSet(viewsets.ModelViewSet):
             'drained_categories': {str(k): v for k, v in result['drained_categories'].items()},
             'target_category': result['target_category'],
             'total_transferred': float(result['total_transferred']),
+        })
+
+    @action(detail=False, methods=['post'])
+    def restore_brl(self, request):
+        """
+        Restaura os valores em BRL que foram incorretamente convertidos para EUR.
+        Filtra categorias pelo nome contendo 'Nubank' (case-insensitive), altera currency para BRL
+        e multiplica os valores financeiros pelo fator aproximado de 6.000857.
+        """
+        factor = Decimal('6.000857')
+        updated_categories_count = 0
+        updated_budgets_count = 0
+        
+        with transaction.atomic():
+            nubank_categories = Category.objects.filter(
+                user=request.user,
+                name__icontains='Nubank'
+            )
+            
+            for category in nubank_categories:
+                category.currency = 'BRL'
+                category.target_value = (category.target_value * factor).quantize(Decimal('0.01'))
+                category.ceiling_value = (category.ceiling_value * factor).quantize(Decimal('0.01'))
+                category.save()
+                updated_categories_count += 1
+                
+                # Também atualiza os orçamentos mensais associados a esta categoria
+                budgets = MonthlyBudget.objects.filter(category=category)
+                for budget in budgets:
+                    budget.amount = (budget.amount * factor).quantize(Decimal('0.01'))
+                    budget.save()
+                    updated_budgets_count += 1
+                    
+        return Response({
+            'message': 'Restauração de valores BRL realizada com sucesso.',
+            'updated_categories': updated_categories_count,
+            'updated_budgets': updated_budgets_count
         })
 
 class MonthlyBudgetViewSet(viewsets.ModelViewSet):
