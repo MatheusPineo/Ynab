@@ -45,7 +45,13 @@ class Account(models.Model):
     @property
     def bank_logo_url(self):
         if self.bank_domain:
-            return f"https://logo.clearbit.com/{self.bank_domain.strip().lower()}"
+            domain = self.bank_domain.strip().lower()
+            if "://" in domain:
+                domain = domain.split("://")[1]
+            if domain.startswith("www."):
+                domain = domain[4:]
+            domain = domain.split("/")[0]
+            return f"https://www.google.com/s2/favicons?domain={domain}&sz=128"
         return None
 
     @property
@@ -60,15 +66,22 @@ class Account(models.Model):
 
     def save(self, *args, **kwargs):
         if self.bank_domain:
+            import re
+            from urllib.parse import urlparse
             domain = self.bank_domain.strip().lower()
-            if domain.startswith("http://"):
-                domain = domain[len("http://"):]
-            elif domain.startswith("https://"):
-                domain = domain[len("https://"):]
-            if domain.startswith("www."):
-                domain = domain[len("www."):]
-            domain = domain.split("/")[0]
-            self.bank_domain = domain
+            if not re.match(r'^https?://', domain):
+                domain = 'http://' + domain
+            try:
+                parsed = urlparse(domain)
+                netloc = parsed.netloc
+                if netloc.startswith("www."):
+                    netloc = netloc[4:]
+                self.bank_domain = netloc
+            except Exception:
+                # Fallback em caso de falha de parser
+                domain = domain.replace("http://", "").replace("https://", "").replace("www.", "")
+                domain = domain.split("/")[0]
+                self.bank_domain = domain
 
         is_new = self.pk is None
         super().save(*args, **kwargs)

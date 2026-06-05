@@ -5,13 +5,14 @@
 - Backend: Sincronizados os serializadores `AccountSerializer` e `CreditCardSerializer` para expor e propagar `bank_domain` e `bank_logo_url`.
 - Backend: Atualizado `CreditCardViewSet` em `views.py` para receber e propagar `bank_domain` no payload de criação e edição.
 - Frontend: Adicionado o campo "Website / Domínio do Banco" (`bank_domain`) nos modais de criação de contas e subcontas (`AddAccountModal.tsx`, `AddRootAccountModal.tsx`) e na edição (`AccountActions.tsx`).
-- Frontend: Implementado o carregamento dinâmico de logotipos via Clearbit Logo API (`bank_logo_url`) no menu de contas (`AccountAccordion.tsx`), no detalhe da conta (`AccountDetails.tsx`) e no widget "Top Contas" (`DashboardWidgets.tsx`), com fallbacks elegantes para os ícones customizados (`icon_url`) e insígnias de moedas.
+- Frontend: Implementado o carregamento dinâmico de logotipos via Google Favicon API (`bank_logo_url`) no menu de contas (`AccountAccordion.tsx`), no detalhe da conta (`AccountDetails.tsx`) e no widget "Top Contas" (`DashboardWidgets.tsx`), com fallbacks elegantes para os ícones customizados (`icon_url`) e Landmark.
 
 ### Fixed
 - Backend: Corrigido o método `tree` no `AccountViewSet` (`views.py`) para serializar e retornar recursivamente os campos `bank_domain` e `bank_logo_url`. Isso garante que as logos de bancos persistam no estado global do frontend após recarregamentos ou mutações das contas.
-- Backend: Sanitização do campo `bank_domain` no método `save` do modelo `Account` para remover protocolos (`http://`, `https://`), prefixos (`www.`) e caminhos extras, mantendo estritamente o domínio base.
+- Backend: Sanitização agressiva do campo `bank_domain` no método `save` do modelo `Account` usando Regex e parser robusto (`urllib.parse`) para remover protocolos (`http://`, `https://`), prefixos (`www.`) e caminhos extras, mantendo estritamente o domínio base limpo. Adicionada higienização em tempo de execução no getter da propriedade `bank_logo_url` para proteger registros corrompidos legados.
+- Backend/Frontend: Substituição completa da API Clearbit Logo (que sofria bloqueios por AdBlockers e shields de privacidade dos navegadores) pela robusta API de Favicons do Google (`https://www.google.com/s2/favicons?domain={domain}&sz=128`).
 - Frontend: Implementado reset do estado de erro da logo (`logoError`) ao alterar a URL no menu de contas (`AccountAccordion.tsx`), página de detalhes (`AccountDetails.tsx`) e no dashboard (`DashboardWidgets.tsx`), permitindo re-renderização reativa e imediata no DOM.
-- Frontend: Adicionado ícone de fallback esteticamente elegante (`Landmark` de `lucide-react`) caso a Clearbit Logo API retorne erro ao carregar a imagem do banco.
+- Frontend: Adicionado ícone de fallback esteticamente elegante (`Landmark` de `lucide-react`) caso a API de Favicons do Google retorne erro ao carregar a imagem do banco.
 - Frontend: Padronizada a exibição de avatares/ícones de todas as contas no menu lateral (`AccountAccordion.tsx`), removendo o fallback antigo de sigla/moeda (ex: "R$", "€") em círculos coloridos e adotando o ícone genérico `Landmark` como padrão estético absoluto para contas sem logo ou imagem customizada.
 - Frontend: Adicionado log de rastreamento de depuração (`console.log`) no render do `AccountAccordion.tsx` para validação imediata da integridade de dados do domínio recebidos do backend.
 

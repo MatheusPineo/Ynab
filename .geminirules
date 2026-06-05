@@ -30,10 +30,11 @@
 6. **Protocolo Permanente de Alertas Globais:** De forma proativa e obrigatória, sempre que você for instruído a implementar uma nova funcionalidade que gere tarefas pendentes ou demande atenção/ação imediata do usuário, você DEVE escrever a lógica para plugar essa nova funcionalidade ao sistema de Notificações Globais de Ações Pendentes (`Topbar.tsx` / `Bell`).
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-05 15:35:00): Integrada a exibição dinâmica de logos via Clearbit Logo API (v1.56.00).
-- Backend: Exposto `bank_domain` e a propriedade `@property bank_logo_url` no modelo `Account` e nos serializers. Corrigido o método `tree` no `AccountViewSet` para serializar e retornar recursivamente os novos campos. Adicionada sanitização automática do domínio no save do modelo Account para limpar esquemas HTTP, prefixos www e caminhos extras.
-- Frontend: Adicionado o campo "Website / Domínio do Banco" nos formulários de criação (raiz e subcontas) e edição.
-- Frontend: Implementada a renderização de logotipos via Clearbit Logo API no menu de contas (`AccountAccordion`), detalhes de conta e widget "Top Contas", com fallbacks inteligentes e reativos que resetam o estado de erro ao salvar novas URLs. Padronizada a exibição de avatares com o ícone genérico `Landmark` para todas as contas e subcontas, removendo os círculos de moedas antigos. Adicionado console trace de depuração para integridade dos dados na listagem.
+(Atualizado em 2026-06-05 15:50:00): Integrada a exibição dinâmica de logos via Google Favicon API (v1.56.00).
+- Backend: Exposto `bank_domain` e a propriedade `@property bank_logo_url` no modelo `Account` e nos serializers. Corrigido o método `tree` no `AccountViewSet` para serializar e retornar recursivamente os novos campos. Adicionada sanitização robusta do domínio com regex e parser `urllib.parse` para remover esquemas, subdomínio www e caminhos extras no método save e em tempo de execução no getter.
+- Backend/Frontend: Substituída a API Clearbit Logo pela Google Favicon API (`sz=128`) para evitar bloqueios de AdBlockers e shields de privacidade no cliente.
+- Frontend: Adicionado o campo "Website / Domínio do Banco" nos formulários de criação e edição.
+- Frontend: Implementada a renderização de logotipos via Google Favicon API no menu de contas (`AccountAccordion`), detalhes de conta e widget "Top Contas", com fallbacks inteligentes e reativos que resetam o estado de erro ao salvar novas URLs. Padronizada a exibição de avatares com o ícone genérico `Landmark` para todas as contas e subcontas.
 - Testes: Vitest (50/50) e Pytest (107/107) passando. Build TypeScript/Vite 100% verde.
 - Deploy: Produção atualizada com sucesso via Vercel (https://ynab-five.vercel.app).
 - Documentação: CHANGELOG.md, docs/changelog/novidades.md, docs/manuais/cartoes_credito.md, README.md, ARCHITECTURE.md e `.geminirules` sincronizados.

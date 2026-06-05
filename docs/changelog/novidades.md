@@ -1,14 +1,16 @@
 # Novidades e Atualizações
 
-## Integração de Logos Bancárias Clearbit Logo API (05/06/2026) 🏦✨
-Corrigimos e completamos a integração da Clearbit Logo API para exibição dinâmica de logotipos de instituições financeiras no Vault Finance OS:
-* **Entrada de Website/Domínio:** Adicionamos o campo "Website / Domínio do Banco" (ex: `itau.com.br`, `nubank.com.br`) nos formulários de criação e edição de contas normais, subcontas e cartões de crédito.
-* **Sanitização de URLs Sujas:** Adicionamos higienização automática no backend. Se você digitar uma URL completa (ex: `https://www.nubank.com.br/`), o sistema extrairá estritamente o domínio base (`nubank.com.br`), garantindo consultas corretas à Clearbit.
+## Transição para Google Favicon API e Higienização de Logos Bancárias (05/06/2026) 🏦✨
+Corrigimos e completamos a integração de logotipos de instituições financeiras no Vault Finance OS migrando a infraestrutura externa e aplicando regras de integridade de dados rigorosas:
+* **Substituição pela Google Favicon API:** Para contornar bloqueios de AdBlockers agressivos e shields de privacidade nos navegadores que barravam a API Clearbit, migramos completamente a busca para a API oficial de Favicons do Google (`https://www.google.com/s2/favicons?domain={domain}&sz=128`). O parâmetro `sz=128` foi enforçado para renderizar logotipos em alta definição.
+* **Sanitização Agressiva de URLs Sujas:** Implementamos higienização automatizada e robusta no backend através de um parser de URL (`urllib.parse`) e expressões regulares. Não importa se você digitar `https://www.nubank.com.br/detalhes/` ou `http://nubank.com.br`, o banco de dados armazenará estritamente o domínio base limpo: `nubank.com.br`.
+* **Segurança para Registros Legados:** Adicionamos tratamento sob demanda no getter do backend para que registros de domínios corrompidos antigos salvos no banco sejam limpos dinamicamente na resposta da API.
+* **Entrada de Website/Domínio:** Mantivemos o campo "Website / Domínio do Banco" nos formulários de criação e edição de contas normais, subcontas e cartões de crédito.
 * **Persistência de Campo e Serialização:** O backend Django agora armazena e expõe o campo `bank_domain` e gera a propriedade calculada `bank_logo_url` no endpoint de árvore de contas (`/api/accounts/tree/`) e de cartões de crédito.
 * **Correção de Sincronização:** Corrigimos um problema onde a edição do domínio no formulário exibia a mensagem de sucesso mas não persistia visualmente no painel de controle. Agora, o endpoint de árvore serializa adequadamente os campos `bank_domain` e `bank_logo_url` recursivamente para todas as subcontas filhas.
 * **Reatividade Instantânea no DOM:** Corrigimos o estado de erro do React para resetar sempre que a URL do banco é alterada, forçando a pintura imediata da imagem no DOM assim que o formulário é salvo (sem necessidade de atualizar a página).
 * **Exibição nas Listas e Detalhes:** A interface renderiza de forma elegante a marca do banco no menu de contas, no cabeçalho das páginas de detalhes e no widget "Top Contas" do painel de controle.
-* **Fallbacks Elegantes com Lucide:** Caso o domínio não esteja preenchido ou a API da Clearbit não localize a marca do banco (erro 404), a interface exibe automaticamente um ícone genérico de banco (`Landmark`), mantendo o design limpo e consistente. Caso ocorram erros em outros arquivos de mídia, revertemos para o ícone customizado da conta.
+* **Fallbacks Elegantes com Lucide:** Caso o domínio não esteja preenchido ou a API do Google não localize a marca do banco (retorno inválido), a interface exibe automaticamente um ícone genérico de banco (`Landmark`), mantendo o design limpo e consistente. Caso ocorram erros em outros arquivos de mídia, revertemos para o ícone customizado da conta.
 * **Padronização Visual Completa:** Removemos os antigos círculos de moeda ("R$", "€") em contas e subcontas que não tinham imagem/logo. Agora todas as contas sem logo ou ícone customizado utilizam o mesmo componente de avatar exibindo o ícone genérico `Landmark`, criando uma identidade visual consistente em todo o painel.
 * **Rastreabilidade de Depuração:** Adicionamos um trace em console (`console.log`) na renderização para que você possa inspecionar e confirmar em tempo real a chegada dos dados do domínio do banco vindos da API.
 
