@@ -121,6 +121,14 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
   const [editedCurrency, setEditedCurrency] = useState<'EUR' | 'BRL'>(category.currency as any || 'EUR');
   const { updateCategory, deleteCategory } = useAccountStore();
 
+  useEffect(() => {
+    if (isEditDialogOpen) {
+      setEditedName(category.name);
+      setMacroAllocation(category.macro_allocation || 'NONE');
+      setEditedCurrency(category.currency as any || 'EUR');
+    }
+  }, [isEditDialogOpen, category]);
+
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     await updateCategory(category.id, { 
