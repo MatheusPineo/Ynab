@@ -44,7 +44,8 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
       currency: formData.get("currency") as any,
       ceiling: ceiling,
       exclude_from_totals: excludeFromTotals,
-      icon_url: iconUrl || null
+      icon_url: iconUrl || null,
+      bank_domain: (formData.get("bank_domain") as string) || ""
     });
 
     toast.success(`Sub-conta criada em "${parentAccount.name}"`);
@@ -72,6 +73,11 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
           <div className="grid gap-2">
             <Label htmlFor="name">Nome da Conta</Label>
             <Input id="name" name="name" placeholder="Ex: Mercado, Reserva..." required className="bg-background/50" />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="bank_domain">Website / Domínio do Banco</Label>
+            <Input id="bank_domain" name="bank_domain" placeholder="Ex: nubank.com.br" className="bg-background/50" />
           </div>
           
           <div className="grid gap-2">

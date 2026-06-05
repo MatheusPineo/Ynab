@@ -45,7 +45,8 @@ export const AddRootAccountModal = () => {
           closing_day: parseInt(formData.get("closing_day") as string, 10) || 20,
           due_day: parseInt(formData.get("due_day") as string, 10) || 28,
           currency: formData.get("currency") as string,
-          icon_url: iconUrl || null
+          icon_url: iconUrl || null,
+          bank_domain: (formData.get("bank_domain") as string) || ""
         };
 
         const response = await authenticatedFetch("/credit-cards/", {
@@ -68,7 +69,8 @@ export const AddRootAccountModal = () => {
           currency: formData.get("currency") as any,
           ceiling: ceiling,
           exclude_from_totals: accountType === "investment" ? false : excludeFromTotals,
-          icon_url: iconUrl || null
+          icon_url: iconUrl || null,
+          bank_domain: (formData.get("bank_domain") as string) || ""
         });
 
         toast.success(`🏦 Conta "${formData.get("name") as string}" criada!`);
@@ -145,6 +147,11 @@ export const AddRootAccountModal = () => {
           <div className="grid gap-2">
             <Label htmlFor="name" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Nome da Conta / Cartão</Label>
             <Input id="name" name="name" placeholder={accountType === "checking" ? "Ex: Itaú, Caixa..." : accountType === "investment" ? "Ex: XP, Rico, Tesouro..." : "Ex: Nubank Ultravioleta..."} required className="bg-muted/15 border-border/40 rounded-xl h-11 text-sm font-medium" />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="bank_domain" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Website / Domínio do Banco</Label>
+            <Input id="bank_domain" name="bank_domain" placeholder="Ex: nubank.com.br" className="bg-muted/15 border-border/40 rounded-xl h-11 text-sm font-medium" />
           </div>
 
           {accountType === "checking" || accountType === "investment" ? (

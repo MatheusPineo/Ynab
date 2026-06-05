@@ -36,6 +36,7 @@ export interface CategoryNode {
   ceiling_value?: number;
   parent: string | null;
   macro_rule?: 'NEEDS' | 'WANTS' | 'SAVINGS' | 'NONE';
+  macro_allocation?: 'NEEDS' | 'WANTS' | 'SAVINGS' | 'NONE';
   children?: CategoryNode[];
 }
 
@@ -189,6 +190,8 @@ export const useAccountStore = create<AccountState>()(
             currency: partialNode.currency || "EUR",
             ceiling: partialNode.ceiling ?? null,
             exclude_from_totals: partialNode.exclude_from_totals ?? false,
+            bank_domain: partialNode.bank_domain ?? "",
+            icon_url: partialNode.icon_url ?? null,
           };
 
           const response = await authenticatedFetch("/accounts/", {
@@ -870,26 +873,32 @@ export const selectMacroDistribution = (state: { categoryGroups: CategoryGroup[]
   let wantsAssigned = 0;
   let savingsAssigned = 0;
 
-  const getAssignedSum = (node: CategoryNode): number => {
-    let sum = node.assigned_amount || 0;
+  const traverseAndSum = (node: CategoryNode) => {
+    if (!node) return;
+    const allocation = node.macro_allocation || node.macro_rule;
+    
+    if (allocation === 'NEEDS') {
+      needsAssigned += node.assigned_amount || 0;
+      return;
+    } else if (allocation === 'WANTS') {
+      wantsAssigned += node.assigned_amount || 0;
+      return;
+    } else if (allocation === 'SAVINGS') {
+      savingsAssigned += node.assigned_amount || 0;
+      return;
+    }
+
     if (Array.isArray(node.children)) {
       for (const child of node.children) {
-        sum += getAssignedSum(child);
+        traverseAndSum(child);
       }
     }
-    return sum;
   };
 
   const groups = Array.isArray(state.categoryGroups) ? state.categoryGroups : [];
   for (const group of groups) {
-    if (!group) continue;
-    const assigned = getAssignedSum(group);
-    if (group.macro_rule === 'NEEDS') {
-      needsAssigned += assigned;
-    } else if (group.macro_rule === 'WANTS') {
-      wantsAssigned += assigned;
-    } else if (group.macro_rule === 'SAVINGS') {
-      savingsAssigned += assigned;
+    if (group) {
+      traverseAndSum(group);
     }
   }
 

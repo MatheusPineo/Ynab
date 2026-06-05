@@ -52,6 +52,8 @@ const AccountDetails = () => {
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
   const [accountsLoaded, setAccountsLoaded] = useState(false);
+  const [logoError, setLogoError] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
 
@@ -83,6 +85,11 @@ const AccountDetails = () => {
     };
     return find(tree);
   }, [id, tree]);
+
+  useEffect(() => {
+    setLogoError(false);
+    setImageError(false);
+  }, [id]);
 
   useEffect(() => {
     fetchAccounts().finally(() => setAccountsLoaded(true));
@@ -242,8 +249,22 @@ const AccountDetails = () => {
           </Button>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              {account.icon_url ? (
-                <img src={account.icon_url} alt="" className="h-6 w-6 rounded-full object-cover shadow-sm shrink-0" />
+              {account.bank_logo_url && !logoError ? (
+                <div className="h-6 w-6 rounded-full overflow-hidden border border-border/40 bg-background/50 flex items-center justify-center p-0.5 shadow-sm shrink-0">
+                  <img 
+                    src={account.bank_logo_url} 
+                    alt="" 
+                    className="h-full w-full object-contain" 
+                    onError={() => setLogoError(true)} 
+                  />
+                </div>
+              ) : account.icon_url && !imageError ? (
+                <img 
+                  src={account.icon_url} 
+                  alt="" 
+                  className="h-6 w-6 rounded-full object-cover shadow-sm shrink-0" 
+                  onError={() => setImageError(true)} 
+                />
               ) : (
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] text-primary font-bold shrink-0">
                   {CURRENCY_SYMBOL[currency]}

@@ -1,6 +1,6 @@
-# ✦ Vault Finance OS (v1.51.00 - Global Action Alerts Active) ✦
+# ✦ Vault Finance OS (v1.56.00 - Clearbit Logo Integration Active) ✦
 
-> **O Sistema Operacional Financeiro Definitivo.** Uma plataforma SaaS híbrida (Web & Mobile) de alta performance inspirada na metodologia YNAB (Orçamento Base-Zero), desenvolvida com arquitetura moderna e focada em escalabilidade extrema, segurança biométrica, sincronização em tempo real de múltiplas moedas, controle de investimentos via Smart Ledger manual simplificado, novo módulo de **Patrimônio Líquido & Ativos (Net Worth & Assets)** com termômetro de liquidez (financial runway), nova seção de **Simuladores Financeiros Dinâmicos** (Rumo ao Milhão e FIRE), correções para **Modelos de Distribuição & Ícones**, e nova **Central de Alertas Globais (Notification Bell)** para acompanhamento e resolução de ações pendentes do usuário.
+> **O Sistema Operacional Financeiro Definitivo.** Uma plataforma SaaS híbrida (Web & Mobile) de alta performance inspirada na metodologia YNAB (Orçamento Base-Zero), desenvolvida com arquitetura moderna e focada em escalabilidade extrema, segurança biométrica, sincronização em tempo real de múltiplas moedas, controle de investimentos via Smart Ledger manual simplificado, novo módulo de **Patrimônio Líquido & Ativos (Net Worth & Assets)** com termômetro de liquidez (financial runway), nova seção de **Simuladores Financeiros Dinâmicos** (Rumo ao Milhão e FIRE), integração automática de logos de instituições financeiras via **Clearbit Logo API**, e nova **Central de Alertas Globais (Notification Bell)** para acompanhamento e resolução de ações pendentes do usuário.
 
 
 

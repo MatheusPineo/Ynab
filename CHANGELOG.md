@@ -1,3 +1,51 @@
+## [1.56.00] - 2026-06-05
+
+### Added
+- Backend: Exposto o campo `bank_domain` e a propriedade `@property bank_logo_url` no modelo `Account` em `models.py`.
+- Backend: Sincronizados os serializadores `AccountSerializer` e `CreditCardSerializer` para expor e propagar `bank_domain` e `bank_logo_url`.
+- Backend: Atualizado `CreditCardViewSet` em `views.py` para receber e propagar `bank_domain` no payload de criação e edição.
+- Frontend: Adicionado o campo "Website / Domínio do Banco" (`bank_domain`) nos modais de criação de contas e subcontas (`AddAccountModal.tsx`, `AddRootAccountModal.tsx`) e na edição (`AccountActions.tsx`).
+- Frontend: Implementado o carregamento dinâmico de logotipos via Clearbit Logo API (`bank_logo_url`) no menu de contas (`AccountAccordion.tsx`), no detalhe da conta (`AccountDetails.tsx`) e no widget "Top Contas" (`DashboardWidgets.tsx`), com fallbacks elegantes para os ícones customizados (`icon_url`) e insígnias de moedas.
+
+### Fixed
+- Backend: Corrigido o método `tree` no `AccountViewSet` (`views.py`) para serializar e retornar recursivamente os campos `bank_domain` e `bank_logo_url`. Isso garante que as logos de bancos persistam no estado global do frontend após recarregamentos ou mutações das contas.
+
+## [1.55.00] - 2026-06-05
+
+## [1.54.00] - 2026-06-05
+
+### Added
+- Backend: Adicionado o campo `macro_allocation` no modelo `Category` para classificar envelopes em subconjuntos analíticos da regra 50/30/20 (`NEEDS`, `WANTS`, `SAVINGS`, `NONE`).
+- Backend: Criadas e executadas as migrações de banco de dados para suportar a nova propriedade.
+- Backend: Atualizado o `CategorySerializer` e a action `tree` do `CategoryViewSet` no Django REST Framework para expor a nova tag `macro_allocation` tanto para categorias folha quanto em agrupamentos consolidados na resposta JSON da árvore.
+
+## [1.53.00] - 2026-06-05
+
+### Added
+- Frontend: Redesenho minimalista do cabeçalho da página de Orçamento (`Budget.tsx`). Consolidadas as ações de "Capturar Receita" (com modal embutido), "Financiar Metas", "Cobrir Rombos", "Recolher Sobras" e "Limpar Mês" (como submenu em cascata) em um único menu dropdown discreto ("⋮") posicionado ao lado do seletor de meses.
+- Frontend: Refatorada a exibição de receitas pendentes na página de Orçamento. Substituída a listagem direta de transações por um banner/alerta elegante de "X receitas pendentes" com acionamento de um Dialog Modal reativo para visualizar e distribuir os lançamentos.
+- Frontend: Centralizada e destacada a métrica principal "Disponível para Alocar" (Ready to Assign) com tipografia ampliada (`text-2xl sm:text-4xl`), fonte clean e animação sutil. Relocado o painel de monitoramento da Regra 50/30/20 para o rodapé da página.
+
+## [1.52.00] - 2026-06-05
+
+### Fixed
+- Backend: Implementada a agregação de múltiplas moedas no cálculo de orçamentos e envelopes (`YNABBudgetService.calculate_envelope_states`). Adicionado o método `convert_currency` que normaliza valores em BRL e USD para a moeda base EUR (taxas correspondentes ao frontend: 1 EUR = 6 BRL, 1 EUR = 1.08 USD) antes de calcular o pool de "Ready to Assign" (RTA), os saldos disponíveis e as despesas/atividades mensais dos envelopes. Corrigido bug de soma cega 1-para-1 de moedas distintas.
+
+## [1.51.03] - 2026-06-05
+
+### Added
+- Frontend: Implementado mecanismo de auto-recuperação de chunks obsoletos (`lazyWithRetry`) em `App.tsx`. Após um novo deploy, se um chunk antigo falhar ao carregar (TypeError: Failed to fetch dynamically imported module), o sistema detecta o erro, armazena um flag anti-loop no `sessionStorage`, e força um único reload automático da página para buscar os chunks atualizados. Protege todos os 22 módulos lazy-loaded da aplicação.
+
+## [1.51.02] - 2026-06-05
+
+### Fixed
+- Frontend: Corrigido `React Error #306` (Element type is invalid: undefined) na rota `/assets`. O componente `Assets.tsx` era exportado apenas como `export const` (named export) sem `export default`, causando falha no `React.lazy()` do `App.tsx`. Adicionado `export default Assets` ao final do arquivo.
+
+## [1.51.01] - 2026-06-05
+
+### Fixed
+- Frontend: Corrigido `TypeError: Cannot convert undefined or null to object` na tabela de transações (`Transactions.tsx`). O `react-window` podia acessar índices de `sortedTransactions` que retornavam `undefined` durante transições assíncronas de estado (mudança de filtro/navegação). Adicionadas guard clauses no `itemKey` e no row renderer para evitar o crash.
+
 ## [1.51.00] - 2026-06-05
 
 ### Added

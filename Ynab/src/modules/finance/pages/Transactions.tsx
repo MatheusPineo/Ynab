@@ -598,10 +598,11 @@ const Transactions = () => {
                     itemCount={sortedTransactions.length}
                     itemSize={52}
                     width="100%"
-                    itemKey={(index) => sortedTransactions[index].id}
+                    itemKey={(index) => sortedTransactions[index]?.id ?? index}
                   >
                     {({ index, style }) => {
                       const t = sortedTransactions[index];
+                      if (!t) return <div style={style} />;
                       if (t.isGroup) {
                         return (
                           <div

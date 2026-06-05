@@ -21,6 +21,7 @@ class Account(models.Model):
     ceiling = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     icon_url = models.URLField(max_length=500, null=True, blank=True)
     domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")
+    bank_domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, millenniumbcp.pt")
     parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='children')
     created_at = models.DateTimeField(auto_now_add=True)
     exclude_from_totals = models.BooleanField(default=False)
@@ -40,6 +41,12 @@ class Account(models.Model):
         Retorna o saldo disponível subtraindo o valor reservado para cartão de crédito.
         """
         return self.balance - self.reserved_credit_balance
+
+    @property
+    def bank_logo_url(self):
+        if self.bank_domain:
+            return f"https://logo.clearbit.com/{self.bank_domain.strip().lower()}"
+        return None
 
     @property
     def is_on_budget(self):
@@ -85,6 +92,16 @@ class Category(models.Model):
             ('WANTS', 'Desejos'),
             ('SAVINGS', 'Poupança'),
             ('NONE', 'Nenhum')
+        ],
+        default='NONE'
+    )
+    macro_allocation = models.CharField(
+        max_length=10,
+        choices=[
+            ('NEEDS', 'Necessidades (50%)'),
+            ('WANTS', 'Desejos (30%)'),
+            ('SAVINGS', 'Poupança/Investimentos (20%)'),
+            ('NONE', 'Não Monitorado')
         ],
         default='NONE'
     )

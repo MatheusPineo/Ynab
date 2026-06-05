@@ -287,6 +287,8 @@ class AccountViewSet(viewsets.ModelViewSet):
                         'available_balance': float(account.balance - reserved_val),
                         'currency': account.currency,
                         'icon_url': account.icon_url,
+                        'bank_domain': account.bank_domain,
+                        'bank_logo_url': account.bank_logo_url,
                         'parent': str(account.parent_id) if account.parent_id else None,
                         'ceiling': float(account.ceiling) if account.ceiling is not None else None,
                         'exclude_from_totals': account.exclude_from_totals,
@@ -684,6 +686,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                             'target_type': category.target_type,
                             'ceiling_value': float(category.ceiling_value) if category.ceiling_value else 0.00,
                             'macro_rule': category.macro_rule,
+                            'macro_allocation': category.macro_allocation,
                         }
                     # Categoria pai (grupo de categorias) -> consolida a soma das subcategorias
                     else:
@@ -706,6 +709,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
                             'underfunded_amount': float(sum_underfunded),
                             'parent': str(category.parent_id) if category.parent_id else None,
                             'macro_rule': category.macro_rule,
+                            'macro_allocation': category.macro_allocation,
                             'children': children
                         }
                     
@@ -1659,12 +1663,14 @@ class CreditCardViewSet(viewsets.ModelViewSet):
         if 'account' not in data or not data['account']:
             name = data.get('name', 'Cartão de Crédito')
             currency = data.get('currency', 'BRL')
+            bank_domain = data.get('bank_domain', '')
             account = Account.objects.create(
                 user=request.user,
                 name=name,
                 account_type='credit_card',
                 currency=currency,
-                balance=Decimal('0.00')
+                balance=Decimal('0.00'),
+                bank_domain=bank_domain
             )
             data['account'] = account.id
 
@@ -1678,10 +1684,17 @@ class CreditCardViewSet(viewsets.ModelViewSet):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         
-        # Se 'name' foi enviado, atualiza o Account relacionado
-        if 'name' in request.data and instance.account:
-            instance.account.name = request.data['name']
-            instance.account.save()
+        # Se 'name' ou 'bank_domain' foi enviado, atualiza o Account relacionado
+        if instance.account:
+            updated = False
+            if 'name' in request.data:
+                instance.account.name = request.data['name']
+                updated = True
+            if 'bank_domain' in request.data:
+                instance.account.bank_domain = request.data['bank_domain']
+                updated = True
+            if updated:
+                instance.account.save()
             
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)

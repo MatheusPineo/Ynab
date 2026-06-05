@@ -297,12 +297,44 @@ const WeeklyFlow = () => {
   );
 };
 
+const TopAccountRow = ({ a, baseCurrency, max }: { a: any, baseCurrency: string, max: number }) => {
+  const [logoError, setLogoError] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-foreground truncate max-w-[140px] flex items-center gap-1.5">
+          {a.bank_logo_url && !logoError ? (
+            <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-background/50 border border-border/40 p-0.5 overflow-hidden shrink-0">
+              <img src={a.bank_logo_url} alt="" className="h-full w-full object-contain" onError={() => setLogoError(true)} />
+            </span>
+          ) : a.icon_url && !imageError ? (
+            <img src={a.icon_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0" onError={() => setImageError(true)} />
+          ) : a.emoji ? (
+            <span>{a.emoji}</span>
+          ) : null}
+          <span className="truncate">{a.name}</span>
+        </span>
+        <span className={cn("text-xs font-semibold tabular-nums", a.balance < 0 ? "text-rose-400" : "text-foreground")}>
+          {fmt(a.balance, baseCurrency)}
+        </span>
+      </div>
+      <div className="h-1 w-full rounded-full bg-muted/40 overflow-hidden">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500 transition-all duration-700"
+          style={{ width: `${(Math.abs(a.balance) / max) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+};
+
 const TopAccounts = () => {
   const { tree } = useAccountStore();
   const { baseCurrency, convert } = useCurrencyStore();
 
   const accounts = useMemo(() => {
-    const flat: { name: string; balance: number; emoji?: string }[] = [];
+    const flat: { name: string; balance: number; emoji?: string; bank_logo_url?: string; icon_url?: string }[] = [];
     const walk = (nodes: any[]) => {
       nodes?.forEach((n) => {
         if (typeof n.balance === "number" || n.balance) {
@@ -310,6 +342,8 @@ const TopAccounts = () => {
             name: n.name,
             balance: convert(Number(n.balance) || 0, (n.currency || baseCurrency) as any, baseCurrency),
             emoji: n.emoji || n.icon,
+            bank_logo_url: n.bank_logo_url,
+            icon_url: n.icon_url,
           });
         }
         if (n.children?.length) walk(n.children);
@@ -333,22 +367,7 @@ const TopAccounts = () => {
   return (
     <div className="flex flex-col gap-2.5">
       {accounts.map((a, i) => (
-        <div key={i}>
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-foreground truncate max-w-[140px]">
-              {a.emoji ? `${a.emoji} ` : ""}{a.name}
-            </span>
-            <span className={cn("text-xs font-semibold tabular-nums", a.balance < 0 ? "text-rose-400" : "text-foreground")}>
-              {fmt(a.balance, baseCurrency)}
-            </span>
-          </div>
-          <div className="h-1 w-full rounded-full bg-muted/40 overflow-hidden">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-primary to-violet-500 transition-all duration-700"
-              style={{ width: `${(Math.abs(a.balance) / max) * 100}%` }}
-            />
-          </div>
-        </div>
+        <TopAccountRow key={i} a={a} baseCurrency={baseCurrency} max={max} />
       ))}
     </div>
   );

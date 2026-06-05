@@ -94,6 +94,15 @@ Para ajudar você a manter uma proporção saudável de gastos e poupança sem e
 * **Desejos (Wants - 30%):** Envelopes com despesas focadas em estilo de vida, lazer e conforto (ex: Viagens, Jantares Fora, Streamings, Assinaturas).
 * **Poupança (Savings - 20%):** Envelopes para reserva de emergência, aportes e investimentos de longo prazo.
 
+### Marcação de Macroalocação nos Envelopes
+Para que o painel de 50/30/20 saiba exatamente a qual pilar pertence cada um de seus envelopes, você pode definir a propriedade **Macroalocação** (`macro_allocation`) diretamente no cadastro ou edição de cada categoria:
+* **Necessidades (NEEDS):** Despesas fundamentais (Aluguel, Luz, etc.).
+* **Desejos (WANTS):** Gastos de conforto e lazer (Assinaturas, Jantares, etc.).
+* **Poupança (SAVINGS):** Reserva financeira e aportes de investimento.
+* **Não Monitorado (NONE):** Remove a categoria dos cálculos analíticos da regra 50/30/20.
+
+Essa propriedade é exposta em todas as listagens de categorias e integrada de forma transparente ao motor de agregação do backend.
+
 ### Como Funciona o Termômetro Visual
 1. No topo da tela de Orçamento, o sistema agrupa dinamicamente a soma do dinheiro designado em cada grupo macro e calcula a porcentagem exata que isso representa sobre as receitas totais recebidas no mês.
 2. A barra de progresso exibe a relação entre a alocação atual e a sua meta ideal de perfil (ex: *55% alocado contra meta de 50%*).

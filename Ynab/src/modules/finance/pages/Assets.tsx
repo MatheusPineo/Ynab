@@ -300,3 +300,5 @@ export const Assets = () => {
     </PullToRefresh>
   );
 };
+
+export default Assets;

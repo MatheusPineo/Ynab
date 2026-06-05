@@ -17,7 +17,7 @@ import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target } from "lucide-react";
+import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +34,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
+  DropdownMenuSubContent,
 } from "@/shared/components/ui/dropdown-menu";
 import {
   DndContext,
@@ -55,6 +59,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { DistributionModal } from "@/modules/finance/components/DistributionModal";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { IncomeSplitterModal } from "@/modules/finance/components/IncomeSplitterModal";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 
 // --- Month Selector Component ---
 
@@ -112,11 +117,12 @@ interface CategoryActionsProps {
 const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedName, setEditedName] = useState(category.name);
+  const [macroAllocation, setMacroAllocation] = useState<'NEEDS' | 'WANTS' | 'SAVINGS' | 'NONE'>(category.macro_allocation || 'NONE');
   const { updateCategory, deleteCategory } = useAccountStore();
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await updateCategory(category.id, { name: editedName });
+    await updateCategory(category.id, { name: editedName, macro_allocation: macroAllocation });
     setIsEditDialogOpen(false);
   };
 
@@ -164,6 +170,25 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
                 className="bg-background/50"
               />
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="macro">Classificação 50/30/20</Label>
+              <Select
+                value={macroAllocation}
+                onValueChange={(val: any) => setMacroAllocation(val)}
+              >
+                <SelectTrigger id="macro" className="bg-background/50">
+                  <SelectValue placeholder="Selecione um pilar" />
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  <SelectItem value="NONE">Não Rastrear</SelectItem>
+                  <SelectItem value="NEEDS">Necessidade (50%)</SelectItem>
+                  <SelectItem value="WANTS">Desejo (30%)</SelectItem>
+                  <SelectItem value="SAVINGS">Poupança (20%)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <DialogFooter>
               <Button type="submit" className="w-full gradient-primary">Salvar Alterações</Button>
             </DialogFooter>
@@ -257,6 +282,7 @@ const Budget = () => {
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [cascadeOpen, setCascadeOpen] = useState(false);
   const [rebalancing, setRebalancing] = useState<string | null>(null);
+  const [isPendingIncomesModalOpen, setIsPendingIncomesModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCategoryGroups();
@@ -415,223 +441,111 @@ const Budget = () => {
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
       {/* Budget Header */}
-      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-primary/10 border border-primary/20 p-3.5 sm:p-8 shadow-soft">
-        <div className="relative flex flex-col items-center text-center sm:text-left sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-col gap-1 sm:gap-2">
-            <h1 className="text-xl sm:text-3xl font-black tracking-tight text-foreground">
-              Orçamento Mensal
-            </h1>
-          </div>
+      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-primary/10 border border-primary/20 p-4 sm:p-6 shadow-soft">
+        <div className="relative flex items-center justify-between gap-3">
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
+            Orçamento Mensal
+          </h1>
 
-          <div className="flex flex-col items-center sm:items-end gap-3">
-            <div className="flex items-center gap-2">
-              <IncomeSplitterModal />
-              <Button 
-                variant="outline" 
-                onClick={autoAssignFunds}
-                className="border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 rounded-xl h-8 sm:h-10 text-[10px] sm:text-xs gap-1 sm:gap-1.5 font-bold"
-              >
-                <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Financiar Metas
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setIsGroupDialogOpen(true)}
-                className="border-primary/20 hover:bg-primary/10 hover:text-primary rounded-xl h-8 sm:h-10 text-[10px] sm:text-xs gap-1 sm:gap-1.5 font-bold"
-              >
-                <FolderPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Novo Grupo
-              </Button>
-              <MonthSelector />
-            </div>
+          <div className="flex items-center gap-2">
+            <MonthSelector />
+            
+            {/* Consolidated "⋮" Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl hover:bg-muted/20 border border-border/40">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="glass border-border/60 w-56">
+                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider font-black opacity-70">Ações do Orçamento</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                
+                <DropdownMenuItem asChild>
+                  <IncomeSplitterModal
+                    trigger={
+                      <div className="w-full flex items-center gap-2 cursor-pointer px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/5 rounded-md">
+                        <Landmark className="h-4 w-4 shrink-0 text-emerald-400" />
+                        <span>Capturar Receita</span>
+                      </div>
+                    }
+                  />
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onSelect={autoAssignFunds} className="cursor-pointer gap-2 text-xs font-medium">
+                  <Target className="h-4 w-4 text-sky-400" />
+                  <span>Financiar Metas</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onSelect={() => handleAutoShield()} className="cursor-pointer gap-2 text-xs font-medium">
+                  <Shield className="h-4 w-4 text-amber-400" />
+                  <span>Cobrir Rombos</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem onSelect={() => handleSurplusSweep()} className="cursor-pointer gap-2 text-xs font-medium">
+                  <ArrowDownToLine className="h-4 w-4 text-sky-400" />
+                  <span>Recolher Sobras</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                {/* Submenu para Limpar Mês (Cascata) */}
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="cursor-pointer gap-2 text-xs font-medium">
+                    <Eraser className="h-4 w-4 text-violet-400" />
+                    <span>Limpar Mês (Cascata)</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                    <DropdownMenuSubContent className="glass border-border/60 max-h-60 overflow-y-auto w-48">
+                      {leafCategories.map(cat => (
+                        <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="cursor-pointer text-xs">
+                          {cat.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+                </DropdownMenuSub>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
-        {/* RTA Panel + Rebalancing Toolbar */}
-        <div className="mt-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* RTA Badge */}
+        {/* Highlighted Core Metric (Ready to Assign) */}
+        <div className="w-full flex justify-center py-3 sm:py-5">
           <div className={cn(
-            "flex items-center gap-3 px-4 py-2.5 rounded-xl border shadow-sm transition-all",
+            "flex flex-col items-center justify-center text-center px-8 py-5 sm:px-12 sm:py-6 rounded-2xl sm:rounded-3xl border shadow-lg transition-all duration-300 w-full max-w-sm sm:max-w-md",
             readyToAssignBalance > 0
               ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
               : readyToAssignBalance < 0
                 ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
                 : "bg-muted/20 border-border/40 text-muted-foreground"
           )}>
-            <Wallet className="h-5 w-5 shrink-0" />
-            <div className="flex flex-col">
-              <span className="text-[9px] uppercase tracking-widest font-black opacity-70">Disponível para Alocar</span>
-              <span className="text-lg sm:text-xl font-black leading-none" data-testid="rta-balance">
-                {formatMoney(readyToAssignBalance, "EUR")}
-              </span>
-            </div>
-          </div>
-
-          {/* Rebalancing Toolbar */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleAutoShield}
-              disabled={rebalancing !== null}
-              className="rounded-xl h-9 text-[10px] sm:text-xs gap-1.5 font-bold border-amber-500/30 text-amber-400 hover:bg-amber-500/10 hover:text-amber-300"
-            >
-              <Shield className="h-3.5 w-3.5" />
-              {rebalancing === 'shield' ? 'Cobrindo...' : 'Cobrir Rombos'}
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSurplusSweep}
-              disabled={rebalancing !== null}
-              className="rounded-xl h-9 text-[10px] sm:text-xs gap-1.5 font-bold border-sky-500/30 text-sky-400 hover:bg-sky-500/10 hover:text-sky-300"
-            >
-              <ArrowDownToLine className="h-3.5 w-3.5" />
-              {rebalancing === 'sweep' ? 'Recolhendo...' : 'Recolher Sobras'}
-            </Button>
-
-            <DropdownMenu open={cascadeOpen} onOpenChange={setCascadeOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={rebalancing !== null}
-                  className="rounded-xl h-9 text-[10px] sm:text-xs gap-1.5 font-bold border-violet-500/30 text-violet-400 hover:bg-violet-500/10 hover:text-violet-300"
-                >
-                  <Eraser className="h-3.5 w-3.5" />
-                  {rebalancing === 'cascade' ? 'Limpando...' : 'Limpar Mês'}
-                  <ChevronDown className="h-3 w-3 opacity-60" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass border-border/60 max-h-60 overflow-y-auto">
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider">Transferir saldo para...</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {leafCategories.map(cat => (
-                  <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="text-xs">
-                    {cat.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Wallet className="h-6 w-6 sm:h-8 sm:w-8 mb-2 shrink-0 text-primary animate-pulse" />
+            <span className="text-[10px] sm:text-xs uppercase tracking-widest font-black opacity-70 mb-1">Disponível para Alocar</span>
+            <span className="text-2xl sm:text-4xl font-black tracking-tight leading-none" data-testid="rta-balance">
+              {formatMoney(readyToAssignBalance, "EUR")}
+            </span>
           </div>
         </div>
 
-        {/* New Income Section */}
+        {/* Elegant Pending Incomes Alert Banner */}
         {currentIncomes.length > 0 && (
-          <div className="mt-6 pt-6 border-t border-primary/10 animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex flex-col items-center text-center sm:flex-row sm:items-center justify-between gap-2 mb-3">
-              <h3 className="text-[10px] sm:text-xs uppercase tracking-wider text-primary font-bold">
-                Receitas Recebidas <span className="opacity-70 font-normal">(Aguardando Distribuição)</span>
-              </h3>
-              <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full font-bold shrink-0">
-                {currentIncomes.length} {currentIncomes.length === 1 ? "pendente" : "pendentes"}
+          <div className="mt-4 flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-3 animate-in fade-in duration-300">
+            <div className="flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-xs font-semibold text-foreground">
+                Você tem {currentIncomes.length} {currentIncomes.length === 1 ? "receita pendente" : "receitas pendentes"} para distribuir.
               </span>
             </div>
-            <div className="grid gap-2">
-              {currentIncomes.map(income => {
-                const acc = getAccount(income.account);
-                const currency = acc?.currency || "EUR";
-                return (
-                  <div key={income.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 bg-background/40 rounded-xl p-2.5 border border-primary/10 hover:border-primary/30 transition-all group">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform shrink-0">
-                        <Plus className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm text-foreground">{income.description || "Receita"}</div>
-                        <div className="text-[10px] sm:text-xs text-muted-foreground">Recebido em: {acc?.name || "Conta"} • {income.date}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-3 mt-1 sm:mt-0">
-                      <div className="text-base sm:text-xl font-black text-primary">
-                        {formatMoney(income.amount, currency as any)}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="rounded-lg border-primary/20 hover:bg-primary/10 hover:text-primary h-7 text-[10px] sm:text-xs px-2.5"
-                          onClick={() => keepInAccount(income.id)}
-                        >
-                          Manter
-                        </Button>
-                        <DistributionModal 
-                          initialSourceAccount={String(income.account)} 
-                          initialAmount={String(income.amount)}
-                          sourceTransactionId={income.id}
-                          trigger={
-                            <Button size="sm" className="gradient-primary rounded-lg h-7 text-[10px] sm:text-xs px-3">
-                              Distribuir
-                            </Button>
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <Button 
+              size="sm" 
+              onClick={() => setIsPendingIncomesModalOpen(true)}
+              className="gradient-primary text-xs font-bold rounded-lg h-7 px-3 shrink-0"
+            >
+              Ver Lançamentos
+            </Button>
           </div>
         )}
-      </section>
-
-      {/* 50/30/20 Rule Macro Tracking Panel */}
-      <section className="rounded-2xl sm:rounded-3xl bg-card/30 border border-border/40 p-4 sm:p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs sm:text-sm uppercase tracking-widest text-primary font-bold">Acompanhamento Regra 50/30/20 (Alocado / Meta)</h3>
-          <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">Orçamento Base-Zero</span>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[
-            {
-              label: "Necessidades (Needs)",
-              current: macroDist.needsPct,
-              target: targetNeeds,
-              amount: macroDist.needsAssigned,
-              color: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500" : macroDist.needsPct > targetNeeds ? "bg-amber-500" : "bg-emerald-500",
-              textColor: macroDist.needsPct > targetNeeds + 5 ? "text-rose-400" : macroDist.needsPct > targetNeeds ? "text-amber-400" : "text-emerald-400",
-              bgColor: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.needsPct > targetNeeds ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
-            },
-            {
-              label: "Desejos (Wants)",
-              current: macroDist.wantsPct,
-              target: targetWants,
-              amount: macroDist.wantsAssigned,
-              color: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500" : macroDist.wantsPct > targetWants ? "bg-amber-500" : "bg-emerald-500",
-              textColor: macroDist.wantsPct > targetWants + 5 ? "text-rose-400" : macroDist.wantsPct > targetWants ? "text-amber-400" : "text-emerald-400",
-              bgColor: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.wantsPct > targetWants ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
-            },
-            {
-              label: "Poupança (Savings)",
-              current: macroDist.savingsPct,
-              target: targetSavings,
-              amount: macroDist.savingsAssigned,
-              color: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500" : macroDist.savingsPct > targetSavings ? "bg-amber-500" : "bg-emerald-500",
-              textColor: macroDist.savingsPct > targetSavings + 5 ? "text-rose-400" : macroDist.savingsPct > targetSavings ? "text-amber-400" : "text-emerald-400",
-              bgColor: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.savingsPct > targetSavings ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
-            }
-          ].map((item, idx) => (
-            <div key={idx} className={cn("p-4 rounded-xl border flex flex-col gap-2 transition-all duration-300 hover:scale-[1.01]", item.bgColor)}>
-              <div className="flex justify-between items-center">
-                <span className="text-xs font-bold text-foreground">{item.label}</span>
-                <span className={cn("text-xs font-black", item.textColor)}>
-                  {item.current.toFixed(1)}% <span className="text-[10px] text-muted-foreground/60 font-normal">/ {item.target}%</span>
-                </span>
-              </div>
-              <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden">
-                <div 
-                  className={cn("h-full transition-all duration-500 rounded-full", item.color)} 
-                  style={{ width: `${Math.min(item.current, 100)}%` }}
-                />
-              </div>
-              <div className="flex justify-between items-center text-[10px] text-muted-foreground/80 mt-1">
-                <span>Alocado: {formatMoney(item.amount, "EUR")}</span>
-                <span>Renda: {formatMoney(macroDist.totalIncome, "EUR")}</span>
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
 
       {/* Distributed Incomes Section - Separated Container */}
@@ -825,6 +739,130 @@ const Budget = () => {
         </DndContext>
       )}
 
+      {/* 50/30/20 Rule Macro Tracking Panel - Relocated to the bottom */}
+      <section className="rounded-2xl sm:rounded-3xl bg-card/30 border border-border/40 p-4 sm:p-6 shadow-sm mt-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xs sm:text-sm uppercase tracking-widest text-primary font-bold">Acompanhamento Regra 50/30/20 (Alocado / Meta)</h3>
+          <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">Orçamento Base-Zero</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              label: "Necessidades (Needs)",
+              current: macroDist.needsPct,
+              target: targetNeeds,
+              amount: macroDist.needsAssigned,
+              color: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500" : macroDist.needsPct > targetNeeds ? "bg-amber-500" : "bg-emerald-500",
+              textColor: macroDist.needsPct > targetNeeds + 5 ? "text-rose-400" : macroDist.needsPct > targetNeeds ? "text-amber-400" : "text-emerald-400",
+              bgColor: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.needsPct > targetNeeds ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
+            },
+            {
+              label: "Desejos (Wants)",
+              current: macroDist.wantsPct,
+              target: targetWants,
+              amount: macroDist.wantsAssigned,
+              color: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500" : macroDist.wantsPct > targetWants ? "bg-amber-500" : "bg-emerald-500",
+              textColor: macroDist.wantsPct > targetWants + 5 ? "text-rose-400" : macroDist.wantsPct > targetWants ? "text-amber-400" : "text-emerald-400",
+              bgColor: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.wantsPct > targetWants ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
+            },
+            {
+              label: "Poupança (Savings)",
+              current: macroDist.savingsPct,
+              target: targetSavings,
+              amount: macroDist.savingsAssigned,
+              color: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500" : macroDist.savingsPct > targetSavings ? "bg-amber-500" : "bg-emerald-500",
+              textColor: macroDist.savingsPct > targetSavings + 5 ? "text-rose-400" : macroDist.savingsPct > targetSavings ? "text-amber-400" : "text-emerald-400",
+              bgColor: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.savingsPct > targetSavings ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
+            }
+          ].map((item, idx) => (
+            <div key={idx} className={cn("p-4 rounded-xl border flex flex-col gap-2 transition-all duration-300 hover:scale-[1.01]", item.bgColor)}>
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-foreground">{item.label}</span>
+                <span className={cn("text-xs font-black", item.textColor)}>
+                  {item.current.toFixed(1)}% <span className="text-[10px] text-muted-foreground/60 font-normal">/ {item.target}%</span>
+                </span>
+              </div>
+              <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden">
+                <div 
+                  className={cn("h-full transition-all duration-500 rounded-full", item.color)} 
+                  style={{ width: `${Math.min(item.current, 100)}%` }}
+                />
+              </div>
+              <div className="flex justify-between items-center text-[10px] text-muted-foreground/80 mt-1">
+                <span>Alocado: {formatMoney(item.amount, "EUR")}</span>
+                <span>Renda: {formatMoney(macroDist.totalIncome, "EUR")}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Dialog for listing pending incomes */}
+      <Dialog open={isPendingIncomesModalOpen} onOpenChange={setIsPendingIncomesModalOpen}>
+        <DialogContent className="glass border-border/60 w-[94vw] sm:max-w-md rounded-3xl p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-3 border-b border-border/30">
+            <DialogTitle className="text-lg font-black tracking-tight text-gradient-mixed">
+              Receitas Recebidas
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Distribua ou mantenha essas receitas no orçamento.
+            </p>
+          </DialogHeader>
+          <div className="grid gap-3 py-4">
+            {currentIncomes.map(income => {
+              const acc = getAccount(income.account);
+              const currency = acc?.currency || "EUR";
+              return (
+                <div key={income.id} className="flex flex-col gap-2.5 bg-background/40 rounded-xl p-2.5 border border-primary/10 hover:border-primary/30 transition-all group">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <div className="font-bold text-sm text-foreground">{income.description || "Receita"}</div>
+                      <div className="text-[10px] text-muted-foreground mt-0.5">Recebido em: {acc?.name || "Conta"} • {income.date}</div>
+                    </div>
+                    <div className="text-base font-black text-primary shrink-0">
+                      {formatMoney(income.amount, currency as any)}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border/20">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="rounded-lg border-primary/20 hover:bg-primary/10 hover:text-primary h-7 text-[10px] px-2.5"
+                      onClick={() => {
+                        keepInAccount(income.id);
+                        if (currentIncomes.length <= 1) {
+                          setIsPendingIncomesModalOpen(false);
+                        }
+                      }}
+                    >
+                      Manter
+                    </Button>
+                    <DistributionModal 
+                      initialSourceAccount={String(income.account)} 
+                      initialAmount={String(income.amount)}
+                      sourceTransactionId={income.id}
+                      trigger={
+                        <Button 
+                          size="sm" 
+                          onClick={() => {
+                            if (currentIncomes.length <= 1) {
+                              setIsPendingIncomesModalOpen(false);
+                            }
+                          }}
+                          className="gradient-primary rounded-lg h-7 text-[10px] px-3"
+                        >
+                          Distribuir
+                        </Button>
+                      }
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Standalone Dialog for Creating a New Category Group */}
       <Dialog open={isGroupDialogOpen} onOpenChange={setIsGroupDialogOpen}>
         <DialogContent className="glass border-border/60">
@@ -882,8 +920,20 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
         </div>
       </TableCell>
       <TableCell className="p-2 sm:p-4">
-        <div className="flex flex-col gap-1 sm:gap-1.5">
-          <span className="font-semibold text-xs sm:text-sm text-foreground/90">{cat.name}</span>
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5">
+            <span className="font-semibold text-xs sm:text-sm text-foreground/90">{cat.name}</span>
+            {cat.macro_allocation && cat.macro_allocation !== 'NONE' && (
+              <span className={cn(
+                "text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border shrink-0",
+                cat.macro_allocation === 'NEEDS' && "bg-rose-500/10 text-rose-400 border-rose-500/20",
+                cat.macro_allocation === 'WANTS' && "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                cat.macro_allocation === 'SAVINGS' && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+              )}>
+                {cat.macro_allocation === 'NEEDS' ? '50%' : cat.macro_allocation === 'WANTS' ? '30%' : '20%'}
+              </span>
+            )}
+          </div>
           <Progress value={percentSpent} className="h-0.5 sm:h-1 w-16 sm:w-32" />
         </div>
       </TableCell>

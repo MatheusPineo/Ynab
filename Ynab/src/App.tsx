@@ -10,28 +10,49 @@ import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { Layout } from "@/shared/components/dashboard/Layout";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 // Code Splitting / Lazy Loading de módulos e bibliotecas pesadas para otimizar o bundle inicial
-const Dashboard = React.lazy(() => import("@/modules/finance/pages/Dashboard"));
-const Accounts = React.lazy(() => import("@/modules/finance/pages/Accounts"));
-const Transactions = React.lazy(() => import("@/modules/finance/pages/Transactions"));
-const Budget = React.lazy(() => import("@/modules/finance/pages/Budget"));
-const Goals = React.lazy(() => import("@/modules/finance/pages/Goals"));
-const Settings = React.lazy(() => import("@/modules/auth/pages/Settings"));
-const AccountDetails = React.lazy(() => import("@/modules/finance/pages/AccountDetails"));
-const BillDetails = React.lazy(() => import("@/modules/finance/pages/BillDetails"));
-const Debts = React.lazy(() => import("@/modules/finance/pages/Debts"));
-const DebtorProfile = React.lazy(() => import("@/modules/finance/pages/DebtorProfile"));
-const Rule503020 = React.lazy(() => import("@/modules/finance/pages/Rule503020"));
-const Reports = React.lazy(() => import("@/modules/finance/pages/Reports"));
-const CreditCards = React.lazy(() => import("@/modules/finance/pages/CreditCards"));
-const Investments = React.lazy(() => import("@/modules/finance/pages/Investments"));
-const Assets = React.lazy(() => import("@/modules/finance/pages/Assets"));
-const Simulators = React.lazy(() => import("@/modules/finance/pages/Simulators"));
-const Inbox = React.lazy(() => import("@/modules/finance/pages/Inbox"));
-const Auth = React.lazy(() => import("@/modules/auth/pages/Auth"));
-const Landing = React.lazy(() => import("@/modules/auth/pages/Landing"));
-const NotFound = React.lazy(() => import("@/modules/auth/pages/NotFound"));
-const LegalCenter = React.lazy(() => import("@/modules/auth/pages/LegalCenter"));
-const HelpCenter = React.lazy(() => import("@/modules/auth/pages/HelpCenter"));
+// Wrapper defensivo: após um deploy, chunks antigos são invalidados e o import dinâmico falha.
+// lazyWithRetry detecta a falha e força UM único reload para buscar os chunks atualizados.
+const lazyWithRetry = (importFn: () => Promise<any>) =>
+  React.lazy(() =>
+    importFn().catch((error: Error) => {
+      const isChunkError =
+        error.message.includes("Failed to fetch dynamically imported module") ||
+        error.message.includes("Loading chunk") ||
+        error.message.includes("Loading CSS chunk");
+      if (isChunkError && !sessionStorage.getItem("chunk_reload")) {
+        sessionStorage.setItem("chunk_reload", "1");
+        window.location.reload();
+        return { default: () => null as any };
+      }
+      sessionStorage.removeItem("chunk_reload");
+      throw error;
+    })
+  );
+// Limpa o flag de reload ao carregar com sucesso (prova que o reload funcionou)
+if (sessionStorage.getItem("chunk_reload")) sessionStorage.removeItem("chunk_reload");
+
+const Dashboard = lazyWithRetry(() => import("@/modules/finance/pages/Dashboard"));
+const Accounts = lazyWithRetry(() => import("@/modules/finance/pages/Accounts"));
+const Transactions = lazyWithRetry(() => import("@/modules/finance/pages/Transactions"));
+const Budget = lazyWithRetry(() => import("@/modules/finance/pages/Budget"));
+const Goals = lazyWithRetry(() => import("@/modules/finance/pages/Goals"));
+const Settings = lazyWithRetry(() => import("@/modules/auth/pages/Settings"));
+const AccountDetails = lazyWithRetry(() => import("@/modules/finance/pages/AccountDetails"));
+const BillDetails = lazyWithRetry(() => import("@/modules/finance/pages/BillDetails"));
+const Debts = lazyWithRetry(() => import("@/modules/finance/pages/Debts"));
+const DebtorProfile = lazyWithRetry(() => import("@/modules/finance/pages/DebtorProfile"));
+const Rule503020 = lazyWithRetry(() => import("@/modules/finance/pages/Rule503020"));
+const Reports = lazyWithRetry(() => import("@/modules/finance/pages/Reports"));
+const CreditCards = lazyWithRetry(() => import("@/modules/finance/pages/CreditCards"));
+const Investments = lazyWithRetry(() => import("@/modules/finance/pages/Investments"));
+const Assets = lazyWithRetry(() => import("@/modules/finance/pages/Assets"));
+const Simulators = lazyWithRetry(() => import("@/modules/finance/pages/Simulators"));
+const Inbox = lazyWithRetry(() => import("@/modules/finance/pages/Inbox"));
+const Auth = lazyWithRetry(() => import("@/modules/auth/pages/Auth"));
+const Landing = lazyWithRetry(() => import("@/modules/auth/pages/Landing"));
+const NotFound = lazyWithRetry(() => import("@/modules/auth/pages/NotFound"));
+const LegalCenter = lazyWithRetry(() => import("@/modules/auth/pages/LegalCenter"));
+const HelpCenter = lazyWithRetry(() => import("@/modules/auth/pages/HelpCenter"));
 import CookieBanner from "@/modules/auth/components/CookieBanner";
 import { useConsentTracker } from "@/shared/hooks/useConsentTracker";
 import { FinanceDataTab, FinanceTemplatesTab } from "@/modules/finance/components/FinanceSettingsTab";

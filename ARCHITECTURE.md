@@ -1196,10 +1196,10 @@ Para otimizar o processamento inteligente da Inbox IA e automatizar a pré-ident
   - Exibe a barra de status simulada, relógio do sistema e um balão de notificação nativo contendo o aplicativo de origem (`package_name`), a tag descriptiva "Automated Mobile Capture" e a mensagem bruta capturada, facilitando a conferência pelo usuário durante a revisão.
   - Adicionado suporte a hidratação de formulário completo (conta, categoria e tipo de transação) e seletor ativo de envelopes/categorias para controle fino.
 
-##### 7. Rastreamento Dinâmico de Identidades de Bancos (`Account.domain`)
+##### 7. Rastreamento Dinâmico de Identidades de Bancos (`Account.bank_domain`)
 Para possibilitar a renderização dinâmica de ícones/logotipos de bancos e gateways de pagamento na interface do usuário através da API do Clearbit (sem necessidade de uploads de mídias manuais), o modelo `Account` foi estendido com o campo:
-- `domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")`
-- O valor é serializado e transmitido automaticamente pelo `AccountSerializer` (`fields = '__all__'`), permitindo que a camada do cliente recupere dinamicamente a imagem no formato `https://logo.clearbit.com/{account.domain}` para maior riqueza estética.
+- `bank_domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")`
+- A propriedade calculada `@property bank_logo_url` constrói o link `https://logo.clearbit.com/{bank_domain}`. O valor é serializado e transmitido automaticamente pelo `AccountSerializer` e `CreditCardSerializer`, permitindo que a camada do cliente recupere dinamicamente a logo com fallbacks locais de UI.
 
 ---
 
@@ -1391,10 +1391,10 @@ Para otimizar o processamento inteligente da Inbox IA e automatizar a pré-ident
   - Exibe a barra de status simulada, relógio do sistema e um balão de notificação nativo contendo o aplicativo de origem (`package_name`), a tag descriptiva "Automated Mobile Capture" e a mensagem bruta capturada, facilitando a conferência pelo usuário durante a revisão.
   - Adicionado suporte a hidratação de formulário completo (conta, categoria e tipo de transação) e seletor ativo de envelopes/categorias para controle fino.
 
-##### 7. Rastreamento Dinâmico de Identidades de Bancos (`Account.domain`)
+##### 7. Rastreamento Dinâmico de Identidades de Bancos (`Account.bank_domain`)
 Para possibilitar a renderização dinâmica de ícones/logotipos de bancos e gateways de pagamento na interface do usuário através da API do Clearbit (sem necessidade de uploads de mídias manuais), o modelo `Account` foi estendido com o campo:
-- `domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")`
-- O valor é serializado e transmitido automaticamente pelo `AccountSerializer` (`fields = '__all__'`), permitindo que a camada do cliente recupere dinamicamente a imagem no formato `https://logo.clearbit.com/{account.domain}` para maior riqueza estética.
+- `bank_domain = models.CharField(max_length=255, null=True, blank=True, help_text="e.g., nubank.com.br, cgd.pt")`
+- A propriedade calculada `@property bank_logo_url` constrói o link `https://logo.clearbit.com/{bank_domain}`. O valor é serializado e transmitido automaticamente pelo `AccountSerializer` e `CreditCardSerializer`, permitindo que a camada do cliente recupere dinamicamente a logo com fallbacks locais de UI.
 
 ---
 

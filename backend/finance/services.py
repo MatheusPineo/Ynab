@@ -489,11 +489,43 @@ def pay_bill(bill_id, payment_mode, payload_data=None, payment_account_id=None):
 
 class YNABBudgetService:
     @staticmethod
+    def convert_currency(amount, from_currency, to_currency):
+        """
+        Converte um montante entre duas moedas baseando-se nas taxas de câmbio fixadas.
+        """
+        from decimal import Decimal
+        if not from_currency:
+            from_currency = 'EUR'
+        if not to_currency:
+            to_currency = 'EUR'
+            
+        from_currency = from_currency.upper()
+        to_currency = to_currency.upper()
+        
+        if from_currency == to_currency:
+            return amount
+            
+        rates = {
+            'EUR': Decimal('1.0000'),
+            'BRL': Decimal('6.0000'),
+            'USD': Decimal('1.0800'),
+        }
+        
+        rate_from = rates.get(from_currency, Decimal('1.0000'))
+        rate_to = rates.get(to_currency, Decimal('1.0000'))
+        
+        # Converte para base (EUR) primeiro
+        in_eur = Decimal(str(amount)) / rate_from
+        # Converte de EUR para target
+        return in_eur * rate_to
+
+    @staticmethod
     def calculate_envelope_states(user, target_month, target_year):
         """
         Calcula retrospectivamente o estado dos envelopes de categoria e o pool de
         Ready to Assign (RTA) a partir de todas as transações e orçamentos registrados
         para o usuário, desde o primeiro mês ativo até o mês solicitado.
+        Normaliza os saldos convertendo transações de BRL/USD para EUR (Base Currency).
         """
         from .models import Category, MonthlyBudget, Transaction
         from collections import defaultdict
@@ -558,7 +590,7 @@ class YNABBudgetService:
             date__range=(start_date_seq, end_date_seq),
             is_income=True,
             category__isnull=True
-        ).exclude(account__account_type='investment').values('date', 'amount')
+        ).exclude(account__account_type='investment').values('date', 'amount', 'account__currency')
 
         all_budgets = MonthlyBudget.objects.filter(
             category__user=user,
@@ -571,12 +603,15 @@ class YNABBudgetService:
             date__range=(start_date_seq, end_date_seq),
             category__isnull=False,
             is_applied_to_balance=True
-        ).exclude(account__account_type='investment').values('date', 'category_id', 'is_income', 'amount', 'account__account_type')
+        ).exclude(account__account_type='investment').values('date', 'category_id', 'is_income', 'amount', 'account__account_type', 'account__currency')
 
         # Indexar em memória por (year, month) para O(1) lookups
         income_by_month = defaultdict(Decimal)
         for tx in all_income_txs:
-            income_by_month[(tx['date'].year, tx['date'].month)] += tx['amount']
+            amount = tx['amount']
+            currency = tx['account__currency'] or 'EUR'
+            converted_amount = YNABBudgetService.convert_currency(amount, currency, 'EUR')
+            income_by_month[(tx['date'].year, tx['date'].month)] += converted_amount
 
         budgets_by_month = defaultdict(dict)
         for b in all_budgets:
@@ -609,13 +644,15 @@ class YNABBudgetService:
 
             for tx in txs:
                 amount = tx['amount']
+                currency = tx['account__currency'] or 'EUR'
+                converted_amount = YNABBudgetService.convert_currency(amount, currency, 'EUR')
                 cat_id = tx['category_id']
                 if not tx['is_income']:
-                    activity_map[cat_id] -= amount
+                    activity_map[cat_id] -= converted_amount
                     if tx['account__account_type'] == 'credit_card':
-                        credit_spent_map[cat_id] += amount
+                        credit_spent_map[cat_id] += converted_amount
                 else:
-                    activity_map[cat_id] += amount
+                    activity_map[cat_id] += converted_amount
 
             # Recupera o estado do mês anterior para cálculo de Rollover
             prev_year = y if m > 1 else y - 1
@@ -668,18 +705,20 @@ class YNABBudgetService:
             is_applied_to_balance=True
         ).exclude(
             account__account_type='investment'
-        )
+        ).select_related('account')
         activity_target = defaultdict(Decimal)
         credit_spent_target = defaultdict(Decimal)
 
         for tx in txs_target:
             amount = tx.amount
+            currency = tx.account.currency or 'EUR'
+            converted_amount = YNABBudgetService.convert_currency(amount, currency, 'EUR')
             if not tx.is_income:
-                activity_target[tx.category_id] -= amount
+                activity_target[tx.category_id] -= converted_amount
                 if tx.account.account_type == 'credit_card':
-                    credit_spent_target[tx.category_id] += amount
+                    credit_spent_target[tx.category_id] += converted_amount
             else:
-                activity_target[tx.category_id] += amount
+                activity_target[tx.category_id] += converted_amount
 
         prev_year = target_year if target_month > 1 else target_year - 1
         prev_m = target_month - 1 if target_month > 1 else 12

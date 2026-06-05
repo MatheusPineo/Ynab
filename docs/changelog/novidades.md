@@ -1,5 +1,43 @@
 # Novidades e Atualizações
 
+## Integração de Logos Bancárias Clearbit Logo API (05/06/2026) 🏦✨
+Corrigimos e completamos a integração da Clearbit Logo API para exibição dinâmica de logotipos de instituições financeiras no Vault Finance OS:
+* **Entrada de Website/Domínio:** Adicionamos o campo "Website / Domínio do Banco" (ex: `itau.com.br`, `nubank.com.br`) nos formulários de criação e edição de contas normais, subcontas e cartões de crédito.
+* **Persistência de Campo e Serialização:** O backend Django agora armazena e expõe o campo `bank_domain` e gera a propriedade calculada `bank_logo_url` no endpoint de árvore de contas (`/api/accounts/tree/`) e de cartões de crédito.
+* **Correção de Sincronização:** Corrigimos um problema onde a edição do domínio no formulário exibia a mensagem de sucesso mas não persistia visualmente no painel de controle. Agora, o endpoint de árvore serializa adequadamente os campos `bank_domain` e `bank_logo_url` recursivamente para todas as subcontas filhas.
+* **Exibição nas Listas e Detalhes:** A interface renderiza de forma elegante a marca do banco no menu de contas, no cabeçalho das páginas de detalhes e no widget "Top Contas" do painel de controle.
+* **Fallbacks Inteligentes de UI:** Caso o domínio não esteja preenchido ou a imagem da API falhe no carregamento, o sistema reverte graciosamente para o ícone customizado da conta e, em última instância, para a sigla da moeda, garantindo estabilidade e visual refinado.
+
+## Classificação 50/30/20 na Interface e Widget de Análises (05/06/2026) 🏷️📊
+Integramos a nova propriedade de macroalocação diretamente no frontend do Vault Finance OS para tornar a regra 50/30/20 totalmente editável e visual:
+* **Seletor de Classificação no Formulário:** Ao editar qualquer categoria/envelope, você verá um novo campo de seleção para classificar a categoria entre *Necessidade (50%)*, *Desejo (30%)*, *Poupança (20%)* ou *Não Rastrear*.
+* **Badges Visuais Otimizados:** Envelopes classificados agora exibem um pequeno e discreto badge colorido ao lado de seu nome (`50%`, `30%` ou `20%`) diretamente na tabela do orçamento.
+* **Widget Analítico Reativo:** O painel de monitoramento da Regra 50/30/20 no rodapé foi totalmente refatorado para calcular dinamicamente os totais baseados nas suas tags personalizadas, divididos pela renda real mensal recebida.
+
+## Tags de Macroalocação (Regra 50/30/20) nas Categorias (05/06/2026) 🏷️📊
+Adicionamos uma nova camada analítica de tags no backend para a Regra 50/30/20 nas categorias do orçamento:
+* **Nova Propriedade `macro_allocation`:** Agora cada envelope de categoria pode ser explicitamente categorizado sob uma macro-alocação: *Necessidades (50%)*, *Desejos (30%)*, *Poupança/Investimentos (20%)* ou *Não Monitorado*.
+* **Exposição do Campo na API:** Os serializadores e o endpoint estruturado em árvore (`/api/finance/categories/tree/`) foram atualizados para expor essa classificação de forma dinâmica, permitindo relatórios e dashboards mais inteligentes no frontend.
+
+## Redesenho Minimalista e Foco no Orçamento Base-Zero (05/06/2026) 🎨💎
+Executamos uma limpeza radical na interface da página de Orçamento mensal para reduzir a sobrecarga cognitiva e manter o foco estrito na metodologia de Orçamento Base-Zero:
+* **Menu de Ações Consolidado:** Removemos todos os botões soltos de rebalanceamento do cabeçalho. As funções de *Capturar Receita*, *Financiar Metas*, *Cobrir Rombos*, *Recolher Sobras* e *Limpar Mês* agora residem juntas em um único menu dropdown discreto ("⋮") posicionado ao lado do seletor de meses.
+* **Métrica de RTA em Destaque:** O painel "Disponível para Alocar" (Ready to Assign) foi ampliado e centralizado, tornando-se o foco absoluto da tela com tipografia clean e legibilidade premium.
+* **Banner de Receitas Pendentes:** Em vez de listar todas as receitas abertas na tela inicial, criamos um banner elegante que avisa se você possui receitas aguardando distribuição e abre um Dialog Modal interativo para gerenciar esses lançamentos sem poluir o visual.
+* **Widget 50/30/20 Relocado:** O painel de monitoramento da Regra 50/30/20 foi movido para o rodapé da página para não conflitar com a listagem principal de envelopes.
+
+## Agregação Correta de Múltiplas Moedas no Orçamento (05/06/2026) 💱💵
+Corrigimos um bug contábil no cálculo do orçamento mensal. Anteriormente, se você possuía contas em moedas diferentes (como EUR e BRL), o sistema somava os valores de forma cega de 1 para 1 (ex: somando €1.000,00 e R$6.000,00 como 7.000). Agora, o motor de orçamentos no backend normaliza todas as receitas e despesas de BRL/USD para EUR (moeda base) de forma automática usando as taxas oficiais correspondentes (1 EUR = 6 BRL, 1 EUR = 1.08 USD) antes de gerar o saldo "Disponível para Alocar" (Ready to Assign) e o saldo disponível de cada envelope. Isso garante relatórios e planejamentos 100% precisos e livres de distorções cambiais.
+
+## Recuperação Automática após Atualizações (05/06/2026) 🔄✅
+Implementamos um mecanismo inteligente de **auto-recuperação** no Vault Finance OS. Agora, quando publicamos uma nova versão da plataforma enquanto você está usando o sistema, ao navegar para uma nova tela, a página se atualiza automaticamente e de forma transparente — sem exibir erros ou telas em branco. Você sempre verá a versão mais recente do sistema sem precisar recarregar manualmente o navegador.
+
+## Correção de Estabilidade na Página de Patrimônio (05/06/2026) 🐛✅
+Corrigimos um problema que impedia a página de **Patrimônio e Ativos** de carregar corretamente. Ao acessar a tela de ativos, o sistema exibia uma tela em branco ou um erro genérico. A falha foi identificada como um defeito interno de carregamento do módulo e já foi resolvida — a página de Patrimônio agora abre normalmente e exibe todos os seus dados e funcionalidades.
+
+## Correção de Estabilidade na Listagem de Transações (05/06/2026) 🐛✅
+Identificamos e corrigimos um erro raro que podia causar um travamento momentâneo na tela de transações ao trocar rapidamente entre filtros (como "Pendentes" e "Todas"). O problema ocorria quando a lista virtual tentava acessar itens ainda não carregados durante a transição. Agora a lista possui verificações preventivas e a navegação entre filtros é fluida e segura.
+
 ## Central de Alertas Globais e Ações Pendentes (05/06/2026) 🔔🛠️
 Implementamos um hub centralizado de notificações para ajudar você a gerenciar e resolver pendências operacionais no Vault Finance OS instantaneamente:
 * **Sino de Ações Pendentes:** O ícone de sino de notificação no cabeçalho global monitora continuamente o seu banco de dados e exibe um indicador de alerta dinâmico caso existam ações urgentes exigindo sua atenção.

@@ -216,3 +216,76 @@ class YNABBudgetEngineTests(TestCase):
         # RTA reduz em exatamente 20
         self.assertEqual(state_m2['ready_to_assign'], Decimal('880.00'))
         self.assertEqual(state_m2['envelope_states'][self.food_cat.id]['available'], Decimal('0.00'))
+
+    def test_multi_currency_budget_conversion(self):
+        """
+        Verifica se receitas e despesas em moedas diferentes (BRL) são corretamente
+        convertidas para a moeda base (EUR) no cálculo do RTA e estado de envelopes.
+        Taxa: 1 EUR = 6 BRL.
+        """
+        # Criar conta em BRL
+        brl_account = Account.objects.create(
+            user=self.user,
+            name='Conta BRL',
+            account_type='checking',
+            currency='BRL',
+            balance=Decimal('6000.00')
+        )
+        
+        # Receita em BRL de R$ 6.000,00 (deve converter para 1000.00 EUR)
+        Transaction.objects.create(
+            account=brl_account,
+            category=None,
+            amount=Decimal('6000.00'),
+            date=date(2026, 5, 1),
+            is_income=True,
+            is_applied_to_balance=True
+        )
+        
+        # Aloca 200.00 EUR em Alimentação
+        MonthlyBudget.objects.create(
+            category=self.food_cat,
+            month=5,
+            year=2026,
+            amount=Decimal('200.00')
+        )
+        
+        # Gasto em BRL de R$ 300,00 (deve converter para 50.00 EUR)
+        Transaction.objects.create(
+            account=brl_account,
+            category=self.food_cat,
+            amount=Decimal('300.00'),
+            date=date(2026, 5, 10),
+            is_income=False,
+            is_applied_to_balance=True
+        )
+        
+        state_m1 = YNABBudgetService.calculate_envelope_states(self.user, 5, 2026)
+        
+        # RTA = 1000.00 EUR (receita convertida) - 200.00 EUR (alocado) = 800.00 EUR
+        self.assertEqual(state_m1['ready_to_assign'], Decimal('800.00'))
+        
+        # Envelope Alimentação:
+        # Alocado = 200.00 EUR
+        # Gasto = 50.00 EUR (despesa convertida)
+        # Disponível = 150.00 EUR
+        food_state = state_m1['envelope_states'][self.food_cat.id]
+        self.assertEqual(food_state['assigned'], Decimal('200.00'))
+        self.assertEqual(food_state['spent'], Decimal('-50.00'))
+        self.assertEqual(food_state['available'], Decimal('150.00'))
+
+    def test_category_macro_allocation(self):
+        """
+        Verifica se a categoria criada com o novo campo macro_allocation
+        expõe o valor correto por meio do CategorySerializer.
+        """
+        from finance.serializers import CategorySerializer
+        new_cat = Category.objects.create(
+            user=self.user,
+            name='Mercado Avançado',
+            parent=self.parent_cat,
+            macro_allocation='NEEDS'
+        )
+        serializer = CategorySerializer(new_cat)
+        self.assertEqual(serializer.data['macro_allocation'], 'NEEDS')
+

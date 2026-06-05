@@ -139,3 +139,15 @@ export function getCurrencyLocale(currency: string): string {
 Se o usuário ativar o **Modo Privado** (`isPrivateMode=true`), as strings de saldo são interceptadas imediatamente pelo formatador e transformadas em máscara protegida, mantendo visível apenas o símbolo monetário adequado:
 * Ex: **R$ 12.540,00** vira **R$ ••••**
 * Ex: **$ 5,500.00** vira **$ ••••**
+
+---
+
+## 6. Normalização de Moedas no Orçamento Mensal (Envelopes YNAB)
+
+Para garantir que o orçamento base-zero seja consistente, o backend unifica os saldos no motor de envelopes em **EUR (Euro)** como Moeda Base. 
+
+### Pipeline de Processamento de Envelopes
+1. **Filtro de Transações:** O sistema obtém as receitas e despesas vinculadas a contas que possuem diferentes moedas configuradas (`EUR`, `BRL`, `USD`).
+2. **Conversão de Câmbio em Lote:** Antes de realizar as somas acumulativas do Ready to Assign (RTA) e da atividade de cada envelope no método `YNABBudgetService.calculate_envelope_states()`, o backend chama o utilitário interno `convert_currency` para converter os montantes das transações em BRL ou USD para EUR com base nas taxas estáticas equivalentes ao do frontend (1 EUR = 6.0 BRL, 1 EUR = 1.08 USD).
+3. **Cálculo Consolidado:** O RTA final gerado e enviado ao frontend no cabeçalho `X-Ready-To-Assign` é matematicamente correto e normalizado, evitando a distorção contábil de somar moedas de pesos distintos de 1 para 1.
+

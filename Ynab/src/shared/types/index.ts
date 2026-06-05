@@ -87,6 +87,8 @@ export interface AccountNode {
   available_balance?: number;
   pending_restitutions_total?: number;
   debtors_summary?: { debtor_name: string; amount: number }[];
+  bank_domain?: string;
+  bank_logo_url?: string;
 }
 
 /**
@@ -101,6 +103,7 @@ export interface CategoryNode {
   spent_amount: number;
   /** ID da categoria pai. Se null, define um Grupo de Categorias mestre */
   parent: string | null;
+  macro_allocation?: 'NEEDS' | 'WANTS' | 'SAVINGS' | 'NONE';
   /** Subcategorias ou envelopes filhos vinculados */
   children?: CategoryNode[];
 }

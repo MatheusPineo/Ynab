@@ -19,6 +19,7 @@
 - [v1.35.17] Componente Universal GlobalAccountSelector: A seleção hierárquica avançada com busca ("AccountCombobox") foi extraída para `src/shared/components/ui/global-account-selector.tsx` e agora é o padrão global absoluto na aplicação para todas as dropdowns de contas. Regra enforçada: Este componente SEMPRE deve ocupar `w-full` e `col-span-full` nos grids, jamais dividindo linha.
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no Cartão de Crédito agora aceita números dinâmicos e customizados de parcelamento (ex: 24x, 36x) via input numérico e a propriedade `total_amount` foi corrigida na requisição, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitações do select.
 - [v1.35.14] Gráficos Reais e Vazios Elegantes (Parte 2): Correção na lógica matemática de Patrimônio Líquido (`is_income` em passivos) e estabilização das dependências do `useEffect` em `Reports.tsx`. Integração completa do status YNAB via backend sem mock data.
+- [v1.35.14] GrÃ¡ficos Reais e Vazios Elegantes (Parte 2): Correção na lógica matemática de Patrimônio Líquido (`is_income` em passivos) e estabilização das dependências do `useEffect` em `Reports.tsx`. Integração completa do status YNAB via backend sem mock data.
 
 # REGRAS GLOBAIS DE ENGENHARIA (NUNCA IGNORE)
 1. **Idioma:** Sempre me responda estritamente em Português do Brasil (pt-BR).
@@ -26,30 +27,36 @@
 3. **Deploy Contínuo:** Sempre faça o envio para o servidor de produção pelo terminal utilizando o comando `vercel --prod --yes`.
 4. **Governança de Documentação:** Sempre que alterar qualquer regra de negócio, identifique os manuais impactados (`README.md`, `ARCHITECTURE.md`, etc.) e atualize-os cirurgicamente, registrando o resumo no `CHANGELOG.md`.
 5. **Governança da Memória do Agente:** Sempre que o usuário pedir para atualizar a memória do Gemini/Antigravity, atualize o arquivo `.geminirules` do projeto ativo. Além disso, sempre que você atualizar os manuais (`README.md`, `ARCHITECTURE.md`, `CHANGELOG.md`), você DEVE obrigatoriamente sincronizar e atualizar o bloco de "MEMÓRIA DE DESENVOLVIMENTO E STATUS" dentro do arquivo `.geminirules` para refletir o novo estado da aplicação.
+6. **Protocolo Permanente de Alertas Globais:** De forma proativa e obrigatória, sempre que você for instruído a implementar uma nova funcionalidade que gere tarefas pendentes ou demande atenção/ação imediata do usuário, você DEVE escrever a lógica para plugar essa nova funcionalidade ao sistema de Notificações Globais de Ações Pendentes (`Topbar.tsx` / `Bell`).
 
 ## MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-05 09:40:00): Central de Alertas Globais e Ações Pendentes Ativa (v1.51.00).
-- Frontend: Implementado o Dropdown de Notificações de Ações Pendentes no cabeçalho global (`Topbar.tsx`) buscando dados da Inbox e transações com `status=pending`.
-- Frontend: Lógica de roteamento reativo ao clicar nos itens de pendência para navegar diretamente para as respectivas telas de resolução (/inbox e /transactions).
-- Testes: Vitest suite (50/50) e Pytest (105/105) 100% verdes. Build local e em nuvem compilados com sucesso.
+(Atualizado em 2026-06-05 15:15:00): Integrada a exibição dinâmica de logos via Clearbit Logo API (v1.56.00).
+- Backend: Exposto `bank_domain` e a propriedade `@property bank_logo_url` no modelo `Account` e nos serializers. Corrigido o método `tree` no `AccountViewSet` para serializar e retornar recursivamente os novos campos.
+- Frontend: Adicionado o campo "Website / Domínio do Banco" nos formulários de criação (raiz e subcontas) e edição.
+- Frontend: Implementada a renderização de logotipos via Clearbit Logo API no menu de contas (`AccountAccordion`), detalhes de conta e widget "Top Contas", com fallbacks inteligentes.
+- Testes: Vitest (50/50) e Pytest (107/107) passando. Build TypeScript/Vite 100% verde.
 - Deploy: Produção atualizada com sucesso via Vercel (https://ynab-five.vercel.app).
-- Documentação: README.md, CHANGELOG.md, docs/changelog/novidades.md, docs/faq/perguntas.md, docs/manuais/relatorios_analise.md e `.geminirules` sincronizados.
+- Documentação: CHANGELOG.md, docs/changelog/novidades.md, docs/manuais/cartoes_credito.md, README.md, ARCHITECTURE.md e `.geminirules` sincronizados.
 
-### Status Atual (Versão 1.51.00)
-- **Marco:** Central de Alertas Globais e Ações Pendentes Ativa (v1.51.00).
+### Status Atual (Versão 1.56.00)
+- **Marco:** Integração Dinâmica da Clearbit Logo API (v1.56.00).
 - **Estado:** 100% estável e implantado em produção no Vercel (https://ynab-five.vercel.app).
-- **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, módulo de Ativos & Runway, simuladores dinâmicos (FIRE/Milhão), frontend reativo virtualizado, ordenação pura de transações, modelos de distribuição por categoria/conta, redirecionamento via `useSearchParams`, upload/seleção de ícones de conta e dropdown de ações pendentes global na Topbar.
-- **Testes:** Suíte Pytest (105/105) e Vitest (50/50) passando. Build TypeScript/Vite 100% verde.
+- **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, módulo de Ativos & Runway, simuladores dinâmicos (FIRE/Milhão), frontend reativo virtualizado com guard clauses defensivas no react-window, auto-recuperação de chunks obsoletos via `lazyWithRetry`, ordenação pura de transações, modelos de distribuição por categoria/conta, redirecionamento via `useSearchParams`, upload/seleção de ícones de conta, dropdown de ações pendentes global na Topbar, conversão/normalização cambial retrospectiva no motor YNAB, interface minimalista decluttered com ações consolidadas e métrica RTA centralizada na página Budget, classificação de macroalocação 50/30/20 em modal e seletor recursivo com badges visuais discretos integrados, integração dinâmica de logos de bancos oficiais com Clearbit Logo API, serialização recursiva em árvore no endpoint do backend e fallbacks robustos.
+- **Testes:** Suíte Pytest (107/107) e Vitest (50/50) passando. Build TypeScript/Vite 100% verde.
 
 ### Histórico de Sprints Recentes
+- [v1.56.00] Integração Clearbit Logo API: Exposição de `bank_domain` e `bank_logo_url` no backend Django, incluindo correção de serialização recursiva no endpoint de árvore (`tree`), criação do campo input website/domínio no frontend (criação e edição de contas) e renderização dinâmica das logos no menu de contas, cabeçalhos de detalhes e widget das Top Contas com fallbacks graciosos para ícones ou símbolos de moedas.
+- [v1.55.00] Classificação 50/30/20 na UI: Adicionado seletor dropdown no form de edição, seletor de store Zustand recursivo para o widget de análises e badges visuais nas linhas da tabela de orçamento.
+- [v1.54.00] Camada Analítica de Macroalocação: Adicionado o campo `macro_allocation` no modelo `Category` no Django, geradas e aplicadas as migrações, e atualizados os serializers e a view de árvore para expor a classificação 50/30/20.
+- [v1.53.00] Redesenho de Orçamento: Ações consolidadas no dropdown "⋮", receitas pendentes movidas para modal via banner, RTA centralizado e ampliado, e widget 50/30/20 relocado ao rodapé de `Budget.tsx`.
+- [v1.52.00] Multi-moedas no Orçamento: Agregação cambial retrospectiva no `YNABBudgetService.calculate_envelope_states` convertendo transações BRL/USD para EUR (Base) antes de computar RTA e envelopes.
+- [v1.51.03] Auto-recuperação de chunks: `lazyWithRetry` em `App.tsx` detecta falhas de importação dinâmica pós-deploy e força reload automático transparente.
+- [v1.51.02] Bugfix React Error #306: `export default` faltante em `Assets.tsx` causando falha do `React.lazy()` na rota `/assets`.
+- [v1.51.01] Bugfix PostHog TypeError: Guard clauses no `react-window` do `Transactions.tsx` para prevenir crash durante transições de filtro.
 - [v1.51.00] Central de Alertas Globais: Sino de Notificação na Topbar consolidando comprovantes pendentes do Inbox Inteligente e transações agendadas do backend com roteamento direto para resolução.
 - [v1.50.00] Modelos de Distribuição & Ícones de Conta: Correção de templates para envelopes no backend e frontend, atalho de gerenciamento com aba dinâmica de configurações, e seleção de logomarca de banco via `IconPicker`.
 - [v1.49.00] Refatoração de UI e Ordenação de Transações: remoção do campo Categoria no lançamento, remoção do botão redundante na subconta e ordenação bidirecional por Data, Descrição e Status.
-
-
 - [v1.48.00] Módulo de Patrimônio Líquido & Ativos: modelo de banco de dados para ativos patrimoniais, vinculação a dívidas e cálculo de termômetro de liquidez (financial runway).
-- [v1.47.00] Otimização de Performance - Fase 3: Refatoração de services backend (batch queries, prefetch_related) e code-splitting completo do frontend com React.lazy/Suspense.
-- [v1.46.00] Otimização de Performance do Frontend: Paralelização, memorização e virtualização de componentes para reduzir latência de renderização.
 - [v1.44.15] Unificação de API e Resiliência: Substituição de fetch bruto por `authenticatedFetch` no `App.tsx` e `Settings.tsx`, e correção da porta padrão local para `8000` em `api.ts`.
 - [v1.44.14] Correção de Loop React 185 no Orçamento: Adicionado preventDefault no onSelect de DropdownMenuItem abrindo Dialog (resolvendo FocusTrap Radix) e uso de useShallow do Zustand na página Budget.tsx.
 - [v1.44.13] Otimização de Source Maps: Configuração de `keepNames: true` no `vite.config.ts` e regras de bypass no `vercel.json` para garantir acesso e desofuscação de alta fidelidade no PostHog.

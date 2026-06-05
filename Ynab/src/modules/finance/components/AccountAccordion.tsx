@@ -49,6 +49,7 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
   const currency = nodeCurrency(node, parentCurrency);
   const hasChildren = !!node.children?.length;
   const navigate = useNavigate();
+  const [logoError, setLogoError] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const { updateNode, tree } = useAccountStore();
@@ -226,7 +227,22 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         )}
 
         {/* Icon or Currency badge */}
-        {(node.icon_url && !imageError) ? (
+        {node.bank_logo_url && !logoError ? (
+          <div className={cn(
+            "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-background/50 flex items-center justify-center p-0.5",
+            isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
+          )}>
+            <img 
+              src={node.bank_logo_url} 
+              alt="" 
+              className="h-full w-full object-contain" 
+              onError={() => {
+                console.warn("❌ Erro ao carregar logo do banco, aplicando fallback:", node.bank_logo_url);
+                setLogoError(true);
+              }}
+            />
+          </div>
+        ) : (node.icon_url && !imageError) ? (
           <div className={cn(
             "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-background/50 flex items-center justify-center",
             isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"

@@ -6,6 +6,7 @@ class AccountSerializer(serializers.ModelSerializer):
     actual_balance = serializers.ReadOnlyField(source='balance')
     pending_restitutions_total = serializers.SerializerMethodField()
     debtors_summary = serializers.SerializerMethodField()
+    bank_logo_url = serializers.ReadOnlyField()
 
     class Meta:
         model = Account
@@ -102,7 +103,7 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = ['id', 'user', 'name', 'parent', 'target_value', 'target_type', 'ceiling_value', 'assigned_amount', 'spent_amount', 'macro_rule']
+        fields = ['id', 'user', 'name', 'parent', 'target_value', 'target_type', 'ceiling_value', 'assigned_amount', 'spent_amount', 'macro_rule', 'macro_allocation']
         extra_kwargs = {
             'parent': {'required': False, 'allow_null': True},
             'user': {'read_only': True},  # Preenchido automaticamente pela view
@@ -297,16 +298,24 @@ class CreditCardSerializer(serializers.ModelSerializer):
     account_id = serializers.IntegerField(source='account.id', read_only=True)
     available_limit = serializers.SerializerMethodField()
     account = serializers.PrimaryKeyRelatedField(queryset=Account.objects.all(), required=False, allow_null=True)
+    bank_domain = serializers.SerializerMethodField()
+    bank_logo_url = serializers.SerializerMethodField()
     
     class Meta:
         model = CreditCard
-        fields = ['id', 'name', 'closing_day', 'due_day', 'credit_limit', 'available_limit', 'currency', 'account_id', 'account', 'brand', 'country_of_issue', 'settlement_mode', 'revolving_percentage']
+        fields = ['id', 'name', 'closing_day', 'due_day', 'credit_limit', 'available_limit', 'currency', 'account_id', 'account', 'brand', 'country_of_issue', 'settlement_mode', 'revolving_percentage', 'bank_domain', 'bank_logo_url']
 
     def get_name(self, obj):
         return obj.account.name if obj.account else "Cartão"
 
     def get_currency(self, obj):
         return obj.account.currency if obj.account else "BRL"
+
+    def get_bank_domain(self, obj):
+        return obj.account.bank_domain if obj.account else None
+
+    def get_bank_logo_url(self, obj):
+        return obj.account.bank_logo_url if obj.account else None
 
     def get_available_limit(self, obj):
         from decimal import Decimal

@@ -47,6 +47,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [editedIcon, setEditedIcon] = useState(account.icon_url);
   const [editedCeiling, setEditedCeiling] = useState<number | null>(account.ceiling ?? null);
   const [editedExcludeFromTotals, setEditedExcludeFromTotals] = useState(!!account.exclude_from_totals);
+  const [editedBankDomain, setEditedBankDomain] = useState(account.bank_domain || "");
   const [isSaving, setIsSaving] = useState(false);
   const [isCropping, setIsCropping] = useState(false);
   
@@ -93,6 +94,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
       setEditedIcon(account.icon_url);
       setEditedCeiling(account.ceiling ?? null);
       setEditedExcludeFromTotals(!!account.exclude_from_totals);
+      setEditedBankDomain(account.bank_domain || "");
     }
   }, [isEditDialogOpen, account]);
 
@@ -106,7 +108,8 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
         balance: editedBalance,
         icon_url: editedIcon,
         ceiling: editedCeiling,
-        exclude_from_totals: editedExcludeFromTotals
+        exclude_from_totals: editedExcludeFromTotals,
+        bank_domain: editedBankDomain
       });
       
       setIsEditDialogOpen(false);
@@ -210,6 +213,16 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                 value={editedName}
                 onChange={(e) => setEditedName(e.target.value)}
                 required
+                className="bg-background/50"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="bank_domain">Website / Domínio do Banco</Label>
+              <Input
+                id="bank_domain"
+                value={editedBankDomain}
+                onChange={(e) => setEditedBankDomain(e.target.value)}
+                placeholder="Ex: nubank.com.br"
                 className="bg-background/50"
               />
             </div>
