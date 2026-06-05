@@ -6,7 +6,7 @@ import { authenticatedFetch } from "@/shared/lib/api";
 import { formatMoney, CURRENCY_SYMBOL } from "@/shared/lib/currency-utils";
 import { TableSkeleton } from "@/shared/components/dashboard/TableSkeleton";
 import { EmptyState } from "@/shared/components/dashboard/EmptyState";
-import { Receipt, ArrowLeft, TrendingUp, TrendingDown, Wallet, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, Target } from "lucide-react";
+import { Receipt, ArrowLeft, TrendingUp, TrendingDown, Wallet, CheckCircle2, Clock, MoreHorizontal, Edit2, Trash2, Target, Landmark } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -54,6 +54,11 @@ const AccountDetails = () => {
   const [accountsLoaded, setAccountsLoaded] = useState(false);
   const [logoError, setLogoError] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [lastLogoUrl, setLastLogoUrl] = useState(account?.bank_logo_url);
+  if (account?.bank_logo_url !== lastLogoUrl) {
+    setLastLogoUrl(account?.bank_logo_url);
+    setLogoError(false);
+  }
 
   const { transactions, isLoading, deleteTransaction, updateTransaction } = useTransactions(selectedMonth + 1, selectedYear);
 
@@ -249,14 +254,18 @@ const AccountDetails = () => {
           </Button>
           <div className="flex flex-col min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              {account.bank_logo_url && !logoError ? (
+              {account.bank_logo_url ? (
                 <div className="h-6 w-6 rounded-full overflow-hidden border border-border/40 bg-background/50 flex items-center justify-center p-0.5 shadow-sm shrink-0">
-                  <img 
-                    src={account.bank_logo_url} 
-                    alt="" 
-                    className="h-full w-full object-contain" 
-                    onError={() => setLogoError(true)} 
-                  />
+                  {!logoError ? (
+                    <img 
+                      src={account.bank_logo_url} 
+                      alt="" 
+                      className="h-full w-full object-contain" 
+                      onError={() => setLogoError(true)} 
+                    />
+                  ) : (
+                    <Landmark className="h-3.5 w-3.5 text-muted-foreground/80" />
+                  )}
                 </div>
               ) : account.icon_url && !imageError ? (
                 <img 

@@ -15,6 +15,7 @@ import {
   Target,
   Upload,
   Check,
+  Landmark,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
@@ -300,13 +301,25 @@ const WeeklyFlow = () => {
 const TopAccountRow = ({ a, baseCurrency, max }: { a: any, baseCurrency: string, max: number }) => {
   const [logoError, setLogoError] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  // Reset logoError if bank_logo_url changes
+  const [lastLogoUrl, setLastLogoUrl] = useState(a.bank_logo_url);
+  if (a.bank_logo_url !== lastLogoUrl) {
+    setLastLogoUrl(a.bank_logo_url);
+    setLogoError(false);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
         <span className="text-xs text-foreground truncate max-w-[140px] flex items-center gap-1.5">
-          {a.bank_logo_url && !logoError ? (
+          {a.bank_logo_url ? (
             <span className="inline-flex h-4.5 w-4.5 items-center justify-center rounded-full bg-background/50 border border-border/40 p-0.5 overflow-hidden shrink-0">
-              <img src={a.bank_logo_url} alt="" className="h-full w-full object-contain" onError={() => setLogoError(true)} />
+              {!logoError ? (
+                <img src={a.bank_logo_url} alt="" className="h-full w-full object-contain" onError={() => setLogoError(true)} />
+              ) : (
+                <Landmark className="h-2.5 w-2.5 text-muted-foreground/80" />
+              )}
             </span>
           ) : a.icon_url && !imageError ? (
             <img src={a.icon_url} alt="" className="h-4.5 w-4.5 rounded-full object-cover shrink-0" onError={() => setImageError(true)} />

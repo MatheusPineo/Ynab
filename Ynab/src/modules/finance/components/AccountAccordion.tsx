@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, Plus, GripVertical, Target, Move, ArrowDownAZ, EyeOff } from "lucide-react";
+import { ChevronRight, Plus, GripVertical, Target, Move, ArrowDownAZ, EyeOff, Landmark } from "lucide-react";
 import { toast } from "sonner";
 import {
   type AccountNode,
@@ -51,6 +51,13 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
   const navigate = useNavigate();
   const [logoError, setLogoError] = useState(false);
   const [imageError, setImageError] = useState(false);
+
+  // Reset logoError if bank_logo_url changes
+  const [lastLogoUrl, setLastLogoUrl] = useState(node.bank_logo_url);
+  if (node.bank_logo_url !== lastLogoUrl) {
+    setLastLogoUrl(node.bank_logo_url);
+    setLogoError(false);
+  }
 
   const { updateNode, tree } = useAccountStore();
 
@@ -227,20 +234,24 @@ const AccountRow = ({ node, depth, parentCurrency, sortByAlphabet }: AccountRowP
         )}
 
         {/* Icon or Currency badge */}
-        {node.bank_logo_url && !logoError ? (
+        {node.bank_logo_url ? (
           <div className={cn(
             "shrink-0 h-8 w-8 rounded-full overflow-hidden border shadow-sm bg-background/50 flex items-center justify-center p-0.5",
             isExcluded ? "border-purple-500/40 shadow-[0_0_8px_rgba(168,85,247,0.2)]" : "border-border/40"
           )}>
-            <img 
-              src={node.bank_logo_url} 
-              alt="" 
-              className="h-full w-full object-contain" 
-              onError={() => {
-                console.warn("❌ Erro ao carregar logo do banco, aplicando fallback:", node.bank_logo_url);
-                setLogoError(true);
-              }}
-            />
+            {!logoError ? (
+              <img 
+                src={node.bank_logo_url} 
+                alt="" 
+                className="h-full w-full object-contain" 
+                onError={() => {
+                  console.warn("❌ Erro ao carregar logo do banco, aplicando fallback de Landmark:", node.bank_logo_url);
+                  setLogoError(true);
+                }}
+              />
+            ) : (
+              <Landmark className="h-4 w-4 text-muted-foreground/80" />
+            )}
           </div>
         ) : (node.icon_url && !imageError) ? (
           <div className={cn(

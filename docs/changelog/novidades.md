@@ -3,10 +3,12 @@
 ## Integração de Logos Bancárias Clearbit Logo API (05/06/2026) 🏦✨
 Corrigimos e completamos a integração da Clearbit Logo API para exibição dinâmica de logotipos de instituições financeiras no Vault Finance OS:
 * **Entrada de Website/Domínio:** Adicionamos o campo "Website / Domínio do Banco" (ex: `itau.com.br`, `nubank.com.br`) nos formulários de criação e edição de contas normais, subcontas e cartões de crédito.
+* **Sanitização de URLs Sujas:** Adicionamos higienização automática no backend. Se você digitar uma URL completa (ex: `https://www.nubank.com.br/`), o sistema extrairá estritamente o domínio base (`nubank.com.br`), garantindo consultas corretas à Clearbit.
 * **Persistência de Campo e Serialização:** O backend Django agora armazena e expõe o campo `bank_domain` e gera a propriedade calculada `bank_logo_url` no endpoint de árvore de contas (`/api/accounts/tree/`) e de cartões de crédito.
 * **Correção de Sincronização:** Corrigimos um problema onde a edição do domínio no formulário exibia a mensagem de sucesso mas não persistia visualmente no painel de controle. Agora, o endpoint de árvore serializa adequadamente os campos `bank_domain` e `bank_logo_url` recursivamente para todas as subcontas filhas.
+* **Reatividade Instantânea no DOM:** Corrigimos o estado de erro do React para resetar sempre que a URL do banco é alterada, forçando a pintura imediata da imagem no DOM assim que o formulário é salvo (sem necessidade de atualizar a página).
 * **Exibição nas Listas e Detalhes:** A interface renderiza de forma elegante a marca do banco no menu de contas, no cabeçalho das páginas de detalhes e no widget "Top Contas" do painel de controle.
-* **Fallbacks Inteligentes de UI:** Caso o domínio não esteja preenchido ou a imagem da API falhe no carregamento, o sistema reverte graciosamente para o ícone customizado da conta e, em última instância, para a sigla da moeda, garantindo estabilidade e visual refinado.
+* **Fallbacks Elegantes com Lucide:** Caso o domínio não esteja preenchido ou a API da Clearbit não localize a marca do banco (erro 404), a interface exibe automaticamente um ícone genérico de banco (`Landmark`), mantendo o design limpo e consistente. Caso ocorram erros em outros arquivos de mídia, revertemos para o ícone customizado da conta e, em última instância, para a sigla da moeda.
 
 ## Classificação 50/30/20 na Interface e Widget de Análises (05/06/2026) 🏷️📊
 Integramos a nova propriedade de macroalocação diretamente no frontend do Vault Finance OS para tornar a regra 50/30/20 totalmente editável e visual:

@@ -59,6 +59,17 @@ class Account(models.Model):
         return not self.exclude_from_totals
 
     def save(self, *args, **kwargs):
+        if self.bank_domain:
+            domain = self.bank_domain.strip().lower()
+            if domain.startswith("http://"):
+                domain = domain[len("http://"):]
+            elif domain.startswith("https://"):
+                domain = domain[len("https://"):]
+            if domain.startswith("www."):
+                domain = domain[len("www."):]
+            domain = domain.split("/")[0]
+            self.bank_domain = domain
+
         is_new = self.pk is None
         super().save(*args, **kwargs)
         

@@ -9,6 +9,9 @@
 
 ### Fixed
 - Backend: Corrigido o método `tree` no `AccountViewSet` (`views.py`) para serializar e retornar recursivamente os campos `bank_domain` e `bank_logo_url`. Isso garante que as logos de bancos persistam no estado global do frontend após recarregamentos ou mutações das contas.
+- Backend: Sanitização do campo `bank_domain` no método `save` do modelo `Account` para remover protocolos (`http://`, `https://`), prefixos (`www.`) e caminhos extras, mantendo estritamente o domínio base.
+- Frontend: Implementado reset do estado de erro da logo (`logoError`) ao alterar a URL no menu de contas (`AccountAccordion.tsx`), página de detalhes (`AccountDetails.tsx`) e no dashboard (`DashboardWidgets.tsx`), permitindo re-renderização reativa e imediata no DOM.
+- Frontend: Adicionado ícone de fallback esteticamente elegante (`Landmark` de `lucide-react`) caso a Clearbit Logo API retorne erro ao carregar a imagem do banco.
 
 ## [1.55.00] - 2026-06-05
 
