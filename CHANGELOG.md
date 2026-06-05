@@ -1,3 +1,8 @@
+## [1.62.00] - 2026-06-05
+
+### Added
+- Backend: Criação do Django Management Command `fix_currency_mess` para roteamento cirúrgico de categorias Nubank -> "Sub-contas (BRL)" e categorias Novo Banco -> "Sub-contas (EUR)" de forma isolada, além de restaurar valores matemáticos em BRL multiplicando-os por `6.000857` em lote.
+
 ## [1.61.00] - 2026-06-05
 
 ### Added

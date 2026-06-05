@@ -17,7 +17,7 @@ import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark } from "lucide-react";
+import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -760,6 +760,31 @@ const Budget = () => {
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem 
+                  onSelect={async () => {
+                    if (window.confirm("Deseja realmente forçar a restauração retrospectiva dos valores das categorias e orçamentos do Nubank em BRL?")) {
+                      try {
+                        const response = await authenticatedFetch("/categories/restore_brl/", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" }
+                        });
+                        if (!response.ok) throw new Error("Erro ao restaurar BRL");
+                        const data = await response.json();
+                        toast.success(`Sucesso! ${data.updated_categories} categorias e ${data.updated_budgets} orçamentos restaurados.`);
+                        await fetchCategoryGroups();
+                      } catch (error: any) {
+                        toast.error(error.message || "Falha na chamada de restauração.");
+                      }
+                    }
+                  }} 
+                  className="cursor-pointer gap-2 text-xs font-medium text-red-400 focus:text-red-400"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  <span>Restaurar Valores BRL</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

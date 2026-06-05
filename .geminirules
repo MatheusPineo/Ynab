@@ -20,21 +20,18 @@
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no CartÃ£o de CrÃ©dito agora aceita nÃºmeros dinÃ¢micos e customizados de parcelamento (ex: 24x, 36x) via input numÃ©rico e a propriedade `total_amount` foi corrigida na requisiÃ§Ã£o, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitaÃ§Ãµes do select.
 - [v1.35.14] GrÃ¡ficos Reais e Vazios Elegantes (Parte 2): CorreÃ§Ã£o na lÃ³gica matemÃ¡tica de PatrimÃ´nio LÃ­quido (`is_income` em passivos) e estabilizaÃ§Ã£o das dependÃªncias do `useEffect` em `Reports.tsx`. IntegraÃ§Ã£o completa do status YNAB via backend sem mock data.
 - [v1.35.14] GrÃÂ¡ficos Reais e Vazios Elegantes (Parte 2): CorreÃ§Ã£o na lÃ³gica matemÃ¡tica de PatrimÃ´nio LÃ­quido (`is_income` em passivos) e estabilizaÃ§Ã£o das dependÃªncias do `useEffect` em `Reports.tsx`. IntegraÃ§Ã£o completa do status YNAB via backend sem mock data.
-- [v1.35.31] UI de Faturas e Budget Bars: Refatoração completa da tela de faturas do cartão de crédito. Agora é uma view separada e unificada que abandonou os acordeões, usando cards dedicados (Total, Pago, Pendente). As barras de budget (AccountAccordion) foram afinadas para 6px, e as porcentagens e "Saldo Livre" agora flutuam centralizadas acima da linha, criando um visual elegante e contínuo.
-- [v1.35.24 ] Enxugamento da Interface: Remoção da aba de Insights e do campo de categoria (YNAB) da tela de homologação do Inbox Inteligente.
-- [v1.35.23] Estabilização de UX/UI: Correção de crash de referência (CurrencyInput) no Inbox.ts e aprimoramento da hierarquia visual do grid de subcontas (micro-labels em text-gray-500 e barras overfunded em gradiente dinâmico tailwind).
-
-# MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-05 20:30:00): Desbloqueio de Serializers e Endpoint de Restauração de Valores BRL (v1.61.00).
-- Backend: Garantida a exposição e escrita do campo `currency` nos serializers (`CategorySerializer`) e na serialização recursiva em árvore no endpoint `CategoryViewSet.tree`.
-- Backend: Implementação do endpoint de emergência `POST /api/finance/categories/restore_brl/` no `CategoryViewSet` para forçar a identificação e restauração dos envelopes Nubank (muda currency para BRL, multiplica valores financeiros por `6.000857` e atualiza MonthlyBudgets).
+- [v1.35.31] UI de Faturas e Budget Bars: Refatoração completa da tela de faturas do cartão de crédito. Agora é uma view separada e unificada que abandonou os acordeões, usando cards dedicados (Total, Pago, Pendente). As barras de budget (AccountAccordion) foram afinadas para 6px, e as porcentagens e "Saldo Livre" agor# MEMÓRIA DE DESENVOLVIMENTO E STATUS
+(Atualizado em 2026-06-05 20:45:00): Comando de Restauração Definitiva e Separação de Moedas (v1.62.00).
+- Backend: Criação do Django Management Command `fix_currency_mess` em `finance/management/commands/fix_currency_mess.py`.
+- Backend: O comando divide cirurgicamente categorias Nubank para "Sub-contas (BRL)" (muda para BRL e reverte a conversão dividindo por ~6.000857) e categorias Novo Banco para "Sub-contas (EUR)" (muda para EUR).
 - Testes: TypeScript (`tsc --noEmit`) e pytest (107/107 passed) compilando e executando 100% verde.
 - Deploy: Deploy contínuo ativado e atualizado na Vercel.
 
-### Status Atual (Versão 1.61.00)
-- **Marco:** Desbloqueio de Serializer e Endpoint de Restauração BRL (v1.61.00).
-- **Estado:** Backend atualizado, endpoint de restauração implementado, testes locais verdes e deploy executado na Vercel.
+### Status Atual (Versão 1.62.00)
+- **Marco:** Comando de Restauração Definitiva e Roteamento de Moedas (v1.62.00).
+- **Estado:** Backend atualizado com o novo comando pronto para execução manual no terminal, testes locais verdes e deploy executado na Vercel.
 - **Arquitetura:** Observabilidade PostHog, rede unificada com `authenticatedFetch`, backend indexado com DRF sem N+1, módulo de Ativos & Runway, simuladores dinâmicos (FIRE/Milhão), frontend reativo virtualizado com guard clauses defensivas no react-window, auto-recuperação de chunks obsoletos via `lazyWithRetry`, ordenação pura de transações, modelos de distribuição por categoria/conta, redirecionamento via `useSearchParams`, upload/seleção de ícones de conta, dropdown de ações pendentes global na Topbar, conversão/normalização cambial retrospectiva no motor YNAB, interface de orçamento minimalista decluttered com ações de orçamento por moeda, pronto para assign (RTA) individual por quadro de moeda, criação de grupos locais por board de moeda e capacidade de mover envelopes e grupos de categorias entre as moedas BRL e EUR.
+- **Testes:** Pytest (107/107 passed) e TypeScript (`tsc --noEmit` compilado 100% verde).SearchParams`, upload/seleção de ícones de conta, dropdown de ações pendentes global na Topbar, conversão/normalização cambial retrospectiva no motor YNAB, interface de orçamento minimalista decluttered com ações de orçamento por moeda, pronto para assign (RTA) individual por quadro de moeda, criação de grupos locais por board de moeda e capacidade de mover envelopes e grupos de categorias entre as moedas BRL e EUR.
 - **Testes:** Pytest (107/107 passed) e TypeScript (`tsc --noEmit` compilado 100% verde).
 
 - [v1.55.00] ClassificaÃ§Ã£o 50/30/20 na UI: Adicionado seletor dropdown no form de ediÃ§Ã£o, seletor de store Zustand recursivo para o widget de anÃ¡lises e badges visuais nas linhas da tabela de orÃ§amento.
