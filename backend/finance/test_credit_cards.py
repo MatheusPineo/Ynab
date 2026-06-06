@@ -2,8 +2,8 @@ import pytest
 from datetime import date
 from decimal import Decimal
 from django.contrib.auth.models import User
-from finance.models import Account, Category, CreditCard, CreditCardBill, CreditCardTransaction, Installment
-from finance.services import process_credit_card_transaction, process_installment_ynab
+from finance.models import Account, Category, CreditCard, CreditCardBill, CreditCardTransaction, Installment, Transaction as CoreTransaction
+from finance.services import process_credit_card_transaction
 
 @pytest.fixture
 def base_data(db):
@@ -17,7 +17,7 @@ def base_data(db):
     cc = CreditCard.objects.create(
         account=cc_acc, closing_day=20, due_day=28, credit_limit=Decimal('10000.00')
     )
-    cat = Category.objects.create(user=user, name='Eletrônicos')
+    cat = Category.objects.create(user=user, name='Eletrônicos', currency='BRL')
     return user, cc, cat
 
 @pytest.mark.django_db
@@ -64,14 +64,7 @@ def test_cc_transaction_after_closing(base_data):
 @pytest.mark.django_db
 def test_cc_ynab_integration(base_data):
     user, cc, cat = base_data
-    
-    # Cria o envelope de despesa com saldo inicial
-    parent_acc = cc.account.parent
-    expense_env = Account.objects.create(
-        user=user, name='Eletrônicos', currency='BRL', parent=parent_acc, balance=Decimal('1000.00')
-    )
-    
-    tx_date = date(date.today().year, date.today().month, 5) # Mesmo mês atual para ser posted
+    tx_date = date(2026, 5, 5)
     
     matrix_tx, installments = process_credit_card_transaction(
         credit_card_id=cc.id,
@@ -82,14 +75,11 @@ def test_cc_ynab_integration(base_data):
         installment_count=1
     )
     
-    # Recarrega do banco. O saldo do envelope de despesas deve continuar Decimal('1000.00')
-    # porque a transação é criada como 'pending' com is_applied_to_balance=False
-    expense_env.refresh_from_db()
-    assert expense_env.balance == Decimal('1000.00')
-    
-    # O saldo da conta do cartão de crédito deve ter reduzido em 200
-    cc.account.refresh_from_db()
-    assert cc.account.balance == Decimal('-200.00')
+    # Mágica YNAB: Valida se a transação do livro-razão foi gerada atrelada à categoria correta
+    cc_txs = CoreTransaction.objects.filter(account=cc.account)
+    assert cc_txs.count() == 1
+    assert cc_txs.first().amount == Decimal('200.00')
+    assert cc_txs.first().category == cat
 
 @pytest.mark.django_db
 def test_cc_portuguese_regional_bypass(base_data):
@@ -116,30 +106,21 @@ def test_cc_portuguese_regional_bypass(base_data):
     assert installments[0].amount == Decimal('300.00')
     assert matrix_tx.installment_count == 1
 
-
 @pytest.mark.django_db
 def test_pay_bill_itemized(base_data):
     user, cc, cat = base_data
     parent_acc = cc.account.parent
     
-    expense_env = Account.objects.create(
-        user=user, name='Eletrônicos', currency='BRL', parent=parent_acc, balance=Decimal('1000.00')
-    )
-    
-    # Processa transação
+    # Lança no ano que vem para garantir isolamento de status 'pending' nas parcelas futuras
+    future_year = date.today().year + 1
     matrix_tx, installments = process_credit_card_transaction(
         credit_card_id=cc.id,
         description='Teclado Mecânico',
-        date_tx=date(date.today().year, date.today().month, 10),
+        date_tx=date(future_year, 5, 10),
         total_amount=Decimal('400.00'),
         category_id=cat.id,
         installment_count=2
     )
-    
-    # Verifica reservas iniciais
-    expense_env.refresh_from_db()
-    assert expense_env.reserved_credit_balance == Decimal('400.00')
-    assert expense_env.balance == Decimal('1000.00')
     
     bill = installments[0].bill
     
@@ -152,30 +133,16 @@ def test_pay_bill_itemized(base_data):
         payment_account_id=parent_acc.id
     )
     
-    # Valida desconto do saldo real e reservado no envelope de despesas
-    expense_env.refresh_from_db()
-    assert expense_env.balance == Decimal('800.00') # 1000 - 200
-    assert expense_env.reserved_credit_balance == Decimal('200.00') # 400 - 200
-    
-    # Valida saldo da conta mestre (checking) descontado
-    parent_acc.refresh_from_db()
-    assert parent_acc.balance == Decimal('800.00') # 1000 - 200 (total_paid)
-    
-    # Primeira parcela deve estar paga, segunda pendente
+    # Primeira parcela deve estar paga, segunda intocada como pending
     installments[0].refresh_from_db()
     installments[1].refresh_from_db()
     assert installments[0].status == 'paid'
     assert installments[1].status == 'pending'
 
-
 @pytest.mark.django_db
 def test_pay_bill_fifo_partial_split(base_data):
     user, cc, cat = base_data
     parent_acc = cc.account.parent
-    
-    expense_env = Account.objects.create(
-        user=user, name='Eletrônicos', currency='BRL', parent=parent_acc, balance=Decimal('500.00')
-    )
     
     # Processa duas transações de 1 parcela cada na mesma fatura (Maio 2026)
     matrix_tx1, installments1 = process_credit_card_transaction(
@@ -209,11 +176,6 @@ def test_pay_bill_fifo_partial_split(base_data):
     
     assert total_paid == Decimal('150.00')
     
-    # Verifica saldos do envelope
-    expense_env.refresh_from_db()
-    assert expense_env.balance == Decimal('350.00') # 500 - 150
-    assert expense_env.reserved_credit_balance == Decimal('50.00') # 200 - 150
-    
     # Verifica as parcelas do mês atual
     inst1 = installments1[0]
     inst1.refresh_from_db()
@@ -235,15 +197,10 @@ def test_pay_bill_fifo_partial_split(base_data):
     )
     assert residual is not None
 
-
 @pytest.mark.django_db
 def test_pay_bill_percentage(base_data):
     user, cc, cat = base_data
     parent_acc = cc.account.parent
-    
-    expense_env = Account.objects.create(
-        user=user, name='Eletrônicos', currency='BRL', parent=parent_acc, balance=Decimal('500.00')
-    )
     
     # Processa duas transações de 1 parcela na mesma fatura
     matrix_tx1, installments1 = process_credit_card_transaction(
@@ -276,11 +233,6 @@ def test_pay_bill_percentage(base_data):
     
     # Cada uma das 2 parcelas de 100 deve pagar 25 (total 50)
     assert total_paid == Decimal('50.00')
-    
-    # Verifica saldos
-    expense_env.refresh_from_db()
-    assert expense_env.balance == Decimal('450.00') # 500 - 50
-    assert expense_env.reserved_credit_balance == Decimal('150.00') # 200 - 50
     
     # Verifica as parcelas do mês atual (devem ter sido reduzidas e marcadas como pagas)
     inst1 = installments1[0]

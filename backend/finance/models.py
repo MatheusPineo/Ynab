@@ -600,8 +600,7 @@ class CreditCardBill(models.Model):
 
 class CreditCardTransaction(models.Model):
     credit_card = models.ForeignKey(CreditCard, on_delete=models.CASCADE, related_name='matrix_transactions')
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='credit_card_transactions')
-    expense_account = models.ForeignKey(Account, on_delete=models.RESTRICT, null=False, blank=False, related_name='credit_card_expenses')
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, null=True, blank=False, related_name='credit_card_transactions')
     description = models.CharField(max_length=255)
     date = models.DateField()
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
@@ -636,7 +635,6 @@ class Installment(models.Model):
     number = models.PositiveSmallIntegerField()
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
-    subaccount = models.ForeignKey(Account, on_delete=models.RESTRICT, null=False, blank=False, related_name='installments')
 
     class Meta:
         db_table = 'core_installment'
@@ -645,8 +643,8 @@ class Installment(models.Model):
 
     def __str__(self):
         return f"Parcela {self.number}/{self.transaction.installment_count} - {self.transaction.description} ({self.amount})"
-
-
+    
+    
 def transaction_inbox_upload_path(instance, filename):
     return f"users/{instance.user.id}/inbox/{filename}"
 

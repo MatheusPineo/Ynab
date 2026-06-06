@@ -13,7 +13,7 @@ class AccountSerializer(serializers.ModelSerializer):
         fields = '__all__'
         extra_kwargs = {
             'parent': {'required': False, 'allow_null': True},
-            'user': {'read_only': True},  # Preenchido automaticamente pela view
+            'user': {'read_only': True},
         }
 
     def get_pending_restitutions_total(self, obj):
@@ -21,7 +21,6 @@ class AccountSerializer(serializers.ModelSerializer):
         from django.db.models import Sum
         from decimal import Decimal
         
-        # Otimização por agregação única no banco
         total_items = DebtItem.objects.filter(
             origin_subaccount=obj,
             status__in=['PENDING', 'PARTIAL']
@@ -29,7 +28,6 @@ class AccountSerializer(serializers.ModelSerializer):
             total=Sum('total_amount') - Sum('paid_amount')
         )['total'] or Decimal('0.00')
         
-        # Debts ativos (is_mine=False)
         debts = Debt.objects.filter(
             origin_subaccount=obj,
             is_mine=False
@@ -83,7 +81,6 @@ class AccountSerializer(serializers.ModelSerializer):
             if parent.id == self.instance.id:
                 raise serializers.ValidationError({"parent": "Uma conta não pode ser filha de si mesma."})
             
-            # Verificar se o novo pai é um descendente da própria conta
             current = parent
             while current is not None:
                 if current.id == self.instance.id:
@@ -106,17 +103,15 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'name', 'parent', 'target_value', 'target_type', 'ceiling_value', 'assigned_amount', 'spent_amount', 'macro_rule', 'macro_allocation', 'currency']
         extra_kwargs = {
             'parent': {'required': False, 'allow_null': True},
-            'user': {'read_only': True},  # Preenchido automaticamente pela view
+            'user': {'read_only': True},
         }
 
     def validate(self, attrs):
         parent = attrs.get('parent')
-        # Se for update, mescla com o parent atual do banco caso não enviado
         if parent is None and self.instance:
             parent = self.instance.parent
             
         currency = attrs.get('currency')
-        # Se for update, mescla com a moeda atual do banco caso não enviada
         if currency is None and self.instance:
             currency = self.instance.currency
             
@@ -147,7 +142,7 @@ class GoalSerializer(serializers.ModelSerializer):
         model = Goal
         fields = '__all__'
         extra_kwargs = {
-            'user': {'read_only': True},  # Preenchido automaticamente pela view
+            'user': {'read_only': True},
         }
 
 class DistributionTemplateItemSerializer(serializers.ModelSerializer):
@@ -184,7 +179,6 @@ class DistributionTemplateSerializer(serializers.ModelSerializer):
         instance.save()
 
         if items_data is not None:
-            # Simple approach: delete old items and recreate
             instance.items.all().delete()
             for item_data in items_data:
                 DistributionTemplateItem.objects.create(template=instance, **item_data)
@@ -340,7 +334,6 @@ class CreditCardSerializer(serializers.ModelSerializer):
         from django.db.models import Sum
         from .models import Installment
         
-        # Agregação direta no banco de dados para evitar loops Python
         total_used = Installment.objects.filter(
             bill__credit_card=obj,
             bill__is_paid=False,
@@ -356,16 +349,10 @@ class SimpleCreditCardTransactionSerializer(serializers.ModelSerializer):
         model = CreditCardTransaction
         fields = ['id', 'description', 'date', 'original_currency', 'exchange_rate', 'iof_amount', 'category_id']
 
-class SimpleSubaccountSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Account
-        fields = ['id', 'name', 'reserved_credit_balance']
-
 class InstallmentSerializer(serializers.ModelSerializer):
     transaction = SimpleCreditCardTransactionSerializer(read_only=True)
     installment_number = serializers.IntegerField(source='number', read_only=True)
     total_installments = serializers.IntegerField(source='transaction.installment_count', read_only=True)
-    subaccount = SimpleSubaccountSerializer(read_only=True)
     
     class Meta:
         model = Installment
@@ -422,7 +409,6 @@ class InvestmentActivitySerializer(serializers.ModelSerializer):
         model = InvestmentActivity
         fields = '__all__'
 
-
 from .models import Debtor, DebtItem, Asset
 
 class DebtItemSerializer(serializers.ModelSerializer):
@@ -432,7 +418,6 @@ class DebtItemSerializer(serializers.ModelSerializer):
         model = DebtItem
         fields = '__all__'
 
-
 class DebtorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Debtor
@@ -440,7 +425,6 @@ class DebtorSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'user': {'read_only': True},
         }
-
 
 class AssetSerializer(serializers.ModelSerializer):
     effective_asset_value = serializers.SerializerMethodField()
@@ -461,13 +445,9 @@ class AssetSerializer(serializers.ModelSerializer):
     def get_effective_asset_value(self, obj):
         from decimal import Decimal
         if obj.linked_debt:
-            # Pega o remaining amount da divida usando o serializer ou calculando direto
-            # Vamos calcular direto para manter performance
             total_charges = sum(c.amount for c in obj.linked_debt.charges.all())
             total_paid = sum(p.amount for p in obj.linked_debt.payments.all())
             remaining = (obj.linked_debt.original_amount + total_charges) - total_paid
             effective = obj.current_market_value - remaining
             return float(max(effective, Decimal('0.00')))
         return float(obj.current_market_value)
-
-

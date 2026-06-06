@@ -38,7 +38,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
   DropdownMenuSubContent,
-} from "@/shared/components/ui/dropdown-menu";
+} from "@/dropdown-menu";
 import {
   DndContext,
   closestCenter,
@@ -132,19 +132,15 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
     }
   }, [isEditDialogOpen, category]);
 
-  // Filtra CategoryGroups com base na moeda selecionada para podermos reassociar o pai
   const availableGroupsForCurrency = useMemo(() => {
     const rawGroups = Array.isArray(categoryGroups) ? categoryGroups : [];
-    // Apenas grupos com parent = null e que possuam a mesma moeda
     return rawGroups.filter(g => g && !g.parent && g.currency === editedCurrency && g.id !== category.id);
   }, [categoryGroups, editedCurrency, category.id]);
 
-  // Se o usuário mudou a moeda, garante que o parent selecionado seja um grupo compatível com a nova moeda
   useEffect(() => {
     if (!isGroup) {
       const parentIsCompatible = availableGroupsForCurrency.some(g => g.id === editedParent);
       if (!parentIsCompatible) {
-        // Se a moeda mudou e o pai não é mais compatível, define o primeiro grupo compatível do select ou null
         if (availableGroupsForCurrency.length > 0) {
           setEditedParent(availableGroupsForCurrency[0].id);
         } else {
@@ -321,10 +317,8 @@ const Budget = () => {
   const {
     categoryGroups,
     tree,
-    readyToAssignBalance,
     fetchCategoryGroups,
     assignMoney,
-    autoAssign,
     addCategoryGroup,
     addCategory,
     setCategoryGroups,
@@ -336,7 +330,6 @@ const Budget = () => {
     getAccount,
     getAccountName,
     keepInAccount,
-    totalsByCurrency,
     autoShield,
     surplusSweep,
     monthEndCascade,
@@ -350,12 +343,9 @@ const Budget = () => {
   const targetWants = user?.wantsTargetPct ?? 30;
   const targetSavings = user?.savingsTargetPct ?? 20;
   
-  const { convert } = useCurrencyStore();
-  
   const [newGroupName, setNewGroupName] = useState("");
   const [newCatName, setNewCatName] = useState("");
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
-  const [cascadeOpen, setCascadeOpen] = useState(false);
   const [rebalancing, setRebalancing] = useState<string | null>(null);
   const [isPendingIncomesModalOpen, setIsPendingIncomesModalOpen] = useState(false);
   const [groupCurrency, setGroupCurrency] = useState<'EUR' | 'BRL'>('EUR');
@@ -374,36 +364,20 @@ const Budget = () => {
       if (parts.length < 2) return false;
       const year = Number(parts[0]);
       const month = Number(parts[1]);
-      const isCorrectPeriod = month === currentMonth && year === currentYear;
-      return t.is_income && !t.transfer_group && isCorrectPeriod;
+      return t.is_income && !t.transfer_group && month === currentMonth && year === currentYear;
     });
   }, [transactions, currentMonth, currentYear]);
 
   const distributedIncomes = useMemo(() => {
     const txs = Array.isArray(transactions) ? transactions : [];
-    
-    // 1. Filtrar transações que são receitas e têm transfer_group (já processadas)
-    // Excluindo as que são fruto de distribuição (para não duplicar na lista de origens)
     const incomes = txs.filter(t => 
-      t &&
-      t.is_income && 
-      t.transfer_group && 
-      typeof t.description === "string" &&
-      !t.description.includes("Recebido de Distribuição")
+      t && t.is_income && t.transfer_group && typeof t.description === "string" && !t.description.includes("Recebido de Distribuição")
     );
     
     return incomes.map(income => {
       const acc = getAccount(income.account);
       const currency = acc?.currency || "EUR";
-
-      // 2. Encontrar as transações de destino que compartilham o mesmo grupo
-      const destinations = txs.filter(t => 
-        t &&
-        t.transfer_group === income.transfer_group && 
-        t.is_income && 
-        t.id !== income.id
-      );
-      
+      const destinations = txs.filter(t => t && t.transfer_group === income.transfer_group && t.is_income && t.id !== income.id);
       const isKept = destinations.length === 0;
 
       return {
@@ -412,11 +386,7 @@ const Budget = () => {
         isKept,
         details: isKept 
           ? [{ account: income.account, amount: income.amount, name: `Mantido em: ${acc?.name || "Conta"}` }]
-          : destinations.map(d => ({
-            account: d.account,
-            amount: d.amount,
-            name: getAccountName(d.account)
-          }))
+          : destinations.map(d => ({ account: d.account, amount: d.amount, name: getAccountName(d.account) }))
       };
     }).sort((a, b) => {
       if (!a.date || !b.date || typeof a.date !== "string" || typeof b.date !== "string") return 0;
@@ -424,20 +394,6 @@ const Budget = () => {
     });
   }, [transactions, getAccount, getAccountName]);
 
-  const totalAssigned = useMemo(() => {
-    const calculateTotal = (nodes: CategoryNode[]): number => {
-      const safeNodes = Array.isArray(nodes) ? nodes : [];
-      return safeNodes.reduce((acc, node) => {
-        if (!node) return acc;
-        let sum = acc + (node.assigned_amount || 0);
-        if (Array.isArray(node.children)) sum += calculateTotal(node.children);
-        return sum;
-      }, 0);
-    };
-    return calculateTotal(categoryGroups);
-  }, [categoryGroups]);
-
-  // Flatten all leaf categories for the cascade dropdown
   const leafCategories = useMemo(() => {
     const leaves: { id: string; name: string }[] = [];
     const walk = (nodes: CategoryNode[]) => {
@@ -466,7 +422,6 @@ const Budget = () => {
   };
 
   const handleCascade = async (targetId: string) => {
-    setCascadeOpen(false);
     setRebalancing('cascade');
     try { await monthEndCascade(targetId); } finally { setRebalancing(null); }
   };
@@ -501,9 +456,7 @@ const Budget = () => {
             totals.BRL += Number(node.balance) || 0;
           }
         }
-        if (Array.isArray(node.children)) {
-          walk(node.children);
-        }
+        if (Array.isArray(node.children)) walk(node.children);
       }
     };
     walk(tree);
@@ -533,38 +486,20 @@ const Budget = () => {
     return totals;
   }, [categoryGroups]);
 
-  const rtaEUR = useMemo(() => {
-    return accountTotals.EUR - categoryAvailableTotals.EUR;
-  }, [accountTotals.EUR, categoryAvailableTotals.EUR]);
-
-  const rtaBRL = useMemo(() => {
-    return accountTotals.BRL - categoryAvailableTotals.BRL;
-  }, [accountTotals.BRL, categoryAvailableTotals.BRL]);
+  const rtaEUR = useMemo(() => accountTotals.EUR - categoryAvailableTotals.EUR, [accountTotals.EUR, categoryAvailableTotals.EUR]);
+  const rtaBRL = useMemo(() => accountTotals.BRL - categoryAvailableTotals.BRL, [accountTotals.BRL, categoryAvailableTotals.BRL]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const groups = Array.isArray(categoryGroups) ? categoryGroups : [];
-    const isActiveGroup = groups.some(g => g && g.id === active.id);
-    if (isActiveGroup) {
-      const oldIndex = groups.findIndex(g => g && g.id === active.id);
-      const newIndex = groups.findIndex(g => g && g.id === over.id);
-      setCategoryGroups(arrayMove(groups, oldIndex, newIndex));
-    }
-  };
-
   const handleAddGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGroupName.trim()) return;
     await addCategoryGroup(newGroupName, groupCurrency);
     setNewGroupName("");
-    setIsGroupDialogOpen(false); // Fecha a modal após criar
+    setIsGroupDialogOpen(false);
   };
 
   const handleAddCategory = async (groupId: string, currency: 'EUR' | 'BRL') => {
@@ -574,15 +509,12 @@ const Budget = () => {
   };
 
   const renderBudgetBoard = (groups: CategoryNode[], boardCurrency: 'EUR' | 'BRL') => {
-    const isBrl = boardCurrency === 'BRL';
-    
     const handleDragEndBoard = (event: DragEndEvent) => {
       const { active, over } = event;
       if (!over || active.id === over.id) return;
 
       const allGroups = Array.isArray(categoryGroups) ? categoryGroups : [];
-      const isActiveGroup = groups.some(g => g && g.id === active.id);
-      if (isActiveGroup) {
+      if (groups.some(g => g && g.id === active.id)) {
         const oldIndex = allGroups.findIndex(g => g && g.id === active.id);
         const newIndex = allGroups.findIndex(g => g && g.id === over.id);
         setCategoryGroups(arrayMove(allGroups, oldIndex, newIndex));
@@ -593,7 +525,7 @@ const Budget = () => {
       <div className="flex flex-col gap-6 bg-card/10 border border-border/40 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm">
         <div className="flex items-center justify-between border-b border-border/40 pb-2">
           <h2 className="text-base font-black uppercase tracking-wider text-primary">
-            Quadro de Orçamento — {boardCurrency} ({isBrl ? 'R$' : '€'})
+            Quadro de Orçamento — {boardCurrency} ({boardCurrency === 'BRL' ? 'R$' : '€'})
           </h2>
           <Button 
             variant="outline" 
@@ -611,9 +543,7 @@ const Budget = () => {
 
         {groups.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center p-6 border border-dashed border-border/60 rounded-2xl bg-card/25 gap-2">
-            <span className="text-xs text-muted-foreground">
-              Nenhum grupo de categorias cadastrado em {boardCurrency}.
-            </span>
+            <span className="text-xs text-muted-foreground">Nenhum grupo de categorias cadastrado em {boardCurrency}.</span>
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndBoard}>
@@ -625,7 +555,6 @@ const Budget = () => {
                       <div className="flex items-center justify-between px-2">
                         <div className="flex items-center gap-3">
                           <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">{group.name}</h2>
-                          
                           <div className="flex items-center gap-1">
                             <Dialog>
                               <DialogTrigger asChild>
@@ -646,7 +575,6 @@ const Budget = () => {
                                 </div>
                               </DialogContent>
                             </Dialog>
-                            
                             <CategoryActions category={group} isGroup />
                           </div>
                         </div>
@@ -684,8 +612,7 @@ const Budget = () => {
                           </TableHeader>
                           <TableBody>
                             {(() => {
-                              const rawChildren = (Array.isArray(group.children) ? group.children : [])
-                                .filter(c => c && c.id && (typeof c.id === "string" || typeof c.id === "number"));
+                              const rawChildren = (Array.isArray(group.children) ? group.children : []).filter(c => c && c.id);
                               const seenChildren = new Set();
                               const children = rawChildren.filter(c => {
                                 if (seenChildren.has(c.id)) return false;
@@ -715,31 +642,15 @@ const Budget = () => {
             </SortableContext>
           </DndContext>
         )}
-        {/* Modal local de criação de grupo específico para este board */}
-        <Dialog open={isGroupDialogOpen && groupCurrency === boardCurrency} onOpenChange={(open) => {
-          if (!open) {
-            setIsGroupDialogOpen(false);
-          }
-        }}>
+        <Dialog open={isGroupDialogOpen && groupCurrency === boardCurrency} onOpenChange={(open) => !open && setIsGroupDialogOpen(false)}>
           <DialogContent className="glass border-border/60">
-            <DialogHeader>
-              <DialogTitle>Novo Grupo de Categorias ({boardCurrency})</DialogTitle>
-            </DialogHeader>
+            <DialogHeader><DialogTitle>Novo Grupo de Categorias ({boardCurrency})</DialogTitle></DialogHeader>
             <form onSubmit={handleAddGroup} className="grid gap-4 py-4">
               <div className="grid gap-2">
                 <Label htmlFor={`groupName-${boardCurrency}`}>Nome do Grupo</Label>
-                <Input 
-                  id={`groupName-${boardCurrency}`}
-                  value={newGroupName} 
-                  onChange={(e) => setNewGroupName(e.target.value)} 
-                  placeholder="Ex: Contas de Consumo..." 
-                  className="bg-background/50" 
-                  required
-                />
+                <Input id={`groupName-${boardCurrency}`} value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="Ex: Contas de Consumo..." className="bg-background/50" required />
               </div>
-              <DialogFooter>
-                <Button type="submit" className="gradient-primary w-full">Adicionar Grupo</Button>
-              </DialogFooter>
+              <DialogFooter><Button type="submit" className="gradient-primary w-full">Adicionar Grupo</Button></DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
@@ -749,162 +660,71 @@ const Budget = () => {
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
-      {/* Budget Header */}
       <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-primary/10 border border-primary/20 p-4 sm:p-6 shadow-soft">
         <div className="relative flex items-center justify-between gap-3">
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">
-            Orçamento Mensal
-          </h1>
-
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">Orçamento Mensal</h1>
           <div className="flex items-center gap-2">
             <MonthSelector />
-            
-            {/* Consolidated "⋮" Dropdown Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl hover:bg-muted/20 border border-border/40">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl hover:bg-muted/20 border border-border/40"><MoreVertical className="h-4 w-4" /></Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="glass border-border/60 w-56">
                 <DropdownMenuLabel className="text-[10px] uppercase tracking-wider font-black opacity-70">Ações do Orçamento</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                
                 <DropdownMenuItem asChild>
-                  <IncomeSplitterModal
-                    trigger={
-                      <div className="w-full flex items-center gap-2 cursor-pointer px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/5 rounded-md">
-                        <Landmark className="h-4 w-4 shrink-0 text-emerald-400" />
-                        <span>Capturar Receita</span>
-                      </div>
-                    }
-                  />
+                  <IncomeSplitterModal trigger={
+                    <div className="w-full flex items-center gap-2 cursor-pointer px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/5 rounded-md">
+                      <Landmark className="h-4 w-4 shrink-0 text-emerald-400" /><span>Capturar Receita</span>
+                    </div>
+                  } />
                 </DropdownMenuItem>
-
-                <DropdownMenuItem onSelect={autoAssignFunds} className="cursor-pointer gap-2 text-xs font-medium">
-                  <Target className="h-4 w-4 text-sky-400" />
-                  <span>Financiar Metas</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onSelect={() => handleAutoShield()} className="cursor-pointer gap-2 text-xs font-medium">
-                  <Shield className="h-4 w-4 text-amber-400" />
-                  <span>Cobrir Rombos</span>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem onSelect={() => handleSurplusSweep()} className="cursor-pointer gap-2 text-xs font-medium">
-                  <ArrowDownToLine className="h-4 w-4 text-sky-400" />
-                  <span>Recolher Sobras</span>
-                </DropdownMenuItem>
-
+                <DropdownMenuItem onSelect={autoAssignFunds} className="cursor-pointer gap-2 text-xs font-medium"><Target className="h-4 w-4 text-sky-400" /><span>Financiar Metas</span></DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleAutoShield()} className="cursor-pointer gap-2 text-xs font-medium"><Shield className="h-4 w-4 text-amber-400" /><span>Cobrir Rombos</span></DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => handleSurplusSweep()} className="cursor-pointer gap-2 text-xs font-medium"><ArrowDownToLine className="h-4 w-4 text-sky-400" /><span>Recolher Sobras</span></DropdownMenuItem>
                 <DropdownMenuSeparator />
-
-                {/* Submenu para Limpar Mês (Cascata) */}
                 <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer gap-2 text-xs font-medium">
-                    <Eraser className="h-4 w-4 text-violet-400" />
-                    <span>Limpar Mês (Cascata)</span>
-                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubTrigger className="cursor-pointer gap-2 text-xs font-medium"><Eraser className="h-4 w-4 text-violet-400" /><span>Limpar Mês (Cascata)</span></DropdownMenuSubTrigger>
                   <DropdownMenuPortal>
                     <DropdownMenuSubContent className="glass border-border/60 max-h-60 overflow-y-auto w-48">
                       {leafCategories.map(cat => (
-                        <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="cursor-pointer text-xs">
-                          {cat.name}
-                        </DropdownMenuItem>
+                        <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="cursor-pointer text-xs">{cat.name}</DropdownMenuItem>
                       ))}
                     </DropdownMenuSubContent>
                   </DropdownMenuPortal>
                 </DropdownMenuSub>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem 
-                  onSelect={async () => {
-                    if (window.confirm("Deseja realmente forçar a restauração retrospectiva dos valores das categorias e orçamentos do Nubank em BRL?")) {
-                      try {
-                        const response = await authenticatedFetch("/categories/restore_brl/", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" }
-                        });
-                        if (!response.ok) throw new Error("Erro ao restaurar BRL");
-                        const data = await response.json();
-                        toast.success(`Sucesso! ${data.updated_categories} categorias e ${data.updated_budgets} orçamentos restaurados.`);
-                        await fetchCategoryGroups();
-                      } catch (error: any) {
-                        toast.error(error.message || "Falha na chamada de restauração.");
-                      }
-                    }
-                  }} 
-                  className="cursor-pointer gap-2 text-xs font-medium text-red-400 focus:text-red-400"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  <span>Restaurar Valores BRL</span>
-                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
-        {/* Highlighted Core Metrics (Ready to Assign) */}
         <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto py-3 sm:py-5">
-          {/* Card EUR */}
-          <div className={cn(
-            "flex flex-col items-center justify-center text-center px-6 py-4 rounded-2xl border shadow-md transition-all duration-300",
-            rtaEUR > 0
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-              : rtaEUR < 0
-                ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
-                : "bg-muted/20 border-border/40 text-muted-foreground"
-          )}>
+          <div className={cn("flex flex-col items-center justify-center text-center px-6 py-4 rounded-2xl border shadow-md transition-all duration-300", rtaEUR > 0 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : rtaEUR < 0 ? "bg-rose-500/10 border-rose-500/30 text-rose-400" : "bg-muted/20 border-border/40 text-muted-foreground")}>
             <Wallet className="h-5 w-5 mb-1 text-primary shrink-0 animate-pulse" />
             <span className="text-[10px] uppercase tracking-widest font-black opacity-70 mb-0.5">Disponível para Alocar (EUR)</span>
-            <span className="text-xl sm:text-2xl font-black tracking-tight leading-none" data-testid="rta-balance-eur">
-              {formatMoney(rtaEUR, "EUR")}
-            </span>
+            <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{formatMoney(rtaEUR, "EUR")}</span>
           </div>
-
-          {/* Card BRL */}
-          <div className={cn(
-            "flex flex-col items-center justify-center text-center px-6 py-4 rounded-2xl border shadow-md transition-all duration-300",
-            rtaBRL > 0
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400"
-              : rtaBRL < 0
-                ? "bg-rose-500/10 border-rose-500/30 text-rose-400"
-                : "bg-muted/20 border-border/40 text-muted-foreground"
-          )}>
+          <div className={cn("flex flex-col items-center justify-center text-center px-6 py-4 rounded-2xl border shadow-md transition-all duration-300", rtaBRL > 0 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : rtaBRL < 0 ? "bg-rose-500/10 border-rose-500/30 text-rose-400" : "bg-muted/20 border-border/40 text-muted-foreground")}>
             <Wallet className="h-5 w-5 mb-1 text-primary shrink-0 animate-pulse" />
             <span className="text-[10px] uppercase tracking-widest font-black opacity-70 mb-0.5">Disponível para Alocar (BRL)</span>
-            <span className="text-xl sm:text-2xl font-black tracking-tight leading-none" data-testid="rta-balance-brl">
-              {formatMoney(rtaBRL, "BRL")}
-            </span>
+            <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{formatMoney(rtaBRL, "BRL")}</span>
           </div>
         </div>
 
-        {/* Elegant Pending Incomes Alert Banner */}
         {currentIncomes.length > 0 && (
           <div className="mt-4 flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-3 animate-in fade-in duration-300">
             <div className="flex items-center gap-2">
               <Plus className="h-4 w-4 text-primary shrink-0" />
-              <span className="text-xs font-semibold text-foreground">
-                Você tem {currentIncomes.length} {currentIncomes.length === 1 ? "receita pendente" : "receitas pendentes"} para distribuir.
-              </span>
+              <span className="text-xs font-semibold text-foreground">Você tem {currentIncomes.length} receitas pendentes para distribuir.</span>
             </div>
-            <Button 
-              size="sm" 
-              onClick={() => setIsPendingIncomesModalOpen(true)}
-              className="gradient-primary text-xs font-bold rounded-lg h-7 px-3 shrink-0"
-            >
-              Ver Lançamentos
-            </Button>
+            <Button size="sm" onClick={() => setIsPendingIncomesModalOpen(true)} className="gradient-primary text-xs font-bold rounded-lg h-7 px-3 shrink-0">Ver Lançamentos</Button>
           </div>
         )}
       </section>
 
-      {/* Distributed Incomes Section - Separated Container */}
       {distributedIncomes.length > 0 && (
         <section className="rounded-2xl sm:rounded-3xl bg-card/40 border border-border/60 p-3 sm:p-6 shadow-sm transition-all duration-300">
           <h3 className="text-[10px] sm:text-xs uppercase tracking-widest text-primary font-bold mb-3 sm:mb-6 text-center sm:text-left">Histórico de Receitas Processadas</h3>
-          
-          {/* Layout Mobile (Lista de Cards) */}
           <div className="block sm:hidden space-y-2">
             {distributedIncomes.map(income => (
               <div key={income.id} className="bg-background/25 border border-border/40 rounded-xl p-2.5 space-y-2 hover:border-primary/20 transition-all">
@@ -913,11 +733,8 @@ const Budget = () => {
                     <span className="font-bold text-xs sm:text-sm text-foreground">{income.description || "Receita"}</span>
                     <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider mt-0.5">{income.date}</span>
                   </div>
-                  <span className="font-black text-xs sm:text-sm text-primary shrink-0">
-                    {formatMoney(income.amount, income.currency as any)}
-                  </span>
+                  <span className="font-black text-xs sm:text-sm text-primary shrink-0">{formatMoney(income.amount, income.currency as any)}</span>
                 </div>
-                
                 <div className="pt-2 border-t border-border/20">
                   <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-1.5">Destino</div>
                   <div className="flex flex-wrap gap-1">
@@ -933,7 +750,6 @@ const Budget = () => {
             ))}
           </div>
 
-          {/* Layout Desktop (Tabela) */}
           <div className="hidden sm:block rounded-2xl border border-border/40 bg-background/20 overflow-hidden">
             <Table>
               <TableHeader className="bg-muted/20">
@@ -952,9 +768,7 @@ const Budget = () => {
                         <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">{income.date}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-black text-sm text-primary">
-                      {formatMoney(income.amount, income.currency as any)}
-                    </TableCell>
+                    <TableCell className="font-black text-sm text-primary">{formatMoney(income.amount, income.currency as any)}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-2">
                         {income.details.map((d, i) => (
@@ -973,60 +787,28 @@ const Budget = () => {
         </section>
       )}
 
-      {/* Quadro de Moedas Isoladas */}
       <div className="flex flex-col gap-10">
         {renderBudgetBoard(eurGroups, 'EUR')}
         {renderBudgetBoard(brlGroups, 'BRL')}
       </div>
 
-      {/* 50/30/20 Rule Macro Tracking Panel - Relocated to the bottom */}
       <section className="rounded-2xl sm:rounded-3xl bg-card/30 border border-border/40 p-4 sm:p-6 shadow-sm mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xs sm:text-sm uppercase tracking-widest text-primary font-bold">Acompanhamento Regra 50/30/20 (Alocado / Meta)</h3>
-          <span className="text-[10px] sm:text-xs text-muted-foreground font-medium">Orçamento Base-Zero</span>
+          <h3 className="text-xs sm:text-sm uppercase tracking-widest text-primary font-bold">Acompanhamento Regra 50/30/20</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
-            {
-              label: "Necessidades (Needs)",
-              current: macroDist.needsPct,
-              target: targetNeeds,
-              amount: macroDist.needsAssigned,
-              color: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500" : macroDist.needsPct > targetNeeds ? "bg-amber-500" : "bg-emerald-500",
-              textColor: macroDist.needsPct > targetNeeds + 5 ? "text-rose-400" : macroDist.needsPct > targetNeeds ? "text-amber-400" : "text-emerald-400",
-              bgColor: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.needsPct > targetNeeds ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
-            },
-            {
-              label: "Desejos (Wants)",
-              current: macroDist.wantsPct,
-              target: targetWants,
-              amount: macroDist.wantsAssigned,
-              color: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500" : macroDist.wantsPct > targetWants ? "bg-amber-500" : "bg-emerald-500",
-              textColor: macroDist.wantsPct > targetWants + 5 ? "text-rose-400" : macroDist.wantsPct > targetWants ? "text-amber-400" : "text-emerald-400",
-              bgColor: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.wantsPct > targetWants ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
-            },
-            {
-              label: "Poupança (Savings)",
-              current: macroDist.savingsPct,
-              target: targetSavings,
-              amount: macroDist.savingsAssigned,
-              color: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500" : macroDist.savingsPct > targetSavings ? "bg-amber-500" : "bg-emerald-500",
-              textColor: macroDist.savingsPct > targetSavings + 5 ? "text-rose-400" : macroDist.savingsPct > targetSavings ? "text-amber-400" : "text-emerald-400",
-              bgColor: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.savingsPct > targetSavings ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20",
-            }
+            { label: "Necessidades (Needs)", current: macroDist.needsPct, target: targetNeeds, amount: macroDist.needsAssigned, color: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500" : macroDist.needsPct > targetNeeds ? "bg-amber-500" : "bg-emerald-500", textColor: macroDist.needsPct > targetNeeds + 5 ? "text-rose-400" : macroDist.needsPct > targetNeeds ? "text-amber-400" : "text-emerald-400", bgColor: macroDist.needsPct > targetNeeds + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.needsPct > targetNeeds ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20" },
+            { label: "Desejos (Wants)", current: macroDist.wantsPct, target: targetWants, amount: macroDist.wantsAssigned, color: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500" : macroDist.wantsPct > targetWants ? "bg-amber-500" : "bg-emerald-500", textColor: macroDist.wantsPct > targetWants + 5 ? "text-rose-400" : macroDist.wantsPct > targetWants ? "text-amber-400" : "text-emerald-400", bgColor: macroDist.wantsPct > targetWants + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.wantsPct > targetWants ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20" },
+            { label: "Poupança (Savings)", current: macroDist.savingsPct, target: targetSavings, amount: macroDist.savingsAssigned, color: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500" : macroDist.savingsPct > targetSavings ? "bg-amber-500" : "bg-emerald-500", textColor: macroDist.savingsPct > targetSavings + 5 ? "text-rose-400" : macroDist.savingsPct > targetSavings ? "text-amber-400" : "text-emerald-400", bgColor: macroDist.savingsPct > targetSavings + 5 ? "bg-rose-500/10 border-rose-500/20" : macroDist.savingsPct > targetSavings ? "bg-amber-500/10 border-amber-500/20" : "bg-emerald-500/10 border-emerald-500/20" }
           ].map((item, idx) => (
             <div key={idx} className={cn("p-4 rounded-xl border flex flex-col gap-2 transition-all duration-300 hover:scale-[1.01]", item.bgColor)}>
               <div className="flex justify-between items-center">
                 <span className="text-xs font-bold text-foreground">{item.label}</span>
-                <span className={cn("text-xs font-black", item.textColor)}>
-                  {item.current.toFixed(1)}% <span className="text-[10px] text-muted-foreground/60 font-normal">/ {item.target}%</span>
-                </span>
+                <span className={cn("text-xs font-black", item.textColor)}>{item.current.toFixed(1)}% <span className="text-[10px] text-muted-foreground/60 font-normal">/ {item.target}%</span></span>
               </div>
               <div className="h-2 w-full bg-muted/40 rounded-full overflow-hidden">
-                <div 
-                  className={cn("h-full transition-all duration-500 rounded-full", item.color)} 
-                  style={{ width: `${Math.min(item.current, 100)}%` }}
-                />
+                <div className={cn("h-full transition-all duration-500 rounded-full", item.color)} style={{ width: `${Math.min(item.current, 100)}%` }} />
               </div>
               <div className="flex justify-between items-center text-[10px] text-muted-foreground/80 mt-1">
                 <span>Alocado: {formatMoney(item.amount, "EUR")}</span>
@@ -1037,21 +819,15 @@ const Budget = () => {
         </div>
       </section>
 
-      {/* Dialog for listing pending incomes */}
       <Dialog open={isPendingIncomesModalOpen} onOpenChange={setIsPendingIncomesModalOpen}>
         <DialogContent className="glass border-border/60 w-[94vw] sm:max-w-md rounded-3xl p-4 sm:p-6 max-h-[85vh] overflow-y-auto">
           <DialogHeader className="pb-3 border-b border-border/30">
-            <DialogTitle className="text-lg font-black tracking-tight text-gradient-mixed">
-              Receitas Recebidas
-            </DialogTitle>
-            <p className="text-xs text-muted-foreground mt-1">
-              Distribua ou mantenha essas receitas no orçamento.
-            </p>
+            <DialogTitle className="text-lg font-black tracking-tight text-gradient-mixed">Receitas Recebidas</DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">Distribua ou mantenha essas receitas no orçamento.</p>
           </DialogHeader>
           <div className="grid gap-3 py-4">
             {currentIncomes.map(income => {
               const acc = getAccount(income.account);
-              const currency = acc?.currency || "EUR";
               return (
                 <div key={income.id} className="flex flex-col gap-2.5 bg-background/40 rounded-xl p-2.5 border border-primary/10 hover:border-primary/30 transition-all group">
                   <div className="flex justify-between items-start gap-2">
@@ -1059,42 +835,11 @@ const Budget = () => {
                       <div className="font-bold text-sm text-foreground">{income.description || "Receita"}</div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">Recebido em: {acc?.name || "Conta"} • {income.date}</div>
                     </div>
-                    <div className="text-base font-black text-primary shrink-0">
-                      {formatMoney(income.amount, currency as any)}
-                    </div>
+                    <div className="text-base font-black text-primary shrink-0">{formatMoney(income.amount, (acc?.currency || "EUR") as any)}</div>
                   </div>
                   <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border/20">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="rounded-lg border-primary/20 hover:bg-primary/10 hover:text-primary h-7 text-[10px] px-2.5"
-                      onClick={() => {
-                        keepInAccount(income.id);
-                        if (currentIncomes.length <= 1) {
-                          setIsPendingIncomesModalOpen(false);
-                        }
-                      }}
-                    >
-                      Manter
-                    </Button>
-                    <DistributionModal 
-                      initialSourceAccount={String(income.account)} 
-                      initialAmount={String(income.amount)}
-                      sourceTransactionId={income.id}
-                      trigger={
-                        <Button 
-                          size="sm" 
-                          onClick={() => {
-                            if (currentIncomes.length <= 1) {
-                              setIsPendingIncomesModalOpen(false);
-                            }
-                          }}
-                          className="gradient-primary rounded-lg h-7 text-[10px] px-3"
-                        >
-                          Distribuir
-                        </Button>
-                      }
-                    />
+                    <Button variant="outline" size="sm" className="rounded-lg border-primary/20 hover:bg-primary/10 hover:text-primary h-7 text-[10px] px-2.5" onClick={() => { keepInAccount(income.id); if (currentIncomes.length <= 1) setIsPendingIncomesModalOpen(false); }}>Manter</Button>
+                    <DistributionModal initialSourceAccount={String(income.account)} initialAmount={String(income.amount)} sourceTransactionId={income.id} trigger={<Button size="sm" onClick={() => currentIncomes.length <= 1 && setIsPendingIncomesModalOpen(false)} className="gradient-primary rounded-lg h-7 text-[10px] px-3">Distribuir</Button>} />
                   </div>
                 </div>
               );
@@ -1106,6 +851,8 @@ const Budget = () => {
     </div>
   );
 };
+
+// --- Sortable Category Row Component (Optimized State Layout) ---
 
 const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMoney: any }) => {
   const {
@@ -1123,8 +870,30 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // 1. Estado local isolado para evitar re-renderizações em cascata durante a digitação
+  const [localValue, setLocalValue] = useState<number>(cat.assigned_amount || 0);
+
+  // Sincroniza o valor local se houver uma alteração externa vinda do banco (rebalanceamentos, etc)
+  useEffect(() => {
+    setLocalValue(cat.assigned_amount || 0);
+  }, [cat.assigned_amount]);
+
   const available = cat.available_amount ?? ((cat.assigned_amount || 0) - (cat.spent_amount || 0));
   const percentSpent = (cat.assigned_amount || 0) > 0 ? ((cat.spent_amount || 0) / cat.assigned_amount) * 100 : 0;
+
+  // 2. Dispara a gravação pesada unicamente no clique do OK ou tecla Enter
+  const handleSave = async () => {
+    if (Number(localValue) !== Number(cat.assigned_amount)) {
+      await assignMoney(cat.id, localValue);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSave();
+    }
+  };
 
   return (
     <TableRow ref={setNodeRef} style={style} className="border-border/40 hover:bg-muted/20 transition-colors">
@@ -1151,13 +920,33 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
           <Progress value={percentSpent} className="h-0.5 sm:h-1 w-16 sm:w-32" />
         </div>
       </TableCell>
+      
+      {/* Célula do Reservado Otimizada */}
       <TableCell className="text-right hidden sm:table-cell p-2 sm:p-4">
-        <CurrencyInput
-          value={cat.assigned_amount || 0}
-          onChange={(val) => assignMoney(cat.id, val)}
-          className="w-24 ml-auto h-8 text-right bg-background/50 border-border/40 focus:border-primary/50"
-        />
+        <div className="flex items-center gap-1.5 justify-end">
+          <CurrencyInput
+            value={localValue}
+            onChange={(val) => setLocalValue(val || 0)}
+            onKeyDown={handleKeyDown}
+            className="w-24 h-8 text-right bg-background/50 border-border/40 focus:border-primary/50"
+          />
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={handleSave}
+            disabled={Number(localValue) === Number(cat.assigned_amount)}
+            className={cn(
+              "h-8 px-2 text-xs font-bold rounded-lg transition-all",
+              Number(localValue) !== Number(cat.assigned_amount) 
+                ? "text-primary bg-primary/10 hover:bg-primary/20 animate-pulse" 
+                : "text-muted-foreground/30 border-transparent cursor-not-allowed"
+            )}
+          >
+            OK
+          </Button>
+        </div>
       </TableCell>
+      
       <TableCell className="text-right text-muted-foreground font-medium italic hidden sm:table-cell p-2 sm:p-4">
         {formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}
       </TableCell>

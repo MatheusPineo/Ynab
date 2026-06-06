@@ -95,7 +95,6 @@ def test_net_worth_evolution(api_client, test_user):
     card = Account.objects.create(user=test_user, name="Nubank", account_type="credit_card", balance=-200)
     
     # Transação no mês ATUAL (muda saldo de trás pra frente)
-    # Ex: no mês passado o saldo devia ser 900 (porque teve entrada de 100 hoje)
     Transaction.objects.create(
         account=account, amount=Decimal('100.00'), 
         date=date.today(), is_income=True, status='realized', is_applied_to_balance=True
@@ -106,13 +105,11 @@ def test_net_worth_evolution(api_client, test_user):
     data = response.json()
     assert len(data) == 2
     
-    # O mês atual (índice 1) deve refletir o saldo bruto total: 1100 de ativo, 200 de passivo
     current_month = data[-1]
     assert current_month['Ativos'] == 1100.0
     assert current_month['Passivos'] == 200.0
     assert current_month['Patrimônio Líquido'] == 900.0
 
-    # O mês passado (índice 0) tinha 100 a menos de entrada (foi no mês atual), então ativos eram 1000
     prev_month = data[-2]
     assert prev_month['Ativos'] == 1000.0
     assert prev_month['Passivos'] == 200.0
@@ -129,15 +126,15 @@ def test_credit_card_usage_empty(api_client, test_user):
 def test_credit_card_usage_math(api_client, test_user):
     api_client.force_authenticate(user=test_user)
     card_acc = Account.objects.create(user=test_user, name="Visa", account_type="credit_card", balance=0)
-    exp_acc, _ = Account.objects.get_or_create(user=test_user, name="Expense", account_type="checking", balance=0)
+    cat_test = Category.objects.create(user=test_user, name="Lazer")
     config = CreditCard.objects.create(account=card_acc, credit_limit=1000, closing_day=1, due_day=10)
 
     CreditCardTransaction.objects.create(
-        credit_card=config, description="Compra 1", date=date(2026, 5, 5), expense_account=exp_acc,
+        credit_card=config, description="Compra 1", date=date(2026, 5, 5), category=cat_test,
         total_amount=Decimal('45.00'), original_amount=Decimal('45.00'), installment_count=1, original_currency='BRL'
     )
     CreditCardTransaction.objects.create(
-        credit_card=config, description="Compra 2", date=date(2026, 5, 10), expense_account=exp_acc,
+        credit_card=config, description="Compra 2", date=date(2026, 5, 10), category=cat_test,
         total_amount=Decimal('55.00'), original_amount=Decimal('55.00'), installment_count=1, original_currency='BRL'
     )
     
