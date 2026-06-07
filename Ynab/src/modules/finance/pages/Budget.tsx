@@ -972,7 +972,29 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
       type="button"
       className="cursor-pointer hover:underline focus:outline-none transition-all text-current font-bold"
     >
+      <MoveMoneyModal
+  sourceCategory={cat}
+  currentAvailable={available}
+  trigger={
+    <button 
+      type="button"
+      className="cursor-pointer hover:underline focus:outline-none transition-all text-current font-bold"
+    >
+      <MoveMoneyModal
+  sourceCategory={cat}
+  currentAvailable={available}
+  trigger={
+    <button 
+      type="button"
+      className="cursor-pointer hover:underline focus:outline-none transition-all text-current font-bold"
+    >
       {formatMoney(available, cat.currency as any || "EUR")}
+    </button>
+  }
+/>
+    </button>
+  }
+/>
     </button>
   }
 />
