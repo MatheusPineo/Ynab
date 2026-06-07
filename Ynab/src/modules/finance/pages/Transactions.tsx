@@ -145,7 +145,8 @@ const Transactions = () => {
   const filteredTransactions = useMemo(() => {
     const result = (Array.isArray(transactions) ? transactions : [])
       .filter((t) => {
-        if (!t || !t.description || !t.date) return false;
+        if (!t || typeof t !== 'object') return false;
+        if (!t.description || !t.date) return false;
 
         // Esconde faturas brutas da visão "Todas as Contas"
         if (selectedAccountId === "all" && t.account_type === 'credit_card') {
@@ -153,24 +154,34 @@ const Transactions = () => {
         }
 
         const searchLower = search.toLowerCase();
-        const matchesSearch = t.description.toLowerCase().includes(searchLower) || String(t.amount).includes(searchLower.replace(',', '.'));
-        const matchesAccount = selectedAccountId === "all" || targetAccountIds.includes(String(t.account));
+        const descMatch = String(t.description || '').toLowerCase().includes(searchLower);
+        const amountMatch = String(t.amount || 0).includes(searchLower.replace(',', '.'));
+        const matchesSearch = descMatch || amountMatch;
+
+        let accountIdStr = "";
+        if (t.account && typeof t.account === 'object') {
+          accountIdStr = String(t.account.id || "");
+        } else {
+          accountIdStr = String(t.account || "");
+        }
+
+        const matchesAccount = selectedAccountId === "all" || targetAccountIds.includes(accountIdStr);
         const matchesStatus = statusFilter === "all" || t.status === statusFilter;
         const matchesType = typeFilter === "all" || (typeFilter === "recurring" && t.is_recurring);
         return matchesSearch && matchesAccount && matchesStatus && matchesType;
       })
-      // PROTEÇÃO DE RELACIONAMENTOS (Evita nulls)
+      // PROTEÇÃO DE RELACIONAMENTOS (Evita nulls e undefined explodirem no React Window ou em modais)
       .map(t => ({
         ...t,
-        category: t.category || null, 
-        account: t.account || null,
-        tags: t.tags || {},
-        metadata: t.metadata || {},
-        splits: t.splits || {},
-        attachments: t.attachments || {},
-        custom_fields: t.custom_fields || {},
-        items: t.items || [],
-        debt_items: t.debt_items || []
+        category: t.category ?? null,
+        account: t.account ?? null,
+        tags: Array.isArray(t.tags) ? t.tags : (t.tags ?? {}),
+        metadata: t.metadata ?? {},
+        splits: t.splits ?? {},
+        attachments: Array.isArray(t.attachments) ? t.attachments : (t.attachments ?? {}),
+        custom_fields: t.custom_fields ?? {},
+        items: Array.isArray(t.items) ? t.items : [],
+        debt_items: Array.isArray(t.debt_items) ? t.debt_items : []
       }));
 
     return result;
@@ -403,13 +414,14 @@ const Transactions = () => {
                 itemCount={sortedTransactions.length}
                 itemSize={68}
                 width="100%"
-                itemKey={(index) => sortedTransactions[index].id}
+                itemKey={(index) => sortedTransactions[index]?.id ?? `fallback-${index}`}
               >
                 {({ index, style }) => {
-                  const t = sortedTransactions[index];
-                  if (!t) return <div style={style} />;
-                  
-                  if (t.isGroup) {
+                  try {
+                    const t = sortedTransactions[index];
+                    if (!t) return <div style={style} />;
+
+                    if (t.isGroup) {
                     return (
                       <div style={style} className="pr-1">
                         <div className="flex flex-col border border-border/40 bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden mb-1.5">
@@ -550,9 +562,19 @@ const Transactions = () => {
                             </div>
                           </div>
                         </SwipeableTransactionCard>
+                        </div>
                       </div>
-                    </div>
-                  );
+                    );
+                  } catch (error) {
+                    console.error("Erro ao renderizar item da lista:", error);
+                    return (
+                      <div style={style} className="pr-1">
+                        <div className="flex items-center p-3 rounded-xl border border-rose-500/30 bg-rose-500/5 mb-1.5">
+                          <p className="text-xs text-rose-500">Erro ao exibir transação.</p>
+                        </div>
+                      </div>
+                    );
+                  }
                 }}
               </List>
             </div>
@@ -609,13 +631,14 @@ const Transactions = () => {
                     itemCount={sortedTransactions.length}
                     itemSize={52}
                     width="100%"
-                    itemKey={(index) => sortedTransactions[index]?.id ?? index}
+                    itemKey={(index) => sortedTransactions[index]?.id ?? `fallback-${index}`}
                   >
                     {({ index, style }) => {
-                      const t = sortedTransactions[index];
-                      if (!t) return <div style={style} />;
-                      
-                      if (t.isGroup) {
+                      try {
+                        const t = sortedTransactions[index];
+                        if (!t) return <div style={style} />;
+
+                        if (t.isGroup) {
                         return (
                           <div
                             style={style}
@@ -763,9 +786,17 @@ const Transactions = () => {
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
+                            </div>
                           </div>
-                        </div>
-                      );
+                        );
+                      } catch (error) {
+                        console.error("Erro ao renderizar linha da tabela:", error);
+                        return (
+                          <div style={style} className="border-b border-border/40 bg-rose-500/5 flex items-center w-full px-4">
+                            <p className="text-xs text-rose-500">Erro ao carregar os dados desta transação.</p>
+                          </div>
+                        );
+                      }
                     }}
                   </List>
                 </td>

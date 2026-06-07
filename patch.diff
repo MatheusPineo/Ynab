@@ -1,0 +1,14 @@
+<<<<<<< SEARCH
+                itemKey={(index) => sortedTransactions[index].id}
+              >
+                {({ index, style }) => {
+                  const t = sortedTransactions[index];
+                  if (!t) return <div style={style} />;
+=======
+                itemKey={(index) => sortedTransactions[index]?.id ?? index}
+              >
+                {({ index, style }) => {
+                  const t = sortedTransactions[index];
+                  if (!t) return <div style={style} />;
+                  try {
+>>>>>>> REPLACE
