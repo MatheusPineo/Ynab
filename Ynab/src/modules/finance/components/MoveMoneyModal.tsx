@@ -36,7 +36,6 @@ export const MoveMoneyModal = ({ sourceCategory, currentAvailable, trigger }: Mo
 
   const { categoryGroups, assignMoney } = useAccountStore();
 
-  // Mapeia e filtra apenas subcategorias filhas do mesmo tipo de moeda, excluindo a própria origem
   const destinationCategories = useMemo(() => {
     const list: { id: string; name: string }[] = [];
     const walk = (nodes: CategoryNode[]) => {
@@ -67,7 +66,6 @@ export const MoveMoneyModal = ({ sourceCategory, currentAvailable, trigger }: Mo
 
     setIsLoading(true);
     try {
-      // Localiza a categoria alvo para ler o estado atual do assigned_amount
       let targetCategoryRef: any = null;
       const findTarget = (nodes: CategoryNode[]) => {
         for (const n of nodes) {
@@ -77,12 +75,9 @@ export const MoveMoneyModal = ({ sourceCategory, currentAvailable, trigger }: Mo
       };
       findTarget(categoryGroups);
 
-      // Orquestração atômica via Actions existentes
-      // 1. Remove da origem
       const newSourceAssigned = (sourceCategory.assigned_amount || 0) - amountToMove;
       await assignMoney(sourceCategory.id, newSourceAssigned);
 
-      // 2. Adiciona no destino
       const newTargetAssigned = (targetCategoryRef?.assigned_amount || 0) + amountToMove;
       await assignMoney(targetCategoryId, newTargetAssigned);
 
@@ -92,7 +87,7 @@ export const MoveMoneyModal = ({ sourceCategory, currentAvailable, trigger }: Mo
       setIsOpen(false);
     } catch (err) {
       console.error(err);
-      toast.error("Falha ao mover fundos entre envelopes.");
+      toast.error("Falha ao mover fundos.");
     } finally {
       setIsLoading(false);
     }
@@ -100,9 +95,7 @@ export const MoveMoneyModal = ({ sourceCategory, currentAvailable, trigger }: Mo
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {trigger}
-      </DialogTrigger>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="sm:max-w-[400px] glass border-border/60">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-black uppercase tracking-tight">
@@ -113,20 +106,12 @@ export const MoveMoneyModal = ({ sourceCategory, currentAvailable, trigger }: Mo
         <form onSubmit={handleMoveFunds} className="grid gap-4 py-3 text-left">
           <div className="rounded-xl bg-muted/30 border border-border/40 p-3 text-xs space-y-1">
             <div className="text-muted-foreground font-medium">Origem: <span className="font-bold text-foreground">{sourceCategory.name}</span></div>
-            <div className="text-muted-foreground font-medium">Disponível Atual: <span className="font-mono font-bold text-emerald-400">{formatMoney(currentAvailable, sourceCategory.currency as any)}</span></div>
+            <div className="text-muted-foreground font-medium">Disponível: <span className="font-mono font-bold text-emerald-400">{formatMoney(currentAvailable, sourceCategory.currency as any)}</span></div>
           </div>
-
           <div className="grid gap-1.5">
             <Label htmlFor="move-amount" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quanto deseja mover?</Label>
-            <CurrencyInput
-              id="move-amount"
-              value={amountToMove}
-              onChange={(val) => setAmountToMove(val || 0)}
-              className="bg-background/50 h-10 text-sm"
-              autoFocus
-            />
+            <CurrencyInput id="move-amount" value={amountToMove} onChange={(val) => setAmountToMove(val || 0)} className="bg-background/50 h-10 text-sm" autoFocus />
           </div>
-
           <div className="grid gap-1.5">
             <Label htmlFor="target-category" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Para qual categoria?</Label>
             <Select value={targetCategoryId} onValueChange={setTargetCategoryId}>
@@ -135,14 +120,11 @@ export const MoveMoneyModal = ({ sourceCategory, currentAvailable, trigger }: Mo
               </SelectTrigger>
               <SelectContent className="glass border-border/60 max-h-52">
                 {destinationCategories.map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id} className="text-xs sm:text-sm">
-                    {cat.name}
-                  </SelectItem>
+                  <SelectItem key={cat.id} value={cat.id} className="text-xs sm:text-sm">{cat.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-
           <DialogFooter className="pt-2">
             <Button type="submit" disabled={isLoading} className="w-full gradient-primary font-bold h-10 text-xs sm:text-sm">
               {isLoading ? "Processando..." : "Confirmar Transferência"}

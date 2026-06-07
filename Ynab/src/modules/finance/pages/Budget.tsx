@@ -58,6 +58,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { DistributionModal } from "@/modules/finance/components/DistributionModal";
 import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
+import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { IncomeSplitterModal } from "@/modules/finance/components/IncomeSplitterModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
@@ -963,7 +964,18 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
                 available > 0 ? "text-emerald-400" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
               )}
             >
-              {formatMoney(available, cat.currency as any || "EUR")}
+              <MoveMoneyModal
+  sourceCategory={cat}
+  currentAvailable={available}
+  trigger={
+    <button 
+      type="button"
+      className="cursor-pointer hover:underline focus:outline-none transition-all text-current font-bold"
+    >
+      {formatMoney(available, cat.currency as any || "EUR")}
+    </button>
+  }
+/>
             </button>
           }
         />

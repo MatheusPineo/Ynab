@@ -21,11 +21,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const rawString = e.target.value;
-      
-      // 1. Detecta se existe um sinal de menos na string digitada
       const isNegative = rawString.includes('-');
-      
-      // 2. Remove tudo o que não for dígito numérico
       const digits = rawString.replace(/\D/g, '');
       
       if (digits === '') {
@@ -33,7 +29,6 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
         return;
       }
       
-      // 3. Calcula o valor flutuante aplicando a polaridade correta
       const rawNumber = parseInt(digits, 10);
       const floatValue = (rawNumber / 100) * (isNegative ? -1 : 1);
       onChange(floatValue);
@@ -44,7 +39,6 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
         {...props}
         ref={ref}
         type="text"
-        // Mudamos para "text" para que teclados mobile/desktop aceitem a tecla hífen (-)
         inputMode="text"
         value={formatValue(value)}
         onChange={handleChange}
