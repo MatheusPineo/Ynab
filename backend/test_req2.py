@@ -10,7 +10,9 @@ import traceback
 from django.contrib.auth.models import User
 
 user = User.objects.first()
-card = CreditCard.objects.first()
+card = None
+if __name__ == "__main__":
+    card = CreditCard.objects.first()
 
 # Create a root account (no parent) to simulate user selecting a root account
 root_acc, _ = Account.objects.get_or_create(user=user, name='Root Checking', account_type='checking', parent=None)

@@ -7,7 +7,9 @@ django.setup()
 from finance.models import CreditCard
 from finance.serializers import CreditCardSerializer
 
-card = CreditCard.objects.first()
+card = None
+if __name__ == "__main__":
+    card = CreditCard.objects.first()
 serializer = CreditCardSerializer(card)
 print(f"Available Limit before: {serializer.data['available_limit']}")
 

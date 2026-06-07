@@ -126,6 +126,9 @@ def test_credit_card_usage_empty(api_client, test_user):
 def test_credit_card_usage_math(api_client, test_user):
     api_client.force_authenticate(user=test_user)
     card_acc = Account.objects.create(user=test_user, name="Visa", account_type="credit_card", balance=0)
+    exp_acc, _ = Account.objects.get_or_create(user=test_user, name="Expense", account_type="expense", balance=0)
+    exp_acc, _ = Account.objects.get_or_create(user=test_user, name="Expense", account_type="expense", balance=0)
+    exp_acc, _ = Account.objects.get_or_create(user=test_user, name="Expense", account_type="expense", balance=0)
     cat_test = Category.objects.create(user=test_user, name="Lazer")
     config = CreditCard.objects.create(account=card_acc, credit_limit=1000, closing_day=1, due_day=10)
 

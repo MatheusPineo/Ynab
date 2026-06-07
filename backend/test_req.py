@@ -8,7 +8,9 @@ from decimal import Decimal
 from datetime import date
 import traceback
 
-card = CreditCard.objects.first()
+card = None
+if __name__ == "__main__":
+    card = CreditCard.objects.first()
 if card:
     exp_acc = Account.objects.filter(account_type='savings').first()
     print("Testing create transaction...")

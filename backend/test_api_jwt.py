@@ -17,7 +17,9 @@ access_token = str(refresh.access_token)
 
 client = Client()
 
-card = CreditCard.objects.first()
+card = None
+if __name__ == "__main__":
+    card = CreditCard.objects.first()
 exp_acc = Account.objects.filter(account_type='savings').first()
 
 payload = {

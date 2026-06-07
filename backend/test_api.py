@@ -10,7 +10,13 @@ from finance.models import CreditCard, Account
 from django.contrib.auth.models import User
 from datetime import date
 
-user, _ = User.objects.get_or_create(username='testuser')
+user = None
+if __name__ == "__main__":
+    user = None
+if __name__ == "__main__":
+    user = None
+if __name__ == "__main__":
+    user, _ = User.objects.get_or_create(username='testuser')
 user.set_password('1234')
 user.save()
 

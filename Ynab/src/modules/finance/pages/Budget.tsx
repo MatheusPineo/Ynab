@@ -38,7 +38,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuPortal,
   DropdownMenuSubContent,
-} from "@/dropdown-menu";
+} from "@/shared/components/ui/dropdown-menu";
 import {
   DndContext,
   closestCenter,
@@ -57,6 +57,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DistributionModal } from "@/modules/finance/components/DistributionModal";
+import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { IncomeSplitterModal } from "@/modules/finance/components/IncomeSplitterModal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
@@ -950,11 +951,22 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
       <TableCell className="text-right text-muted-foreground font-medium italic hidden sm:table-cell p-2 sm:p-4">
         {formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}
       </TableCell>
-      <TableCell className={cn(
-        "text-right font-bold tabular text-xs sm:text-sm p-2 sm:p-4",
-        available > 0 ? "text-emerald-400" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
-      )}>
-        {formatMoney(available, cat.currency as any || "EUR")}
+      <TableCell className="text-right p-2 sm:p-4">
+        <MoveMoneyModal
+          sourceCategory={cat}
+          currentAvailable={available}
+          trigger={
+            <button 
+              type="button"
+              className={cn(
+                "font-bold tabular text-xs sm:text-sm cursor-pointer hover:underline focus:outline-none transition-all",
+                available > 0 ? "text-emerald-400" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
+              )}
+            >
+              {formatMoney(available, cat.currency as any || "EUR")}
+            </button>
+          }
+        />
       </TableCell>
       <TableCell className="hidden sm:table-cell p-2 sm:p-4">
         <CategoryActions category={cat} />

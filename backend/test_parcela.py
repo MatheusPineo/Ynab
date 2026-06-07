@@ -11,7 +11,9 @@ from decimal import Decimal
 from datetime import date
 
 # Get a valid user and credit card
-card = CreditCard.objects.first()
+card = None
+if __name__ == "__main__":
+    card = CreditCard.objects.first()
 
 if not card:
     print('No credit card found.')
