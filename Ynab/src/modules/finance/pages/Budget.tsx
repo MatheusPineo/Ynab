@@ -17,7 +17,7 @@ import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark, RefreshCw } from "lucide-react";
+import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark, RefreshCw, ArrowRightLeft } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -57,7 +57,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DistributionModal } from "@/modules/finance/components/DistributionModal";
-import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { IncomeSplitterModal } from "@/modules/finance/components/IncomeSplitterModal";
@@ -108,6 +107,8 @@ const MonthSelector = () => {
     </div>
   );
 };
+
+// --- Category Actions Component ---
 
 // --- Category Actions Component ---
 
@@ -170,6 +171,9 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
     }
   };
 
+  // Calcula o saldo disponível da categoria para alimentar o modal de transferência
+  const available = category.available_amount ?? ((category.assigned_amount || 0) - (category.spent_amount || 0));
+
   return (
     <>
       <DropdownMenu>
@@ -180,6 +184,21 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Ações</DropdownMenuLabel>
+          
+          {/* Opção de transferência adicionada dentro do menu de ações */}
+          {!isGroup && (
+            <MoveMoneyModal
+              sourceCategory={category}
+              currentAvailable={available}
+              trigger={
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
+                  <ArrowRightLeft className="mr-2 h-4 w-4 text-muted-foreground" />
+                  Transferir Saldo
+                </DropdownMenuItem>
+              }
+            />
+          )}
+
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsEditDialogOpen(true); }}>
             <Edit className="mr-2 h-4 w-4" />
             Editar
@@ -952,55 +971,11 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
       <TableCell className="text-right text-muted-foreground font-medium italic hidden sm:table-cell p-2 sm:p-4">
         {formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}
       </TableCell>
-      <TableCell className="text-right p-2 sm:p-4">
-        <MoveMoneyModal
-          sourceCategory={cat}
-          currentAvailable={available}
-          trigger={
-            <button 
-              type="button"
-              className={cn(
-                "font-bold tabular text-xs sm:text-sm cursor-pointer hover:underline focus:outline-none transition-all",
-                available > 0 ? "text-emerald-400" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
-              )}
-            >
-              <MoveMoneyModal
-  sourceCategory={cat}
-  currentAvailable={available}
-  trigger={
-    <button 
-      type="button"
-      className="cursor-pointer hover:underline focus:outline-none transition-all text-current font-bold"
-    >
-      <MoveMoneyModal
-  sourceCategory={cat}
-  currentAvailable={available}
-  trigger={
-    <button 
-      type="button"
-      className="cursor-pointer hover:underline focus:outline-none transition-all text-current font-bold"
-    >
-      <MoveMoneyModal
-  sourceCategory={cat}
-  currentAvailable={available}
-  trigger={
-    <button 
-      type="button"
-      className="cursor-pointer hover:underline focus:outline-none transition-all text-current font-bold"
-    >
-      {formatMoney(available, cat.currency as any || "EUR")}
-    </button>
-  }
-/>
-    </button>
-  }
-/>
-    </button>
-  }
-/>
-            </button>
-          }
-        />
+      <TableCell className={cn(
+        "text-right font-bold tabular text-xs sm:text-sm p-2 sm:p-4",
+        available > 0 ? "text-emerald-400" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
+      )}>
+        {formatMoney(available, cat.currency as any || "EUR")}
       </TableCell>
       <TableCell className="hidden sm:table-cell p-2 sm:p-4">
         <CategoryActions category={cat} />

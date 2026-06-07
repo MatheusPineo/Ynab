@@ -19,19 +19,38 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
       }).format(val);
     };
 
+    // Buffer local para permitir digitação transitória do '-'
+    const [displayValue, setDisplayValue] = React.useState(() => formatValue(value));
+
+    React.useEffect(() => {
+      setDisplayValue(formatValue(value));
+    }, [value]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const rawString = e.target.value;
       const isNegative = rawString.includes('-');
       const digits = rawString.replace(/\D/g, '');
       
       if (digits === '') {
+        setDisplayValue(isNegative ? '-' : '0,00');
         onChange(0);
         return;
       }
       
       const rawNumber = parseInt(digits, 10);
       const floatValue = (rawNumber / 100) * (isNegative ? -1 : 1);
+      
+      if (floatValue === 0 && isNegative) {
+        setDisplayValue('-0,00');
+      } else {
+        setDisplayValue((isNegative ? '-' : '') + formatValue(Math.abs(floatValue)));
+      }
+      
       onChange(floatValue);
+    };
+
+    const handleBlur = () => {
+      setDisplayValue(formatValue(value));
     };
 
     return (
@@ -40,8 +59,9 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
         ref={ref}
         type="text"
         inputMode="text"
-        value={formatValue(value)}
+        value={displayValue}
         onChange={handleChange}
+        onBlur={handleBlur}
         className={cn("text-right font-mono", className)}
       />
     )

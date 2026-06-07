@@ -4,15 +4,17 @@ import posthog from "posthog-js";
 
 const getBaseUrl = () => {
   let url = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-  // Se a URL não termina com /api e não é localhost, adiciona o /api automaticamente
   if (!url.includes("/api") && !url.startsWith("http://localhost")) {
     url = url.replace(/\/$/, "") + "/api";
   }
-  return url.replace(/\/$/, ""); // Retorna sem barra no final
+  return url.replace(/\/$/, "");
 };
 
 const BASE_URL = getBaseUrl();
 console.log("🚀 API Base URL configurada como:", BASE_URL);
+
+// TRAVA DE CONCORRÊNCIA: Armazena a promessa de atualização global ativa
+let activeRefreshPromise: Promise<string | null> | null = null;
 
 export async function authenticatedFetch(endpoint: string, options: RequestInit = {}) {
   let { accessToken } = useAuthStore.getState();
@@ -52,8 +54,24 @@ export async function authenticatedFetch(endpoint: string, options: RequestInit 
       throw netError;
     }
 
+    // Tratamento de expiração com Fila de Espera (Lock)
     if (response.status === 401) {
-      const newAccessToken = await useAuthStore.getState().refreshAccessToken();
+      // Se não houver nenhuma renovação acontecendo agora, inicia a primeira
+      if (!activeRefreshPromise) {
+        activeRefreshPromise = useAuthStore.getState().refreshAccessToken()
+          .then((token) => {
+            activeRefreshPromise = null; // Libera a trava para futuras expirações
+            return token;
+          })
+          .catch((err) => {
+            activeRefreshPromise = null; // Libera a trava em caso de falha catastrófica
+            throw err;
+          });
+      }
+
+      // Todas as requisições paralelas paradas no 401 aguardam o término do MESMO token-refresh
+      const newAccessToken = await activeRefreshPromise;
+
       if (newAccessToken) {
         try {
           response = await fetch(`${BASE_URL}${endpoint}`, {
@@ -88,11 +106,9 @@ export async function authenticatedFetch(endpoint: string, options: RequestInit 
         rawErrorData = await clonedResponse.json();
         errorMessage = rawErrorData.detail || rawErrorData.error || (typeof rawErrorData === 'object' && Object.keys(rawErrorData).length > 0 ? JSON.stringify(rawErrorData) : null) || errorMessage;
       } catch {
-        // Fallback robusto se a resposta não for JSON (como páginas HTML 404/500 do servidor)
         errorMessage = `Erro de conexão com o servidor (Status ${response.status}: ${response.statusText || 'Não Encontrado'})`;
       }
 
-      // Envia o erro de rede/API para a telemetria do PostHog
       try {
         if (typeof window !== 'undefined' && posthog) {
           const sanitizedDetail = rawErrorData ? { ...rawErrorData } : { message: errorMessage };

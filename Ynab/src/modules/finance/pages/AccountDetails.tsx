@@ -39,8 +39,6 @@ import { AddTransactionModal } from "@/modules/finance/components/AddTransaction
 import { ImportModal } from "@/modules/finance/components/ImportModal";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-
-// Badge precisa ser importado para referência em BadgeVariant de AccountDetails
 import { Badge } from "@/shared/components/ui/badge";
 
 const AccountDetails = () => {
@@ -48,6 +46,24 @@ const AccountDetails = () => {
   const navigate = useNavigate();
   const { tree, fetchAccounts, getCategoryName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
   
+  // 1. Correção Estrutural: useMemo da conta movido para o topo absoluto do componente
+  const account = useMemo(() => {
+    if (!id || !Array.isArray(tree)) return null;
+    const idStr = String(id);
+    const find = (nodes: any[]): any => {
+      for (const node of nodes) {
+        if (node && String(node.id) === idStr) return node;
+        if (node?.children && Array.isArray(node.children)) {
+          const found = find(node.children);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+    return find(tree);
+  }, [id, tree]);
+
+  // 2. Os estados agora inicializam com referências válidas sem disparar ReferenceError
   const [selectedMonth, setSelectedMonth] = useState(currentMonth - 1);
   const [selectedYear, setSelectedYear] = useState(currentYear);
   const [search, setSearch] = useState("");
@@ -55,6 +71,7 @@ const AccountDetails = () => {
   const [logoError, setLogoError] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [lastLogoUrl, setLastLogoUrl] = useState(account?.bank_logo_url);
+  
   if (account?.bank_logo_url !== lastLogoUrl) {
     setLastLogoUrl(account?.bank_logo_url);
     setLogoError(false);
@@ -73,23 +90,6 @@ const AccountDetails = () => {
   ];
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - 2 + i);
-
-  // Busca direta no tree subscrito (reativo) em vez de getAccount (referência estável)
-  const account = useMemo(() => {
-    if (!id || !Array.isArray(tree)) return null;
-    const idStr = String(id);
-    const find = (nodes: any[]): any => {
-      for (const node of nodes) {
-        if (node && String(node.id) === idStr) return node;
-        if (node?.children && Array.isArray(node.children)) {
-          const found = find(node.children);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-    return find(tree);
-  }, [id, tree]);
 
   useEffect(() => {
     setLogoError(false);
@@ -188,7 +188,6 @@ const AccountDetails = () => {
     ];
   }, [account]);
 
-  // Mostra loading enquanto as contas ainda não foram carregadas da API
   if (!account && !accountsLoaded) {
     return (
       <div className="p-6 space-y-4">
@@ -214,7 +213,6 @@ const AccountDetails = () => {
       </div>
     );
   }
-
 
   const handleDeleteClick = (t: any) => {
     if (t.recurring_parent || t.is_recurring) {
@@ -283,7 +281,6 @@ const AccountDetails = () => {
                 {account.name}
               </h1>
 
-              {/* Indicator for ceiling/limit (Expanded Version) */}
               {account.ceiling && Number(account.ceiling) > 0 && (() => {
                 const totalBalance = Number(account.balance) || 0;
                 const ceilVal = Math.round(Number(account.ceiling));
@@ -334,7 +331,6 @@ const AccountDetails = () => {
           )}
         </div>
       </div>
-
 
       {/* Period Filters */}
       <div className="flex flex-wrap items-center gap-2 pl-0">
@@ -433,10 +429,10 @@ const AccountDetails = () => {
         </div>
       )}
 
-      {/* Responsive Grid containing Transactions and Balance Lock Chart */}
+      {/* Grid: Transactions and Balance Lock Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left/Main Column: Transactions list */}
+        {/* Main Column: Transactions list */}
         <div className="lg:col-span-2 flex flex-col gap-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-base sm:text-lg font-semibold tracking-tight">Transações da Conta</h2>
@@ -456,7 +452,7 @@ const AccountDetails = () => {
             </div>
           </div>
 
-          {/* Mobile: Card List */}
+          {/* Mobile View */}
           <div className="sm:hidden flex flex-col gap-2">
             {isLoading ? (
               <div className="flex flex-col gap-2">
@@ -540,7 +536,7 @@ const AccountDetails = () => {
             )}
           </div>
 
-          {/* Desktop: Table */}
+          {/* Desktop View */}
           <div className="hidden sm:block rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
             <Table>
               <TableHeader className="bg-muted/30">
@@ -637,7 +633,7 @@ const AccountDetails = () => {
           </div>
         </div>
 
-        {/* Right Column: Balance Lock Distribution (Pie Chart Card) */}
+        {/* Right Column: Balance Lock Chart */}
         <div className="lg:col-span-1 flex flex-col gap-4">
           <Card className="rounded-2xl sm:rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm shadow-soft">
             <CardContent className="p-4 sm:p-6 flex flex-col gap-4">
@@ -670,14 +666,12 @@ const AccountDetails = () => {
                   </PieChart>
                 </ResponsiveContainer>
                 
-                {/* Center Text (Physical Balance) */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
                   <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Saldo Físico</span>
                   <span className="text-sm font-extrabold text-foreground">{formatMoney(account.balance, currency)}</span>
                 </div>
               </div>
 
-              {/* Custom Legend */}
               <div className="flex flex-col gap-3 mt-2">
                 <div className="flex items-center justify-between text-xs sm:text-sm border-b border-border/20 pb-2">
                   <div className="flex items-center gap-2">

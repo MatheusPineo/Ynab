@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { Plus, CreditCard, ChevronDown, ChevronUp, CheckCircle2, History, Trash, Handshake, User, Trash2 } from "lucide-react";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { useNavigate } from "react-router-dom";
-import { useDebtStore, Debt, DebtPayment } from "@/modules/finance/store/useDebtStore";
+import { useDebtStore, Debt } from "@/modules/finance/store/useDebtStore";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { Button } from "@/shared/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/shared/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { Badge } from "@/shared/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/components/ui/dialog";
@@ -15,7 +15,6 @@ import { Input } from "@/shared/components/ui/input";
 import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
-import { Progress } from "@/shared/components/ui/progress";
 import { toast } from "sonner";
 import { cn } from "@/shared/lib/utils";
 import { AccountNode } from "@/types";
@@ -28,7 +27,7 @@ const DebtCard = ({
   onTargetedPayment,
   onAddDebtAmount,
   debtors,
-  groupedDebtsList,
+  groupedDebtsList, 
   onRefreshGrouped
 }: { 
   debt: Debt; 
@@ -43,7 +42,6 @@ const DebtCard = ({
   const [showHistory, setShowHistory] = useState(false);
   const { deleteDebt, deletePayment, deleteCharge, updateCharge } = useDebtStore();
   
-  // Use total_amount instead of original_amount if available, fallback to original_amount
   const totalDebt = debt.total_amount || debt.original_amount;
   const progress = Math.min(100, Math.round((debt.amount_paid / totalDebt) * 100)) || 0;
   const isPaid = progress >= 100;
@@ -104,7 +102,7 @@ const DebtCard = ({
       }
     }
     if (!debtor) {
-      toast.error("Devedor não encontrado e falha ao criar automaticamente. Buscando por: " + debt.counterparty_name + ", disponíveis: " + activeDebtors.map(d => `${d.name} (id: ${d.id})`).join(", "));
+      toast.error("Devedor não encontrado.");
       return;
     }
 
@@ -126,7 +124,7 @@ const DebtCard = ({
 
       toast.success("Pagamento parcial processado com sucesso!");
       setPaymentAmounts(prev => ({ ...prev, [subaccountId]: "" }));
-      await onRefreshGrouped();
+      await onRefreshGrouped(); 
       await useAccountStore.getState().fetchAccounts();
       await useDebtStore.getState().fetchDebts();
     } catch (err: any) {
@@ -164,10 +162,9 @@ const DebtCard = ({
     ...(debt.charges || []).map(c => ({ ...c, type: 'charge' as const }))
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Grouping logic based on groupedDebts from API or fallback
   let activeGroups: { id?: number; name: string; amount: number; currency?: string; items?: any[] }[] = [];
-  if (groupedDebts.length > 0) {
-    activeGroups = groupedDebts
+  if (groupedDebtsList && groupedDebtsList.length > 0) {
+    activeGroups = groupedDebtsList
       .filter(g => Number(g.total_outstanding_balance) > 0)
       .map(g => ({
         id: g.subaccount_id,
@@ -205,9 +202,8 @@ const DebtCard = ({
       });
   }
 
-  // Multi-currency header aggregation
   const currencyTotals: Record<string, number> = {};
-  if (groupedDebts.length > 0) {
+  if (groupedDebtsList && groupedDebtsList.length > 0) {
     activeGroups.forEach(g => {
       const cur = g.currency || debt.currency;
       currencyTotals[cur] = (currencyTotals[cur] || 0) + g.amount;
@@ -325,7 +321,7 @@ const DebtCard = ({
                                 });
                                 if (res.ok) {
                                   toast.success("Subconta atualizada com sucesso!");
-                                  await fetchGrouped();
+                                  await onRefreshGrouped();
                                   await useAccountStore.getState().fetchAccounts();
                                   await useDebtStore.getState().fetchDebts();
                                 } else {
@@ -344,7 +340,7 @@ const DebtCard = ({
                                 });
                                 if (res.ok) {
                                   toast.success("Subconta da dívida atualizada com sucesso!");
-                                  await fetchGrouped();
+                                  await onRefreshGrouped();
                                   await useAccountStore.getState().fetchAccounts();
                                   await useDebtStore.getState().fetchDebts();
                                 } else {
@@ -388,7 +384,7 @@ const DebtCard = ({
                                     });
                                     if (res.ok) {
                                       toast.success("Valor total atualizado com sucesso!");
-                                      await fetchGrouped();
+                                      await onRefreshGrouped();
                                       await useAccountStore.getState().fetchAccounts();
                                       await useDebtStore.getState().fetchDebts();
                                     } else {
@@ -455,7 +451,7 @@ const DebtCard = ({
                                 });
                                 if (res.ok) {
                                   toast.success("Item de dívida excluído com sucesso!");
-                                  await fetchGrouped();
+                                  await onRefreshGrouped();
                                   await useAccountStore.getState().fetchAccounts();
                                   await useDebtStore.getState().fetchDebts();
                                 } else {
@@ -466,7 +462,6 @@ const DebtCard = ({
                                 toast.error("Erro na requisição: " + err.message);
                               }
                             } else {
-                              // Legacy delete fallback
                               await deleteDebt(debt.id);
                               toast.success("Dívida excluída com sucesso!");
                               await useAccountStore.getState().fetchAccounts();
@@ -522,7 +517,6 @@ const DebtCard = ({
         </div>
       </div>
 
-      {/* Timeline History Expandable */}
       {showHistory && (
         <div className="bg-background/50 border-t border-sidebar-border p-4 text-sm animate-in slide-in-from-top-2 duration-200">
           {timeline.length === 0 ? (
@@ -862,14 +856,6 @@ export const Debts = () => {
     setIsAddAmountOpen(true);
   };
 
-  // Flatten accounts for the select dropdown (only subaccounts usually receive/pay)
-  const subaccounts: AccountNode[] = [];
-  tree.forEach(bank => {
-    if (bank.children) {
-      bank.children.forEach(sub => subaccounts.push(sub));
-    }
-  });
-
   const meDevem = debts.filter(d => !d.is_mine);
   const minhasDividas = debts.filter(d => d.is_mine);
 
@@ -1046,7 +1032,7 @@ export const Debts = () => {
                     id="amount"
                     className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 text-left"
                     placeholder="0.00"
-                    value={amount || 0}
+                    value={amount ? Number(amount) : 0}
                     onChange={(val) => setAmount(String(val))}
                     required
                   />
@@ -1110,7 +1096,7 @@ export const Debts = () => {
                   <CurrencyInput
                     id="payAmount"
                     className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 font-mono font-bold text-left"
-                    value={payAmount || 0}
+                    value={payAmount ? Number(payAmount) : 0}
                     onChange={(val) => setPayAmount(String(val))}
                     required
                   />
@@ -1178,7 +1164,7 @@ export const Debts = () => {
                   <CurrencyInput
                     id="addAmountValue"
                     className="rounded-xl border-border/40 bg-muted/15 p-3 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:bg-muted/25 transition-all h-11 font-mono font-bold text-left"
-                    value={addAmountValue || 0}
+                    value={addAmountValue ? Number(addAmountValue) : 0}
                     onChange={(val) => setAddAmountValue(String(val))}
                     placeholder="0.00"
                     required

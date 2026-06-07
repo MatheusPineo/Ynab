@@ -46,9 +46,9 @@ import { SwipeableTransactionCard } from "@/modules/finance/components/Swipeable
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
 const Transactions = () => {
-  const { tree, fetchAccounts, getAccountName, getCategoryName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth - 1);
-  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const { tree, fetchAccounts, getAccountName, currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
+  const [selectedMonth, setSelectedMonth] = useState(() => currentMonth ? currentMonth - 1 : new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(() => currentYear || new Date().getFullYear());
   const [search, setSearch] = useState("");
   const [selectedAccountId, setSelectedAccountId] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -56,6 +56,9 @@ const Transactions = () => {
   const navigate = useNavigate();
   const [sortField, setSortField] = useState<'date' | 'description' | 'status' | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Controle do ÚNICO Modal de Edição Global
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
 
   const handleSort = (field: 'date' | 'description' | 'status') => {
     if (sortField === field) {
@@ -82,7 +85,6 @@ const Transactions = () => {
   const queryClient = useQueryClient();
   const { transactions, isLoading, deleteTransaction, updateTransaction, payBill } = useTransactions(selectedMonth + 1, selectedYear);
 
-  // Garante dados frescos ao montar a página de transações (corrige bug de cache stale)
   useEffect(() => {
     queryClient.invalidateQueries({ queryKey: ["transactions"] });
   }, [queryClient]);
@@ -113,18 +115,6 @@ const Transactions = () => {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  const allAccounts = useMemo(() => {
-    const flatten = (nodes: any[]): any[] => {
-      let result: any[] = [];
-      nodes.forEach(n => {
-        result.push({ id: n.id, name: n.name });
-        if (n.children) result = [...result, ...flatten(n.children)];
-      });
-      return result;
-    };
-    return flatten(tree);
-  }, [tree]);
-
   const targetAccountIds = useMemo(() => {
     if (selectedAccountId === "all") return [];
     const ids: string[] = [selectedAccountId];
@@ -153,26 +143,36 @@ const Transactions = () => {
   }, [selectedAccountId, tree]);
 
   const filteredTransactions = useMemo(() => {
-    const result = (Array.isArray(transactions) ? transactions : []).filter((t) => {
-      if (!t || !t.description || !t.date) return false;
+    const result = (Array.isArray(transactions) ? transactions : [])
+      .filter((t) => {
+        if (!t || !t.description || !t.date) return false;
 
-      // Hide raw credit card debt transactions from the "Todas as Contas" view
-      // to prevent duplicate clutter alongside the "Fatura" package.
-      if (selectedAccountId === "all" && t.account_type === 'credit_card') {
-        return false;
-      }
+        // Esconde faturas brutas da visão "Todas as Contas"
+        if (selectedAccountId === "all" && t.account_type === 'credit_card') {
+          return false;
+        }
 
-      const searchLower = search.toLowerCase();
-      const matchesSearch = t.description.toLowerCase().includes(searchLower) || String(t.amount).includes(searchLower.replace(',', '.'));
-      const matchesAccount = selectedAccountId === "all" || targetAccountIds.includes(String(t.account));
-      const matchesStatus = statusFilter === "all" || t.status === statusFilter;
-      const matchesType = typeFilter === "all" || (typeFilter === "recurring" && t.is_recurring);
-      return matchesSearch && matchesAccount && matchesStatus && matchesType;
-    });
-    // Log de diagnóstico para rastrear bug de transações sumidas
-    if (typeof console !== 'undefined') {
-      console.log(`[Transactions] API retornou ${Array.isArray(transactions) ? transactions.length : 0} transações | Após filtro: ${result.length} | Conta: ${selectedAccountId} | Mês: ${selectedMonth + 1}/${selectedYear}`);
-    }
+        const searchLower = search.toLowerCase();
+        const matchesSearch = t.description.toLowerCase().includes(searchLower) || String(t.amount).includes(searchLower.replace(',', '.'));
+        const matchesAccount = selectedAccountId === "all" || targetAccountIds.includes(String(t.account));
+        const matchesStatus = statusFilter === "all" || t.status === statusFilter;
+        const matchesType = typeFilter === "all" || (typeFilter === "recurring" && t.is_recurring);
+        return matchesSearch && matchesAccount && matchesStatus && matchesType;
+      })
+      // PROTEÇÃO DE RELACIONAMENTOS (Evita nulls)
+      .map(t => ({
+        ...t,
+        category: t.category || null, 
+        account: t.account || null,
+        tags: t.tags || {},
+        metadata: t.metadata || {},
+        splits: t.splits || {},
+        attachments: t.attachments || {},
+        custom_fields: t.custom_fields || {},
+        items: t.items || [],
+        debt_items: t.debt_items || []
+      }));
+
     return result;
   }, [transactions, search, selectedAccountId, targetAccountIds, selectedMonth, selectedYear, statusFilter, typeFilter]);
 
@@ -301,7 +301,6 @@ const Transactions = () => {
 
       {/* Filters */}
       <div className="flex flex-col gap-2 sm:gap-3">
-        {/* Search row */}
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-muted-foreground" />
@@ -315,7 +314,6 @@ const Transactions = () => {
           <ImportModal />
         </div>
 
-        {/* Period + Account filters */}
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <Select 
             value={String(selectedMonth)} 
@@ -409,6 +407,8 @@ const Transactions = () => {
               >
                 {({ index, style }) => {
                   const t = sortedTransactions[index];
+                  if (!t) return <div style={style} />;
+                  
                   if (t.isGroup) {
                     return (
                       <div style={style} className="pr-1">
@@ -457,11 +457,11 @@ const Transactions = () => {
                   return (
                     <div style={style} className="pr-1">
                       <div className="relative mb-1.5">
-                        <AddTransactionModal transaction={t}>
-                          <button id={`edit-trigger-${t.id}`} className="hidden" />
-                        </AddTransactionModal>
                         <SwipeableTransactionCard
-                          onEdit={() => document.getElementById(`edit-trigger-${t.id}`)?.click()}
+                          onEdit={() => {
+                            setEditingTransaction(t);
+                            setTimeout(() => document.getElementById("global-edit-trigger")?.click(), 50);
+                          }}
                           onDelete={() => handleDeleteClick(t)}
                         >
                           <div className="flex items-center justify-between p-2.5 rounded-xl border border-border/40 bg-card/40 backdrop-blur-sm hover:border-border/80 transition-all group">
@@ -502,8 +502,15 @@ const Transactions = () => {
                               )}>
                                 {t.is_income ? "+" : "-"}
                                 {formatMoney(Math.abs(Number(t.amount)), (() => {
-                                  const acc = useAccountStore.getState().getAccount(t.account);
-                                  return acc?.currency || "EUR";
+                                  if (t.account && typeof t.account === 'object') {
+                                    return t.account.currency || "EUR";
+                                  }
+                                  try {
+                                    const acc = useAccountStore.getState().getAccount?.(t.account);
+                                    return acc?.currency || "EUR";
+                                  } catch (e) {
+                                    return "EUR";
+                                  }
                                 })())}
                               </p>
                               <DropdownMenu>
@@ -524,12 +531,16 @@ const Transactions = () => {
                                       : <><CheckCircle2 className="mr-2 h-3.5 w-3.5" />Efetivar</>
                                     }
                                   </DropdownMenuItem>
-                                  <AddTransactionModal transaction={t}>
-                                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer text-xs">
-                                      <Edit2 className="mr-2 h-3.5 w-3.5" />
-                                      Editar
-                                    </DropdownMenuItem>
-                                  </AddTransactionModal>
+                                  <DropdownMenuItem 
+                                    onSelect={() => {
+                                      setEditingTransaction(t);
+                                      setTimeout(() => document.getElementById("global-edit-trigger")?.click(), 50);
+                                    }} 
+                                    className="cursor-pointer text-xs"
+                                  >
+                                    <Edit2 className="mr-2 h-3.5 w-3.5" />
+                                    Editar
+                                  </DropdownMenuItem>
                                   <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400 text-xs" onClick={() => handleDeleteClick(t)}>
                                     <Trash2 className="mr-2 h-3.5 w-3.5" />
                                     Excluir
@@ -603,6 +614,7 @@ const Transactions = () => {
                     {({ index, style }) => {
                       const t = sortedTransactions[index];
                       if (!t) return <div style={style} />;
+                      
                       if (t.isGroup) {
                         return (
                           <div
@@ -662,9 +674,18 @@ const Transactions = () => {
                           <div className="flex-1 min-w-0 font-medium truncate pr-4">{t.description}</div>
                           <div className="w-[150px] shrink-0 pr-4 truncate">
                             <Badge variant="secondary" className="bg-secondary/10 text-secondary border-transparent font-normal">
-                              {getAccountName(t.account)}
-                            </Badge>
-                          </div>
+                            {(() => {
+                              if (!t.account) return "-";
+                              if (typeof t.account === 'object') return t.account.name || "-";
+                              try {
+                                const name = getAccountName ? getAccountName(t.account) : "-";
+                                return name || "-";
+                              } catch (e) {
+                                return "-";
+                              }
+                            })()}
+                          </Badge>
+                        </div>
                           <div className="w-[120px] shrink-0 pr-4">
                             <Button
                               variant="ghost"
@@ -695,8 +716,17 @@ const Transactions = () => {
                             !t.is_income ? "text-rose-400" : "text-emerald-400"
                           )}>
                             {(() => {
-                              const acc = useAccountStore.getState().getAccount(t.account);
-                              const currency = acc?.currency || "EUR";
+                              let currency = "EUR";
+                              if (t.account && typeof t.account === 'object') {
+                                currency = t.account.currency || "EUR";
+                              } else {
+                                try {
+                                  const acc = useAccountStore.getState().getAccount?.(t.account);
+                                  currency = acc?.currency || "EUR";
+                                } catch (e) {
+                                  currency = "EUR";
+                                }
+                              }
                               return (
                                 <>
                                   {t.is_income ? "+" : "-"}
@@ -716,12 +746,16 @@ const Transactions = () => {
                                 <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
                                 
-                                <AddTransactionModal transaction={t}>
-                                  <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer">
-                                    <Edit2 className="mr-2 h-4 w-4" />
-                                    Editar
-                                  </DropdownMenuItem>
-                                </AddTransactionModal>
+                                <DropdownMenuItem 
+                                  onSelect={() => {
+                                    setEditingTransaction(t);
+                                    setTimeout(() => document.getElementById("global-edit-trigger")?.click(), 50);
+                                  }} 
+                                  className="cursor-pointer"
+                                >
+                                  <Edit2 className="mr-2 h-4 w-4" />
+                                  Editar
+                                </DropdownMenuItem>
 
                                 <DropdownMenuItem className="cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteClick(t)}>
                                   <Trash2 className="mr-2 h-4 w-4" />
@@ -757,6 +791,14 @@ const Transactions = () => {
         actionType="delete"
         onConfirm={handleConfirmDeleteScope}
       />
+
+      {/* MODAL DE EDIÇÃO GLOBAL: Previne o Crash de Renderização */}
+      {editingTransaction && (
+        <AddTransactionModal transaction={editingTransaction}>
+          <button id="global-edit-trigger" className="hidden" />
+        </AddTransactionModal>
+      )}
+
     </div>
   );
 };
