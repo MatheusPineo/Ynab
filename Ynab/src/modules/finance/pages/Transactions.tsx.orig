@@ -190,7 +190,7 @@ const Transactions = () => {
   const processedTransactions = useMemo(() => {
     const groups = new Map<number, any>();
     const result: any[] = [];
-    
+
     for (const t of filteredTransactions) {
       if (t.statement_id) {
         if (!groups.has(t.statement_id)) {
@@ -292,9 +292,9 @@ const Transactions = () => {
 
   const handleStatusToggle = async (t: any) => {
     const newStatus = t.status === "realized" ? "pending" : "realized";
-    await updateTransaction.mutateAsync({ 
-      id: t.id, 
-      updates: { status: newStatus } 
+    await updateTransaction.mutateAsync({
+      id: t.id,
+      updates: { status: newStatus }
     });
   };
 
@@ -326,8 +326,8 @@ const Transactions = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-          <Select 
-            value={String(selectedMonth)} 
+          <Select
+            value={String(selectedMonth)}
             onValueChange={(v) => {
               const m = Number(v);
               setSelectedMonth(m);
@@ -344,8 +344,8 @@ const Transactions = () => {
             </SelectContent>
           </Select>
 
-          <Select 
-            value={String(selectedYear)} 
+          <Select
+            value={String(selectedYear)}
             onValueChange={(v) => {
               const y = Number(v);
               setSelectedYear(y);
@@ -369,7 +369,7 @@ const Transactions = () => {
             showAllOption
             className="flex-1 min-w-[120px] sm:w-[180px] h-9 sm:h-10"
           />
-          
+
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[110px] sm:w-[130px] glass border-border/40 rounded-xl h-9 sm:h-10 text-xs sm:text-sm shadow-soft focus:ring-0">
               <SelectValue placeholder="Status" />
@@ -414,7 +414,6 @@ const Transactions = () => {
                 itemCount={sortedTransactions.length}
                 itemSize={68}
                 width="100%"
-                itemData={sortedTransactions}
                 itemKey={(index) => sortedTransactions[index]?.id ?? `fallback-${index}`}
               >
                 {({ index, style }) => {
@@ -426,7 +425,7 @@ const Transactions = () => {
                     return (
                       <div style={style} className="pr-1">
                         <div className="flex flex-col border border-border/40 bg-card/40 backdrop-blur-sm rounded-xl overflow-hidden mb-1.5">
-                          <div 
+                          <div
                             className="flex items-center justify-between p-2.5 cursor-pointer hover:bg-muted/10 transition-colors"
                             onClick={() => {
                               if (t.items[0]?.credit_card_id) {
@@ -447,9 +446,9 @@ const Transactions = () => {
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               {t.status !== 'paid' && t.status !== 'realized' && (
-                                <Button 
-                                  variant="default" 
-                                  size="sm" 
+                                <Button
+                                  variant="default"
+                                  size="sm"
                                   className="h-7 text-[10px] px-2 bg-indigo-600 hover:bg-indigo-700 text-white"
                                   onClick={(e) => handlePayBillClick(t, e)}
                                 >
@@ -544,11 +543,11 @@ const Transactions = () => {
                                       : <><CheckCircle2 className="mr-2 h-3.5 w-3.5" />Efetivar</>
                                     }
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem 
+                                  <DropdownMenuItem
                                     onSelect={() => {
                                       setEditingTransaction(t);
                                       setTimeout(() => document.getElementById("global-edit-trigger")?.click(), 50);
-                                    }} 
+                                    }}
                                     className="cursor-pointer text-xs"
                                   >
                                     <Edit2 className="mr-2 h-3.5 w-3.5" />
@@ -617,9 +616,9 @@ const Transactions = () => {
             ) : sortedTransactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6}>
-                  <EmptyState 
-                    icon={Receipt} 
-                    title="Nenhuma transação" 
+                  <EmptyState
+                    icon={Receipt}
+                    title="Nenhuma transação"
                     description="Ainda não existem movimentações registradas para este filtro."
                   />
                 </TableCell>
@@ -632,7 +631,6 @@ const Transactions = () => {
                     itemCount={sortedTransactions.length}
                     itemSize={52}
                     width="100%"
-                    itemData={sortedTransactions}
                     itemKey={(index) => sortedTransactions[index]?.id ?? `fallback-${index}`}
                   >
                     {({ index, style }) => {
@@ -666,9 +664,9 @@ const Transactions = () => {
                             </div>
                             <div className="w-[120px] shrink-0 pr-4">
                               {t.status !== 'paid' && t.status !== 'realized' && (
-                                <Button 
-                                  variant="default" 
-                                  size="sm" 
+                                <Button
+                                  variant="default"
+                                  size="sm"
                                   className="h-7 text-xs px-3 bg-indigo-600 hover:bg-indigo-700 text-white"
                                   onClick={(e) => handlePayBillClick(t, e)}
                                 >
@@ -718,8 +716,8 @@ const Transactions = () => {
                               onClick={() => handleStatusToggle(t)}
                               className={cn(
                                 "h-8 px-2 rounded-lg transition-all",
-                                t.status === "realized" 
-                                  ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10" 
+                                t.status === "realized"
+                                  ? "text-emerald-500 hover:text-emerald-600 hover:bg-emerald-500/10"
                                   : "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10"
                               )}
                             >
@@ -770,12 +768,12 @@ const Transactions = () => {
                               <DropdownMenuContent align="end" className="glass border-border/60">
                                 <DropdownMenuLabel>Ações</DropdownMenuLabel>
                                 <DropdownMenuSeparator />
-                                
-                                <DropdownMenuItem 
+
+                                <DropdownMenuItem
                                   onSelect={() => {
                                     setEditingTransaction(t);
                                     setTimeout(() => document.getElementById("global-edit-trigger")?.click(), 50);
-                                  }} 
+                                  }}
                                   className="cursor-pointer"
                                 >
                                   <Edit2 className="mr-2 h-4 w-4" />
@@ -808,7 +806,7 @@ const Transactions = () => {
         </Table>
       </div>
 
-      <PayBillModal 
+      <PayBillModal
         isOpen={payBillModalOpen}
         onClose={() => setPayBillModalOpen(false)}
         onConfirm={handlePayBillConfirm}
