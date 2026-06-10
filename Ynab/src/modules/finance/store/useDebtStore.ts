@@ -93,6 +93,9 @@ interface DebtState {
   updateCharge: (chargeId: string, data: Partial<DebtCharge>) => Promise<void>;
   deleteCharge: (chargeId: string) => Promise<void>;
   fetchSplitRules: () => Promise<void>;
+  createSplitRule: (data: Partial<SplitRule>) => Promise<void>;
+  updateSplitRule: (id: string, data: Partial<SplitRule>) => Promise<void>;
+  deleteSplitRule: (id: string) => Promise<void>;
   setTransactionDraft: (draft: TransactionDraft | null) => void;
 }
 
@@ -247,6 +250,31 @@ export const useDebtStore = create<DebtState>((set, get) => ({
     } catch (err) {
       console.error("Erro ao buscar regras de rateio:", err);
     }
+  },
+
+  createSplitRule: async (data) => {
+    try {
+      const res = await authenticatedFetch("/split-rules/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      if (!res.ok) throw new Error("Failed to create split rule");
+      await get().fetchSplitRules();
+      toast.success("Split rule created!");
+    } catch (error: any) { toast.error(error.message); }
+  },
+  updateSplitRule: async (id, data) => {
+    try {
+      const res = await authenticatedFetch(`/split-rules/${id}/`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      if (!res.ok) throw new Error("Failed to update rule");
+      await get().fetchSplitRules();
+      toast.success("Rule updated!");
+    } catch (error: any) { toast.error(error.message); }
+  },
+  deleteSplitRule: async (id) => {
+    try {
+      const res = await authenticatedFetch(`/split-rules/${id}/`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete rule");
+      await get().fetchSplitRules();
+      toast.success("Rule deleted.");
+    } catch (error: any) { toast.error(error.message); }
   },
 
   setTransactionDraft: (draft) => {

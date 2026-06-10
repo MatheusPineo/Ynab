@@ -1,3 +1,73 @@
+## [1.76.00] - 2026-06-10
+
+### Changed
+- Frontend: Separou a visualização dos quadros de orçamento EUR e BRL (`Budget.tsx`) em abas utilizando o componente `Tabs` para evitar rolagem infinita.
+
+## [1.75.00] - 2026-06-10
+
+### Changed
+- Frontend: Tornou a seção superior do orçamento (`Budget.tsx`) fixa (sticky) ao rolar a página utilizando classes do Tailwind CSS e um fundo com efeito de desfoque (`backdrop-blur-md`).
+
+## [1.74.00] - 2026-06-10
+
+### Changed
+- Frontend: Renomeadas as colunas da tabela de orçamento em `Budget.tsx` de "Reservado", "Gasto" e "Disponível" para "Separei", "Gastei" e "Sobrou", e atualizados seus respectivos tooltips explicativos.
+
+## [1.73.00] - 2026-06-10
+
+### Removed
+- Frontend: Removidos fisicamente os arquivos obsoletos de páginas `Debts.tsx` e `DebtorProfile.tsx` do subdiretório `src/modules/finance/pages/`.
+
+## [1.72.00] - 2026-06-10
+
+### Changed
+- Frontend: Removido o item de menu "Dívidas" (`/debts`) na barra de navegação lateral (`Sidebar.tsx`) e na barra inferior mobile (`BottomNav.tsx`).
+
+## [1.71.00] - 2026-06-10
+
+### Changed
+- Frontend: Removidas as rotas legadas `/debts` e `/debtor/:id` bem como suas importações correspondentes no arquivo `App.tsx` para alinhar com a arquitetura do YNAB.
+
+## [1.70.00] - 2026-06-10
+
+### Changed
+- Frontend: Refatorado o modal de criação de subcontas (`AddAccountModal.tsx`) para remover os campos de "Teto" e "IconPicker", e renomeado o checkbox "Desconsiderar nos Totais" para "Conta de Acompanhamento (Fora do Orçamento)" em conformidade com as regras YNAB.
+
+## [1.69.00] - 2026-06-10
+
+### Changed
+- Frontend: Refatorado o modal de criação de contas principais (`AddRootAccountModal.tsx`) para remover os campos de "Teto" e "IconPicker", e renomeado o checkbox "Desconsiderar nos Totais" para "Conta de Acompanhamento (Fora do Orçamento)", alinhando a interface com os princípios do YNAB.
+
+## [1.68.00] - 2026-06-10
+
+### Changed
+- Frontend: Correção de terminologia legada no TreeMap de Relatórios Avançados (`Reports.tsx`), substituindo menções a "Subcontas" por "Contas de Custódia" e "Conta de Alocação" no gráfico, tabela do PDF executivo e nos comentários de código.
+
+## [1.67.00] - 2026-06-10
+
+### Changed
+- Frontend: Remoção do vazamento conceitual de "subcontas" do texto da página de listagem de contas (`Accounts.tsx`). A descrição agora foca estritamente em instruir o usuário a cadastrar apenas locais reais onde o dinheiro físico reside.
+
+## [1.66.00] - 2026-06-10
+
+### Added
+- Frontend: Exibição da categoria da transação na lista Mobile (via badge sob a descrição) e na tabela Desktop (coluna adicional "Categoria" de 150px) na página `Transactions.tsx`.
+
+## [1.65.00] - 2026-06-10
+
+### Fixed
+- Frontend: Correção no modal de transação (`AddTransactionModal.tsx`) para usar `useNavigate` do `react-router-dom` ao acessar as configurações de regras de rateio (Split Rules) sem perdas de estado ou quebras de redirecionamento.
+
+## [1.64.00] - 2026-06-10
+
+### Added
+- Frontend: Desenvolvido o componente visual `FinanceSplitRulesTab` para gerenciamento completo de Regras de Rateio (Split Rules) e injetado como a aba "Rateios" na página de Configurações (Settings) do roteador principal (`App.tsx`).
+
+## [1.63.00] - 2026-06-10
+
+### Added
+- Frontend: Implementadas as operações completas de CRUD (Criação, Edição, Deleção e Leitura) para Regras de Rateio (Split Rules) na store global do Zustand (`useDebtStore.ts`), permitindo gerenciamento dinâmico direto de divisões comuns de despesas com roommates e devedores.
+
 ## [1.62.00] - 2026-06-05
 
 ### Added

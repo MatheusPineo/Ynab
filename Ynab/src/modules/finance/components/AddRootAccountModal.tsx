@@ -17,7 +17,6 @@ import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
 import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
-import { IconPicker } from "./IconPicker";
 
 export const AddRootAccountModal = () => {
   const [open, setOpen] = useState(false);
@@ -25,10 +24,7 @@ export const AddRootAccountModal = () => {
   const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [balance, setBalance] = useState(0);
-  const [ceiling, setCeiling] = useState<number | null>(null);
   const [creditLimit, setCreditLimit] = useState(0);
-  const [iconUrl, setIconUrl] = useState<string>("");
-  const [isCropping, setIsCropping] = useState(false);
   const { addNode, fetchAccounts } = useAccountStore();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -45,7 +41,6 @@ export const AddRootAccountModal = () => {
           closing_day: parseInt(formData.get("closing_day") as string, 10) || 20,
           due_day: parseInt(formData.get("due_day") as string, 10) || 28,
           currency: formData.get("currency") as string,
-          icon_url: iconUrl || null,
           bank_domain: (formData.get("bank_domain") as string) || ""
         };
 
@@ -67,9 +62,7 @@ export const AddRootAccountModal = () => {
           balance: balance,
           account_type: accountType === "investment" ? "investment" : "checking",
           currency: formData.get("currency") as any,
-          ceiling: ceiling,
           exclude_from_totals: accountType === "investment" ? false : excludeFromTotals,
-          icon_url: iconUrl || null,
           bank_domain: (formData.get("bank_domain") as string) || ""
         });
 
@@ -78,9 +71,7 @@ export const AddRootAccountModal = () => {
 
       setExcludeFromTotals(false);
       setBalance(0);
-      setCeiling(null);
       setCreditLimit(0);
-      setIconUrl("");
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message);
@@ -155,17 +146,10 @@ export const AddRootAccountModal = () => {
           </div>
 
           {accountType === "checking" || accountType === "investment" ? (
-            <>
-              <div className="grid gap-2">
-                <Label htmlFor="balance" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Saldo Inicial</Label>
-                <CurrencyInput id="balance" value={balance} onChange={setBalance} className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono font-bold text-sm text-left" />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="ceiling" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Teto (Limite Opcional)</Label>
-                <CurrencyInput id="ceiling" value={ceiling ?? 0} onChange={(val) => setCeiling(val === 0 ? null : val)} placeholder="Ex: 1000.00" className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono text-sm text-left" />
-              </div>
-            </>
+            <div className="grid gap-2">
+              <Label htmlFor="balance" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Saldo Inicial</Label>
+              <CurrencyInput id="balance" value={balance} onChange={setBalance} className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono font-bold text-sm text-left" />
+            </div>
           ) : (
             <>
               <div className="grid gap-2">
@@ -200,17 +184,6 @@ export const AddRootAccountModal = () => {
             </Select>
           </div>
 
-          <div className="grid gap-2">
-            <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Ícone do Banco / Conta</Label>
-            <IconPicker 
-              currentIconUrl={iconUrl} 
-              onCroppingStateChange={setIsCropping}
-              onIconUploaded={(url) => {
-                setIconUrl(url);
-              }} 
-            />
-          </div>
-
           {accountType === "checking" && (
             <div className="flex items-center space-x-3 bg-muted/20 border border-border/40 px-3.5 py-3 rounded-xl mt-1">
               <input
@@ -222,8 +195,8 @@ export const AddRootAccountModal = () => {
               />
               <div className="space-y-0.5 min-w-0">
                 <Label htmlFor="root_exclude_from_totals" className="text-xs font-semibold text-foreground cursor-pointer flex items-center gap-1.5 select-none">
-                  Desconsiderar nos Totais
-                  <HelpTooltip content="Oculta o saldo desta conta dos somatórios de Net Worth e do dashboard global." />
+                  Conta de Acompanhamento (Fora do Orçamento)
+                  <HelpTooltip content="Oculta o saldo desta conta do orçamento disponível, útil para investimentos ou financiamentos que você apenas acompanha." />
                 </Label>
               </div>
             </div>
@@ -231,7 +204,7 @@ export const AddRootAccountModal = () => {
 
           <DialogFooter className="pt-3 border-t border-border/20 mt-2">
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-xl border-border/60 text-xs font-bold">Cancelar</Button>
-            <Button type="submit" disabled={isSubmitting || isCropping} className="gradient-primary rounded-xl font-bold text-xs shadow-glow">
+            <Button type="submit" disabled={isSubmitting} className="gradient-primary rounded-xl font-bold text-xs shadow-glow">
               {isSubmitting ? "Cadastrando..." : "Confirmar Cadastro"}
             </Button>
           </DialogFooter>

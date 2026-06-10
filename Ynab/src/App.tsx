@@ -39,8 +39,6 @@ const Goals = lazyWithRetry(() => import("@/modules/finance/pages/Goals"));
 const Settings = lazyWithRetry(() => import("@/modules/auth/pages/Settings"));
 const AccountDetails = lazyWithRetry(() => import("@/modules/finance/pages/AccountDetails"));
 const BillDetails = lazyWithRetry(() => import("@/modules/finance/pages/BillDetails"));
-const Debts = lazyWithRetry(() => import("@/modules/finance/pages/Debts"));
-const DebtorProfile = lazyWithRetry(() => import("@/modules/finance/pages/DebtorProfile"));
 const Rule503020 = lazyWithRetry(() => import("@/modules/finance/pages/Rule503020"));
 const Reports = lazyWithRetry(() => import("@/modules/finance/pages/Reports"));
 const CreditCards = lazyWithRetry(() => import("@/modules/finance/pages/CreditCards"));
@@ -55,8 +53,8 @@ const LegalCenter = lazyWithRetry(() => import("@/modules/auth/pages/LegalCenter
 const HelpCenter = lazyWithRetry(() => import("@/modules/auth/pages/HelpCenter"));
 import CookieBanner from "@/modules/auth/components/CookieBanner";
 import { useConsentTracker } from "@/shared/hooks/useConsentTracker";
-import { FinanceDataTab, FinanceTemplatesTab } from "@/modules/finance/components/FinanceSettingsTab";
-import { Database, LayoutGrid } from "lucide-react";
+import { FinanceDataTab, FinanceTemplatesTab, FinanceSplitRulesTab } from "@/modules/finance/components/FinanceSettingsTab";
+import { Database, LayoutGrid, Users } from "lucide-react";
 import { useSidebarStore } from "@/shared/store/useSidebarStore";
 
 import { Capacitor } from "@capacitor/core";
@@ -166,7 +164,6 @@ const App = () => {
                     <Route path="inbox" element={<Inbox />} />
                     <Route path="budget" element={<FeatureProtectedRoute featureKey="budget"><Budget /></FeatureProtectedRoute>} />
                     <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />
-                    <Route path="debts" element={<FeatureProtectedRoute featureKey="debts"><Debts /></FeatureProtectedRoute>} />
                     <Route path="reports" element={<FeatureProtectedRoute featureKey="reports"><Reports /></FeatureProtectedRoute>} />
                     <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />
                     <Route path="credit-cards" element={<FeatureProtectedRoute featureKey="credit_cards"><CreditCards /></FeatureProtectedRoute>} />
@@ -197,13 +194,22 @@ const App = () => {
                                 </>
                               ),
                               content: <FinanceTemplatesTab />
+                            },
+                            {
+                              value: "split-rules",
+                              trigger: (
+                                <>
+                                  <Users className="h-4 w-4 shrink-0" />
+                                  <span>Rateios</span>
+                                </>
+                              ),
+                              content: <FinanceSplitRulesTab />
                             }
                           ]} 
                         />
                       } 
                     />
                     <Route path="account/:id" element={<AccountDetails />} />
-                    <Route path="debtor/:id" element={<DebtorProfile />} />
                     <Route path="bill/:cardId/:billId" element={<BillDetails />} />
                     <Route path="help" element={<HelpCenter isPublic={false} />} />
                   </Route>

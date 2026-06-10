@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ interface Props {
 }
 
 export const AddTransactionModal = ({ children, transaction, onClose, initialAccountId }: Props) => {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
   
@@ -58,6 +60,11 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   useEffect(() => {
     if (open) {
       fetchSplitRules();
+      try {
+        useAccountStore.getState().fetchCategoryGroups?.();
+      } catch (err) {
+        console.error("Erro ao carregar grupos de categoria ao abrir o modal:", err);
+      }
       if (transactionDraft) {
         setDescription(transactionDraft.description);
         setAmount(transactionDraft.amount);
@@ -167,14 +174,10 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     }
   }, [currentCard]);
 
-
-
   // Resetar índice de sugestão ativa ao mudar o termo de busca
   useEffect(() => {
     setActiveSuggestionIndex(-1);
   }, [description]);
-
-
 
   const { tree, categoryGroups } = useAccountStore();
   const { transactions = [], addTransaction, updateTransaction, transferTransaction } = useTransactions();
@@ -188,8 +191,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       if (container && !container.contains(e.target as Node)) {
         setShowSuggestions(false);
       }
-      
-
     };
     
     document.addEventListener("mousedown", handleOutsideClick);
@@ -201,7 +202,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   // Obter o nome de uma categoria pelo ID
   const getCategoryName = (catId: any) => {
     if (!catId) return "";
-    for (const group of categoryGroups) {
+    for (const group of categoryGroups || []) {
       const found = (group.children || []).find((c: any) => String(c.id) === String(catId));
       if (found) return found.name;
     }
@@ -228,7 +229,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     
     const uniqueMap = new Map<string, Transaction>();
     
-    // Pegar as ocorrências mais recentes (fim do array para o início)
     [...matching].reverse().forEach(t => {
       if (t && typeof t.description === "string") {
         const descKey = t.description.trim();
@@ -278,8 +278,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   
   const allAccounts = getAllAccounts(tree);
 
-
-
   const fromAccount = allAccounts.find(a => String(a.id) === accountId);
   const toAccount = allAccounts.find(a => String(a.id) === toAccountId);
   const isTransfer = type === "transfer";
@@ -326,7 +324,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
         return;
       } else if (transaction.recurring_parent || transaction.is_recurring) {
         setScopeModalOpen(true);
-        return; // Retorna para aguardar escolha no modal
+        return;
       } else {
         await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData });
         setOpen(false);
@@ -466,7 +464,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                   );
                 } else if (e.key === "Enter") {
                   if (activeSuggestionIndex >= 0 && activeSuggestionIndex < suggestions.length) {
-                    e.preventDefault(); // Impede o submit do formulário
+                    e.preventDefault();
                     handleSelectSuggestion(suggestions[activeSuggestionIndex]);
                   }
                 } else if (e.key === "Escape") {
@@ -654,6 +652,37 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                 />
               </div>
             )}
+
+            {/* SELETOR DE CATEGORIA AGRUPADO (Apenas para despesas/receitas) */}
+            {!isTransfer && (
+              <div id="category-container" className="relative grid gap-2 col-span-full animate-in fade-in slide-in-from-top-1">
+                <Label htmlFor="category">Categoria</Label>
+                <Select 
+                  value={categoryId} 
+                  onValueChange={(v) => { 
+                    setCategoryId(v); 
+                    setUseCategory(v !== "none"); 
+                  }}
+                >
+                  <SelectTrigger id="category" className="bg-background/50 border-border/60">
+                    <SelectValue placeholder="Selecione uma categoria" />
+                  </SelectTrigger>
+                  <SelectContent className="glass border-border/60 max-h-[250px] overflow-y-auto">
+                    <SelectItem value="none">Sem Categoria</SelectItem>
+                    {(categoryGroups || []).map((group: any) => (
+                      <SelectGroup key={group.id}>
+                        <SelectLabel className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider px-2 py-1.5">{group.name}</SelectLabel>
+                        {(group.children || []).map((cat: any) => (
+                          <SelectItem key={cat.id} value={String(cat.id)} className="pl-4">
+                            {cat.name}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {!isTransfer && type === "expense" && currentCard && !isEdit && (
@@ -753,8 +782,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             </div>
           )}
 
-
-
           {!isTransfer && (
             <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">
               <div className="flex items-center space-x-2">
@@ -788,7 +815,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                     <button
                       type="button"
                       onClick={() => {
-                        // Persiste o draft no Zustand para recuperar ao voltar
                         setTransactionDraft({
                           description,
                           amount,
@@ -805,8 +831,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                         });
                         setOpen(false);
                         if (onClose) onClose();
-                        // Navega para a aba de regras de rateio (Deep Link)
-                        window.location.hash = "#/settings/split-rules";
+                        navigate("/settings?tab=split-rules");
                       }}
                       className="text-xs font-bold text-primary hover:underline h-10 px-2 flex items-center bg-primary/10 rounded-lg border border-primary/20 cursor-pointer"
                     >

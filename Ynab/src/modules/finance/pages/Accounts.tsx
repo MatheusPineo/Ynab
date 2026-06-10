@@ -25,7 +25,7 @@ const Accounts = () => {
             {isLoading && <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />}
           </h2>
           <p className="text-[10px] sm:text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            Toque numa conta para expandir. Use o <span className="text-primary">+</span> para criar sub-contas.
+            Toque numa conta para expandir. Cadastre aqui apenas locais reais onde seu dinheiro repousa (Bancos, Carteiras, Corretoras).
           </p>
         </div>
         {/* Botão para adicionar nova conta raiz */}

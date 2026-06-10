@@ -27,6 +27,7 @@ import {
   DialogFooter,
 } from "@/shared/components/ui/dialog";
 import { Label } from "@/shared/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -612,20 +613,20 @@ const Budget = () => {
                               <TableHead className="w-1/2 p-2 sm:p-4 h-auto text-xs sm:text-sm">Categoria</TableHead>
                               <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
                                 <div className="flex items-center justify-end gap-1">
-                                  Reservado
-                                  <HelpTooltip content="O valor que você planejou gastar nesta categoria." side="top" />
+                                  Separei
+                                  <HelpTooltip content="O dinheiro que você separou e colocou neste envelope." side="top" />
                                 </div>
                               </TableHead>
                               <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
                                 <div className="flex items-center justify-end gap-1">
-                                  Gasto
-                                  <HelpTooltip content="O quanto já foi de fato gasto." side="top" />
+                                  Gastei
+                                  <HelpTooltip content="O que já foi gasto e saiu da conta." side="top" />
                                 </div>
                               </TableHead>
                               <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">
                                 <div className="flex items-center justify-end gap-1">
-                                  Disponível
-                                  <HelpTooltip content="Quanto ainda resta para você gastar nesta categoria." side="top" />
+                                  Sobrou
+                                  <HelpTooltip content="O que restou limpo para você gastar." side="top" />
                                 </div>
                               </TableHead>
                               <TableHead className="w-[50px] hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm"></TableHead>
@@ -681,7 +682,7 @@ const Budget = () => {
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
-      <section className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-primary/10 border border-primary/20 p-4 sm:p-6 shadow-soft">
+      <section className="sticky top-4 z-40 relative overflow-hidden rounded-2xl sm:rounded-3xl bg-background/95 backdrop-blur-md border border-primary/20 p-4 sm:p-6 shadow-soft supports-[backdrop-filter]:bg-background/80">
         <div className="relative flex items-center justify-between gap-3">
           <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">Orçamento Mensal</h1>
           <div className="flex items-center gap-2">
@@ -808,9 +809,21 @@ const Budget = () => {
         </section>
       )}
 
-      <div className="flex flex-col gap-10">
-        {renderBudgetBoard(eurGroups, 'EUR')}
-        {renderBudgetBoard(brlGroups, 'BRL')}
+      <div className="flex flex-col gap-6">
+        <Tabs defaultValue="EUR" className="w-full">
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6 bg-muted/40 p-1 rounded-xl">
+            <TabsTrigger value="EUR" className="rounded-lg font-bold">Orçamento Euro (€)</TabsTrigger>
+            <TabsTrigger value="BRL" className="rounded-lg font-bold">Orçamento Real (R$)</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="EUR" className="mt-0 outline-none">
+            {renderBudgetBoard(eurGroups, 'EUR')}
+          </TabsContent>
+          
+          <TabsContent value="BRL" className="mt-0 outline-none">
+            {renderBudgetBoard(brlGroups, 'BRL')}
+          </TabsContent>
+        </Tabs>
       </div>
 
       <section className="rounded-2xl sm:rounded-3xl bg-card/30 border border-border/40 p-4 sm:p-6 shadow-sm mt-8">

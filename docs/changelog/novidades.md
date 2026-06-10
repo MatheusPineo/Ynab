@@ -1,5 +1,70 @@
 # Novidades e Atualizações
 
+## Quadros de Orçamento em Abas (Tabs) (10/06/2026) 📊💳
+Refatoramos a interface dos boards de moedas na tela de orçamento (`Budget.tsx`) para eliminar a rolagem vertical infinita:
+* **Navegação Inteligente por Abas:** Os quadros EUR e BRL agora são exibidos de forma independente sob abas dinâmicas ("Orçamento Euro" e "Orçamento Real"). O usuário pode alternar instantaneamente entre as moedas mantendo foco em um ambiente por vez de forma limpa e otimizada.
+
+## Painel de Orçamento Fixo ao Rolar a Página (10/06/2026) 📌📊
+Melhoramos a usabilidade da tela de orçamento (`Budget.tsx`) com um painel superior fixo (sticky):
+* **Visualização Persistente:** O bloco de resumo mensal e os indicadores "Disponível para Alocar" (RTA) agora permanecem fixados no topo da tela enquanto você rola a listagem de envelopes. Ele usa um fundo inteligente desfocado (`backdrop-blur`) para fundir-se elegantemente à rolagem do conteúdo.
+
+## Terminologia em Primeira Pessoa no Orçamento (10/06/2026) 📊🧼
+Simplificamos as colunas da tabela de envelopes mensal (`Budget.tsx`) para tornar o planejamento mais natural e amigável:
+* **Novas Colunas:** Substituímos os termos técnicos e distantes por verbos em primeira pessoa: "Reservado" virou **"Separei"**, "Gasto" virou **"Gastei"** e "Disponível" virou **"Sobrou"**, com explicações intuitivas nos balões de ajuda.
+
+## Remoção de Módulos Legados de Dívidas (10/06/2026) 🧹🏛
+Concluímos a higienização física da base de arquivos do frontend:
+* **Exclusão de Páginas Antigas:** Excluídos fisicamente os arquivos obsoletos `Debts.tsx` e `DebtorProfile.tsx` do diretório `src/modules/finance/pages/`, concluindo de vez a transição para a arquitetura de orçamentos e passivos purificada.
+
+## Remoção de Atalhos de Dívidas nos Menus (10/06/2026) 🧹🏦
+Refatoramos as barras de navegação do frontend para remover links e atalhos obsoletos:
+* **Menus Limpos:** Removidos os links para a rota `/debts` na barra lateral (`Sidebar.tsx`) e na barra de navegação móvel (`BottomNav.tsx`), garantindo um visual limpo e 100% alinhado com a metodologia do YNAB.
+
+## Desativação de Rotas Legadas de Dívidas (10/06/2026) 🧹🏛️
+Limpamos o roteador principal do frontend (`App.tsx`) para adequá-lo estritamente aos conceitos do orçamento base-zero:
+* **Fim das Rotas Legadas:** Removidas as importações e declarações de rotas para `/debts` (página de dívidas antiga) e `/debtor/:id` (perfil do devedor antigo), mantendo apenas as estruturas de dados modernas de acompanhamento de passivos e rateio.
+
+## Alinhamento YNAB no Cadastro de Subcontas (10/06/2026) 🏦🧹
+Refatoramos o modal de criação de subcontas (`AddAccountModal.tsx`) para adequá-lo estritamente às premissas do orçamento base-zero:
+* **Fim do Limite e Ícones:** Removidos os campos "Teto (Limite Opcional)" e "Ícone da Conta" (`IconPicker`).
+* **Seletor de Acompanhamento:** Renomeamos a opção "Desconsiderar nos Totais" para "Conta de Acompanhamento (Fora do Orçamento)", com melhoria de contexto na ajuda visual.
+
+## Alinhamento com Princípios YNAB no Cadastro de Contas (10/06/2026) 🏦🧹
+Refatoramos o modal de criação de contas principais (`AddRootAccountModal.tsx`) para adequá-lo estritamente aos conceitos do orçamento base-zero:
+* **Remoção de Teto e Crop de Ícone:** Eliminamos os campos obsoletos "Teto (Limite Opcional)" e o componente "Ícone do Banco / Conta" (`IconPicker`), simplificando o fluxo de cadastro.
+* **Renomeação para Tracking Accounts:** O antigo seletor "Desconsiderar nos Totais" foi renomeado para "Conta de Acompanhamento (Fora do Orçamento)", com explicações claras sobre o uso do saldo para contas off-budget/tracking (como investimentos).
+
+## Ajuste de Terminologia no TreeMap de Relatórios (10/06/2026) 📊🧹
+Removemos os resquícios do termo legado "Subcontas" na seção de Relatórios Avançados (Treemap):
+* **Foco em Contas de Custódia:** O gráfico de alocação (TreeMap) e a respectiva tabela do relatório executivo em PDF agora exibem "Contas de Custódia" e "Contas de Alocação" em vez de subcontas, alinhando toda a interface com a arquitetura moderna do sistema.
+
+## Remoção de Conceitos Legados no Menu de Contas (10/06/2026) 🧹🏦
+Ajustamos os textos de ajuda no gerenciador de contas para refletir fielmente a arquitetura de Orçamento Base-Zero do YNAB:
+* **Foco no Saldo Físico Real:** A página "Minhas contas" (`Accounts.tsx`) teve a sua descrição atualizada. Removemos qualquer menção legada a "subcontas" e agora instruímos claramente que esta tela serve para mapear e cadastrar apenas locais físicos/reais onde o seu dinheiro repousa (como Bancos, Carteiras e Corretoras de investimentos). Os envelopes e caixas virtuais de despesas agora são criados estritamente na tela de Orçamento.
+
+## Categoria nas Listagens e Tabelas de Transações (10/06/2026) 🏷️📊
+Melhoramos a visualização rápida de seus lançamentos financeiros:
+* **Visualização no Computador (Desktop):** Adicionada a coluna "Categoria" na tabela principal de transações, permitindo ver em qual envelope YNAB cada despesa ou receita foi alocada sem precisar abrir a transação.
+* **Visualização no Telemóvel (Mobile):** Cada card de transação na listagem mobile agora exibe um badge discreto e elegante com a Categoria associada, mantendo o controle visual rápido em qualquer tamanho de tela.
+
+## Ajustes e Melhorias de Navegação no Lançamento de Transações (10/06/2026) 🚀🛠️
+Corrigimos o redirecionamento a partir do fluxo de transações para as configurações de rateio:
+* **Navegação com Preservação de Estado:** O botão "Criar/Editar" ao aplicar uma Regra de Rateio no modal de lançamento agora usa a transição do React Router, garantindo que o rascunho seja preservado e a transição ocorra de forma instantânea sem reloads.
+
+## Painel de Controle e Aba de Regras de Rateio (Split Rules) nas Configurações (10/06/2026) 🤝⚙️
+Lançamos uma interface visual dedicada para você gerenciar suas regras de divisão de despesas:
+* **Nova Aba "Rateios" nas Configurações:** Agora, acessar o menu de Configurações do app exibe uma nova aba chamada "Rateios" (com o ícone de usuários `Users`).
+* **Painel Interativo de Gestão:** Crie novas regras ou edite regras existentes de forma visual e intuitiva utilizando o formulário interativo de participantes e porcentagens.
+* **Exclusão Simplificada:** Remova regras antigas que não são mais úteis com facilidade e segurança.
+* **Consistência Atômica:** Total integração com o roteador principal do aplicativo, refletindo alterações instantaneamente e de forma 100% reativa.
+
+## Operações CRUD Completas para Regras de Rateio (Split Rules) (10/06/2026) 🤝⚙️
+Agora você possui controle completo sobre o gerenciamento das regras de divisão de despesas compartilhadas:
+* **Criação Direta de Regras:** Crie novas regras definindo os percentuais ou valores fixos de reembolso para cada roommate diretamente a partir do gerenciamento de estado.
+* **Atualização em Tempo Real:** Edite regras existentes quando houver mudança no rateio das contas da casa.
+* **Exclusão de Regras:** Remova com facilidade regras antigas que não são mais necessárias no seu dia a dia financeiro.
+* **Consistência Total:** As novas ações estão conectadas reativamente para recarregar a lista de regras ativas e manter a interface do YNAB e a fila cronológica de devedores sempre sincronizadas.
+
 ## Quadros de Orçamentos Separados por Moedas (EUR e BRL) (05/06/2026) 💸⚖️
 Separamos completamente os ambientes de planejamento orçamentário no frontend para eliminar qualquer confusão aritmética ou erro visual de exibição cambial:
 * **Segregação de Quadros na UI:** A aba de Orçamento (`Budget.tsx`) agora exibe dois quadros de orçamento independentes e empilhados: um dedicado estritamente a **EUR** e outro a **BRL**.

@@ -448,7 +448,7 @@ export default function Reports() {
 
 
   // ===========================================================================
-  // === AVANÇADO: 1. TREEMAP DE SUBCONTAS RECURSIVAS ===
+  // === AVANÇADO: 1. TREEMAP DE CONTAS DE CUSTÓDIA ===
   // ===========================================================================
   const treemapData = useMemo(() => {
     const data: { name: string; value: number }[] = [];
@@ -2378,11 +2378,11 @@ export default function Reports() {
           </div>
         </div>
 
-        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. PROPORÇÃO E ALOCAÇÃO DE SUBCONTAS (TREEMAP EXECUTIVO)</h2>
+        <h2 style="font-size: 18px; font-weight: 700; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-top: 30px; margin-bottom: 15px;">1. PROPORÇÃO E ALOCAÇÃO DE CONTAS DE CUSTÓDIA (TREEMAP EXECUTIVO)</h2>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; font-size: 13px;">
           <thead>
             <tr style="background-color: #f8fafc; border-bottom: 2px solid #e2e8f0;">
-              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Subconta de Alocação</th>
+              <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Conta de Alocação</th>
               <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Saldo Convertido (${baseCurrency})</th>
               <th style="text-align: left; padding: 12px 16px; color: #475569; font-weight: 700;">Percentual no Portfólio</th>
             </tr>
@@ -4148,7 +4148,7 @@ export default function Reports() {
             <div className="space-y-1">
               <h3 className="text-xs sm:text-sm font-bold text-slate-200 flex items-center gap-2">
                 <Layers className="h-4 w-4 text-emerald-400" />
-                Alocação de Subcontas e Portfólio (TreeMap)
+                Alocação de Contas e Portfólio (TreeMap)
               </h3>
               <p className="text-[10px] sm:text-xs text-slate-400 leading-relaxed">
                 Navegue visualmente pelo peso de cada conta e sub-envelope financeiro no seu patrimônio consolidado.

@@ -273,8 +273,8 @@ A SPA adota uma estrutura baseada em módulos de recursos para encapsular dados,
   * `store/` — `useAuthStore` (gerenciamento do token JWT e dados do perfil logado).
 * **`src/modules/finance/` (Módulo de Negócio Financeiro):**
   * `pages/` — Dashboard, Accounts (Minhas Contas), AccountDetails (Detalhes de Conta), Transactions (Transações), Budget (Orçamento/YNAB), Debts (Dívidas) e Goals (Metas).
-  * `components/` — Modais de lançamentos (`AddTransactionModal`), importadores de extratos (`ImportModal`), distribuição de limites (`DistributionModal`) e orquestração de teto (`NetWorthHeader`).
-  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore`, `useGoalStore`).
+  * `components/` — Modais de lançamentos (`AddTransactionModal`), importadores de extratos (`ImportModal`), distribuição de limites (`DistributionModal`), orquestração de teto (`NetWorthHeader`) e a aba de regras de rateio (`FinanceSplitRulesTab`).
+  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore` que agora gerencia as operações completas de CRUD para Regras de Rateio/Split Rules, `useGoalStore`).
 * **`src/shared/` (Código Compartilhado Reutilizável):**
   * `components/ui/` — Componentes primitivos do Shadcn/ui (inputs, buttons, cards, progress bars, etc.).
   * `components/dashboard/` — Layout principal da aplicação (`Sidebar`, `Topbar`, `BottomNav`, `PullToRefresh`, `TableSkeleton`, `EmptyState`).
@@ -561,8 +561,8 @@ A SPA adota uma estrutura baseada em módulos de recursos para encapsular dados,
   * `store/` — `useAuthStore` (gerenciamento do token JWT e dados do perfil logado).
 * **`src/modules/finance/` (Módulo de Negócio Financeiro):**
   * `pages/` — Dashboard, Accounts (Minhas Contas), AccountDetails (Detalhes de Conta), Transactions (Transações), Budget (Orçamento/YNAB), Debts (Dívidas) e Goals (Metas).
-  * `components/` — Modais de lançamentos (`AddTransactionModal`), importadores de extratos (`ImportModal`), distribuição de limites (`DistributionModal`) e orquestração de teto (`NetWorthHeader`).
-  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore`, `useGoalStore`).
+  * `components/` — Modais de lançamentos (`AddTransactionModal`), importadores de extratos (`ImportModal`), distribuição de limites (`DistributionModal`), orquestração de teto (`NetWorthHeader`) e a aba de regras de rateio (`FinanceSplitRulesTab`).
+  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore` que agora gerencia as operações completas de CRUD para Regras de Rateio/Split Rules, `useGoalStore`).
 * **`src/shared/` (Código Compartilhado Reutilizável):**
   * `components/ui/` — Componentes primitivos do Shadcn/ui (inputs, buttons, cards, progress bars, etc.).
   * `components/dashboard/` — Layout principal da aplicação (`Sidebar`, `Topbar`, `BottomNav`, `PullToRefresh`, `TableSkeleton`, `EmptyState`).

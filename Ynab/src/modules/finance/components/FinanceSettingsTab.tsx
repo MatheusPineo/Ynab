@@ -15,7 +15,8 @@ import {
   Download,
   FileEdit,
   Trash,
-  Plus
+  Plus,
+  Users
 } from "lucide-react";
 import {
   Select,
@@ -514,5 +515,75 @@ export const FinanceTemplatesTab = () => {
         </DialogContent>
       </Dialog>
     </>
+  );
+};
+
+export const FinanceSplitRulesTab = () => {
+  const { splitRules, deleteSplitRule, createSplitRule, updateSplitRule } = useDebtStore();
+  const [isEditingModalOpen, setIsEditingModalOpen] = useState(false);
+  const [editingRule, setEditingRule] = useState<any>(null);
+  const [ruleName, setRuleName] = useState("");
+  const [ruleItems, setRuleItems] = useState<any[]>([]);
+
+  const handleOpenModal = (rule: any = null) => {
+    if (rule) { setEditingRule(rule); setRuleName(rule.name); setRuleItems(rule.items.map((i: any) => ({ debtor_name: i.debtor_name || i.debtor || "", percentage: i.percentage || 0 }))); }
+    else { setEditingRule(null); setRuleName(""); setRuleItems([{ debtor_name: "", percentage: 50 }]); }
+    setIsEditingModalOpen(true);
+  };
+
+  const handleSaveRule = async () => {
+    if (!ruleName.trim()) return toast.error("Name required.");
+    const validItems = ruleItems.filter(i => i.debtor_name.trim() !== "");
+    if (validItems.length === 0) return toast.error("Add at least one debtor.");
+    const payload = { name: ruleName, items: validItems.map(i => ({ debtor_name: i.debtor_name, debtor: i.debtor_name, percentage: Number(i.percentage) })) };
+    if (editingRule) await updateSplitRule(editingRule.id, payload); else await createSplitRule(payload);
+    setIsEditingModalOpen(false);
+  };
+
+  return (
+    <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div className="space-y-1"><CardTitle className="text-lg flex items-center gap-2 font-bold"><Users className="h-5 w-5 text-primary" />Regras de Rateio Automático</CardTitle></div>
+        <Button onClick={() => handleOpenModal()} className="gradient-primary rounded-xl font-bold"><Plus className="h-4 w-4 mr-2" /> Nova Regra</Button>
+      </CardHeader>
+      <CardContent className="p-8 pt-0">
+        <div className="grid gap-4">
+          {splitRules.length === 0 ? (<div className="text-center py-12 bg-muted/10 rounded-2xl border border-dashed border-border/40"><p className="text-muted-foreground italic">Nenhuma regra.</p></div>) : (
+            splitRules.map(rule => (
+              <div key={rule.id} className="flex flex-col gap-4 p-5 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/30">
+                <div className="flex items-center justify-between"><h4 className="font-bold text-lg">{rule.name}</h4>
+                  <div className="flex gap-2">
+                    <Button variant="ghost" size="icon" onClick={() => handleOpenModal(rule)} className="text-primary hover:bg-primary/10 rounded-xl"><FileEdit className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => { if(confirm("Excluir?")) deleteSplitRule(rule.id); }} className="text-rose-400 hover:bg-rose-400/10 rounded-xl"><Trash className="h-4 w-4" /></Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 border-t border-border/20 pt-2">
+                  {rule.items.map((item: any, idx: number) => (<div key={idx} className="flex items-center gap-2 bg-background/40 border border-border/20 rounded-lg px-3 py-1.5"><span className="text-[10px] font-bold text-muted-foreground">{item.debtor_name || item.debtor}:</span><span className="text-xs font-black text-primary">{item.percentage}%</span></div>))}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
+      <Dialog open={isEditingModalOpen} onOpenChange={setIsEditingModalOpen}>
+        <DialogContent className="rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl sm:max-w-xl">
+          <DialogHeader><DialogTitle className="text-2xl font-bold">{editingRule ? "Editar" : "Nova Regra"}</DialogTitle></DialogHeader>
+          <div className="space-y-6 py-2">
+            <div className="space-y-2"><Label>Nome</Label><Input value={ruleName} onChange={(e) => setRuleName(e.target.value)} className="h-11 bg-background/50" /></div>
+            <div className="space-y-3"><Label>Participantes</Label>
+              {ruleItems.map((row, idx) => (
+                <div key={idx} className="flex items-end gap-2 p-3 rounded-xl bg-muted/10 border border-border/40">
+                  <div className="flex-1 space-y-1"><Label className="text-[10px]">Nome</Label><Input value={row.debtor_name} onChange={(e) => { const n = [...ruleItems]; n[idx].debtor_name = e.target.value; setRuleItems(n); }} className="h-9 bg-background/50" /></div>
+                  <div className="w-28 space-y-1"><Label className="text-[10px]">%</Label><Input type="number" value={row.percentage} onChange={(e) => { const n = [...ruleItems]; n[idx].percentage = e.target.value; setRuleItems(n); }} className="h-9 bg-background/50" /></div>
+                  <Button variant="ghost" size="icon" onClick={() => setRuleItems(ruleItems.filter((_, i) => i !== idx))} className="text-rose-400 hover:bg-rose-500/10 h-9 w-9"><Trash className="h-4 w-4" /></Button>
+                </div>
+              ))}
+              <Button variant="outline" onClick={() => setRuleItems([...ruleItems, { debtor_name: "", percentage: 50 }])} className="w-full border-dashed text-primary border-primary/30"><Plus className="h-4 w-4 mr-2" /> Adicionar</Button>
+            </div>
+          </div>
+          <DialogFooter><Button variant="ghost" onClick={() => setIsEditingModalOpen(false)}>Cancelar</Button><Button onClick={handleSaveRule} className="gradient-primary">Salvar</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
 };
