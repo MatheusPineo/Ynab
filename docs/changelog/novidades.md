@@ -1,5 +1,68 @@
 # Novidades e Atualizações
 
+## Higienização Automática de Valores Negativos em Lançamentos (11/06/2026) 🔒💰
+Corrigimos um comportamento inesperado que acontecia ao digitar valores com o sinal de menos (ex: `-3.000,00`) ao cadastrar despesas:
+* **Proteção contra Sinal Invertido:** Agora, se você digitar um valor negativo por engano em uma despesa, o sistema converterá automaticamente o montante para positivo nos bastidores.
+* **Cálculo de Saldo e Orçamento 100% Corretos:** Isso garante que o valor seja descontado devidamente do saldo da sua conta e dos envelopes de categoria orçamentária correspondentes, eliminando a falha em que despesas negativas eram somadas por engano (dupla negação).
+
+## Histórico de Receitas Processadas Retrátil (11/06/2026) 📂🔽
+Otimizamos o painel de Orçamento (`Budget.tsx`) com um novo contêiner retrátil inteligente:
+* **Colapsado por Padrão:** A seção de "Histórico de Receitas Processadas" agora é exibida de forma compacta e fechada por padrão, economizando espaço de tela útil imediato para o usuário.
+* **Abertura Suave sob Demanda:** Caso o usuário queira auditar o histórico de distribuições, basta um clique sobre o cabeçalho para expandir o painel de transações suavemente com animações de acordeão Framer Motion.
+* **Espaço Otimizado:** Esta mudança reduz o ruído visual inicial e impede a rolagem desnecessária sobre dados passados.
+
+## Alinhamento Perfeito de Largura no Sticky Header (11/06/2026) 📐🛸
+Corrigimos um detalhe visual de alinhamento no cabeçalho fixo da tela de Orçamento (`Budget.tsx`):
+* **Alinhamento Simétrico Horizontal:** Adicionamos a classe `w-full` ao cockpit fixado (`sticky top-0`). Isso garante que o cabeçalho se estenda por 100% da largura útil do contêiner da página, alinhando-se de forma perfeitamente simétrica com os cartões de envelopes e o histórico de receitas logo abaixo.
+* **Consistência Visual:** Eliminamos qualquer sensação de assimetria que ocorria anteriormente em telas maiores, onde o cabeçalho parecia menor horizontalmente do que o restante da tela.
+
+## Cockpit de Orçamento com Sticky Header Permanente (11/06/2026) 📌📐
+Simplificamos e estabilizamos a visualização do cabeçalho da página de Orçamento (`Budget.tsx`):
+* **Fixo no Topo sem Distrações:** O cockpit de vidro contendo o RTA, as abas EUR/BRL, o seletor de mês e as opções rápidas agora fica fixado de forma permanente no topo da página (`sticky top-0`).
+* **Estabilidade Visual Completa:** Removemos as transições de encolhimento no scroll. O cabeçalho agora mantém seu visual compacto ideal a todo instante, eliminando saltos ou redimensionamento de fontes na rolagem.
+* **Correção de Sobreposição:** Removemos a classe `relative` que causava quebras de layout na rolagem, garantindo a colagem perfeita do cabeçalho sobre a lista de categorias.
+
+## Cockpit Ultra-Compacto e de Baixo Perfil (11/06/2026) 🛸📐
+Reduzimos drasticamente a altura vertical do cabeçalho fixo (`sticky`) da tela de Orçamento (`Budget.tsx`) para liberar mais espaço visual de tela:
+* **Layout Unificado em Linha Única:** O título do orçamento e o indicador "Pronto para Alocar" (RTA) agora dividem a mesma linha esquerda dentro de um elegante badge horizontal. Os seletores de moeda (EUR/BRL), seletores de meses e botões de menu ficam agregados na direita.
+* **Fim da Oclusão de Conteúdo:** O cockpit fixado no topo consome agora menos da metade do espaço vertical original ao rolar a página, mantendo os envelopes e categorias totalmente visíveis e acessíveis sem fadiga cognitiva.
+
+## Acordeões Premium com Movimento e Framer Motion (11/06/2026) 🛸✨
+Fizemos um transplante visual completo no painel do Orçamento (`Budget.tsx`) para incorporar as diretrizes de design de alta fidelidade:
+* **Transições e Movimentos Fluidos:** A abertura e fechamento de cada grupo de categorias agora acontecem com animações físicas reais de acordeão desenvolvidas via Framer Motion. Os cartões de envelopes deslizam suavemente revelando seu conteúdo.
+* **Barra de Progresso Inteligente (Feedback por Cores):** O preenchimento da barra de progresso do envelope agora muda de cor de forma reativa baseado na proporção consumida do orçamento do mês:
+  - 🔴 **Vermelho (`rose-500`):** Alocação esgotada ou estourada (gastos em 100% ou mais).
+  - 🟡 **Amarelo (`amber-500`):** Nível de atenção (gastos entre 80% e 99%).
+  - 🟢 **Verde (`emerald-500`):** Zona segura (gastos abaixo de 80%).
+
+## Alinhamento Perfeito em Grade Flexbox no Orçamento (11/06/2026) 📐📊
+Ajustamos a estrutura interna do painel de orçamento (`Budget.tsx`) para garantir que todas as colunas de valores fiquem perfeitamente alinhadas de ponta a ponta:
+* **Alinhamento em Grade Sem Tabelas:** As colunas "Separei", "Gastei" e "Sobrou" agora utilizam larguras fixas estritas (`120px`, `90px` e `100px`) combinadas com a propriedade de prevenção de encolhimento (`shrink-0`).
+* **Visual Simétrico e Consistente:** Independentemente do tamanho do nome da categoria ou do dispositivo, a grade vertical alinha simetricamente o cabeçalho global, os acumulados do cabeçalho do grupo de cartões e cada linha individual de envelope (`SortableCategoryRow`).
+
+## Cockpit Flutuante e Abas de Alta Fidelidade (11/06/2026) 🛸✨
+Atualizamos a experiência de navegação e visualização da tela de orçamento (`Budget.tsx`) com componentes e transições ultra-premium:
+* **Cockpit com Vidro Aprimorado (Glassmorphism):** O cabeçalho fixo contendo os seletores de mês e os cartões de "Disponível para Alocar" (RTA) agora usa um efeito de vidro com desfoque profundo (`backdrop-blur-xl`), transparência suave (`bg-background/80`) e fixação inteligente no topo (`top-2 sm:top-4`) com espaçamento harmonioso.
+* **Abas Animadas e Centralizadas:** A alternância entre o Orçamento Euro e o Orçamento Real agora conta com transições animadas suaves de subida e desfoque (`animate-in fade-in slide-in-from-bottom-4`). O painel de abas foi centralizado com uma altura confortável de `h-12` e cantos extra arredondados (`rounded-2xl`).
+
+## Agrupador Expansível de Categorias (11/06/2026) 📂🔽
+Substituímos o layout de tabelas de grupos por um sistema moderno de cartões expansíveis (progressive disclosure) para simplificar a visualização do orçamento:
+* **Fim da Rolagem Infinita:** Agora você pode abrir ou fechar grupos de categorias inteiros clicando no cabeçalho do grupo. O estado de visualização é gerenciado localmente, permitindo ocultar gavetas de envelopes que você não precisa ajustar no momento.
+* **Layout Clean em Cartões:** Cada grupo de categorias é apresentado dentro de um elegante painel com bordas arredondadas e suavizadas. A abertura e fechamento trazem ícones de setas indicativas com transições de rotação.
+* **Integração das Operações:** Ações para criar novas categorias e gerenciar o grupo continuam totalmente ativas e protegidas contra cliques acidentais que poderiam contrair ou expandir o grupo.
+
+## Refatoração Visual do Orçamento e Salvamento Automático (11/06/2026) 📊⚡
+Refatoramos o componente de listagem de categorias no orçamento (`Budget.tsx`) para proporcionar maior fluidez e design moderno:
+* **Layout Flexbox Moderno:** Substituímos a estrutura de tabela tradicional de categorias (`SortableCategoryRow`) por um layout flexbox do tipo card responsivo, limpo e adaptável.
+* **Salvamento Automático Sem Cliques:** Removemos o botão manual "OK". Agora, os valores orçados no campo "Separei" são salvos de forma automática ao retirar o foco do input (blur) ou ao pressionar a tecla Enter.
+
+## Interface Dinâmica de Rateio por Item (Split Bill) (11/06/2026) 🤝🛍️
+Refatoramos o modal de lançamento de transações (`AddTransactionModal.tsx`) para oferecer uma divisão de contas interativa, flexível e orientada a itens:
+* **Rateio Dinâmico por Produto:** Agora você pode cadastrar múltiplos itens específicos da compra (como sabão, mercado, utilitários) com suas próprias descrições e valores individuais.
+* **Divisão Flexível e Devedores Personalizados:** Defina o número exato de pessoas envolvidas no rateio para cada item e selecione reativamente quais devedores/roommates devem reembolsar cada produto diretamente clicando em badges dinâmicos.
+* **Cálculo Inteligente em Tempo Real:** O sistema renderiza e exibe na hora a cota exata que cada pessoa selecionada deverá pagar por item, facilitando a transparência na divisão.
+* **Checkbox Interativo Aprimorado:** O acionamento da checkbox "Aplicar Regra de Rateio?" adiciona automaticamente o primeiro item à lista caso ela esteja vazia, simplificando o fluxo de uso.
+
 ## Quadros de Orçamento em Abas (Tabs) (10/06/2026) 📊💳
 Refatoramos a interface dos boards de moedas na tela de orçamento (`Budget.tsx`) para eliminar a rolagem vertical infinita:
 * **Navegação Inteligente por Abas:** Os quadros EUR e BRL agora são exibidos de forma independente sob abas dinâmicas ("Orçamento Euro" e "Orçamento Real"). O usuário pode alternar instantaneamente entre as moedas mantendo foco em um ambiente por vez de forma limpa e otimizada.

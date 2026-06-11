@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAccountStore, CategoryGroup, CategoryNode, selectMacroDistribution } from "@/modules/finance/store/useAccountStore";
 import { useShallow } from "zustand/shallow";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
@@ -17,7 +18,7 @@ import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark, RefreshCw, ArrowRightLeft } from "lucide-react";
+import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark, RefreshCw, ArrowRightLeft, Check } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -65,7 +66,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // --- Month Selector Component ---
 
-const MonthSelector = () => {
+const MonthSelector = ({ isCompact }: { isCompact?: boolean }) => {
   const { currentMonth, currentYear, setCurrentPeriod } = useAccountStore();
   
   const monthNames = [
@@ -90,20 +91,23 @@ const MonthSelector = () => {
   };
 
   return (
-    <div className="flex items-center gap-2 sm:gap-4 bg-muted/20 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border border-border/40 shadow-sm">
-      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full" onClick={handlePrev} data-testid="prev-month">
-        <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+    <div className={cn(
+      "flex items-center gap-1.5 sm:gap-3 bg-muted/20 border border-border/40 shadow-sm transition-all",
+      isCompact ? "px-1.5 py-0.5 rounded-xl" : "px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl"
+    )}>
+      <Button variant="ghost" size="icon" className={cn("rounded-full transition-all", isCompact ? "h-6 w-6" : "h-7 w-7 sm:h-8 sm:w-8")} onClick={handlePrev} data-testid="prev-month">
+        <ChevronLeft className={cn("transition-all", isCompact ? "h-3 w-3" : "h-3.5 w-3.5 sm:h-4 sm:w-4")} />
       </Button>
-      <div className="flex flex-col items-center min-w-[100px] sm:min-w-[120px]">
-        <span className="text-xs sm:text-sm font-bold text-foreground leading-none">
+      <div className={cn("flex flex-col items-center transition-all", isCompact ? "min-w-[80px]" : "min-w-[100px] sm:min-w-[120px]")}>
+        <span className={cn("font-bold text-foreground leading-none transition-all", isCompact ? "text-[11px]" : "text-xs sm:text-sm")}>
           {monthNames[currentMonth - 1]}
         </span>
-        <span className="text-[9px] sm:text-[10px] uppercase tracking-widest text-muted-foreground font-black mt-0.5 sm:mt-1">
+        <span className={cn("uppercase tracking-widest text-muted-foreground font-black transition-all", isCompact ? "text-[8px] mt-0.5" : "text-[9px] sm:text-[10px] mt-0.5 sm:mt-1")}>
           {currentYear}
         </span>
       </div>
-      <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-8 sm:w-8 rounded-full" onClick={handleNext} data-testid="next-month">
-        <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+      <Button variant="ghost" size="icon" className={cn("rounded-full transition-all", isCompact ? "h-6 w-6" : "h-7 w-7 sm:h-8 sm:w-8")} onClick={handleNext} data-testid="next-month">
+        <ChevronRight className={cn("transition-all", isCompact ? "h-3 w-3" : "h-3.5 w-3.5 sm:h-4 sm:w-4")} />
       </Button>
     </div>
   );
@@ -365,12 +369,16 @@ const Budget = () => {
   const targetWants = user?.wantsTargetPct ?? 30;
   const targetSavings = user?.savingsTargetPct ?? 20;
   
+  const [currency, setCurrency] = useState<'EUR' | 'BRL'>('EUR');
   const [newGroupName, setNewGroupName] = useState("");
   const [newCatName, setNewCatName] = useState("");
   const [isGroupDialogOpen, setIsGroupDialogOpen] = useState(false);
   const [rebalancing, setRebalancing] = useState<string | null>(null);
   const [isPendingIncomesModalOpen, setIsPendingIncomesModalOpen] = useState(false);
   const [groupCurrency, setGroupCurrency] = useState<'EUR' | 'BRL'>('EUR');
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (groupId: string) => setExpandedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
+  const [showHistory, setShowHistory] = useState(false);
 
   useEffect(() => {
     fetchCategoryGroups();
@@ -531,18 +539,6 @@ const Budget = () => {
   };
 
   const renderBudgetBoard = (groups: CategoryNode[], boardCurrency: 'EUR' | 'BRL') => {
-    const handleDragEndBoard = (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const allGroups = Array.isArray(categoryGroups) ? categoryGroups : [];
-      if (groups.some(g => g && g.id === active.id)) {
-        const oldIndex = allGroups.findIndex(g => g && g.id === active.id);
-        const newIndex = allGroups.findIndex(g => g && g.id === over.id);
-        setCategoryGroups(arrayMove(allGroups, oldIndex, newIndex));
-      }
-    };
-
     return (
       <div className="flex flex-col gap-6 bg-card/10 border border-border/40 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm">
         <div className="flex items-center justify-between border-b border-border/40 pb-2">
@@ -568,101 +564,99 @@ const Budget = () => {
             <span className="text-xs text-muted-foreground">Nenhum grupo de categorias cadastrado em {boardCurrency}.</span>
           </div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEndBoard}>
-            <SortableContext items={groups.map(g => g.id)} strategy={verticalListSortingStrategy}>
-              <div className="flex flex-col">
-                {groups.map((group) => (
-                  <SortableItem key={group.id} id={group.id} isGroup>
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-3">
-                          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground/70">{group.name}</h2>
-                          <div className="flex items-center gap-1">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <button data-testid="add-category-button" className="h-5 w-5 rounded-md bg-muted/40 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </DialogTrigger>
-                              <DialogContent className="glass border-border/60">
-                                <DialogHeader><DialogTitle>Nova Categoria em "{group.name}"</DialogTitle></DialogHeader>
-                                <div className="grid gap-4 py-4">
-                                  <div className="grid gap-2">
-                                    <Label htmlFor="catName">Nome da Categoria</Label>
-                                    <Input id="catName" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Ex: Cinema..." className="bg-background/50" />
-                                  </div>
-                                  <DialogFooter>
-                                    <Button onClick={() => handleAddCategory(group.id, boardCurrency)} className="gradient-primary w-full">Adicionar Categoria</Button>
-                                  </DialogFooter>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                            <CategoryActions category={group} isGroup />
-                          </div>
-                        </div>
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Total: {formatMoney((Array.isArray(group.children) ? group.children : []).reduce((a, b) => a + ((b && b.assigned_amount) || 0), 0), boardCurrency)}
-                        </span>
+          <div className="space-y-4 pb-12">
+            <div className="hidden sm:flex items-center justify-end pr-4 pl-7 text-[10px] uppercase font-black tracking-wider text-muted-foreground gap-2 sm:gap-6 mb-2">
+              <div className="w-[120px] text-right shrink-0">Separei</div>
+              <div className="w-[90px] text-right shrink-0">Gastei</div>
+              <div className="w-[100px] text-right shrink-0">Sobrou</div>
+            </div>
+
+            {groups.map((group, idx) => {
+              const isExpanded = expandedGroups[group.id] !== false; // Default to true
+              const groupAssigned = group.children?.reduce((acc, cat) => acc + Number(cat.assigned_amount || 0), 0) || 0;
+              const groupSpent = group.children?.reduce((acc, cat) => acc + Number(cat.spent_amount || 0), 0) || 0;
+              const groupAvailable = groupAssigned - groupSpent;
+
+              return (
+                <motion.div 
+                  key={group.id} 
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.04 }}
+                  className="bg-card border border-border/40 rounded-3xl overflow-hidden hover:border-border/60 transition-colors"
+                >
+                  <button 
+                    onClick={() => toggleGroup(group.id)}
+                    className="w-full flex items-center justify-between p-4 sm:p-5 bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <motion.div animate={{ rotate: isExpanded ? 0 : -90 }} transition={{ duration: 0.2 }}>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </motion.div>
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted/40 border border-border/40">
+                        <Landmark className="h-4 w-4 text-foreground/80" />
                       </div>
-
-                      <div className="rounded-2xl border border-border/60 bg-card/40 overflow-hidden shadow-sm">
-                        <Table>
-                          <TableHeader className="bg-muted/30">
-                            <TableRow className="hover:bg-transparent border-border/40">
-                              <TableHead className="w-[40px] p-2 sm:p-4 h-auto"></TableHead>
-                              <TableHead className="w-1/2 p-2 sm:p-4 h-auto text-xs sm:text-sm">Categoria</TableHead>
-                              <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                                <div className="flex items-center justify-end gap-1">
-                                  Separei
-                                  <HelpTooltip content="O dinheiro que você separou e colocou neste envelope." side="top" />
-                                </div>
-                              </TableHead>
-                              <TableHead className="text-right hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                                <div className="flex items-center justify-end gap-1">
-                                  Gastei
-                                  <HelpTooltip content="O que já foi gasto e saiu da conta." side="top" />
-                                </div>
-                              </TableHead>
-                              <TableHead className="text-right p-2 sm:p-4 h-auto text-xs sm:text-sm">
-                                <div className="flex items-center justify-end gap-1">
-                                  Sobrou
-                                  <HelpTooltip content="O que restou limpo para você gastar." side="top" />
-                                </div>
-                              </TableHead>
-                              <TableHead className="w-[50px] hidden sm:table-cell p-2 sm:p-4 h-auto text-xs sm:text-sm"></TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {(() => {
-                              const rawChildren = (Array.isArray(group.children) ? group.children : []).filter(c => c && c.id);
-                              const seenChildren = new Set();
-                              const children = rawChildren.filter(c => {
-                                if (seenChildren.has(c.id)) return false;
-                                seenChildren.add(c.id);
-                                return true;
-                              });
-
-                              return (
-                                <SortableContext items={children.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                                  {children.length === 0 ? (
-                                    <TableRow><TableCell colSpan={6} className="h-16 text-center text-muted-foreground italic text-xs">Vazio.</TableCell></TableRow>
-                                  ) : (
-                                    children.map((cat) => (
-                                      <SortableCategoryRow key={cat.id} cat={cat} assignMoney={assignMoney} />
-                                    ))
-                                  )}
-                                </SortableContext>
-                              );
-                            })()}
-                          </TableBody>
-                        </Table>
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="font-semibold text-base sm:text-lg text-foreground tracking-tight">{group.name}</h3>
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button data-testid="add-category-button" className="h-5 w-5 rounded-md bg-muted/40 hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors flex items-center justify-center">
+                              <Plus className="h-3 w-3" />
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="glass border-border/60">
+                            <DialogHeader><DialogTitle>Nova Categoria em "{group.name}"</DialogTitle></DialogHeader>
+                            <div className="grid gap-4 py-4">
+                              <div className="grid gap-2">
+                                <Label htmlFor="catName">Nome da Categoria</Label>
+                                <Input id="catName" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} placeholder="Ex: Cinema..." className="bg-background/50" />
+                              </div>
+                              <DialogFooter>
+                                <Button onClick={() => handleAddCategory(group.id, boardCurrency)} className="gradient-primary w-full">Adicionar Categoria</Button>
+                              </DialogFooter>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                        <CategoryActions category={group} isGroup />
                       </div>
                     </div>
-                  </SortableItem>
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+                    
+                    <div className="hidden sm:flex items-center justify-end gap-2 sm:gap-6 text-sm shrink-0">
+                      <span className="w-[120px] text-right font-medium text-muted-foreground truncate shrink-0">{formatMoney(groupAssigned, boardCurrency)}</span>
+                      <span className="w-[90px] text-right font-medium text-muted-foreground truncate shrink-0">{formatMoney(groupSpent, boardCurrency)}</span>
+                      <span className={cn("w-[100px] text-right font-bold truncate shrink-0", groupAvailable > 0 ? "text-emerald-500" : groupAvailable < 0 ? "text-rose-500" : "text-muted-foreground")}>
+                        {formatMoney(groupAvailable, boardCurrency)}
+                      </span>
+                    </div>
+
+                    <div className={cn("sm:hidden w-[100px] text-right font-semibold text-sm truncate", groupAvailable > 0 ? "text-emerald-500" : groupAvailable < 0 ? "text-rose-500" : "text-muted-foreground")}>
+                      {formatMoney(groupAvailable, boardCurrency)}
+                    </div>
+                  </button>
+
+                  <AnimatePresence initial={false}>
+                    {isExpanded && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.22, ease: "easeOut" }}
+                        className="overflow-hidden border-t border-border/40"
+                      >
+                        <div className="flex flex-col bg-background/50">
+                          <SortableContext items={(group.children || []).map(c => c.id)} strategy={verticalListSortingStrategy}>
+                            {(group.children || []).map(cat => (
+                              <SortableCategoryRow key={cat.id} cat={cat} assignMoney={assignMoney} />
+                            ))}
+                          </SortableContext>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              );
+            })}
+          </div>
         )}
         <Dialog open={isGroupDialogOpen && groupCurrency === boardCurrency} onOpenChange={(open) => !open && setIsGroupDialogOpen(false)}>
           <DialogContent className="glass border-border/60">
@@ -682,148 +676,192 @@ const Budget = () => {
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8">
-      <section className="sticky top-4 z-40 relative overflow-hidden rounded-2xl sm:rounded-3xl bg-background/95 backdrop-blur-md border border-primary/20 p-4 sm:p-6 shadow-soft supports-[backdrop-filter]:bg-background/80">
-        <div className="relative flex items-center justify-between gap-3">
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground">Orçamento Mensal</h1>
-          <div className="flex items-center gap-2">
-            <MonthSelector />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl hover:bg-muted/20 border border-border/40"><MoreVertical className="h-4 w-4" /></Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="glass border-border/60 w-56">
-                <DropdownMenuLabel className="text-[10px] uppercase tracking-wider font-black opacity-70">Ações do Orçamento</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <IncomeSplitterModal trigger={
-                    <div className="w-full flex items-center gap-2 cursor-pointer px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/5 rounded-md">
-                      <Landmark className="h-4 w-4 shrink-0 text-emerald-400" /><span>Capturar Receita</span>
-                    </div>
-                  } />
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={autoAssignFunds} className="cursor-pointer gap-2 text-xs font-medium"><Target className="h-4 w-4 text-sky-400" /><span>Financiar Metas</span></DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleAutoShield()} className="cursor-pointer gap-2 text-xs font-medium"><Shield className="h-4 w-4 text-amber-400" /><span>Cobrir Rombos</span></DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => handleSurplusSweep()} className="cursor-pointer gap-2 text-xs font-medium"><ArrowDownToLine className="h-4 w-4 text-sky-400" /><span>Recolher Sobras</span></DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="cursor-pointer gap-2 text-xs font-medium"><Eraser className="h-4 w-4 text-violet-400" /><span>Limpar Mês (Cascata)</span></DropdownMenuSubTrigger>
-                  <DropdownMenuPortal>
-                    <DropdownMenuSubContent className="glass border-border/60 max-h-60 overflow-y-auto w-48">
-                      {leafCategories.map(cat => (
-                        <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="cursor-pointer text-xs">{cat.name}</DropdownMenuItem>
-                      ))}
-                    </DropdownMenuSubContent>
-                  </DropdownMenuPortal>
-                </DropdownMenuSub>
-              </DropdownMenuContent>
-            </DropdownMenu>
+      <section className="w-full sticky top-0 z-40 overflow-hidden rounded-2xl border border-border/40 p-3 sm:py-2.5 sm:px-5 bg-background/80 backdrop-blur-xl mb-4 shadow-lg">
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          {/* Esquerda: Título + RTA Badge */}
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+            <h1 className="text-lg sm:text-xl font-black tracking-tight text-foreground hidden sm:block">Orçamento</h1>
+            
+            <div className={cn(
+              "flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all duration-300",
+              (currency === 'EUR' ? rtaEUR : rtaBRL) === 0
+                ? "bg-muted/10 border-border/40 text-muted-foreground"
+                : (currency === 'EUR' ? rtaEUR : rtaBRL) > 0
+                  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                  : "bg-rose-500/10 border-rose-500/20 text-rose-400"
+            )}>
+              <span className="text-[10px] uppercase font-black tracking-wider opacity-80">Pronto para Alocar:</span>
+              <motion.span
+                key={`${currency}-${currency === 'EUR' ? rtaEUR : rtaBRL}`}
+                initial={{ opacity: 0, y: -2 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-base sm:text-lg font-black tracking-tight tabular-nums"
+              >
+                {formatMoney(currency === 'EUR' ? rtaEUR : rtaBRL, currency)}
+              </motion.span>
+              {(currency === 'EUR' ? rtaEUR : rtaBRL) === 0 && (
+                <Check className="text-emerald-400 shrink-0 h-3.5 w-3.5" />
+              )}
+            </div>
           </div>
-        </div>
 
-        <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-4xl mx-auto py-3 sm:py-5">
-          <div className={cn("flex flex-col items-center justify-center text-center px-6 py-4 rounded-2xl border shadow-md transition-all duration-300", rtaEUR > 0 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : rtaEUR < 0 ? "bg-rose-500/10 border-rose-500/30 text-rose-400" : "bg-muted/20 border-border/40 text-muted-foreground")}>
-            <Wallet className="h-5 w-5 mb-1 text-primary shrink-0 animate-pulse" />
-            <span className="text-[10px] uppercase tracking-widest font-black opacity-70 mb-0.5">Disponível para Alocar (EUR)</span>
-            <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{formatMoney(rtaEUR, "EUR")}</span>
-          </div>
-          <div className={cn("flex flex-col items-center justify-center text-center px-6 py-4 rounded-2xl border shadow-md transition-all duration-300", rtaBRL > 0 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : rtaBRL < 0 ? "bg-rose-500/10 border-rose-500/30 text-rose-400" : "bg-muted/20 border-border/40 text-muted-foreground")}>
-            <Wallet className="h-5 w-5 mb-1 text-primary shrink-0 animate-pulse" />
-            <span className="text-[10px] uppercase tracking-widest font-black opacity-70 mb-0.5">Disponível para Alocar (BRL)</span>
-            <span className="text-xl sm:text-2xl font-black tracking-tight leading-none">{formatMoney(rtaBRL, "BRL")}</span>
+          {/* Centro/Direita: Tabs de Moeda, MonthSelector e Ações */}
+          <div className="flex items-center justify-between md:justify-end gap-2 sm:gap-3 flex-wrap md:flex-nowrap">
+            <Tabs value={currency} onValueChange={(v) => setCurrency(v as 'EUR' | 'BRL')} className="shrink-0">
+              <TabsList className="rounded-xl bg-muted/40 p-0.5 h-8">
+                <TabsTrigger value="EUR" className="rounded-lg font-bold data-[state=active]:bg-background px-3 text-xs">
+                  EUR
+                </TabsTrigger>
+                <TabsTrigger value="BRL" className="rounded-lg font-bold data-[state=active]:bg-background px-3 text-xs">
+                  BRL
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <MonthSelector />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-xl hover:bg-muted/20 border border-border/40 h-8 w-8 sm:h-9 sm:w-9">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="glass border-border/60 w-56">
+                  <DropdownMenuLabel className="text-[10px] uppercase tracking-wider font-black opacity-70">Ações do Orçamento</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <IncomeSplitterModal trigger={
+                      <div className="w-full flex items-center gap-2 cursor-pointer px-2 py-1.5 text-xs font-medium text-foreground hover:bg-muted/5 rounded-md">
+                        <Landmark className="h-4 w-4 shrink-0 text-emerald-400" /><span>Capturar Receita</span>
+                      </div>
+                    } />
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={autoAssignFunds} className="cursor-pointer gap-2 text-xs font-medium"><Target className="h-4 w-4 text-sky-400" /><span>Financiar Metas</span></DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => handleAutoShield()} className="cursor-pointer gap-2 text-xs font-medium"><Shield className="h-4 w-4 text-amber-400" /><span>Cobrir Rombos</span></DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => handleSurplusSweep()} className="cursor-pointer gap-2 text-xs font-medium"><ArrowDownToLine className="h-4 w-4 text-sky-400" /><span>Recolher Sobras</span></DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="cursor-pointer gap-2 text-xs font-medium"><Eraser className="h-4 w-4 text-violet-400" /><span>Limpar Mês (Cascata)</span></DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="glass border-border/60 max-h-60 overflow-y-auto w-48">
+                        {leafCategories.map(cat => (
+                          <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="cursor-pointer text-xs">{cat.name}</DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
         {currentIncomes.length > 0 && (
-          <div className="mt-4 flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-3 animate-in fade-in duration-300">
+          <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-xl p-2 animate-in fade-in duration-300 mt-2">
             <div className="flex items-center gap-2">
               <Plus className="h-4 w-4 text-primary shrink-0" />
-              <span className="text-xs font-semibold text-foreground">Você tem {currentIncomes.length} receitas pendentes para distribuir.</span>
+              <span className="font-semibold text-foreground text-xs">Você tem {currentIncomes.length} receitas pendentes.</span>
             </div>
-            <Button size="sm" onClick={() => setIsPendingIncomesModalOpen(true)} className="gradient-primary text-xs font-bold rounded-lg h-7 px-3 shrink-0">Ver Lançamentos</Button>
+            <Button size="sm" onClick={() => setIsPendingIncomesModalOpen(true)} className="gradient-primary font-bold rounded-lg shrink-0 h-7 text-xs px-3">Ver Lançamentos</Button>
           </div>
         )}
       </section>
 
       {distributedIncomes.length > 0 && (
-        <section className="rounded-2xl sm:rounded-3xl bg-card/40 border border-border/60 p-3 sm:p-6 shadow-sm transition-all duration-300">
-          <h3 className="text-[10px] sm:text-xs uppercase tracking-widest text-primary font-bold mb-3 sm:mb-6 text-center sm:text-left">Histórico de Receitas Processadas</h3>
-          <div className="block sm:hidden space-y-2">
-            {distributedIncomes.map(income => (
-              <div key={income.id} className="bg-background/25 border border-border/40 rounded-xl p-2.5 space-y-2 hover:border-primary/20 transition-all">
-                <div className="flex justify-between items-start gap-2">
-                  <div className="flex flex-col">
-                    <span className="font-bold text-xs sm:text-sm text-foreground">{income.description || "Receita"}</span>
-                    <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider mt-0.5">{income.date}</span>
-                  </div>
-                  <span className="font-black text-xs sm:text-sm text-primary shrink-0">{formatMoney(income.amount, income.currency as any)}</span>
-                </div>
-                <div className="pt-2 border-t border-border/20">
-                  <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-1.5">Destino</div>
-                  <div className="flex flex-wrap gap-1">
-                    {income.details.map((d, i) => (
-                      <div key={i} className="flex items-center gap-1 bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5 text-[9px]">
-                        <span className="font-bold text-muted-foreground/80 uppercase text-[7px]">{d.name}:</span>
-                        <span className="font-black text-primary">{formatMoney(d.amount, income.currency as any)}</span>
+        <section className="rounded-2xl sm:rounded-3xl bg-card/40 border border-border/60 overflow-hidden shadow-sm transition-all duration-300">
+          <button
+            onClick={() => setShowHistory(!showHistory)}
+            className="w-full flex items-center justify-between p-4 bg-muted/10 hover:bg-muted/20 transition-colors text-left"
+          >
+            <div className="flex items-center gap-2">
+              <RefreshCw className={cn("h-4 w-4 text-primary shrink-0", showHistory && "animate-spin-slow")} />
+              <h3 className="text-[10px] sm:text-xs uppercase tracking-widest text-primary font-bold">
+                Histórico de Receitas Processadas
+              </h3>
+            </div>
+            <motion.div animate={{ rotate: showHistory ? 0 : -90 }} transition={{ duration: 0.2 }}>
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </motion.div>
+          </button>
+
+          <AnimatePresence initial={false}>
+            {showHistory && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="border-t border-border/40"
+              >
+                <div className="p-3 sm:p-6 bg-background/10 space-y-4">
+                  <div className="block sm:hidden space-y-2">
+                    {distributedIncomes.map(income => (
+                      <div key={income.id} className="bg-background/25 border border-border/40 rounded-xl p-2.5 space-y-2 hover:border-primary/20 transition-all">
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-xs sm:text-sm text-foreground">{income.description || "Receita"}</span>
+                            <span className="text-[9px] text-muted-foreground uppercase font-black tracking-wider mt-0.5">{income.date}</span>
+                          </div>
+                          <span className="font-black text-xs sm:text-sm text-primary shrink-0">{formatMoney(income.amount, income.currency as any)}</span>
+                        </div>
+                        <div className="pt-2 border-t border-border/20">
+                          <div className="text-[8px] sm:text-[9px] uppercase tracking-wider text-muted-foreground font-bold mb-1.5">Destino</div>
+                          <div className="flex flex-wrap gap-1">
+                            {income.details.map((d, i) => (
+                              <div key={i} className="flex items-center gap-1 bg-primary/10 border border-primary/20 rounded px-1.5 py-0.5 text-[9px]">
+                                <span className="font-bold text-muted-foreground/80 uppercase text-[7px]">{d.name}:</span>
+                                <span className="font-black text-primary">{formatMoney(d.amount, income.currency as any)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
 
-          <div className="hidden sm:block rounded-2xl border border-border/40 bg-background/20 overflow-hidden">
-            <Table>
-              <TableHeader className="bg-muted/20">
-                <TableRow className="hover:bg-transparent border-border/40">
-                  <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Origem / Data</TableHead>
-                  <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Valor Total</TableHead>
-                  <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Destino</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {distributedIncomes.map(income => (
-                  <TableRow key={income.id} className="border-border/40 hover:bg-primary/5 transition-colors">
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-sm text-foreground">{income.description || "Receita"}</span>
-                        <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">{income.date}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-black text-sm text-primary">{formatMoney(income.amount, income.currency as any)}</TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-2">
-                        {income.details.map((d, i) => (
-                          <div key={i} className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1">
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase">{d.name}:</span>
-                            <span className="text-xs font-black text-primary">{formatMoney(d.amount, income.currency as any)}</span>
-                          </div>
+                  <div className="hidden sm:block rounded-2xl border border-border/40 bg-background/20 overflow-hidden">
+                    <Table>
+                      <TableHeader className="bg-muted/20">
+                        <TableRow className="hover:bg-transparent border-border/40">
+                          <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Origem / Data</TableHead>
+                          <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Valor Total</TableHead>
+                          <TableHead className="text-xs uppercase tracking-tighter font-bold text-foreground/70">Destino</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {distributedIncomes.map(income => (
+                          <TableRow key={income.id} className="border-border/40 hover:bg-primary/5 transition-colors">
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span className="font-bold text-sm text-foreground">{income.description || "Receita"}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase font-black tracking-wider">{income.date}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-black text-sm text-primary">{formatMoney(income.amount, income.currency as any)}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-2">
+                                {income.details.map((d, i) => (
+                                  <div key={i} className="flex items-center gap-2 bg-primary/10 border border-primary/20 rounded-lg px-3 py-1">
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase">{d.name}:</span>
+                                    <span className="text-xs font-black text-primary">{formatMoney(d.amount, income.currency as any)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </TableCell>
+                          </TableRow>
                         ))}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </section>
       )}
 
-      <div className="flex flex-col gap-6">
-        <Tabs defaultValue="EUR" className="w-full">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 mb-6 bg-muted/40 p-1 rounded-xl">
-            <TabsTrigger value="EUR" className="rounded-lg font-bold">Orçamento Euro (€)</TabsTrigger>
-            <TabsTrigger value="BRL" className="rounded-lg font-bold">Orçamento Real (R$)</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="EUR" className="mt-0 outline-none">
-            {renderBudgetBoard(eurGroups, 'EUR')}
-          </TabsContent>
-          
-          <TabsContent value="BRL" className="mt-0 outline-none">
-            {renderBudgetBoard(brlGroups, 'BRL')}
-          </TabsContent>
-        </Tabs>
+      <div className="w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {currency === 'EUR' ? renderBudgetBoard(eurGroups, 'EUR') : renderBudgetBoard(brlGroups, 'BRL')}
       </div>
 
       <section className="rounded-2xl sm:rounded-3xl bg-card/30 border border-border/40 p-4 sm:p-6 shadow-sm mt-8">
@@ -904,96 +942,88 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // 1. Estado local isolado para evitar re-renderizações em cascata durante a digitação
-  const [localValue, setLocalValue] = useState<number>(cat.assigned_amount || 0);
+  const [localValue, setLocalValue] = useState<string | number>(cat.assigned_amount || 0);
 
-  // Sincroniza o valor local se houver uma alteração externa vinda do banco (rebalanceamentos, etc)
   useEffect(() => {
     setLocalValue(cat.assigned_amount || 0);
   }, [cat.assigned_amount]);
 
   const available = cat.available_amount ?? ((cat.assigned_amount || 0) - (cat.spent_amount || 0));
-  const percentSpent = (cat.assigned_amount || 0) > 0 ? ((cat.spent_amount || 0) / cat.assigned_amount) * 100 : 0;
 
-  // 2. Dispara a gravação pesada unicamente no clique do OK ou tecla Enter
   const handleSave = async () => {
-    if (Number(localValue) !== Number(cat.assigned_amount)) {
-      await assignMoney(cat.id, localValue);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleSave();
+    const numericVal = Number(localValue) || 0;
+    if (numericVal !== Number(cat.assigned_amount)) {
+      await assignMoney(cat.id, numericVal);
+      setLocalValue(numericVal);
     }
   };
 
   return (
-    <TableRow ref={setNodeRef} style={style} className="border-border/40 hover:bg-muted/20 transition-colors">
-      <TableCell className="w-[40px] p-2 sm:p-4">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 text-muted-foreground/20 hover:text-primary/40 transition-colors">
-          <GripVertical className="h-3.5 w-3.5" />
+    <div ref={setNodeRef} style={style} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-background hover:bg-muted/10 border-b border-border/30 transition-colors group gap-3 sm:gap-0">
+      {/* LEFT SIDE (Drag + Name + Progress) */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-primary transition-colors shrink-0">
+          <GripVertical className="h-4 w-4" />
         </div>
-      </TableCell>
-      <TableCell className="p-2 sm:p-4">
-        <div className="flex flex-col gap-1.5 sm:gap-2">
-          <div className="flex items-center gap-1.5">
-            <span className="font-semibold text-xs sm:text-sm text-foreground/90">{cat.name}</span>
-            {cat.macro_allocation && cat.macro_allocation !== 'NONE' && (
-              <span className={cn(
-                "text-[8px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md border shrink-0",
-                cat.macro_allocation === 'NEEDS' && "bg-rose-500/10 text-rose-400 border-rose-500/20",
-                cat.macro_allocation === 'WANTS' && "bg-amber-500/10 text-amber-400 border-amber-500/20",
-                cat.macro_allocation === 'SAVINGS' && "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-              )}>
-                {cat.macro_allocation === 'NEEDS' ? '50%' : cat.macro_allocation === 'WANTS' ? '30%' : '20%'}
-              </span>
-            )}
-          </div>
-          <Progress value={percentSpent} className="h-0.5 sm:h-1 w-16 sm:w-32" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-foreground truncate">{cat.name}</p>
+          {(() => {
+            const pct = cat.assigned_amount > 0 ? Math.min(100, (cat.spent_amount / cat.assigned_amount) * 100) : 0;
+            return (
+              <Progress
+                value={pct}
+                className={cn(
+                  "h-1.5 mt-2 bg-muted/30 w-24 sm:w-32",
+                  pct >= 100 && "[&>div]:bg-rose-500",
+                  pct < 100 && pct >= 80 && "[&>div]:bg-amber-500",
+                  pct < 80 && "[&>div]:bg-emerald-500"
+                )}
+              />
+            );
+          })()}
         </div>
-      </TableCell>
-      
-      {/* Célula do Reservado Otimizada */}
-      <TableCell className="text-right hidden sm:table-cell p-2 sm:p-4">
-        <div className="flex items-center gap-1.5 justify-end">
-          <CurrencyInput
-            value={localValue}
-            onChange={(val) => setLocalValue(val || 0)}
-            onKeyDown={handleKeyDown}
-            className="w-24 h-8 text-right bg-background/50 border-border/40 focus:border-primary/50"
-          />
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            onClick={handleSave}
-            disabled={Number(localValue) === Number(cat.assigned_amount)}
-            className={cn(
-              "h-8 px-2 text-xs font-bold rounded-lg transition-all",
-              Number(localValue) !== Number(cat.assigned_amount) 
-                ? "text-primary bg-primary/10 hover:bg-primary/20 animate-pulse" 
-                : "text-muted-foreground/30 border-transparent cursor-not-allowed"
-            )}
-          >
-            OK
-          </Button>
-        </div>
-      </TableCell>
-      
-      <TableCell className="text-right text-muted-foreground font-medium italic hidden sm:table-cell p-2 sm:p-4">
-        {formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}
-      </TableCell>
-      <TableCell className={cn(
-        "text-right font-bold tabular text-xs sm:text-sm p-2 sm:p-4",
-        available > 0 ? "text-emerald-400" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
-      )}>
-        {formatMoney(available, cat.currency as any || "EUR")}
-      </TableCell>
-      <TableCell className="hidden sm:table-cell p-2 sm:p-4">
         <CategoryActions category={cat} />
-      </TableCell>
-    </TableRow>
+      </div>
+
+      {/* RIGHT SIDE (3 Columns: Separei, Gastei, Sobrou) */}
+      <div className="flex flex-row items-center justify-between sm:justify-end gap-2 sm:gap-6 w-full sm:w-auto shrink-0">
+        {/* SEPAREI */}
+        <div className="flex flex-col items-start sm:items-end w-auto sm:w-[120px]">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1 sm:hidden">Separei</span>
+          <div className="relative w-full">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">{cat.currency === "EUR" ? "€" : "R$"}</span>
+            <Input
+              type="number" step="0.01"
+              value={localValue}
+              onChange={(e) => setLocalValue(e.target.value)}
+              onBlur={handleSave}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
+              className={cn(
+                "w-full h-9 pl-7 pr-2 text-right font-semibold bg-transparent border-border/40 hover:bg-muted/20 focus:bg-background focus:border-primary/50 transition-all rounded-xl",
+                Number(localValue) !== Number(cat.assigned_amount) && "text-primary bg-primary/5"
+              )}
+            />
+          </div>
+        </div>
+
+        {/* GASTEI */}
+        <div className="flex flex-col items-end w-auto sm:w-[90px]">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1 sm:hidden">Gastei</span>
+          <span className="text-sm font-medium text-muted-foreground truncate">{formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}</span>
+        </div>
+
+        {/* SOBROU */}
+        <div className="flex flex-col items-end w-auto sm:w-[100px]">
+          <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1 sm:hidden">Sobrou</span>
+          <span className={cn(
+            "text-base font-black tracking-tight truncate",
+            available > 0 ? "text-emerald-500" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
+          )}>
+            {formatMoney(available, cat.currency as any || "EUR")}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 };
 

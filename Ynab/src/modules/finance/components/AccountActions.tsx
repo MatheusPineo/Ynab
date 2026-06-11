@@ -32,7 +32,6 @@ import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { AccountNode } from "@/types";
 import { toast } from "sonner";
-import { AddAccountModal } from "./AddAccountModal";
 import { IconPicker } from "./IconPicker";
 import { authenticatedFetch } from "@/shared/lib/api";
 
@@ -48,8 +47,8 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [editedCeiling, setEditedCeiling] = useState<number | null>(account.ceiling ?? null);
   const [editedExcludeFromTotals, setEditedExcludeFromTotals] = useState(!!account.exclude_from_totals);
   const [editedBankDomain, setEditedBankDomain] = useState(account.bank_domain || "");
+  const [editedAccountType, setEditedAccountType] = useState((account.account_type || "checking").toLowerCase());
   const [isSaving, setIsSaving] = useState(false);
-  const [isCropping, setIsCropping] = useState(false);
   
   // Mover Conta (App & Web)
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
@@ -95,6 +94,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
       setEditedCeiling(account.ceiling ?? null);
       setEditedExcludeFromTotals(!!account.exclude_from_totals);
       setEditedBankDomain(account.bank_domain || "");
+      setEditedAccountType((account.account_type || "checking").toLowerCase());
     }
   }, [isEditDialogOpen, account]);
 
@@ -109,7 +109,8 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
         icon_url: editedIcon,
         ceiling: editedCeiling,
         exclude_from_totals: editedExcludeFromTotals,
-        bank_domain: editedBankDomain
+        bank_domain: editedBankDomain,
+        account_type: editedAccountType
       });
       
       setIsEditDialogOpen(false);
@@ -190,13 +191,6 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
               <HelpTooltip content="Retira o valor que passou do teto e distribui entre as contas irmãs." side="right" />
             </DropdownMenuItem>
           )}
-          <DropdownMenuSeparator />
-          <AddAccountModal parentAccount={account}>
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}> {/* Prevent DropdownMenu closing */}
-              <Plus className="mr-2 h-4 w-4" />
-              Adicionar Sub-conta
-            </DropdownMenuItem>
-          </AddAccountModal>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -215,6 +209,22 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                 required
                 className="bg-background/50"
               />
+            </div>
+            <div className="grid gap-2">
+              <Label className="flex items-center gap-1.5" htmlFor="account_type">
+                Tipo de Conta
+                <HelpTooltip content="Define o comportamento do dinheiro. Cartões de crédito geram dívida, Contas de Acompanhamento não entram no orçamento principal."/>
+              </Label>
+              <Select onValueChange={setEditedAccountType} value={editedAccountType}>
+                <SelectTrigger className="bg-background/50" id="account_type">
+                  <SelectValue placeholder="Selecione o tipo..."/>
+                </SelectTrigger>
+                <SelectContent className="glass border-border/60">
+                  <SelectItem value="checking">Conta Corrente / Carteira</SelectItem>
+                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                  <SelectItem value="tracking">Conta de Acompanhamento (Fora do Orçamento)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="bank_domain">Website / Domínio do Banco</Label>
@@ -260,23 +270,13 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                 </Label>
               </div>
             </div>
-            <div className="grid gap-2">
-              <Label>Ícone da Conta</Label>
-              <IconPicker 
-                currentIconUrl={editedIcon} 
-                onCroppingStateChange={setIsCropping}
-                onIconUploaded={(url) => {
-                  setEditedIcon(url);
-                }} 
-                />
-            </div>
             <DialogFooter>
               <Button 
                 type="submit" 
                 className="w-full gradient-primary" 
-                disabled={isSaving || isCropping}
+                disabled={isSaving}
               >
-                {isSaving ? "Salvando..." : isCropping ? "Finalize o recorte primeiro" : "Salvar Alterações"}
+                {isSaving ? "Salvando..." : "Salvar Alterações"}
               </Button>
             </DialogFooter>
           </form>

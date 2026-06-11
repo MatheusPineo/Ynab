@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, GripVertical, EyeOff, Landmark } from "lucide-react";
+import { ChevronRight, GripVertical, EyeOff, Landmark, CreditCard, LineChart } from "lucide-react";
 import { toast } from "sonner";
 import {
   type AccountNode,
@@ -241,12 +241,34 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
           {/* Name */}
           <span
             className={cn(
-              "min-w-0 truncate flex items-center gap-1.5 sm:gap-2",
+              "min-w-0 truncate flex items-center gap-1.5 sm:gap-2 flex-wrap",
               isMaster ? "text-base font-semibold text-foreground" : "text-sm text-foreground/90",
               isExcluded && "text-foreground/75 italic"
             )}
           >
             <span className="truncate">{node.name}</span>
+            
+            {/* Account Type Badges */}
+            {(node.account_type === 'CREDIT_CARD' || node.account_type === 'credit_card') && (
+              <span 
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-amber-500/15 text-amber-500 border border-amber-500/25 select-none"
+                title="Cartão de Crédito"
+              >
+                <CreditCard className="h-2.5 w-2.5 shrink-0" />
+                Cartão
+              </span>
+            )}
+            
+            {(node.account_type === 'TRACKING' || node.account_type === 'tracking') && (
+              <span 
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-sky-500/15 text-sky-500 border border-sky-500/25 select-none"
+                title="Conta de Acompanhamento (Fora do Orçamento)"
+              >
+                <LineChart className="h-2.5 w-2.5 shrink-0" />
+                Acompanhamento
+              </span>
+            )}
+
             {isExcluded && (
               <span 
                 className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/25 select-none"

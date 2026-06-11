@@ -18,6 +18,7 @@ Este projeto utiliza uma arquitetura moderna para garantir rapidez na manipulaç
 
 - [x] **Dashboard Multimoeda:** Suporte nativo para EUR, BRL e USD com conversão automática.
 - [x] **Árvore de Contas Recursiva:** Estrutura dinâmica de contas e sub-contas com herança de saldo.
+- [x] **Cartões de Crédito com Integração YNAB:** Modal de transações de cartão de crédito totalmente integrado com a seleção de categorias do YNAB.
 - [x] **Persistência Local:** Dados salvos automaticamente no navegador para continuidade de uso.
 - [x] **Interface Responsiva:** Design otimizado para Desktop e dispositivos móveis (Mobile-first).
 - [x] **Patrimônio Líquido em Tempo Real:** Cálculo instantâneo do valor total baseado nas taxas de câmbio (mock).

@@ -26,8 +26,11 @@ O sistema agora disponibiliza operações completas de criação, leitura, atual
 
 ## 3. Como Utilizar no Lançamento de Transações
 
-Ao registrar qualquer despesa ou receita na tela principal, você pode ativar a opção de rateio de forma simples:
+Ao registrar qualquer despesa ou receita na tela principal, você pode ativar a opção de rateio de forma simples e dinâmica por item:
 
 1. Ative a opção **"Aplicar Regra de Rateio?"** no formulário.
-2. Selecione a regra cadastrada desejada (ex: "Divisão de Contas").
-3. O Vault Finance OS dividirá os valores automaticamente de forma transparente. A parte correspondente aos devedores gerará títulos de cobrança individuais na fila cronológica de devedores, mantendo o controle total de reembolsos sem poluir o seu saldo do envelope YNAB.
+2. Uma interface de **Itens a Dividir (Reembolsos)** será exibida instantaneamente.
+3. Clique em **"Adicionar Produto"** para incluir um novo item na despesa.
+4. Preencha a **Descrição do Produto/Despesa**, o **Valor do Item**, a **Qtd. de Pessoas** pela qual dividir e selecione quais **Categorias/Devedores** devem reembolsar (clicando sobre as tags/badges dos participantes).
+5. O sistema calcula automaticamente em tempo real a parcela exata que cada pessoa selecionada deverá pagar.
+6. A parte correspondente aos devedores gerará títulos de cobrança individuais na fila cronológica de devedores, mantendo o controle total de reembolsos sem poluir o seu saldo do envelope YNAB.

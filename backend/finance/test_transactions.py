@@ -107,3 +107,24 @@ class TransactionsAndTransfersTests(TestCase):
         templates = DistributionTemplate.objects.filter(user=self.user)
         self.assertEqual(templates.count(), 1)
         self.assertEqual(templates.first().items.count(), 1)
+
+    def test_negative_amount_sanitization(self):
+        # Create transaction with a negative amount
+        response = self.client.post(reverse('transaction-list'), {
+            'account': self.account_a.id,
+            'amount': '-3000.00',
+            'description': 'Neg test',
+            'date': str(date.today()),
+            'is_income': False,
+            'status': 'realized'
+        }, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        tx_id = response.data['id']
+        
+        tx = Transaction.objects.get(id=tx_id)
+        # Check that it got sanitized to absolute value
+        self.assertEqual(tx.amount, Decimal('3000.00'))
+        
+        # Verify account balance was correctly updated (deducted 3000)
+        self.account_a.refresh_from_db()
+        self.assertEqual(self.account_a.balance, Decimal('-2000.00'))

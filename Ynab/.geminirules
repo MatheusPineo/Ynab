@@ -1,0 +1,11 @@
+# MEMÓRIA DE DESENVOLVIMENTO E STATUS
+
+## Última Atualização
+- **Data:** 11 de Junho de 2026
+- **Status da Aplicação:** Estável e compilando com sucesso (`Vitest` com 50/50 testes passando; `vite build` gerando bundle estável).
+- **Funcionalidade Implementada:** Resolução do bug de carregamento (acesso de `allAccounts` antes de inicialização) em `AddTransactionModal.tsx` por meio de reordenação estruturada de variáveis no topo do componente.
+
+## Estrutura de Documentação de Governança
+- **Técnica:** [README.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/README.md) e [ARCHITECTURE.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/ARCHITECTURE.md) atualizados.
+- **Histórico:** [CHANGELOG.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/CHANGELOG.md) e [docs/changelog/novidades.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/docs/changelog/novidades.md) atualizados.
+- **Central de Ajuda (VitePress):** Manuais em [docs/manuais/manual_cartao_credito.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/docs/manuais/manual_cartao_credito.md), [docs/manual_actual_budget.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/docs/manual_actual_budget.md) e FAQ em [docs/faq/perguntas.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/docs/faq/perguntas.md) criados/atualizados.

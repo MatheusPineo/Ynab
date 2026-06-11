@@ -21,17 +21,28 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
-import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock, ChevronDown } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock, ChevronDown, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
+import { Checkbox } from "@/shared/components/ui/checkbox";
+import { Badge } from "@/shared/components/ui/badge";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { type Transaction } from "@/types";
 import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
+import { GlobalCategorySelector } from "@/shared/components/ui/global-category-selector";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
 import { RecurrenceEditModal } from "@/modules/finance/components/RecurrenceEditModal";
 import { useDebtStore } from "@/modules/finance/store/useDebtStore";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
+
+interface SplitItem {
+  id: string;
+  description: string;
+  amount: number;
+  divideBy: number;
+  debtorCategoryIds: string[];
+}
 
 interface Props {
   children?: React.ReactNode;
@@ -50,7 +61,65 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [toAccountSearch, setToAccountSearch] = useState("");
 
   const { splitRules, transactionDraft, fetchSplitRules, setTransactionDraft } = useDebtStore();
+  
+  const { tree, categoryGroups } = useAccountStore();
+  const { transactions = [], addTransaction, updateTransaction, transferTransaction } = useTransactions();
+
+  const getAllAccounts = (nodes: any[], depth = 0): any[] => {
+    let list: any[] = [];
+    if (!nodes || !Array.isArray(nodes)) return list;
+    
+    nodes.forEach(node => {
+      const indent = "\u00A0\u00A0".repeat(depth);
+      list.push({
+        ...node,
+        displayName: `${indent}${depth > 0 ? "↳ " : ""}${node.name}`
+      });
+      if (node.children && Array.isArray(node.children) && node.children.length > 0) {
+        list = [...list, ...getAllAccounts(node.children, depth + 1)];
+      }
+    });
+    return list;
+  };
+  
+  const allAccounts = getAllAccounts(tree);
   const [applySplit, setApplySplit] = useState(false);
+  const [splitItems, setSplitItems] = useState<SplitItem[]>([]);
+
+  // Function to add a new empty item
+  const handleAddSplitItem = () => {
+    setSplitItems(prev => [
+      ...prev,
+      { id: crypto.randomUUID(), description: "", amount: 0, divideBy: 1, debtorCategoryIds: [] }
+    ]);
+  };
+
+  // Function to remove an item
+  const handleRemoveSplitItem = (id: string) => {
+    setSplitItems(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Function to update an item field
+  const handleUpdateSplitItem = (id: string, field: keyof SplitItem, value: any) => {
+    setSplitItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  };
+
+  // Function to toggle a debtor in an item
+  const handleToggleDebtor = (itemId: string, categoryId: string) => {
+    setSplitItems(prev => prev.map(item => {
+      if (item.id === itemId) {
+        const isSelected = item.debtorCategoryIds.includes(categoryId);
+        return {
+          ...item,
+          debtorCategoryIds: isSelected 
+            ? item.debtorCategoryIds.filter(id => id !== categoryId)
+            : [...item.debtorCategoryIds, categoryId]
+        };
+      }
+      return item;
+    }));
+  };
+
   const [splitRuleId, setSplitRuleId] = useState<string>("none");
   const [sharedAmount, setSharedAmount] = useState<number>(0);
   const [recurrenceEditModalOpen, setRecurrenceEditModalOpen] = useState(false);
@@ -161,10 +230,14 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
 
   const currentCard = useMemo(() => {
     if (!accountId) return null;
+    const acc = allAccounts.find(a => String(a.id) === String(accountId));
+    const isCreditType = acc?.account_type === "credit_card" || acc?.account_type === "CREDIT_CARD";
+    if (!isCreditType) return null;
+
     return creditCards.find(
       (c: any) => String(c.account_id) === String(accountId) || String(c.account) === String(accountId)
     );
-  }, [accountId, creditCards]);
+  }, [accountId, creditCards, allAccounts]);
 
   useEffect(() => {
     if (currentCard && currentCard.country_of_issue === "PT") {
@@ -179,9 +252,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     setActiveSuggestionIndex(-1);
   }, [description]);
 
-  const { tree, categoryGroups } = useAccountStore();
-  const { transactions = [], addTransaction, updateTransaction, transferTransaction } = useTransactions();
-  
   const isEdit = !!transaction;
 
   // Fechar sugestões ao clicar fora do componente de autocomplete
@@ -259,24 +329,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     setActiveSuggestionIndex(-1);
   };
 
-  const getAllAccounts = (nodes: any[], depth = 0): any[] => {
-    let list: any[] = [];
-    if (!nodes || !Array.isArray(nodes)) return list;
-    
-    nodes.forEach(node => {
-      const indent = "\u00A0\u00A0".repeat(depth);
-      list.push({
-        ...node,
-        displayName: `${indent}${depth > 0 ? "↳ " : ""}${node.name}`
-      });
-      if (node.children && Array.isArray(node.children) && node.children.length > 0) {
-        list = [...list, ...getAllAccounts(node.children, depth + 1)];
-      }
-    });
-    return list;
-  };
-  
-  const allAccounts = getAllAccounts(tree);
+
 
   const fromAccount = allAccounts.find(a => String(a.id) === accountId);
   const toAccount = allAccounts.find(a => String(a.id) === toAccountId);
@@ -657,30 +710,14 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             {!isTransfer && (
               <div id="category-container" className="relative grid gap-2 col-span-full animate-in fade-in slide-in-from-top-1">
                 <Label htmlFor="category">Categoria</Label>
-                <Select 
-                  value={categoryId} 
-                  onValueChange={(v) => { 
-                    setCategoryId(v); 
-                    setUseCategory(v !== "none"); 
+                <GlobalCategorySelector
+                  value={categoryId}
+                  onValueChange={(v) => {
+                    setCategoryId(v);
+                    setUseCategory(v !== "none");
                   }}
-                >
-                  <SelectTrigger id="category" className="bg-background/50 border-border/60">
-                    <SelectValue placeholder="Selecione uma categoria" />
-                  </SelectTrigger>
-                  <SelectContent className="glass border-border/60 max-h-[250px] overflow-y-auto">
-                    <SelectItem value="none">Sem Categoria</SelectItem>
-                    {(categoryGroups || []).map((group: any) => (
-                      <SelectGroup key={group.id}>
-                        <SelectLabel className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider px-2 py-1.5">{group.name}</SelectLabel>
-                        {(group.children || []).map((cat: any) => (
-                          <SelectItem key={cat.id} value={String(cat.id)} className="pl-4">
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  placeholder="Selecione uma categoria"
+                />
               </div>
             )}
           </div>
@@ -784,70 +821,110 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
 
           {!isTransfer && (
             <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">
-              <div className="flex items-center space-x-2">
-                <input 
-                  type="checkbox" 
-                  id="apply_split" 
-                  checked={applySplit}
-                  onChange={(e) => setApplySplit(e.target.checked)}
-                  className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                />
-                <Label htmlFor="apply_split" className="font-medium cursor-pointer">Aplicar Regra de Rateio?</Label>
+              <div 
+                className="flex items-center space-x-2 border border-border/40 bg-card p-3 rounded-xl cursor-pointer" 
+                onClick={() => {
+                  const newState = !applySplit;
+                  setApplySplit(newState);
+                  if (newState && splitItems.length === 0) handleAddSplitItem();
+                }}
+              >
+                <Checkbox checked={applySplit}/>
+                <Label className="text-sm cursor-pointer">Aplicar Regra de Rateio?</Label>
               </div>
 
               {applySplit && (
-                <div className="grid gap-3 pl-6 animate-in slide-in-from-top-2">
-                  <div className="flex items-end gap-2">
-                    <div className="flex-1 grid gap-1.5">
-                      <Label htmlFor="split_rule" className="text-xs text-muted-foreground">Regra de Rateio</Label>
-                      <Select value={splitRuleId} onValueChange={setSplitRuleId}>
-                        <SelectTrigger className="bg-background/50 border-border/60">
-                          <SelectValue placeholder="Selecione uma regra" />
-                        </SelectTrigger>
-                        <SelectContent className="glass border-border/60">
-                          <SelectItem value="none">Selecione uma regra</SelectItem>
-                          {splitRules.map(rule => (
-                            <SelectItem key={rule.id} value={String(rule.id)}>{rule.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setTransactionDraft({
-                          description,
-                          amount,
-                          type,
-                          accountId,
-                          categoryId,
-                          status,
-                          date,
-                          isRecurring,
-                          recurrenceInterval,
-                          splitRuleId,
-                          sharedAmount,
-                          applySplit: true
-                        });
-                        setOpen(false);
-                        if (onClose) onClose();
-                        navigate("/settings?tab=split-rules");
-                      }}
-                      className="text-xs font-bold text-primary hover:underline h-10 px-2 flex items-center bg-primary/10 rounded-lg border border-primary/20 cursor-pointer"
+                <div className="mt-3 p-4 border border-primary/20 bg-primary/5 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-bold text-primary flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5"/>
+                      Itens a Dividir (Reembolsos)
+                    </Label>
+                    <Button 
+                      className="h-7 text-[10px] font-bold text-primary hover:bg-primary/10 rounded-lg" 
+                      onClick={handleAddSplitItem} 
+                      size="sm" 
+                      type="button" 
+                      variant="ghost"
                     >
-                      Criar/Editar
-                    </button>
+                      <Plus className="h-3 w-3 mr-1"/> Adicionar Produto
+                    </Button>
                   </div>
 
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="shared_amount" className="text-xs text-muted-foreground">Valor Compartilhado (Opcional)</Label>
-                    <CurrencyInput
-                      id="shared_amount"
-                      value={sharedAmount}
-                      onChange={setSharedAmount}
-                      placeholder="Deixe 0 para ratear valor total"
-                      className="bg-background/50 text-left"
-                    />
+                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
+                    {splitItems.map((item, index) => (
+                      <div key={item.id} className="p-3.5 border border-border/50 bg-background rounded-xl space-y-3 relative group">
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveSplitItem(item.id)} 
+                          className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 className="h-3.5 w-3.5"/>
+                        </button>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-6">
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Produto / Despesa</Label>
+                            <Input 
+                              onChange={(e) => handleUpdateSplitItem(item.id, 'description', e.target.value)} 
+                              value={item.description}
+                              placeholder="Ex: Sabão, Vassoura..." 
+                              className="h-9 text-xs rounded-lg bg-muted/20"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Valor do Item</Label>
+                            <CurrencyInput 
+                              onChange={(val) => handleUpdateSplitItem(item.id, 'amount', val)} 
+                              value={item.amount}
+                              className="h-9 text-xs rounded-lg bg-muted/20"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1 border-t border-border/40">
+                          <div className="sm:col-span-4 space-y-1.5 pt-1">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Dividir por (Qtd. Pessoas)</Label>
+                            <Input 
+                              min="1" 
+                              type="number" 
+                              value={item.divideBy}
+                              onChange={(e) => handleUpdateSplitItem(item.id, 'divideBy', parseInt(e.target.value) || 1)} 
+                              className="h-9 text-xs font-mono rounded-lg bg-muted/20"
+                            />
+                          </div>
+                          
+                          <div className="sm:col-span-8 space-y-1.5 pt-1">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Quem deve reembolsar?</Label>
+                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                              {(categoryGroups || []).flatMap(g => g.children || []).map(cat => {
+                                const isSelected = item.debtorCategoryIds.includes(cat.id);
+                                return (
+                                  <Badge 
+                                    key={cat.id} 
+                                    onClick={() => handleToggleDebtor(item.id, cat.id)} 
+                                    variant={isSelected ? "default" : "outline"}
+                                    className={cn(
+                                      "cursor-pointer text-[10px] transition-all hover:scale-105",
+                                      isSelected ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent text-muted-foreground hover:bg-muted"
+                                    )}
+                                  >
+                                    {cat.name}
+                                  </Badge>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+
+                        {item.amount > 0 && item.debtorCategoryIds.length > 0 && (
+                          <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-lg text-[10px] font-bold">
+                            <CheckCircle2 className="h-3.5 w-3.5"/>
+                            Cada pessoa selecionada pagará {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount / item.divideBy)}.
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}

@@ -1,3 +1,104 @@
+## [1.95.00] - 2026-06-11
+
+### Fixed
+- Backend: Corrigido bug de dupla negação ao lançar transações com valor negativo (ex: despesa de `-3000.00`). O modelo `Transaction` no backend (`clean()` e `save()`) agora sanitiza automaticamente o valor (`amount`) convertendo-o para seu valor absoluto positivo. Isso evita que despesas com sinal negativo sejam somadas ao saldo da conta e dos envelopes orçamentários, restabelecendo o fluxo correto de débito.
+
+## [1.94.00] - 2026-06-11
+
+### Fixed
+- Frontend: Corrigido erro de inicialização `Cannot access before initialization` em `AddTransactionModal.tsx` ao mover destruturações de hooks e a inicialização de `allAccounts` para o topo do escopo do componente (acima da definição de `currentCard` que as consome).
+
+## [1.93.00] - 2026-06-11
+
+### Changed
+- Frontend: Corrigido o modal de transação (`AddTransactionModal.tsx`) para verificar explicitamente se a conta selecionada possui tipo `credit_card` na árvore de contas antes de exibir os campos de parcelamento, impedindo que contas recentemente alteradas para outros tipos (como checking/poupança) ainda mostrem o formulário de cartão de crédito.
+
+## [1.92.00] - 2026-06-11
+
+### Changed
+- Frontend: Corrigido o envio do valor de `account_type` no modal de edição de conta em `AccountActions.tsx` para passar strings em minúsculo (`checking`, `credit_card`, `tracking`), alinhando com a validação do backend.
+- Frontend: Removida a seção de "Ícone da Conta" (`IconPicker`) do modal de edição de conta em `AccountActions.tsx`.
+
+## [1.91.00] - 2026-06-11
+
+### Removed
+- Frontend: Removida a opção de "Adicionar Sub-conta" do menu de ações da conta (`AccountActions.tsx`).
+
+## [1.90.00] - 2026-06-11
+
+### Changed
+- Frontend: Adicionado seletor de "Tipo de Conta" no modal de edição de contas em `AccountActions.tsx`, permitindo aos usuários alternar dinamicamente entre Conta Corrente/Carteira (`CHECKING`), Cartão de Crédito (`CREDIT_CARD`) e Conta de Acompanhamento (`TRACKING`).
+
+## [1.89.00] - 2026-06-11
+
+### Added
+- Frontend: Injeção de badges visuais ("Cartão" e "Acompanhamento") no componente de acordeão de contas `AccountAccordion.tsx` para identificação de tipos de conta em tempo real.
+
+## [1.88.00] - 2026-06-11
+
+### Added
+- Frontend: Integração do novo componente `GlobalCategorySelector` no modal global de lançamento de transações com suporte a popover moderno, busca dinâmica e navegação de teclado.
+
+## [1.87.00] - 2026-06-11
+
+### Changed
+- Frontend: O painel de "Histórico de Receitas Processadas" em `Budget.tsx` foi encapsulado em um componente retrátil (acordeão). Ele agora fica colapsado por padrão para economizar espaço de tela, expandindo-se suavemente via animações de deslize do Framer Motion quando o usuário clica em seu cabeçalho.
+
+## [1.86.00] - 2026-06-11
+
+### Changed
+- Frontend: Adicionada a classe `w-full` ao cabeçalho fixo (*Sticky Header*) em `Budget.tsx`. Isso corrige a quebra de alinhamento onde o cockpit de orçamento ficava menor horizontalmente do que os cartões e tabelas de conteúdo abaixo (como o Histórico de Receitas Processadas), forçando-o a preencher simetricamente todo o espaço do contêiner.
+
+## [1.85.00] - 2026-06-11
+
+### Changed
+- Frontend: Removido o comportamento de encolhimento no scroll e reestabelecido o cabeçalho fixo permanente (`sticky top-0`) de layout compacto. A remoção da classe `relative` no container da seção resolveu o bug de sobreposição, garantindo que o cabeçalho fique fixado corretamente no topo do contêiner rolável principal do painel de orçamento.
+
+## [1.84.00] - 2026-06-11
+
+### Changed
+- Frontend: Adicionado comportamento de encolhimento dinâmico do cockpit superior fixo em `Budget.tsx` ao rolar a página. O cabeçalho agora escuta o evento de scroll e reduz suas dimensões (paddings, margins, fontes, tamanhos de tabs e botões, além de um MonthSelector compacto) para otimizar ao máximo o espaço vertical útil na tela de categorias e envelopes.
+
+## [1.83.00] - 2026-06-11
+
+### Changed
+- Frontend: Refatoração do painel superior fixo (cockpit) em `Budget.tsx` para uma versão ultra-compacta. O layout agora agrupa horizontalmente o título do orçamento e o RTA em um badge moderno na esquerda, posicionando as abas (EUR/BRL) de forma minimalista, o `MonthSelector` e o menu de opções na direita em uma única linha, reduzindo a altura do cabeçalho fixo na rolagem.
+
+## [1.82.00] - 2026-06-11
+
+### Added
+- Dependency: Adicionado `framer-motion` como dependência de animações no frontend para viabilizar efeitos e transições premium.
+
+### Changed
+- Frontend: Transplante visual completo na página `Budget.tsx` integrando animações de acordeão expansíveis via `framer-motion` (`motion.div` com `AnimatePresence`) para os grupos de categorias, preservando 100% da lógica original de sincronismo, estado local de persistência, drag-and-drop (`SortableContext`/`SortableCategoryRow`) e chamadas de APIs do Django.
+- Frontend: Refatorada a barra de progresso no `SortableCategoryRow` para assumir colorações adaptativas baseadas em limites de gastos (`rose-500` para >=100%, `amber-500` para >=80%, e `emerald-500` para <80%).
+
+## [1.81.00] - 2026-06-11
+
+### Changed
+- Frontend: Correção no alinhamento das colunas da tabela/listagem de categorias em `Budget.tsx`. Imposição de larguras de coluna estritas (`w-[120px]`, `w-[90px]`, `w-[100px]`) e a classe `shrink-0` nas colunas "Separei", "Gastei" e "Sobrou" tanto nos cabeçalhos globais, cabeçalhos de grupos, quanto nas linhas de categoria (`SortableCategoryRow`), garantindo um grid de alinhamento vertical impecável e sem deformação.
+
+## [1.80.00] - 2026-06-11
+
+### Changed
+- Frontend: Refatorada a UI da página `Budget.tsx` para atualizar o cabeçalho "cockpit" com efeito de vidro aprimorado (backdrop-blur-xl e bg-background/80) com sticky top-2 sm:top-4 e margem inferior mb-6.
+- Frontend: Substituída a listagem de abas simples por um layout centralizado, animado (animate-in, fade-in, slide-in) e estilizado com h-12 e cantos arredondados rounded-2xl para os triggers EUR/BRL.
+
+## [1.79.00] - 2026-06-11
+
+### Changed
+- Frontend: Refatorada a função `renderBudgetBoard` em `Budget.tsx` substituindo o componente de tabela (`<Table>`) por um layout de cartões expansíveis moderno (progressive disclosure cards). O estado `expandedGroups` gerencia localmente a abertura e fechamento de cada grupo e a propagação de clique foi contida nas ações e cadastro de categorias para manter o CRUD estável.
+
+## [1.78.00] - 2026-06-11
+
+### Changed
+- Frontend: Refatorado o componente `SortableCategoryRow` em `Budget.tsx` para usar estrutura flexbox moderna em formato de card em vez de TableRow/TableCell, e adicionado comportamento de salvamento automático do valor designado no `onBlur` do input ou tecla Enter, eliminando o botão "OK" de salvamento manual.
+
+## [1.77.00] - 2026-06-11
+
+### Changed
+- Frontend: Refatorada a UI de rateio de despesas no modal de lançamento de transações (`AddTransactionModal.tsx`), substituindo a seleção de regras prontas por um formulário de rateio dinâmico baseado em múltiplos itens com campos de descrição, valor, número de devedores e badges dinâmicos para seleção individual de participantes.
+
 ## [1.76.00] - 2026-06-10
 
 ### Changed

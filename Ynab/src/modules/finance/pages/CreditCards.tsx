@@ -287,7 +287,7 @@ export const CreditCards = () => {
     
     if (!categoryId) {
       setCategoryError(true);
-      toast.error("Por favor, selecione uma Subconta de despesa.");
+      toast.error("Por favor, selecione uma Categoria.");
       return;
     }
     
@@ -1189,16 +1189,31 @@ export const CreditCards = () => {
                 </div>
 
                 <div className="flex flex-col gap-1.5 col-span-full" id="category-container">
-                  <Label htmlFor="category" className={cn("text-[10px] font-bold uppercase tracking-wider font-mono", categoryError ? "text-red-500" : "text-muted-foreground")}>Subconta de despesa</Label>
-                  <GlobalAccountSelector 
+                  <Label htmlFor="category" className={cn("text-[10px] font-bold uppercase tracking-wider font-mono", categoryError ? "text-red-500" : "text-muted-foreground")}>Categoria de Despesa</Label>
+                  <Select 
                     value={categoryId} 
                     onValueChange={(val) => {
                       setCategoryId(val);
                       if (val) setCategoryError(false);
                     }}
-                    placeholder="Selecione uma conta"
-                  />
-                  {categoryError && <span className="text-[10px] font-bold text-red-500 mt-1">Por favor, selecione uma subconta para registrar o gasto.</span>}
+                  >
+                    <SelectTrigger className="rounded-xl bg-muted/15 border-border/40 h-11 text-sm font-medium">
+                      <SelectValue placeholder="Selecione uma categoria" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border/60 max-h-[250px] overflow-y-auto">
+                      {(categoryGroups || []).map((group: any) => (
+                        <SelectGroup key={group.id}>
+                          <SelectLabel className="text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wider px-2 py-1.5">{group.name}</SelectLabel>
+                          {(group.children || []).map((cat: any) => (
+                            <SelectItem key={cat.id} value={String(cat.id)} className="pl-4">
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {categoryError && <span className="text-[10px] font-bold text-red-500 mt-1">Por favor, selecione uma categoria para registrar o gasto.</span>}
                 </div>
               </div>
 

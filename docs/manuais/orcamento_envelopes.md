@@ -17,18 +17,22 @@ A regra número um da metodologia Base-Zero é nunca deixar dinheiro parado ness
 
 > [!TIP]
 > **Dica de Ouro:** Não conte com dinheiro que você "vai receber" semana que vem. O Vault Finance OS obriga você a lidar apenas com a liquidez que já está no seu bolso.
+> 
+> **Cockpit de Orçamento com Sticky Header:** O cabeçalho contendo o RTA, abas de moedas e seletor de mês fica fixado de forma permanente no topo da página (`sticky top-0`) com a classe `w-full` de largura total para se alinhar perfeitamente aos cartões e históricos inferiores de forma simétrica. Ele oferece visualização persistente sem alterar suas dimensões durante a rolagem.
+> 
+> **Histórico de Receitas Retrátil:** O bloco contendo o registro histórico de receitas processadas fica minimizado/colapsado por padrão. Caso precise visualizá-lo, clique na faixa do cabeçalho para expandi-lo instantaneamente.
 
 ---
 
 ## 2. Estruturação: Grupos e Sub-envelopes
 
-Para que o seu orçamento não seja uma lista confusa, o sistema implementa categorias infinitamente recursivas e expansíveis. 
+Para que o seu orçamento não seja uma lista confusa, o sistema implementa categorias infinitamente recursivas e organizadas em cartões expansíveis modernos com alinhamento milimétrico em grade flexbox e animações fluidas.
 
-* **Grupos Pai (Master Categories):** São as grandes fatias do seu orçamento. Exemplos: `Despesas Fixas`, `Qualidade de Vida`, `Saúde`, `Metas de Longo Prazo`.
+* **Grupos Pai (Master Categories) e Layout Expansível:** São as grandes fatias do seu orçamento (ex: `Despesas Fixas`, `Qualidade de Vida`). Eles são representados por cartões com um design clean e moderno. Você pode clicar em qualquer lugar da faixa do grupo para **recolher ou expandir** sua lista de sub-categorias via animações de acordeão suaves desenvolvidas com *Framer Motion*, eliminando a fadiga visual.
+* **Alinhamento Vertical de Colunas:** Para evitar distorções visuais e fadiga na leitura, as colunas de valores do orçamento (**Separei**, **Gastei** e **Sobrou**) seguem tamanhos de largura fixa rígidos tanto nos títulos globais, quanto nos cabeçalhos de grupos e nas sub-categorias individuais.
 * **Sub-envelopes (Sub-categories):** Onde o dinheiro de fato é alocado. Dentro de "Despesas Fixas", você pode criar as gavetas `Aluguel`, `Luz`, `Internet`.
-* **Como distribuir:** Clique no campo "Designado" de um sub-envelope e digite o valor que deseja colocar lá dentro. O montante será automaticamente deduzido do RTA e o campo "Disponível" do envelope ficará verde. 
-
-Quando você lançar uma despesa na tela de Transações utilizando este envelope, o sistema fará a subtração imediata. Se o gasto for maior do que o montante que estava lá dentro, o envelope ficará vermelho sinalizando estouro de orçamento (*Overspending*).
+* **Indicadores Visuais Inteligentes:** A barra de progresso de cada envelope muda dinamicamente de cor baseado na porcentagem de consumo do mês: **vermelho** (`rose-500`) ao atingir ou exceder 100%, **amarelo** (`amber-500`) ao entrar na faixa de atenção de 80% a 99%, e **verde** (`emerald-500`) abaixo de 80%.
+* **Como distribuir:** Clique no campo de valor que você deseja alocar (Separei) no envelope da categoria correspondente e digite a quantia desejada. O salvamento ocorre de forma automática e transparente ao desfocar o campo (blur) ou pressionar a tecla Enter. O montante será deduzido do RTA e o campo de saldo restante (Sobrou) exibirá o saldo disponível verde (ou vermelho caso estoure).
 
 ---
 
@@ -121,8 +125,8 @@ Com a maturidade da nossa engine de orçamentos, o sistema impõe isolamento est
 
 * **Moeda por Categoria:** Cada envelope/categoria agora carrega o atributo de moeda (`currency`), que pode ser `EUR` ou `BRL` (sendo `EUR` o padrão global do sistema).
 * **Restauração de Saldos Nubank (BRL):** Corrigimos o comportamento que aplicava taxas de conversão automáticas sobre categorias associadas a contas em BRL (como a conta Nubank). Todos os valores antigos convertidos indevidamente para EUR foram multiplicados de volta pela taxa histórica correta (`~6.00085`) e salvos com precisão de duas casas decimais no banco de dados. Isso restabeleceu os valores originais em reais (ex: 23.33 € voltou para R$ 140,00).
-* **Quadros de Orçamentos Isolados (EUR e BRL):** A página de Orçamento (`Budget.tsx`) foi segregada em dois quadros visuais independentes: um com os envelopes e contas em **EUR** e outro com envelopes e contas em **BRL**. Isso elimina qualquer mistura de moedas ou erro aritmético de conversão.
-* **Duplo Ready to Assign (RTA):** Em vez de um indicador consolidado de "Disponível para Alocar", o painel superior renderiza dois cards lado a lado exibindo o RTA de EUR (em `€`) e o RTA de BRL (em `R$`), calculados dinamicamente no cliente com base nas respectivas contas bancárias e envelopes.
+* **Quadros de Orçamentos Isolados (EUR e BRL) em Abas Animadas:** A página de Orçamento (`Budget.tsx`) foi segregada em dois quadros visuais independentes: um com os envelopes e contas em **EUR** e outro com envelopes e contas em **BRL**. O usuário navega entre esses quadros por meio das abas integradas diretamente no cockpit.
+* **Cockpit Fixo de Vidro Ultra-Compacto (Sticky Low-Profile Header):** O painel superior que apresenta os seletores de período, moedas e os indicadores de Ready to Assign (RTA) fica fixado no topo da tela de forma elegante. Visando otimizar a usabilidade, o cockpit adota um design de baixo perfil horizontal (compacto), o que impede a oclusão do espaço útil de tela durante a rolagem de categorias.
 * **Formatação Visual Consistente:** O quadro BRL exibe e formata todos os valores financeiros seguindo as convenções de localidade `pt-BR` (com o símbolo `R$`), enquanto o quadro EUR exibe os valores com o símbolo `€`.
 * **Transferência de Categorias entre Quadros:** O usuário pode mover manualmente uma categoria existente entre os boards de moedas. Ao clicar em "Editar" em uma categoria, selecione a nova moeda de destino. O seletor de "Grupo da Categoria" filtrará dinamicamente e exibirá apenas grupos compatíveis com a moeda de destino selecionada para manter a consistência contábil (pois uma categoria deve possuir a mesma moeda que seu grupo pai).
 * **Restauração de Emergência:** Caso detecte incoerências nos saldos convertidos do Nubank, você pode acionar a ação "Restaurar Valores BRL" no menu de opções "⋮" do topo da página do Orçamento. O sistema disparará uma rotina profunda recalculando e normalizando todas as transações, metas e MonthlyBudgets da categoria para seus valores originais em BRL.

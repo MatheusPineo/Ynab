@@ -299,6 +299,8 @@ class Transaction(models.Model):
         1. Se for uma transferência entre duas contas On-budget ou duas Off-budget, a categoria deve ser nula.
         2. Se for uma transferência mista (On-to-Off ou Off-to-On), a categoria ou sinal de receita é obrigatório.
         """
+        if self.amount is not None:
+            self.amount = abs(self.amount)
         super().clean()
         if self.pk:
             original = Transaction.objects.get(pk=self.pk)
@@ -328,6 +330,8 @@ class Transaction(models.Model):
 
     @transaction.atomic
     def save(self, *args, **kwargs):
+        if self.amount is not None:
+            self.amount = abs(self.amount)
         # Validação de travamento de transação reconciliada antes de qualquer processamento
         if self.pk:
             original = Transaction.objects.get(pk=self.pk)
