@@ -460,7 +460,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] glass border-border/60">
+      <DialogContent className="sm:max-w-[425px] glass border-border/60 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Transação" : "Lançar Transação"}</DialogTitle>
         </DialogHeader>
