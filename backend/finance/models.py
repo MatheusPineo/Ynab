@@ -59,9 +59,9 @@ class Account(models.Model):
     def is_on_budget(self):
         """
         Retorna se a conta participa do orçamento ativo (envelopes).
-        Contas de investimento ou marcadas como excluídas de totais são consideradas Off-Budget (Tracking).
+        Contas de investimento, empréstimos concedidos ou marcadas como excluídas de totais são consideradas Off-Budget (Tracking).
         """
-        if self.account_type == 'investment':
+        if self.account_type in ('investment', 'LOAN_GIVEN'):
             return False
         return not self.exclude_from_totals
 
@@ -282,7 +282,7 @@ class Transaction(models.Model):
             # Caso 2: Transferência Mista (On-to-Off ou Off-to-On) -> Exige categoria (ou tratamento especial)
             else:
                 # Se sai do orçamento (On-budget -> Off-budget), precisa de uma categoria de despesa
-                if self.account.is_on_budget and not dest_account.is_on_budget:
+                if self.account.is_on_budget and not dest_account.is_on_budget and not self.is_income:
                     if not self.category:
                         raise ValidationError(
                             "Transferências saindo do orçamento (On-budget para Off-budget) representam despesas reais "
