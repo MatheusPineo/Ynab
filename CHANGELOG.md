@@ -1,3 +1,9 @@
+## [1.103.00] - 2026-06-12
+
+### Fixed
+- Frontend: Corrigida a tipagem TypeScript da interface `AccountNode` em `src/shared/types/index.ts` adicionando a opção `"LOAN_GIVEN"` à união de tipos `account_type`. Isso impede o comportamento de reset do tipo e o sumiço do card nos recarregamentos.
+- Frontend: Ajustado o cálculo dos saldos das contas On-Budget no componente `Budget.tsx` (linha 481), desconsiderando contas de empréstimo concedido (`LOAN_GIVEN`) dos totais do orçamento principal de forma a preservar o cálculo correto do RTA (Ready to Assign) e envelopes.
+
 ## [1.102.00] - 2026-06-12
 
 ### Removed

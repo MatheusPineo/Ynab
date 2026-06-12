@@ -67,7 +67,7 @@ export interface AccountNode {
   id: string;
   name: string;
   /** Tipo de Conta:checking (Corrente), savings (Poupança), credit_card (Cartão), investment (Investimento) */
-  account_type: "checking" | "savings" | "credit_card" | "investment";
+  account_type: "checking" | "savings" | "credit_card" | "investment" | "LOAN_GIVEN";
   /** Código da moeda na qual a conta é operada */
   currency: Currency;
   /** Saldo atualizado da conta líquido de transações aplicadas */

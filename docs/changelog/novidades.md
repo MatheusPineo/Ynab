@@ -1,5 +1,10 @@
 # Novidades e Atualizações
 
+## Estabilização do Módulo de Empréstimos Concedidos (12/06/2026) 🤝💖
+Corrigimos falhas e estabilizamos a experiência de uso do novo módulo de Empréstimos Concedidos no Vault Finance OS:
+* **Persistência de Tipo de Conta:** Ajustamos a definição interna e a tipagem TypeScript da conta para suportar nativamente o tipo `"Empréstimo Concedido"`. Isso corrige o problema em que o tipo da conta e o card do empréstimo sumiam após o recarregamento da página.
+* **Cálculo de Totais do Orçamento Preservado:** Ajustamos a somatória dos saldos na aba Orçamento para garantir que as contas de Empréstimos Concedidos (que são contas Off-Budget/Acompanhamento) não afetem por engano o cálculo do seu saldo "Pronto para Alocar" (RTA), garantindo a fidelidade do seu planejamento orçamentário.
+
 ## Faxina Estrutural no Banco de Dados (12/06/2026) 🧹🗄️
 Concluímos a limpeza profunda e eliminação física das antigas tabelas e colunas de Dívidas:
 * **Remoção de Tabelas Obsoletas:** As tabelas de rateio manual de dívidas e históricos legados foram completamente excluídas do nosso banco de dados relacional.

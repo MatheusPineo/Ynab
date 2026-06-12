@@ -478,7 +478,7 @@ const Budget = () => {
       if (!Array.isArray(nodes)) return;
       for (const node of nodes) {
         if (!node) continue;
-        if (!node.exclude_from_totals && node.account_type !== 'investment') {
+        if (!node.exclude_from_totals && node.account_type !== 'investment' && node.account_type !== 'LOAN_GIVEN') {
           const currency = node.currency || 'EUR';
           if (currency === 'EUR') {
             totals.EUR += Number(node.balance) || 0;
