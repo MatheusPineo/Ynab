@@ -660,7 +660,13 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
 
           <div className="grid grid-cols-2 gap-4">
             <div id="account-container" className="relative grid gap-2 col-span-full">
-              <Label htmlFor="account">{isTransfer ? "De Conta (Origem)" : "Conta"}</Label>
+              <Label htmlFor="account">
+                {isTransfer 
+                  ? "De Conta (Origem)" 
+                  : isSplitting 
+                  ? "Conta de Origem (De onde saiu o valor total?)" 
+                  : "Conta"}
+              </Label>
               <GlobalAccountSelector
                 value={accountId}
                 onValueChange={setAccountId}
@@ -683,7 +689,11 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             {/* SELETOR DE CATEGORIA AGRUPADO (Apenas para despesas/receitas) */}
             {!isTransfer && (
               <div id="category-container" className="relative grid gap-2 col-span-full animate-in fade-in slide-in-from-top-1">
-                <Label htmlFor="category">Categoria</Label>
+                <Label htmlFor="category">
+                  {isSplitting 
+                    ? "Categoria (Apenas a sua parte da despesa)" 
+                    : "Categoria"}
+                </Label>
                 <GlobalCategorySelector
                   value={categoryId}
                   onValueChange={(v) => {
