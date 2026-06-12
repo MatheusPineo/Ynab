@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useTransactions } from "@/shared/hooks/useTransactions";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/shared/components/ui/card";
@@ -14,9 +14,13 @@ import { toast } from "sonner";
 import { AccountNode } from "@/types";
 
 const LoansDashboard = () => {
-  const { tree } = useAccountStore();
+  const { tree, fetchAccounts } = useAccountStore();
   const { transferTransaction } = useTransactions();
   
+  useEffect(() => {
+    fetchAccounts();
+  }, [fetchAccounts]);
+
   const [selectedLoan, setSelectedLoan] = useState<AccountNode | null>(null);
   const [receiveAmount, setReceiveAmount] = useState<number>(0);
   const [destinationAccountId, setDestinationAccountId] = useState<string>("");
