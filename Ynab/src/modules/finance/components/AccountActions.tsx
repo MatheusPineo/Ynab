@@ -47,7 +47,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
   const [editedCeiling, setEditedCeiling] = useState<number | null>(account.ceiling ?? null);
   const [editedExcludeFromTotals, setEditedExcludeFromTotals] = useState(!!account.exclude_from_totals);
   const [editedBankDomain, setEditedBankDomain] = useState(account.bank_domain || "");
-  const [editedAccountType, setEditedAccountType] = useState((account.account_type || "checking").toLowerCase());
+  const [editedAccountType, setEditedAccountType] = useState(account.account_type || "checking");
   const [isSaving, setIsSaving] = useState(false);
   
   // Mover Conta (App & Web)
@@ -94,7 +94,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
       setEditedCeiling(account.ceiling ?? null);
       setEditedExcludeFromTotals(!!account.exclude_from_totals);
       setEditedBankDomain(account.bank_domain || "");
-      setEditedAccountType((account.account_type || "checking").toLowerCase());
+      setEditedAccountType(account.account_type || "checking");
     }
   }, [isEditDialogOpen, account]);
 
@@ -193,7 +193,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
           )}
         </DropdownMenuContent>
       </DropdownMenu>
-
+ 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px] glass border-border/60">
           <DialogHeader>
@@ -222,7 +222,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                 <SelectContent className="glass border-border/60">
                   <SelectItem value="checking">Conta Corrente / Carteira</SelectItem>
                   <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                  <SelectItem value="tracking">Conta de Acompanhamento (Fora do Orçamento)</SelectItem>
+                  <SelectItem value="investment">Conta de Acompanhamento (Fora do Orçamento)</SelectItem>
                   <SelectItem value="LOAN_GIVEN">Empréstimo Concedido (A Receber)</SelectItem>
                 </SelectContent>
               </Select>

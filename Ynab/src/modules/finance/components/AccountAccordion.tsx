@@ -259,7 +259,7 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
               </span>
             )}
             
-            {(node.account_type === 'TRACKING' || node.account_type === 'tracking') && (
+            {(node.account_type === 'TRACKING' || node.account_type === 'tracking' || node.account_type === 'investment' || node.account_type === 'savings') && (
               <span 
                 className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-sky-500/15 text-sky-500 border border-sky-500/25 select-none"
                 title="Conta de Acompanhamento (Fora do Orçamento)"
