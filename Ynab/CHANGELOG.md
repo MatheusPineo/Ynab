@@ -7,10 +7,14 @@ Todas as mudanças de engenharia relevantes para o projeto serão registradas ne
 ### Adicionado
 - **Roteamento Principal (`src/App.tsx`):**
   - Importação estática e registro do componente `LoansDashboard` sob a rota `/loans`, integrando-o ao layout protegido do painel de controle financeiro.
+- **Modal de Criação de Contas (`src/modules/finance/components/AddRootAccountModal.tsx`):**
+  - Adicionado botão de tipo de conta `LOAN_GIVEN` ("Empréstimo") com ícone `HandCoins`, permitindo o cadastro de contas de empréstimos concedidos a partir do dashboard principal.
 
 ### Alterado
 - **Engine de Transferências (`src/backend/finance/views.py`):**
   - Atualizado o endpoint de transferências para aceitar opcionalmente o parâmetro `category_id`, permitindo o orçamento base-zero quando recursos saem de contas "On-Budget" para contas de empréstimos concedidos ("Off-Budget").
+- **Modelos de Conta do Backend (`src/backend/finance/models.py`):**
+  - Configurada a constante `ACCOUNT_TYPES` para incluir a tupla correspondente ao tipo de conta `LOAN_GIVEN` (Empréstimo Concedido).
 
 ## [1.94.00] - 2026-06-11
 

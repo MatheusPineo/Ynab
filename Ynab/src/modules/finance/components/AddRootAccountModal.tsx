@@ -12,7 +12,7 @@ import { Input } from "@/shared/components/ui/input";
 import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
-import { Plus, CreditCard, Landmark, TrendingUp } from "lucide-react";
+import { Plus, CreditCard, Landmark, TrendingUp, HandCoins } from "lucide-react";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
@@ -20,7 +20,7 @@ import { HelpTooltip } from "@/shared/components/ui/help-tooltip";
 
 export const AddRootAccountModal = () => {
   const [open, setOpen] = useState(false);
-  const [accountType, setAccountType] = useState<"checking" | "credit_card" | "investment">("checking");
+  const [accountType, setAccountType] = useState<"checking" | "credit_card" | "investment" | "LOAN_GIVEN">("checking");
   const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [balance, setBalance] = useState(0);
@@ -60,9 +60,9 @@ export const AddRootAccountModal = () => {
         await addNode("root", {
           name: formData.get("name") as string,
           balance: balance,
-          account_type: accountType === "investment" ? "investment" : "checking",
+          account_type: accountType,
           currency: formData.get("currency") as any,
-          exclude_from_totals: accountType === "investment" ? false : excludeFromTotals,
+          exclude_from_totals: accountType === "LOAN_GIVEN" ? true : (accountType === "investment" ? false : excludeFromTotals),
           bank_domain: (formData.get("bank_domain") as string) || ""
         });
 
@@ -88,7 +88,7 @@ export const AddRootAccountModal = () => {
           Nova Conta
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[440px] glass border-border/60 rounded-3xl p-6 shadow-glow overflow-hidden max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] glass border-border/60 rounded-3xl p-6 shadow-glow overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="absolute -top-24 -right-24 h-48 w-48 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
 
         <DialogHeader>
@@ -98,46 +98,57 @@ export const AddRootAccountModal = () => {
         <form onSubmit={handleSubmit} className="grid gap-4 py-2 relative">
           <div className="grid gap-2">
             <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Tipo da Conta</Label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
               <button
                 type="button"
                 onClick={() => setAccountType("checking")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-[11px] font-bold transition-all ${
+                className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border text-[10px] font-bold transition-all ${
                   accountType === "checking"
                     ? "bg-primary/10 border-primary text-primary shadow-soft"
                     : "bg-muted/15 border-border/40 text-muted-foreground hover:bg-muted/30"
                 }`}
               >
-                <Landmark className="h-4 w-4" /> Corrente
+                <Landmark className="h-3.5 w-3.5 shrink-0" /> Corrente
               </button>
               <button
                 type="button"
                 onClick={() => setAccountType("credit_card")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-[11px] font-bold transition-all ${
+                className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border text-[10px] font-bold transition-all ${
                   accountType === "credit_card"
                     ? "bg-primary/10 border-primary text-primary shadow-soft"
                     : "bg-muted/15 border-border/40 text-muted-foreground hover:bg-muted/30"
                 }`}
               >
-                <CreditCard className="h-4 w-4" /> Cartão
+                <CreditCard className="h-3.5 w-3.5 shrink-0" /> Cartão
               </button>
               <button
                 type="button"
                 onClick={() => setAccountType("investment")}
-                className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-[11px] font-bold transition-all ${
+                className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border text-[10px] font-bold transition-all ${
                   accountType === "investment"
                     ? "bg-primary/10 border-primary text-primary shadow-soft"
                     : "bg-muted/15 border-border/40 text-muted-foreground hover:bg-muted/30"
                 }`}
               >
-                <TrendingUp className="h-4 w-4" /> Investimento
+                <TrendingUp className="h-3.5 w-3.5 shrink-0" /> Investimento
+              </button>
+              <button
+                type="button"
+                onClick={() => setAccountType("LOAN_GIVEN")}
+                className={`flex items-center justify-center gap-1.5 p-2.5 rounded-xl border text-[10px] font-bold transition-all ${
+                  accountType === "LOAN_GIVEN"
+                    ? "bg-primary/10 border-primary text-primary shadow-soft"
+                    : "bg-muted/15 border-border/40 text-muted-foreground hover:bg-muted/30"
+                }`}
+              >
+                <HandCoins className="h-3.5 w-3.5 shrink-0" /> Empréstimo
               </button>
             </div>
           </div>
 
           <div className="grid gap-2">
             <Label htmlFor="name" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Nome da Conta / Cartão</Label>
-            <Input id="name" name="name" placeholder={accountType === "checking" ? "Ex: Itaú, Caixa..." : accountType === "investment" ? "Ex: XP, Rico, Tesouro..." : "Ex: Nubank Ultravioleta..."} required className="bg-muted/15 border-border/40 rounded-xl h-11 text-sm font-medium" />
+            <Input id="name" name="name" placeholder={accountType === "checking" ? "Ex: Itaú, Caixa..." : accountType === "investment" ? "Ex: XP, Rico, Tesouro..." : accountType === "LOAN_GIVEN" ? "Ex: Empréstimo do João..." : "Ex: Nubank Ultravioleta..."} required className="bg-muted/15 border-border/40 rounded-xl h-11 text-sm font-medium" />
           </div>
 
           <div className="grid gap-2">
@@ -145,7 +156,7 @@ export const AddRootAccountModal = () => {
             <Input id="bank_domain" name="bank_domain" placeholder="Ex: nubank.com.br" className="bg-muted/15 border-border/40 rounded-xl h-11 text-sm font-medium" />
           </div>
 
-          {accountType === "checking" || accountType === "investment" ? (
+          {accountType === "checking" || accountType === "investment" || accountType === "LOAN_GIVEN" ? (
             <div className="grid gap-2">
               <Label htmlFor="balance" className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider font-mono">Saldo Inicial</Label>
               <CurrencyInput id="balance" value={balance} onChange={setBalance} className="bg-muted/15 border-border/40 rounded-xl h-11 font-mono font-bold text-sm text-left" />
