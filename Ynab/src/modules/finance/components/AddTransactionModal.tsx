@@ -796,15 +796,18 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           {!isEdit && type === "expense" && (
             <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">
               <div 
-                className="flex items-center space-x-2 border border-border/40 bg-card p-3 rounded-xl cursor-pointer" 
-                onClick={() => {
-                  const newState = !isSplitting;
-                  setIsSplitting(newState);
-                  if (newState && loanSplits.length === 0) handleAddLoanSplit();
-                }}
+                className="flex items-center space-x-2 border border-border/40 bg-card p-3 rounded-xl" 
               >
-                <Checkbox checked={isSplitting} />
-                <Label className="text-sm cursor-pointer">Dividir compra com terceiros (Eles te devem)?</Label>
+                <Checkbox 
+                  id="split_transaction_checkbox"
+                  checked={isSplitting} 
+                  onCheckedChange={(checked) => {
+                    const newState = !!checked;
+                    setIsSplitting(newState);
+                    if (newState && loanSplits.length === 0) handleAddLoanSplit();
+                  }}
+                />
+                <Label htmlFor="split_transaction_checkbox" className="text-sm cursor-pointer select-none">Dividir compra com terceiros (Eles te devem)?</Label>
               </div>
 
               {isSplitting && (
