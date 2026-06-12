@@ -3,7 +3,7 @@
 ## Última Atualização
 - **Data:** 12 de Junho de 2026
 - **Status da Aplicação:** Estável e compilando com sucesso (`Vitest` com 50/50 testes passando; backend Django `pytest` com 95/95 testes passando; compilador `tsc` com 0 erros). Versão `1.103.00`.
-- **Funcionalidade Implementada:** Registro estático e ativação da rota `/loans` para o componente `LoansDashboard` no roteador principal (`src/App.tsx`) e suporte à criação de contas do tipo `LOAN_GIVEN` ("Empréstimo") no formulário de criação de contas raiz (`AddRootAccountModal.tsx`), habilitando o gerenciamento completo de Empréstimos Concedidos (`LOAN_GIVEN`).
+- **Funcionalidade Implementada:** Registro estático e ativação da rota `/loans` para o componente `LoansDashboard` no roteador principal (`src/App.tsx`), suporte à criação de contas do tipo `LOAN_GIVEN` ("Empréstimo") no modal de criação (`AddRootAccountModal.tsx`) e adição do campo de seleção de data no recebimento de pagamentos da tela de Empréstimos Concedidos.
 
 ## Estrutura de Documentação de Governança
 - **Técnica:** [README.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/README.md) e [ARCHITECTURE.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/ARCHITECTURE.md) atualizados.

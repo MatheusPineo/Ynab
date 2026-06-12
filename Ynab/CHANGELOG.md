@@ -9,6 +9,8 @@ Todas as mudanças de engenharia relevantes para o projeto serão registradas ne
   - Importação estática e registro do componente `LoansDashboard` sob a rota `/loans`, integrando-o ao layout protegido do painel de controle financeiro.
 - **Modal de Criação de Contas (`src/modules/finance/components/AddRootAccountModal.tsx`):**
   - Adicionado botão de tipo de conta `LOAN_GIVEN` ("Empréstimo") com ícone `HandCoins`, permitindo o cadastro de contas de empréstimos concedidos a partir do dashboard principal.
+- **Painel de Empréstimos (`src/modules/finance/pages/LoansDashboard.tsx`):**
+  - Adicionado campo de seleção de data (Date input) com estado `receiveDate` no modal de recebimento de pagamentos, permitindo agendar ou registrar retroativamente amortizações com datas personalizadas em vez de fixar no dia atual.
 
 ### Alterado
 - **Engine de Transferências (`src/backend/finance/views.py`):**

@@ -6,6 +6,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/shared/components/ui/dialog";
 import { Label } from "@/shared/components/ui/label";
 import { CurrencyInput } from "@/shared/components/ui/currency-input";
+import { Input } from "@/shared/components/ui/input";
 import { GlobalAccountSelector } from "@/shared/components/ui/global-account-selector";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { HandCoins, ArrowDownToLine, Info } from "lucide-react";
@@ -19,6 +20,7 @@ const LoansDashboard = () => {
   const [selectedLoan, setSelectedLoan] = useState<AccountNode | null>(null);
   const [receiveAmount, setReceiveAmount] = useState<number>(0);
   const [destinationAccountId, setDestinationAccountId] = useState<string>("");
+  const [receiveDate, setReceiveDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Flatten the account tree and filter only LOAN_GIVEN accounts
@@ -38,6 +40,7 @@ const LoansDashboard = () => {
     setSelectedLoan(loan);
     setReceiveAmount(0);
     setDestinationAccountId("");
+    setReceiveDate(new Date().toISOString().split('T')[0]);
   };
 
   const handleReceivePayment = async () => {
@@ -55,7 +58,7 @@ const LoansDashboard = () => {
         amount: receiveAmount,
         to_amount: receiveAmount, // Assuming same currency for simplicity in this flow
         description: `Recebimento de Empréstimo: ${selectedLoan.name}`,
-        date: new Date().toISOString().split('T')[0]
+        date: receiveDate
       });
       
       setSelectedLoan(null);
@@ -147,6 +150,18 @@ const LoansDashboard = () => {
                   value={receiveAmount}
                   onChange={setReceiveAmount}
                   className="bg-background/50 text-left text-lg" 
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="receiveDate">Data do Recebimento</Label>
+                <Input 
+                  id="receiveDate" 
+                  type="date" 
+                  value={receiveDate}
+                  onChange={(e) => setReceiveDate(e.target.value)}
+                  className="bg-background/50" 
+                  required
                 />
               </div>
 
