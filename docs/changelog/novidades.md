@@ -1,5 +1,28 @@
 # Novidades e Atualizações
 
+## Faxina Estrutural no Banco de Dados (12/06/2026) 🧹🗄️
+Concluímos a limpeza profunda e eliminação física das antigas tabelas e colunas de Dívidas:
+* **Remoção de Tabelas Obsoletas:** As tabelas de rateio manual de dívidas e históricos legados foram completamente excluídas do nosso banco de dados relacional.
+* **Simplificação de Transações e Ativos:** Removemos campos inativos em nosso banco como chaves estrangeiras e relacionamentos sobressalentes nas tabelas de lançamentos e de ativos (Assets), deixando o ecossistema muito mais enxuto e performático.
+
+## Remoção de Módulos Legados de Dívidas (12/06/2026) 🧹🧹
+Para manter o sistema mais leve e eficiente, realizamos uma limpeza completa em nossa infraestrutura de banco de dados e APIs:
+* **Limpeza de Componentes Obsoletos:** Removemos todos os serializadores, controladores e regras antigas de rateio manual de dívidas.
+* **Simplificação de Ativos:** O cálculo de valor dos ativos (Assets) foi simplificado para desvincular empréstimos antigos, melhorando a velocidade de processamento e a consistência dos relatórios.
+
+## Novo Painel de Empréstimos Concedidos e Amortização Rápida (12/06/2026) 🤝📈
+Lançamos um assistente guiado completo e interativo para gerenciar suas contas a receber sob o menu **"Empréstimos"**:
+* **Visualização em Cards Simples:** Todas as suas contas cadastradas como "Empréstimo Concedido" são exibidas como cards no painel, mostrando o saldo pendente absoluto de forma simples e direta.
+* **Modal de Recebimento com Zero Atrito:** Ao receber um pagamento, basta clicar em "Registrar Recebimento". O modal permite informar o valor e a conta bancária de destino (como Nubank ou Carteira).
+* **Retorno Automático ao Orçamento:** Sob o capô, o sistema realiza uma transferência financeira e injeta o valor diretamente na conta de destino e no seu saldo "Pronto para Alocar" (RTA) do orçamento principal.
+
+## Suporte a Contas de Empréstimos (LOAN_GIVEN) e Atalho Rápido de Navegação (12/06/2026) 🤝💰
+Expandimos o sistema de contas e a navegabilidade do Vault Finance OS para suportar um melhor controle de empréstimos concedidos a terceiros:
+* **Novo Tipo de Conta (Empréstimo Concedido):** Agora, ao criar ou editar uma conta, você pode selecionar a opção **"Empréstimo Concedido (A Receber)"**.
+* **Badge Visual "A Receber":** Contas desse tipo recebem um badge visual exclusivo em tom vermelho/rosa com a etiqueta **"A Receber"** e o ícone de mãos com moedas (`HandCoins`) no painel lateral de contas, facilitando a identificação imediata dos seus ativos emprestados.
+* **Inversão Visual de Saldo:** Para refletir que o dinheiro foi concedido e está sob custódia de terceiros (não disponível no caixa imediato), o saldo positivo da conta de empréstimo é exibido de forma invertida como negativo e destacado em vermelho.
+* **Atalho Rápido na Barra Lateral:** Adicionamos um link direto para **"Empréstimos"** com o ícone `HandCoins` logo abaixo de "Transações" na barra lateral de navegação (Sidebar), facilitando o acesso rápido ao seu dashboard de controle de empréstimos.
+
 ## Higienização Automática de Valores Negativos em Lançamentos (11/06/2026) 🔒💰
 Corrigimos um comportamento inesperado que acontecia ao digitar valores com o sinal de menos (ex: `-3.000,00`) ao cadastrar despesas:
 * **Proteção contra Sinal Invertido:** Agora, se você digitar um valor negativo por engano em uma despesa, o sistema converterá automaticamente o montante para positivo nos bastidores.

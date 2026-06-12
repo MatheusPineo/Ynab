@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
 from decimal import Decimal
-from finance.models import Asset, Debt, Account, Transaction
+from finance.models import Asset, Account, Transaction
 from datetime import date, timedelta
 
 @pytest.fixture
@@ -34,32 +34,7 @@ def test_create_asset(auth_client, test_user):
     assert response.data['name'] == "Apartamento na Praia"
     assert response.data['effective_asset_value'] == 180000.00
 
-@pytest.mark.django_db
-def test_asset_with_linked_debt(auth_client, test_user):
-    # Criar uma dívida
-    debt = Debt.objects.create(
-        user=test_user,
-        counterparty_name="Banco Caixa",
-        original_amount=Decimal('50000.00'),
-        currency="BRL",
-        is_mine=True
-    )
 
-    # Criar ativo vinculado a dívida
-    asset = Asset.objects.create(
-        user=test_user,
-        name="Carro SUV",
-        purchase_value=Decimal('90000.00'),
-        current_market_value=Decimal('85000.00'),
-        liquidity_tier="MEDIUM",
-        linked_debt=debt
-    )
-
-    url = reverse('asset-detail', args=[asset.id])
-    response = auth_client.get(url)
-    assert response.status_code == status.HTTP_200_OK
-    # O valor efetivo deve ser current_market_value (85000) - original_amount (50000) = 35000
-    assert response.data['effective_asset_value'] == 35000.00
 
 @pytest.mark.django_db
 def test_asset_runway_calculation(auth_client, test_user):

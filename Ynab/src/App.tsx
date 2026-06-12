@@ -47,6 +47,7 @@ const Assets = lazyWithRetry(() => import("@/modules/finance/pages/Assets"));
 const Simulators = lazyWithRetry(() => import("@/modules/finance/pages/Simulators"));
 const Inbox = lazyWithRetry(() => import("@/modules/finance/pages/Inbox"));
 const Auth = lazyWithRetry(() => import("@/modules/auth/pages/Auth"));
+import LoansDashboard from "@/modules/finance/pages/LoansDashboard";
 const Landing = lazyWithRetry(() => import("@/modules/auth/pages/Landing"));
 const NotFound = lazyWithRetry(() => import("@/modules/auth/pages/NotFound"));
 const LegalCenter = lazyWithRetry(() => import("@/modules/auth/pages/LegalCenter"));
@@ -161,6 +162,7 @@ const App = () => {
                     <Route path="dashboard" element={<FeatureProtectedRoute featureKey="dashboard"><Dashboard /></FeatureProtectedRoute>} />
                     <Route path="accounts" element={<FeatureProtectedRoute featureKey="accounts"><Accounts /></FeatureProtectedRoute>} />
                     <Route path="transactions" element={<FeatureProtectedRoute featureKey="transactions"><Transactions /></FeatureProtectedRoute>} />
+                    <Route path="/loans" element={<LoansDashboard />} />
                     <Route path="inbox" element={<Inbox />} />
                     <Route path="budget" element={<FeatureProtectedRoute featureKey="budget"><Budget /></FeatureProtectedRoute>} />
                     <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />

@@ -1,3 +1,51 @@
+## [1.102.00] - 2026-06-12
+
+### Removed
+- Backend: Deleção física de todos os modelos de banco de dados do módulo de dívida legada (`SplitRule`, `SplitRuleItem`, `Debt`, `DebtPayment`, `DebtCharge`, `Debtor`, `DebtItem`).
+- Backend: Remoção física de colunas e chaves estrangeiras obsoletas (`Transaction.split_rule`, `Transaction.shared_amount`, `Asset.linked_debt`) nas tabelas de transação e ativos.
+- Backend: Limpeza e remoção de registros em `admin.py`, scripts de seed (`seeding.py`) e arquivos de testes associados.
+
+## [1.101.00] - 2026-06-12
+
+### Removed
+- Backend: Remoção completa de todos os serializadores legados de dívidas (`SplitRuleSerializer`, `SplitRuleItemSerializer`, `DebtSerializer`, `DebtPaymentSerializer`, `DebtChargeSerializer`, `DebtorSerializer`, `DebtItemSerializer`).
+- Backend: Remoção de referências e lógica de dívidas vinculadas (`linked_debt`) no `AssetSerializer` e seus endpoints.
+
+## [1.100.00] - 2026-06-12
+
+### Removed
+- Backend: Remoção completa das views obsoletas de dívidas (`SplitRuleViewSet`, `DebtViewSet`, `DebtPaymentViewSet`, `DebtChargeViewSet`, `DebtorViewSet`, `DebtItemViewSet`).
+- Backend: Remoção completa dos serviços legados de devedores (`DebtorPaymentService`, `DebtorCreationService`, `DebtItemMutationService`).
+- Backend: Remoção dos registros de rotas e importações no `urls.py`.
+- Backend: Exclusão dos arquivos de testes obsoletos (`test_debts.py` e `test_debtor_payments.py`).
+
+## [1.99.00] - 2026-06-12
+
+### Added
+- Frontend: Substituição da lógica e interface de rateio por devedor legada no `AddTransactionModal.tsx` pelo novo assistente guiado de divisão com empréstimo ("Guided Assistant Split").
+- Frontend: Lógica no `handleSubmit` do modal de transações para interceptar divisões de compras, criando transações de transferência reativas apontando para contas `LOAN_GIVEN` com o campo `category_id` preenchido.
+
+## [1.98.00] - 2026-06-12
+
+### Added
+- Backend: Suporte a `category_id` na action `transfer` de `views.py` para buscar a categoria do orçamento e atrelar à transação de origem.
+- Frontend: Atualização da mutation `transferTransaction` em `useTransactions.ts` para opcionalmente receber e enviar `category_id`.
+
+## [1.97.00] - 2026-06-12
+
+### Added
+- Frontend: Criada a nova página de Painel de Empréstimos Concedidos (`LoansDashboard.tsx`) listando cartões com saldos e modal com injeção automática no Ready to Assign.
+- Frontend: Registrada a rota `/loans` associada à página de empréstimos em `App.tsx`.
+
+## [1.96.00] - 2026-06-12
+
+### Added
+- Backend: Adicionada a opção `LOAN_GIVEN` ("Empréstimo Concedido") à lista `ACCOUNT_TYPES` no modelo `Account` em `models.py`.
+- Frontend: Adicionada a opção `LOAN_GIVEN` ("Empréstimo Concedido (A Receber)") no seletor de tipo de conta em `AccountActions.tsx`.
+- Frontend: Badge visual "A Receber" com o ícone `HandCoins` adicionado a contas do tipo `LOAN_GIVEN` em `AccountAccordion.tsx`.
+- Frontend: Implementada inversão visual de saldo positivo para negativo no display para contas do tipo `LOAN_GIVEN` em `AccountAccordion.tsx`.
+- Frontend: Adicionada a rota `loans` com ícone `HandCoins` no menu de navegação lateral (`Sidebar.tsx`) e cadastradas as respectivas chaves de tradução no `pt-BR.json` e `en.json`.
+
 ## [1.95.00] - 2026-06-11
 
 ### Fixed

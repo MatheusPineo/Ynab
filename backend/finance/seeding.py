@@ -15,8 +15,7 @@ def reset_user_data(user: User):
     """
     # Deletando contas exclui também transações em cascata (dependendo do on_delete)
     # Mas para segurança, forçamos as remoções principais:
-    from finance.models import Debt, Goal, DistributionTemplate
-    Debt.objects.filter(user=user).delete()
+    from finance.models import Goal, DistributionTemplate
     DistributionTemplate.objects.filter(user=user).delete()
     Goal.objects.filter(user=user).delete()
     Transaction.objects.filter(account__user=user).delete()

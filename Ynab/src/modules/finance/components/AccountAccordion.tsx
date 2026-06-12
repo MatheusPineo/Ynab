@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronRight, GripVertical, EyeOff, Landmark, CreditCard, LineChart } from "lucide-react";
+import { ChevronRight, GripVertical, EyeOff, Landmark, CreditCard, LineChart, HandCoins } from "lucide-react";
 import { toast } from "sonner";
 import {
   type AccountNode,
@@ -269,6 +269,16 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
               </span>
             )}
 
+            {node.account_type === 'LOAN_GIVEN' && (
+              <span 
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-rose-500/15 text-rose-500 border border-rose-500/25 select-none"
+                title="Empréstimo Concedido a Terceiros"
+              >
+                <HandCoins className="h-2.5 w-2.5 shrink-0" />
+                A Receber
+              </span>
+            )}
+
             {isExcluded && (
               <span 
                 className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/25 select-none"
@@ -287,15 +297,22 @@ const AccountRow = ({ node, depth, parentCurrency }: AccountRowProps) => {
             className="shrink-0 flex flex-col items-end mr-2"
             title={isExcluded ? "Este saldo está desconsiderado do cálculo total." : undefined}
           >
-            <span className={cn(
-              "tabular tracking-tight",
-              isMaster ? "text-base font-bold" : "text-sm font-medium",
-              isExcluded
-                ? "text-purple-300/60"
-                : (total < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
-            )}>
-              {formatMoney(total, currency)}
-            </span>
+            {(() => {
+              const isLoanGiven = node.account_type === 'LOAN_GIVEN';
+              const displayTotal = (isLoanGiven && total > 0) ? -Math.abs(total) : total;
+              
+              return (
+                <span className={cn(
+                  "tabular tracking-tight",
+                  isMaster ? "text-base font-bold" : "text-sm font-medium",
+                  isExcluded
+                    ? "text-purple-300/60"
+                    : (isLoanGiven || displayTotal < 0 ? "text-rose-500 font-semibold" : (isMaster ? "text-foreground" : "text-foreground/85"))
+                )}>
+                  {formatMoney(displayTotal, currency)}
+                </span>
+              );
+            })()}
           </div>
 
           {/* Account Actions */}

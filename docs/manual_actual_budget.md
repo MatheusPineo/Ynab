@@ -29,6 +29,13 @@ graph LR
     ON_BUDGET -->|Livre / Neutra| ON_BUDGET
 ```
 
+### 1.1 Contas de Empréstimos Concedidos (A Receber - LOAN_GIVEN)
+
+Para acompanhar dinheiro emprestado a terceiros de forma simples e integrada:
+* **Finalidade:** Representa ativos que você concedeu como empréstimo e que tem a receber no futuro.
+* **Badge "A Receber":** Contas cadastradas com este tipo exibem uma identificação visual discreta com o ícone de mãos com moedas (`HandCoins`) e o texto **"A Receber"**.
+* **Inversão Visual de Saldo:** O saldo total da conta de empréstimo concedido com valor positivo é mostrado como negativo no painel lateral de contas (ex: R$ 500,00 emprestados são mostrados como -R$ 500,00 em vermelho). Isso reflete visualmente que esse montante está cedido temporariamente a terceiros e não compõe o seu saldo líquido imediatamente disponível.
+
 ---
 
 ### 🚀 PASSO A PASSO: Transferindo dinheiro da Conta Corrente para um Investimento

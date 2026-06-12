@@ -274,7 +274,7 @@ A SPA adota uma estrutura baseada em módulos de recursos para encapsular dados,
 * **`src/modules/finance/` (Módulo de Negócio Financeiro):**
   * `pages/` — Dashboard, Accounts (Minhas Contas), AccountDetails (Detalhes de Conta), Transactions (Transações), Budget (Orçamento/YNAB), Debts (Dívidas) e Goals (Metas).
   * `components/` — Modais de lançamentos (`AddTransactionModal`), importadores de extratos (`ImportModal`), distribuição de limites (`DistributionModal`), orquestração de teto (`NetWorthHeader`) e a aba de regras de rateio (`FinanceSplitRulesTab`).
-  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore` que agora gerencia as operações completas de CRUD para Regras de Rateio/Split Rules, `useGoalStore`).
+  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore` para regras de rateio e devedores, `useGoalStore`).
 * **`src/shared/` (Código Compartilhado Reutilizável):**
   * `components/ui/` — Componentes primitivos do Shadcn/ui (inputs, buttons, cards, progress bars, etc.).
   * `components/dashboard/` — Layout principal da aplicação (`Sidebar`, `Topbar`, `BottomNav`, `PullToRefresh`, `TableSkeleton`, `EmptyState`).
@@ -454,7 +454,7 @@ A flag interna de classe `_syncing = True` impede recursões infinitas no Django
 #### 4. Consistência Contábil de Envelopes YNAB (`clean()`)
 A fronteira contábil estabelece regras rígidas de integridade para a distribuição de envelopes, validadas compulsoriamente no método `clean()` de `Transaction`:
 * **Transferência Interna (Mesmo Lado da Fronteira):** Se uma transferência ocorre entre duas contas On-Budget ou duas contas Off-Budget, ela **não afeta a liquidez total do orçamento**. Portanto, a categoria associada deve ser limpa e setada como `None` (a transferência é neutra para os envelopes).
-* **Transferência Mista (Cruzamento da Fronteira):** Se uma transferência move capital de uma conta On-Budget (Orçamento) para uma conta Off-Budget (Investimento/Gasto de longo prazo), ou vice-versa, ela **altera o montante líquido disponível no orçamento**. Portanto, o preenchimento de uma categoria de envelope de despesa é **obrigatório** para justificar o fluxo de caixa de saída.
+* **Transferência Mista (Cruzamento da Fronteira):** Se uma transferência move capital de uma conta On-Budget (Orçamento) para uma conta Off-Budget (Investimento/Gasto de longo prazo / Empréstimos `LOAN_GIVEN`), ou vice-versa, ela **altera o montante líquido disponível no orçamento**. Portanto, o preenchimento de uma categoria de envelope de despesa é **obrigatório** para justificar o fluxo de caixa de saída. Para atender a essa exigência contábil, a engine de transferências (`/transactions/transfer/`) aceita e processa o campo `category_id` no corpo da requisição, associando-o corretamente à transação de origem para resguardar as premissas do orçamento base-zero.
 
 #### 5. Reconciliação de Contas e Auditoria de Extratos (Statement Auditing)
 Em perfeita paridade metodológica com a auditoria de saldos reais e conciliação bancária do YNAB/Actual Budget, introduzimos uma infraestrutura de controle ACID e controle de auditoria composta por:
@@ -562,7 +562,7 @@ A SPA adota uma estrutura baseada em módulos de recursos para encapsular dados,
 * **`src/modules/finance/` (Módulo de Negócio Financeiro):**
   * `pages/` — Dashboard, Accounts (Minhas Contas), AccountDetails (Detalhes de Conta), Transactions (Transações), Budget (Orçamento/YNAB), Debts (Dívidas) e Goals (Metas).
   * `components/` — Modais de lançamentos (`AddTransactionModal`), importadores de extratos (`ImportModal`), distribuição de limites (`DistributionModal`), orquestração de teto (`NetWorthHeader`) e a aba de regras de rateio (`FinanceSplitRulesTab`).
-  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore` que agora gerencia as operações completas de CRUD para Regras de Rateio/Split Rules, `useGoalStore`).
+  * `store/` — Stores especializadas (`useAccountStore`, `useCurrencyStore`, `useDebtStore` para regras de rateio e devedores, `useGoalStore`).
 * **`src/shared/` (Código Compartilhado Reutilizável):**
   * `components/ui/` — Componentes primitivos do Shadcn/ui (inputs, buttons, cards, progress bars, etc.).
   * `components/dashboard/` — Layout principal da aplicação (`Sidebar`, `Topbar`, `BottomNav`, `PullToRefresh`, `TableSkeleton`, `EmptyState`).

@@ -23,12 +23,11 @@ from rest_framework import serializers
 
 from .models import (
     Account, Category, Payee, Transaction, Goal, MonthlyBudget, 
-    DistributionTemplate, Debt, DebtPayment, CategoryGoal, TransactionRule, SplitRule
+    DistributionTemplate, CategoryGoal, TransactionRule
 )
 from .serializers import (
     AccountSerializer, CategorySerializer, TransactionSerializer, GoalSerializer, 
-    MonthlyBudgetSerializer, DistributionTemplateSerializer, DebtSerializer, DebtPaymentSerializer,
-    SplitRuleSerializer
+    MonthlyBudgetSerializer, DistributionTemplateSerializer
 )
 from .reconciliation import AccountReconciliationService
 
@@ -93,9 +92,7 @@ def sync_recurring_transactions(user, upto_date=None):
                     is_recurring=False,
                     status=inherited_status,
                     is_applied_to_balance=applied,
-                    recurring_parent=template,
-                    split_rule=template.split_rule,
-                    shared_amount=template.shared_amount
+                    recurring_parent=template
                 )
                 new_t._skip_balance_update = True
                 new_t.save()
@@ -202,8 +199,7 @@ class AccountViewSet(viewsets.ModelViewSet):
         # OTIMIZAÇÃO EM LOTE (BULK PRE-FETCH) PARA EVITAR CONSULTAS N+1
         from django.db.models import Sum
         from decimal import Decimal
-        from .models import Transaction as CoreTx, DebtItem, Debt, DebtCharge, DebtPayment
-        
+        from .models import Transaction as CoreTx
         account_ids = [acc.id for acc in accounts]
         
         # 1. Pré-calcular reserved_val por conta
@@ -220,26 +216,6 @@ class AccountViewSet(viewsets.ModelViewSet):
             for r in reserved_qs:
                 reserved_map[r['account_id']] = r['total'] or Decimal('0.00')
 
-        # 2. Pré-carregar DebtItems
-        debt_items_map = {}
-        if account_ids:
-            debt_items = DebtItem.objects.filter(
-                origin_subaccount_id__in=account_ids,
-                status__in=['PENDING', 'PARTIAL']
-            ).select_related('debtor')
-            for item in debt_items:
-                debt_items_map.setdefault(item.origin_subaccount_id, []).append(item)
-
-        # 3. Pré-carregar Debts e seus correspondentes Charges & Payments
-        debts_map = {}
-        if account_ids:
-            debts = Debt.objects.filter(
-                origin_subaccount_id__in=account_ids,
-                is_mine=False
-            ).prefetch_related('charges', 'payments')
-            for debt in debts:
-                debts_map.setdefault(debt.origin_subaccount_id, []).append(debt)
-
         def build_tree(account_list, parent_id=None):
             branch = []
             for account in account_list:
@@ -251,32 +227,8 @@ class AccountViewSet(viewsets.ModelViewSet):
                     else:
                         reserved_val = Decimal('0.00')
 
-                    acc_debt_items = debt_items_map.get(account.id, [])
-                    total_items = sum(item.total_amount - item.paid_amount for item in acc_debt_items)
-                    
-                    debtor_map = {}
-                    for item in acc_debt_items:
-                        name = item.debtor.name if item.debtor else "Outro"
-                        outstanding = item.total_amount - item.paid_amount
-                        debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
-                        
-                    acc_debts = debts_map.get(account.id, [])
-                    total_debts = Decimal('0.00')
-                    for debt in acc_debts:
-                        total_charges = sum(c.amount for c in debt.charges.all())
-                        total_paid = sum(p.amount for p in debt.payments.all())
-                        outstanding = (debt.original_amount + total_charges) - total_paid
-                        if outstanding > 0:
-                            total_debts += outstanding
-                            name = debt.counterparty_name
-                            debtor_map[name] = debtor_map.get(name, Decimal('0.00')) + outstanding
-                            
-                    pending_restitutions_total = total_items + total_debts
-                    
-                    debtors_summary = [
-                        {"debtor_name": name, "amount": float(amount)}
-                        for name, amount in debtor_map.items()
-                    ]
+                    pending_restitutions_total = Decimal('0.00')
+                    debtors_summary = []
 
                     acc_dict = {
                         'id': str(account.id),
@@ -1150,6 +1102,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         to_account_id = request.data.get('to_account')
         amount = request.data.get('amount')
         to_amount = request.data.get('to_amount', amount)
+        category_id = request.data.get('category_id')
         description = request.data.get('description', 'Transferência')
         date_str = request.data.get('date')
         
@@ -1171,6 +1124,14 @@ class TransactionViewSet(viewsets.ModelViewSet):
         t_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         applied = (t_date <= date.today())
         
+        category = None
+        if category_id:
+            from .models import Category
+            try:
+                category = Category.objects.get(id=category_id, user=request.user)
+            except Category.DoesNotExist:
+                pass
+        
         # Localiza ou cria o Payee de transferência
         dest_payee, _ = Payee.objects.get_or_create(
             user=request.user,
@@ -1183,6 +1144,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
         tx = Transaction.objects.create(
             account=from_account,
             payee=dest_payee,
+            category=category,
             description=f"{description} (Para {to_account.name})",
             amount=val_amount,
             date=t_date,
@@ -1470,185 +1432,6 @@ class DistributionTemplateViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-
-class SplitRuleViewSet(viewsets.ModelViewSet):
-    serializer_class = SplitRuleSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return SplitRule.objects.filter(user=self.request.user).prefetch_related('items')
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-class DebtViewSet(viewsets.ModelViewSet):
-    serializer_class = DebtSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        from django.db.models import Sum, Value, F
-        from django.db.models.functions import Coalesce
-        from decimal import Decimal
-        
-        # Prefetch de charges e payments (carregando account)
-        return Debt.objects.filter(user=self.request.user).prefetch_related(
-            'charges', 'payments', 'payments__account'
-        ).annotate(
-            annotated_charges_sum=Coalesce(Sum('charges__amount'), Value(Decimal('0.00'))),
-            annotated_payments_sum=Coalesce(Sum('payments__amount'), Value(Decimal('0.00')))
-        ).annotate(
-            annotated_total_amount=F('original_amount') + F('annotated_charges_sum'),
-            annotated_amount_remaining=Coalesce(
-                F('original_amount') + F('annotated_charges_sum') - F('annotated_payments_sum'),
-                Value(Decimal('0.00'))
-            )
-        ).order_by('-created_at')
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    @action(detail=True, methods=['post'])
-    def add_debt_amount(self, request, pk=None):
-        debt = self.get_object()
-        amount = Decimal(str(request.data.get('amount', '0')))
-        description = request.data.get('description', 'Acréscimo de débito')
-        account_id = request.data.get('account')
-        pay_date = request.data.get('date') or date.today().isoformat()
-
-        if amount <= 0:
-            return Response({"detail": "O valor do débito deve ser maior que zero."}, status=status.HTTP_400_BAD_REQUEST)
-
-        with transaction.atomic():
-            # Cria a transação correspondente caso seja vinculada a uma conta
-            account = Account.objects.get(id=account_id, user=request.user) if account_id else None
-            tx = None
-            if account:
-                if debt.is_mine:
-                    # Minha dívida: recebi mais dinheiro (empréstimo contraído) -> Receita (is_income = True)
-                    tx_desc = f"{description} (empréstimo de {debt.counterparty_name})"
-                    is_income = True
-                else:
-                    # Eles me devem: emprestei mais dinheiro -> Despesa (is_income = False)
-                    tx_desc = f"{description} (emprestado para {debt.counterparty_name})"
-                    is_income = False
-
-                # Cria a transação real
-                tx = Transaction(
-                    account=account,
-                    amount=amount,
-                    description=tx_desc,
-                    date=pay_date,
-                    is_income=is_income,
-                    is_applied_to_balance=True,
-                )
-                tx._skip_balance_update = True
-                tx.save()
-
-                # Aplica o ajuste de saldo
-                if is_income:
-                    account.balance += amount
-                else:
-                    account.balance -= amount
-                account.save()
-
-            # Cria o registro do encargo (DebtCharge)
-            from .models import DebtCharge
-            DebtCharge.objects.create(
-                debt=debt,
-                amount=amount,
-                description=description,
-                date=pay_date,
-                account=account,
-                transaction=tx
-            )
-
-        # Retornar o serializer atualizado
-        serializer = self.get_serializer(debt)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-class DebtPaymentViewSet(viewsets.ModelViewSet):
-    serializer_class = DebtPaymentSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return DebtPayment.objects.filter(debt__user=self.request.user).select_related('debt', 'account').order_by('-date')
-
-    def perform_create(self, serializer):
-        debt_id = self.request.data.get('debt')
-        amount = Decimal(str(self.request.data.get('amount', '0')))
-        account_id = self.request.data.get('account')
-        pay_date = self.request.data.get('date') or date.today().isoformat()
-
-        debt = Debt.objects.get(id=debt_id, user=self.request.user)
-        account = Account.objects.get(id=account_id, user=self.request.user) if account_id else None
-
-        txn = None
-        if account:
-            if debt.is_mine:
-                description = f"Pagamento de dívida para {debt.counterparty_name}"
-                is_income = False
-            else:
-                description = f"Pagamento de dívida de {debt.counterparty_name}"
-                is_income = True
-
-            txn = Transaction(
-                account=account,
-                amount=amount,
-                description=description,
-                date=pay_date,
-                is_income=is_income,
-                is_applied_to_balance=True,
-            )
-            txn._skip_balance_update = True
-            txn.save()
-
-            if is_income:
-                account.balance += amount
-            else:
-                account.balance -= amount
-            account.save()
-
-        serializer.save(debt=debt, transaction=txn, account=account)
-
-    def destroy(self, request, *args, **kwargs):
-        payment = self.get_object()
-        if payment.transaction and payment.account:
-            if payment.debt.is_mine:
-                payment.account.balance += payment.amount
-            else:
-                payment.account.balance -= payment.amount
-            payment.account.save()
-            
-            # Blindagem contábil: ativa a flag de bypass antes de deletar
-            payment.transaction._skip_balance_update = True
-            payment.transaction.delete()
-        return super().destroy(request, *args, **kwargs)
-
-from .serializers import DebtChargeSerializer
-from .models import DebtCharge
-
-class DebtChargeViewSet(viewsets.ModelViewSet):
-    serializer_class = DebtChargeSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return DebtCharge.objects.filter(debt__user=self.request.user)
-
-    def destroy(self, request, *args, **kwargs):
-        charge = self.get_object()
-        if charge.transaction and charge.account:
-            # Reverte o saldo (charge fez a dívida aumentar)
-            # Se is_mine, o charge foi uma Receita (emprestou pra mim). Reverter = diminuir saldo
-            if charge.debt.is_mine:
-                charge.account.balance -= charge.amount
-            else:
-                charge.account.balance += charge.amount
-            charge.account.save()
-            
-            # Apaga a transação bancária
-            charge.transaction._skip_balance_update = True
-            charge.transaction.delete()
-        return super().destroy(request, *args, **kwargs)
 
 class ResetDataView(APIView):
     permission_classes = [IsAuthenticated]
@@ -2752,210 +2535,6 @@ class ReportsViewSet(viewsets.ViewSet):
         return Response(data)
 
 
-from .models import Debtor, DebtItem
-from .serializers import DebtorSerializer, DebtItemSerializer
-from .services import DebtorPaymentService
-
-class DebtorViewSet(viewsets.ModelViewSet):
-    serializer_class = DebtorSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Debtor.objects.filter(user=self.request.user).order_by('name')
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        data = serializer.data
-        
-        from django.db.models import Sum, F
-        from decimal import Decimal
-        from .models import DebtItem, Debt
-        
-        total_items = DebtItem.objects.filter(
-            debtor_id=instance.id,
-            status__in=['PENDING', 'PARTIAL']
-        ).aggregate(
-            total=Sum(F('total_amount') - F('paid_amount'))
-        )['total'] or Decimal('0.00')
-        
-        debts = Debt.objects.filter(
-            user=request.user,
-            counterparty_name__iexact=instance.name,
-            is_mine=False
-        ).prefetch_related('charges', 'payments')
-        
-        total_debts = Decimal('0.00')
-        for debt in debts:
-            total_charges = sum(c.amount for c in debt.charges.all())
-            total_paid = sum(p.amount for p in debt.payments.all())
-            outstanding = (debt.original_amount + total_charges) - total_paid
-            if outstanding > 0:
-                total_debts += outstanding
-                
-        data['total_outstanding'] = float(total_items + total_debts)
-        return Response(data)
-
-    @action(detail=True, methods=['get'])
-    def grouped_debts(self, request, pk=None):
-        debtor = self.get_object()
-        from .models import DebtItem, Debt
-        from decimal import Decimal
-        
-        items = DebtItem.objects.filter(
-            debtor=debtor,
-            status__in=['PENDING', 'PARTIAL']
-        ).select_related('origin_subaccount')
-        
-        grouped = {}
-        for item in items:
-            sub = item.origin_subaccount
-            if sub.id not in grouped:
-                grouped[sub.id] = {
-                    'subaccount_id': sub.id,
-                    'subaccount_name': sub.name,
-                    'currency': sub.currency,
-                    'total_outstanding_balance': Decimal('0.00'),
-                    'items': []
-                }
-            outstanding = item.total_amount - item.paid_amount
-            grouped[sub.id]['total_outstanding_balance'] += outstanding
-            grouped[sub.id]['items'].append(DebtItemSerializer(item).data)
-            
-        debts = Debt.objects.filter(
-            user=request.user,
-            counterparty_name__iexact=debtor.name,
-            is_mine=False
-        ).select_related('origin_subaccount').prefetch_related('charges', 'payments')
-        
-        for debt in debts:
-            total_charges = sum(c.amount for c in debt.charges.all())
-            total_paid = sum(p.amount for p in debt.payments.all())
-            outstanding = (debt.original_amount + total_charges) - total_paid
-            
-            if outstanding > 0:
-                sub = debt.origin_subaccount
-                sub_id = sub.id if sub else 0
-                sub_name = sub.name if sub else "Sem Envelope"
-                sub_currency = sub.currency if sub else "EUR"
-                
-                if sub_id not in grouped:
-                    grouped[sub_id] = {
-                        'subaccount_id': sub_id,
-                        'subaccount_name': sub_name,
-                        'currency': sub_currency,
-                        'total_outstanding_balance': Decimal('0.00'),
-                        'items': []
-                    }
-                grouped[sub_id]['total_outstanding_balance'] += outstanding
-                
-                status_str = 'PENDING' if total_paid == 0 else 'PARTIAL'
-                grouped[sub_id]['items'].append({
-                    'id': debt.id + 1000000,
-                    'product_name': debt.notes or f"Empréstimo para {debt.counterparty_name}",
-                    'total_amount': float(debt.original_amount + total_charges),
-                    'paid_amount': float(total_paid),
-                    'status': status_str,
-                    'date_created': debt.created_at.strftime('%Y-%m-%d') if debt.created_at else None,
-                    'origin_subaccount': sub_id,
-                    'origin_subaccount_name': sub_name,
-                })
-            
-        result = list(grouped.values())
-        return Response(result)
-
-    @action(detail=True, methods=['post'])
-    def pay_group(self, request, pk=None):
-        debtor = self.get_object()
-        subaccount_id = request.data.get('subaccount_id')
-        payment_amount = request.data.get('amount')
-        
-        if not subaccount_id or not payment_amount:
-            return Response({"detail": "subaccount_id e amount são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        try:
-            result = DebtorPaymentService.pay_subaccount_group(debtor.id, subaccount_id, payment_amount)
-            return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=False, methods=['post'], url_path='pay-subaccount')
-    def pay_subaccount(self, request):
-        debtor_id = request.data.get('debtor_id')
-        subaccount_id = request.data.get('subaccount_id')
-        payment_amount = request.data.get('amount')
-        
-        if not debtor_id or not subaccount_id or not payment_amount:
-            return Response({"detail": "debtor_id, subaccount_id e amount são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        try:
-            result = DebtorPaymentService.pay_subaccount_group(debtor_id, subaccount_id, payment_amount)
-            return Response(result, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    @action(detail=True, methods=['post'])
-    def add_items(self, request, pk=None):
-        debtor = self.get_object()
-        subaccount_id = request.data.get('subaccount_id')
-        items_payload = request.data.get('items')
-        
-        if not items_payload and 'product_name' in request.data:
-            items_payload = [{
-                'product_name': request.data.get('product_name'),
-                'total_amount': request.data.get('total_amount')
-            }]
-            
-        if not subaccount_id or not isinstance(items_payload, list):
-            return Response({"detail": "subaccount_id e items (lista) são obrigatórios."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        try:
-            from .services import DebtorCreationService
-            created_items = DebtorCreationService.register_itemized_debts(debtor.id, subaccount_id, items_payload)
-            serialized = DebtItemSerializer(created_items, many=True)
-            return Response(serialized.data, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
-
-class DebtItemViewSet(viewsets.ModelViewSet):
-    serializer_class = DebtItemSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return DebtItem.objects.filter(debtor__user=self.request.user).select_related('debtor', 'origin_subaccount').order_by('-date_created', '-id')
-
-    def partial_update(self, request, *args, **kwargs):
-        instance = self.get_object()
-        origin_subaccount_id = request.data.get('origin_subaccount_id')
-        total_amount = request.data.get('total_amount')
-
-        from .services import DebtItemMutationService
-        try:
-            updated_item = DebtItemMutationService.update_debt_item(
-                instance.id,
-                origin_subaccount_id=origin_subaccount_id,
-                total_amount=total_amount
-            )
-            serializer = self.get_serializer(updated_item)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        from .services import DebtItemMutationService
-        try:
-            DebtItemMutationService.delete_debt_item(instance.id)
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-
 from .models import Asset
 from .serializers import AssetSerializer
 
@@ -2964,7 +2543,7 @@ class AssetViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Asset.objects.filter(user=self.request.user).select_related('linked_debt').prefetch_related('linked_debt__charges', 'linked_debt__payments')
+        return Asset.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -2980,15 +2559,7 @@ class AssetViewSet(viewsets.ModelViewSet):
         # 1. Totalizar ativos líquidos imediatos + médios
         total_liquid_value = Decimal('0.00')
         for asset in assets:
-            # Reutiliza a lógica do serializer para o valor efetivo do ativo
-            if asset.linked_debt:
-                total_charges = sum(c.amount for c in asset.linked_debt.charges.all())
-                total_paid = sum(p.amount for p in asset.linked_debt.payments.all())
-                remaining = (asset.linked_debt.original_amount + total_charges) - total_paid
-                effective = asset.current_market_value - remaining
-                effective_value = max(effective, Decimal('0.00'))
-            else:
-                effective_value = asset.current_market_value
+            effective_value = asset.current_market_value
             total_liquid_value += effective_value
 
         # 2. Calcular a despesa média mensal do usuário

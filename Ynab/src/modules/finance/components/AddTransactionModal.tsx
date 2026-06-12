@@ -21,7 +21,7 @@ import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Label } from "@/shared/components/ui/label";
-import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock, ChevronDown, Sparkles, Trash2 } from "lucide-react";
+import { Plus, TrendingDown, TrendingUp, ArrowLeftRight, CheckCircle2, Clock, ChevronDown, Sparkles, Trash2, HandCoins } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import { Badge } from "@/shared/components/ui/badge";
@@ -32,7 +32,6 @@ import { GlobalAccountSelector } from "@/shared/components/ui/global-account-sel
 import { GlobalCategorySelector } from "@/shared/components/ui/global-category-selector";
 import { RecurringScopeModal } from "@/modules/finance/components/RecurringScopeModal";
 import { RecurrenceEditModal } from "@/modules/finance/components/RecurrenceEditModal";
-import { useDebtStore } from "@/modules/finance/store/useDebtStore";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
 
@@ -60,8 +59,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   const [accountSearch, setAccountSearch] = useState("");
   const [toAccountSearch, setToAccountSearch] = useState("");
 
-  const { splitRules, transactionDraft, fetchSplitRules, setTransactionDraft } = useDebtStore();
-  
   const { tree, categoryGroups } = useAccountStore();
   const { transactions = [], addTransaction, updateTransaction, transferTransaction } = useTransactions();
 
@@ -83,77 +80,35 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   };
   
   const allAccounts = getAllAccounts(tree);
-  const [applySplit, setApplySplit] = useState(false);
-  const [splitItems, setSplitItems] = useState<SplitItem[]>([]);
+  
+  const [loanSplits, setLoanSplits] = useState<{ id: string, accountId: string, amount: number }[]>([]);
+  const [isSplitting, setIsSplitting] = useState(false);
 
-  // Function to add a new empty item
-  const handleAddSplitItem = () => {
-    setSplitItems(prev => [
-      ...prev,
-      { id: crypto.randomUUID(), description: "", amount: 0, divideBy: 1, debtorCategoryIds: [] }
-    ]);
+  const handleAddLoanSplit = () => {
+    setLoanSplits(prev => [...prev, { id: crypto.randomUUID(), accountId: "", amount: 0 }]);
   };
 
-  // Function to remove an item
-  const handleRemoveSplitItem = (id: string) => {
-    setSplitItems(prev => prev.filter(item => item.id !== id));
+  const handleRemoveLoanSplit = (id: string) => {
+    setLoanSplits(prev => prev.filter(item => item.id !== id));
   };
 
-  // Function to update an item field
-  const handleUpdateSplitItem = (id: string, field: keyof SplitItem, value: any) => {
-    setSplitItems(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
+  const handleUpdateLoanSplit = (id: string, field: 'accountId' | 'amount', value: any) => {
+    setLoanSplits(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
   };
 
-  // Function to toggle a debtor in an item
-  const handleToggleDebtor = (itemId: string, categoryId: string) => {
-    setSplitItems(prev => prev.map(item => {
-      if (item.id === itemId) {
-        const isSelected = item.debtorCategoryIds.includes(categoryId);
-        return {
-          ...item,
-          debtorCategoryIds: isSelected 
-            ? item.debtorCategoryIds.filter(id => id !== categoryId)
-            : [...item.debtorCategoryIds, categoryId]
-        };
-      }
-      return item;
-    }));
-  };
-
-  const [splitRuleId, setSplitRuleId] = useState<string>("none");
-  const [sharedAmount, setSharedAmount] = useState<number>(0);
   const [recurrenceEditModalOpen, setRecurrenceEditModalOpen] = useState(false);
   const [date, setDate] = useState<string>(transaction?.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
 
-  // Carrega regras de rateio e recupera rascunho (se houver) ao abrir o modal
+  // Carrega grupos de categorias ao abrir o modal
   useEffect(() => {
     if (open) {
-      fetchSplitRules();
       try {
         useAccountStore.getState().fetchCategoryGroups?.();
       } catch (err) {
         console.error("Erro ao carregar grupos de categoria ao abrir o modal:", err);
       }
-      if (transactionDraft) {
-        setDescription(transactionDraft.description);
-        setAmount(transactionDraft.amount);
-        setType(transactionDraft.type);
-        setAccountId(transactionDraft.accountId);
-        setCategoryId(transactionDraft.categoryId);
-        setStatus(transactionDraft.status);
-        setDate(transactionDraft.date);
-        setIsRecurring(transactionDraft.isRecurring);
-        setRecurrenceInterval(transactionDraft.recurrenceInterval);
-        if (transactionDraft.applySplit) {
-          setApplySplit(true);
-          setSplitRuleId(transactionDraft.splitRuleId || "none");
-          setSharedAmount(transactionDraft.sharedAmount || 0);
-        }
-        // Limpa o rascunho para não reaplicar nas próximas aberturas
-        setTransactionDraft(null);
-      }
     }
-  }, [open, transactionDraft]);
+  }, [open]);
 
   // Resetar termos de busca ao fechar o modal
   useEffect(() => {
@@ -176,17 +131,8 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       setStatus(transaction?.status || "realized");
       setIsRecurring(transaction?.is_recurring || false);
       setRecurrenceInterval(transaction?.recurrence_interval || "monthly");
-      
-      const txAny = transaction as any;
-      if (txAny?.split_rule) {
-        setApplySplit(true);
-        setSplitRuleId(String(txAny.split_rule));
-        setSharedAmount(txAny.shared_amount ? Math.abs(txAny.shared_amount) : 0);
-      } else {
-        setApplySplit(false);
-        setSplitRuleId("none");
-        setSharedAmount(0);
-      }
+      setIsSplitting(false);
+      setLoanSplits([]);
     }
   }, [open, transaction, initialAccountId]);
 
@@ -353,8 +299,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       status: status,
       is_recurring: isRecurring,
       recurrence_interval: isRecurring ? recurrenceInterval : undefined,
-      split_rule: (applySplit && splitRuleId !== "none") ? splitRuleId : null,
-      shared_amount: (applySplit && sharedAmount > 0) ? sharedAmount : null,
     };
 
     if (isTransfer) {
@@ -397,8 +341,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             exchange_rate: 1.0,
             iof_amount: 0.0,
             input_type: inputType,
-            split_rule: (applySplit && splitRuleId !== "none") ? splitRuleId : null,
-            shared_amount: (applySplit && sharedAmount > 0) ? sharedAmount : null,
           };
           const response = await authenticatedFetch(`/credit-cards/${currentCard.id}/create_transaction/`, {
             method: "POST",
@@ -419,6 +361,42 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           return;
         }
       }
+
+      // NEW SPLIT LOGIC FOR REGULAR TRANSACTIONS
+      if (isSplitting && loanSplits.length > 0 && type === "expense") {
+        const totalSplitAmount = loanSplits.reduce((acc, curr) => acc + curr.amount, 0);
+        const myAmount = amountValue - totalSplitAmount;
+        
+        if (myAmount < 0) {
+          toast.error("O valor dividido não pode ser maior que o total da compra.");
+          return;
+        }
+
+        // 1. Save my portion (if any)
+        if (myAmount > 0) {
+          await addTransaction.mutateAsync({ ...transactionData, amount: myAmount } as any);
+        }
+
+        // 2. Save transfers for friends
+        for (const split of loanSplits) {
+          if (split.accountId && split.amount > 0) {
+            await transferTransaction.mutateAsync({
+              from_account: accountId,
+              to_account: split.accountId,
+              amount: split.amount,
+              to_amount: split.amount,
+              description: `${formData.get("description")} (Parte de terceiros)`,
+              date: formData.get("date") as string || new Date().toISOString().split('T')[0],
+              category_id: (!useCategory || categoryId === "none") ? undefined : categoryId,
+            });
+          }
+        }
+        
+        setOpen(false);
+        if (onClose) onClose();
+        return;
+      }
+
       await addTransaction.mutateAsync(transactionData as any);
       setOpen(false);
       if (onClose) onClose();
@@ -439,8 +417,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       status: status,
       is_recurring: isRecurring,
       recurrence_interval: recurrenceInterval,
-      split_rule: (applySplit && splitRuleId !== "none") ? splitRuleId : null,
-      shared_amount: (applySplit && sharedAmount > 0) ? sharedAmount : null,
     };
 
     await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData, scope });
@@ -463,8 +439,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       status: status,
       is_recurring: isRecurring,
       recurrence_interval: recurrenceInterval,
-      split_rule: (applySplit && splitRuleId !== "none") ? splitRuleId : null,
-      shared_amount: (applySplit && sharedAmount > 0) ? sharedAmount : null,
     };
 
     await updateTransaction.mutateAsync({ id: transaction.id, updates: transactionData, scope });
@@ -819,113 +793,77 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             </div>
           )}
 
-          {!isTransfer && (
+          {!isEdit && type === "expense" && (
             <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">
               <div 
                 className="flex items-center space-x-2 border border-border/40 bg-card p-3 rounded-xl cursor-pointer" 
                 onClick={() => {
-                  const newState = !applySplit;
-                  setApplySplit(newState);
-                  if (newState && splitItems.length === 0) handleAddSplitItem();
+                  const newState = !isSplitting;
+                  setIsSplitting(newState);
+                  if (newState && loanSplits.length === 0) handleAddLoanSplit();
                 }}
               >
-                <Checkbox checked={applySplit}/>
-                <Label className="text-sm cursor-pointer">Aplicar Regra de Rateio?</Label>
+                <Checkbox checked={isSplitting} />
+                <Label className="text-sm cursor-pointer">Dividir compra com terceiros (Eles te devem)?</Label>
               </div>
 
-              {applySplit && (
-                <div className="mt-3 p-4 border border-primary/20 bg-primary/5 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
+              {isSplitting && (
+                <div className="mt-3 p-4 border border-rose-500/20 bg-rose-500/5 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold text-primary flex items-center gap-1.5">
-                      <Sparkles className="h-3.5 w-3.5"/>
-                      Itens a Dividir (Reembolsos)
+                    <Label className="text-xs font-bold text-rose-500 flex items-center gap-1.5">
+                      <HandCoins className="h-3.5 w-3.5"/>
+                      Eles te devem (Será transferido)
                     </Label>
                     <Button 
-                      className="h-7 text-[10px] font-bold text-primary hover:bg-primary/10 rounded-lg" 
-                      onClick={handleAddSplitItem} 
+                      className="h-7 text-[10px] font-bold text-rose-500 hover:bg-rose-500/10 rounded-lg" 
+                      onClick={handleAddLoanSplit} 
                       size="sm" 
                       type="button" 
                       variant="ghost"
                     >
-                      <Plus className="h-3 w-3 mr-1"/> Adicionar Produto
+                      <Plus className="h-3 w-3 mr-1"/> Adicionar Pessoa
                     </Button>
                   </div>
 
                   <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
-                    {splitItems.map((item, index) => (
-                      <div key={item.id} className="p-3.5 border border-border/50 bg-background rounded-xl space-y-3 relative group">
+                    {loanSplits.map((item) => (
+                      <div key={item.id} className="p-3 border border-border/50 bg-background rounded-xl space-y-3 relative group">
                         <button 
                           type="button" 
-                          onClick={() => handleRemoveSplitItem(item.id)} 
-                          className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => handleRemoveLoanSplit(item.id)} 
+                          className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <Trash2 className="h-3.5 w-3.5"/>
                         </button>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-6">
                           <div className="space-y-1.5">
-                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Produto / Despesa</Label>
-                            <Input 
-                              onChange={(e) => handleUpdateSplitItem(item.id, 'description', e.target.value)} 
-                              value={item.description}
-                              placeholder="Ex: Sabão, Vassoura..." 
-                              className="h-9 text-xs rounded-lg bg-muted/20"
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Quem pagará?</Label>
+                            <GlobalAccountSelector
+                              value={item.accountId}
+                              onValueChange={(val) => handleUpdateLoanSplit(item.id, 'accountId', val)}
+                              placeholder="Conta de Empréstimo..."
+                              excludeAccountId={accountId}
                             />
                           </div>
                           <div className="space-y-1.5">
-                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Valor do Item</Label>
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Qual o valor?</Label>
                             <CurrencyInput 
-                              onChange={(val) => handleUpdateSplitItem(item.id, 'amount', val)} 
                               value={item.amount}
-                              className="h-9 text-xs rounded-lg bg-muted/20"
+                              onChange={(val) => handleUpdateLoanSplit(item.id, 'amount', val)} 
+                              className="h-9 text-xs rounded-lg bg-muted/20 text-left"
                             />
                           </div>
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-1 border-t border-border/40">
-                          <div className="sm:col-span-4 space-y-1.5 pt-1">
-                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Dividir por (Qtd. Pessoas)</Label>
-                            <Input 
-                              min="1" 
-                              type="number" 
-                              value={item.divideBy}
-                              onChange={(e) => handleUpdateSplitItem(item.id, 'divideBy', parseInt(e.target.value) || 1)} 
-                              className="h-9 text-xs font-mono rounded-lg bg-muted/20"
-                            />
-                          </div>
-                          
-                          <div className="sm:col-span-8 space-y-1.5 pt-1">
-                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Quem deve reembolsar?</Label>
-                            <div className="flex flex-wrap gap-1.5 pt-0.5">
-                              {(categoryGroups || []).flatMap(g => g.children || []).map(cat => {
-                                const isSelected = item.debtorCategoryIds.includes(cat.id);
-                                return (
-                                  <Badge 
-                                    key={cat.id} 
-                                    onClick={() => handleToggleDebtor(item.id, cat.id)} 
-                                    variant={isSelected ? "default" : "outline"}
-                                    className={cn(
-                                      "cursor-pointer text-[10px] transition-all hover:scale-105",
-                                      isSelected ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent text-muted-foreground hover:bg-muted"
-                                    )}
-                                  >
-                                    {cat.name}
-                                  </Badge>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-
-                        {item.amount > 0 && item.debtorCategoryIds.length > 0 && (
-                          <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-lg text-[10px] font-bold">
-                            <CheckCircle2 className="h-3.5 w-3.5"/>
-                            Cada pessoa selecionada pagará {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.amount / item.divideBy)}.
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
+
+                  {loanSplits.reduce((acc, curr) => acc + curr.amount, 0) > 0 && (
+                    <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-[10px] font-bold">
+                      Sua parte na compra será: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.max(0, amount - loanSplits.reduce((acc, curr) => acc + curr.amount, 0)))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

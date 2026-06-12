@@ -7,3 +7,12 @@ Nós atualizamos o sistema para alinhar-se perfeitamente com a metodologia YNAB 
 
 ### O que fazer se aparecer o erro "Por favor, selecione uma Categoria"?
 Esse aviso indica que você esqueceu de selecionar a categoria do seu orçamento que irá financiar a compra do cartão. Basta clicar no campo "Categoria de Despesa", selecionar o grupo e a categoria correspondente e clicar em confirmar.
+
+## 🤝 Empréstimos Concedidos (A Receber)
+
+### Como posso ver o total de dinheiro que emprestei para terceiros?
+Você pode acessar o novo **Painel de Empréstimos** no menu de navegação (ou pelo endereço `/loans`). Lá você terá cartões informativos para cada pessoa ou entidade devedora, consolidando o saldo total devedor.
+
+### Por que preciso selecionar uma categoria ao transferir dinheiro para uma conta de empréstimo?
+Quando você transfere fundos de uma conta que faz parte do orçamento (On-Budget, ex: Conta Corrente) para uma conta de empréstimo (Off-Budget/Tracking), esse dinheiro está efetivamente saindo do seu orçamento disponível. Para manter o controle do orçamento base-zero, você deve associar essa saída a uma categoria orçamentária (ex: "Empréstimos" ou "Ajuda Familiar") para justificar de onde saiu o valor.
+

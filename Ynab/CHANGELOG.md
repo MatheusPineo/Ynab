@@ -2,6 +2,16 @@
 
 Todas as mudanças de engenharia relevantes para o projeto serão registradas neste arquivo.
 
+## [1.103.00] - 2026-06-12
+
+### Adicionado
+- **Roteamento Principal (`src/App.tsx`):**
+  - Importação estática e registro do componente `LoansDashboard` sob a rota `/loans`, integrando-o ao layout protegido do painel de controle financeiro.
+
+### Alterado
+- **Engine de Transferências (`src/backend/finance/views.py`):**
+  - Atualizado o endpoint de transferências para aceitar opcionalmente o parâmetro `category_id`, permitindo o orçamento base-zero quando recursos saem de contas "On-Budget" para contas de empréstimos concedidos ("Off-Budget").
+
 ## [1.94.00] - 2026-06-11
 
 ### Corrigido

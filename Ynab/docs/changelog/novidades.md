@@ -2,6 +2,50 @@
 
 Fique por dentro das últimas melhorias e novos fluxos do sistema criados especialmente para otimizar sua experiência financeira.
 
+## 🚀 Integração e Ativação do Roteiro de Empréstimos (12/06/2026)
+
+Concluímos o registro oficial do novo painel de controle financeiro no roteador da aplicação, ativando formalmente o acesso direto e completo ao dashboard de empréstimos concedidos.
+
+### O que mudou?
+- **Ativação da Rota `/loans`:** O painel de Empréstimos Concedidos (`LoansDashboard`) agora está registrado na rota principal de navegação protegida da aplicação, permitindo que você navegue diretamente para as opções de amortização e visualização de saldos devedores de terceiros.
+- **Carregamento Otimizado:** Implementada a importação estática do componente principal, reduzindo o delay perceptível ao alternar para o painel de controle de empréstimos.
+
+## 🧹 Otimização de Performance e Faxina Técnica no Backend (12/06/2026)
+
+Realizamos uma grande limpeza interna para remover códigos antigos que não são mais utilizados, melhorando a performance e a manutenção do sistema.
+
+### O que mudou?
+- **Remoção de Módulos Obsoletos:** Eliminamos completamente os antigos ViewSets, serializadores e serviços de gestão de dívidas (`SplitRule`, `Debt`, `DebtPayment`, `DebtCharge`, `Debtor`, `DebtItem`) que foram substituídos pela UX moderna de Empréstimos Concedidos (`LOAN_GIVEN`).
+- **Remoção Física no Banco de Dados:** Excluímos as tabelas de dados de dívidas legadas e removemos as colunas e chaves estrangeiras obsoletas (`Transaction.split_rule`, `Transaction.shared_amount`, `Asset.linked_debt`) do banco de dados relacional.
+- **Simplificação de Ativos:** O cálculo de valor dos ativos (Assets) foi simplificado para desvincular dívidas legadas, removendo o campo de dívida vinculada (`linked_debt`) dos endpoints de serialização.
+- **Limpeza de Rotas:** Menos rotas ativas na API significam um backend mais leve e tempos de resposta ainda menores.
+
+## 🤝 Novo Assistente de Divisão com Empréstimo no Lançamento de Transações (12/06/2026)
+
+Lançar compras divididas com amigos ou familiares ficou muito mais simples e integrado às suas contas de empréstimo.
+
+### O que mudou?
+- **Divisão com Empréstimo Direto:** Ao lançar uma despesa, você pode marcar "Dividir compra com terceiros (Eles te devem)?" para abrir a nova interface.
+- **Automação Contábil:** O Vault criará automaticamente a sua parte da despesa na conta de origem e criará transferências automáticas das partes dos terceiros para as contas de empréstimo (`LOAN_GIVEN`) selecionadas, com suporte opcional a categorias YNAB para orçamento base-zero.
+- **Interface Limpa:** Removido o fluxo legado de regras de rateio complexas dentro do lançamento, proporcionando uma experiência de usuário simplificada.
+
+## 🔄 Suporte a Categorias em Transferências para Orçamento Base-Zero (12/06/2026)
+
+Agora você pode selecionar uma categoria ao realizar transferências de contas que estão no orçamento (On-Budget) para contas de acompanhamento ou empréstimos (Off-Budget).
+
+### O que mudou?
+- **Orçamento Base-Zero Preservado:** Toda transferência que retira dinheiro do seu orçamento principal agora exige/permite o vínculo a uma categoria, registrando corretamente a saída de fundos e evitando furos no orçamento.
+- **Integração Total:** Atualizado o backend e o frontend para processarem a categoria na engine de transferências de transações.
+
+## 🤝 Novo Painel de Controle de Empréstimos Concedidos (12/06/2026)
+
+Facilitamos o controle dos empréstimos que você faz para amigos, familiares ou terceiros com uma tela dedicada.
+
+### O que há de novo?
+- **Visualização Clara:** Veja rapidamente o saldo total pendente de todos os empréstimos concedidos.
+- **Amortização Simplificada:** Registre pagamentos parciais ou totais recebidos através do assistente de "Receber Pagamento", integrando os valores automaticamente de volta no seu RTA (Pronto para Atribuir).
+- **Badge e Saldo Invertido:** Identificação fácil na lista de contas com o badge "A Receber" e exibição com destaque visual apropriado.
+
 ## 🐛 Correção de Crash ao Abrir Lançador de Transações (11/06/2026)
 
 Corrigimos um erro técnico de carregamento de componente na abertura do modal de nova transação.

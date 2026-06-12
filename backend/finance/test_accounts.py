@@ -318,14 +318,13 @@ class AccountsAndCategoriesTests(TestCase):
         self.assertIn("Ajuste de Saldo (Redução)", tx_reducao.description)
 
     def test_profile_reset_data(self):
-        from .models import Transaction, Goal, Debt, Category
+        from .models import Transaction, Goal, Category
         
         # Popular banco com dados financeiros do usuário
         acc = Account.objects.create(user=self.user, name='My Wallet', balance=500.00)
         Category.objects.create(user=self.user, name='Shopping')
         Transaction.objects.create(account=acc, amount=Decimal('50.00'), description='Coffee', is_income=False, date='2026-05-10')
         Goal.objects.create(user=self.user, name='Car', target_amount=Decimal('10000.00'))
-        Debt.objects.create(user=self.user, counterparty_name='John', original_amount=Decimal('200.00'), is_mine=True)
         
         # Chamar endpoint de reset
         response = self.client.delete(reverse('onboarding-reset-data'))
@@ -337,7 +336,6 @@ class AccountsAndCategoriesTests(TestCase):
         self.assertGreater(Category.objects.filter(user=self.user).count(), 0) # Taxonomia padrão foi recriada
         self.assertEqual(Transaction.objects.filter(account__user=self.user).count(), 0)
         self.assertEqual(Goal.objects.filter(user=self.user).count(), 0)
-        self.assertEqual(Debt.objects.filter(user=self.user).count(), 0)
         
         # Garantir que o usuário em si e seu perfil continuam existindo
         self.assertTrue(User.objects.filter(id=self.user.id).exists())

@@ -22,7 +22,8 @@ import {
   Pencil,
   Briefcase,
   Coins,
-  Calculator
+  Calculator,
+  HandCoins
 } from "lucide-react";
 import { cn } from "@/shared/lib/utils";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
@@ -48,6 +49,7 @@ export const navItems = [
   { icon: Coins, key: "assets", featureKey: "assets", to: "/assets" },
   { icon: Calculator, key: "simulators", featureKey: "simulators", to: "/simulators" },
   { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
+  { icon: HandCoins, key: "loans", to: "/loans" },
   { icon: InboxIcon, key: "inbox", to: "/inbox" },
   { icon: PieChart, key: "budget", to: "/budget" },
   { icon: Scale, key: "rule503020", to: "/rule-503020" },

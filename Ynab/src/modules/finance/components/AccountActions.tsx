@@ -223,6 +223,7 @@ export const AccountActions = ({ account }: AccountActionsProps) => {
                   <SelectItem value="checking">Conta Corrente / Carteira</SelectItem>
                   <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
                   <SelectItem value="tracking">Conta de Acompanhamento (Fora do Orçamento)</SelectItem>
+                  <SelectItem value="LOAN_GIVEN">Empréstimo Concedido (A Receber)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

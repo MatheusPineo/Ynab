@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Account, Category, Transaction, Goal, MonthlyBudget,
-    DistributionTemplate, Debt, DebtPayment, TransactionInbox
+    DistributionTemplate, TransactionInbox
 )
 
 @admin.register(Account)
@@ -28,16 +28,6 @@ class TransactionAdmin(admin.ModelAdmin):
 class GoalAdmin(admin.ModelAdmin):
     list_display = ('name', 'user', 'target_amount', 'current_amount', 'deadline')
     list_filter = ('user', 'deadline')
-
-@admin.register(Debt)
-class DebtAdmin(admin.ModelAdmin):
-    list_display = ('counterparty_name', 'user', 'original_amount', 'currency', 'is_mine')
-    list_filter = ('user', 'is_mine')
-
-@admin.register(DebtPayment)
-class DebtPaymentAdmin(admin.ModelAdmin):
-    list_display = ('debt', 'amount', 'date', 'account')
-    list_filter = ('date', 'account')
 
 
 @admin.register(TransactionInbox)

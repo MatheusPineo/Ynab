@@ -94,7 +94,8 @@ export const useTransactions = (month?: number, year?: number) => {
       amount: number; 
       to_amount: number; 
       description: string; 
-      date: string 
+      date: string;
+      category_id?: string;
     }) => {
       const response = await authenticatedFetch("/transactions/transfer/", {
         method: "POST",

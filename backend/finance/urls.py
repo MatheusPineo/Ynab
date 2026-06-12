@@ -3,10 +3,10 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     AccountViewSet, CategoryViewSet, TransactionViewSet, GoalViewSet, 
     MonthlyBudgetViewSet, IconUploadView, DistributionTemplateViewSet, 
-    DebtViewSet, DebtPaymentViewSet, DebtChargeViewSet, ResetDataView, CreditCardViewSet,
+    ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
     InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, WealthBatchUpdateView, DemoModeView,
-    ReportsViewSet, DebtorViewSet, DebtItemViewSet, NotificationInboxView, SplitRuleViewSet, AssetViewSet
+    ReportsViewSet, NotificationInboxView, AssetViewSet
 )
 
 # Novas importações para os Dispositivos Confiáveis
@@ -20,18 +20,12 @@ router.register(r'transactions', TransactionViewSet, basename='transaction')
 router.register(r'goals', GoalViewSet, basename='goal')
 router.register(r'monthly-budgets', MonthlyBudgetViewSet, basename='monthly-budget')
 router.register(r'distribution-templates', DistributionTemplateViewSet, basename='distribution-template')
-router.register(r'debts', DebtViewSet, basename='debt')
-router.register(r'debt-payments', DebtPaymentViewSet, basename='debt-payment')
-router.register(r'debt-charges', DebtChargeViewSet, basename='debt-charge')
 router.register(r'credit-cards', CreditCardViewSet, basename='credit-card')
 router.register(r'inbox', TransactionInboxViewSet, basename='inbox')
 router.register(r'category-goals', CategoryGoalViewSet, basename='category-goal')
 router.register(r'transaction-rules', TransactionRuleViewSet, basename='transaction-rule')
 router.register(r'wealth/assets', InvestmentAssetViewSet, basename='wealth-asset')
 router.register(r'wealth/activities', InvestmentActivityViewSet, basename='wealth-activity')
-router.register(r'debtors', DebtorViewSet, basename='debtor')
-router.register(r'debt-items', DebtItemViewSet, basename='debt-item')
-router.register(r'split-rules', SplitRuleViewSet, basename='split-rule')
 router.register(r'assets', AssetViewSet, basename='asset')
 
 

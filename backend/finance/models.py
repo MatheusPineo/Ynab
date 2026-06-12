@@ -11,6 +11,7 @@ class Account(models.Model):
         ('savings', 'Poupança'),
         ('credit_card', 'Cartão de Crédito'),
         ('investment', 'Investimento'),
+        ('LOAN_GIVEN', 'Empréstimo Concedido'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='accounts')
@@ -172,33 +173,6 @@ class Payee(models.Model):
         return self.name
 
 
-class SplitRule(models.Model):
-    name = models.CharField(max_length=100)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='split_rules')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'core_splitrule'
-        app_label = 'core'
-
-    def __str__(self):
-        return f"{self.name} ({self.user.username})"
-
-
-class SplitRuleItem(models.Model):
-    template = models.ForeignKey(SplitRule, on_delete=models.CASCADE, related_name='items')
-    debtor = models.ForeignKey('Debtor', on_delete=models.CASCADE)
-    percentage = models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True)
-    fixed_amount = models.DecimalField(blank=True, decimal_places=2, max_digits=12, null=True)
-
-    class Meta:
-        db_table = 'core_splitruleitem'
-        app_label = 'core'
-
-    def __str__(self):
-        return f"{self.debtor.name} ({self.percentage or self.fixed_amount})"
-
-
 class MonthlyBudget(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='monthly_budgets')
     month = models.PositiveSmallIntegerField(db_index=True) # 1-12
@@ -264,19 +238,6 @@ class Transaction(models.Model):
         null=True,
         blank=True,
         related_name='mirrored_transfer'
-    )
-    split_rule = models.ForeignKey(
-        'SplitRule',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='transactions'
-    )
-    shared_amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        null=True,
-        blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -500,61 +461,6 @@ class DistributionTemplateItem(models.Model):
     def __str__(self):
         target_name = self.account.name if self.account else (self.category.name if self.category else "Nenhum")
         return f"{target_name} - {self.percentage}% or {self.fixed_amount}"
-
-class Debt(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='debts')
-    counterparty_name = models.CharField(max_length=100)
-    original_amount = models.DecimalField(max_digits=12, decimal_places=2)
-    currency = models.CharField(max_length=3, default='BRL')
-    is_mine = models.BooleanField(default=False, db_index=True)  # True = I owe, False = they owe me
-    notes = models.TextField(blank=True, default='')
-    origin_subaccount = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='legacy_debts')
-    origin_category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_debts')
-    origin_transaction = models.ForeignKey(Transaction, on_delete=models.SET_NULL, null=True, blank=True, related_name='generated_debts')
-    reimburses_category = models.BooleanField(default=True)
-    applied_rule = models.ForeignKey(SplitRule, on_delete=models.SET_NULL, null=True, blank=True, related_name='applied_debts')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'core_debt'
-        app_label = 'core'
-
-    def __str__(self):
-        direction = "Devo para" if self.is_mine else "Me deve"
-        return f"{direction} {self.counterparty_name}: {self.original_amount} {self.currency}"
-
-class DebtPayment(models.Model):
-    debt = models.ForeignKey(Debt, on_delete=models.CASCADE, related_name='payments')
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    date = models.DateField()
-    account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='debt_payments')
-    transaction = models.OneToOneField(Transaction, on_delete=models.SET_NULL, null=True, blank=True, related_name='debt_payment')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'core_debtpayment'
-        app_label = 'core'
-
-    def __str__(self):
-        return f"Pagamento de {self.amount} em {self.date} - {self.debt.counterparty_name}"
-
-
-class DebtCharge(models.Model):
-    debt = models.ForeignKey(Debt, on_delete=models.CASCADE, related_name='charges')
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    description = models.CharField(max_length=200)
-    date = models.DateField()
-    account = models.ForeignKey(Account, on_delete=models.SET_NULL, null=True, blank=True, related_name='debt_charges')
-    transaction = models.OneToOneField(Transaction, on_delete=models.SET_NULL, null=True, blank=True, related_name='debt_charge')
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'core_debtcharge'
-        app_label = 'core'
-
-    def __str__(self):
-        return f"Acréscimo de {self.amount} ({self.description}) em {self.date} - {self.debt.counterparty_name}"
-
 
 class CreditCard(models.Model):
     COUNTRY_CHOICES = [
@@ -881,65 +787,6 @@ class DailyCDIRate(models.Model):
         return f"CDI {self.date}: {self.annual_rate}% a.a."
 
 
-class Debtor(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='debtors')
-    name = models.CharField(max_length=100)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'core_debtor'
-        app_label = 'core'
-        unique_together = ('user', 'name')
-
-    def __str__(self):
-        return f"{self.name} (Roommate)"
-
-
-class DebtItem(models.Model):
-    STATUS_CHOICES = [
-        ('PENDING', 'Pending'),
-        ('PARTIAL', 'Partial'),
-        ('SETTLED', 'Settled'),
-    ]
-
-    debtor = models.ForeignKey(Debtor, on_delete=models.CASCADE, related_name='items')
-    origin_subaccount = models.ForeignKey(Account, on_delete=models.CASCADE)
-    product_name = models.CharField(max_length=255)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDING')
-    date_created = models.DateField(auto_now_add=True)
-
-    class Meta:
-        db_table = 'core_debtitem'
-        app_label = 'core'
-
-    def __str__(self):
-        return f"{self.product_name} - {self.debtor.name} ({self.paid_amount}/{self.total_amount})"
-
-    def clean(self):
-        super().clean()
-        if self.total_amount is not None and self.total_amount <= 0:
-            raise ValidationError("O valor total da dívida deve ser maior que zero.")
-        if self.paid_amount is not None:
-            if self.paid_amount < 0:
-                raise ValidationError("O valor pago não pode ser negativo.")
-            if self.total_amount is not None and self.paid_amount > self.total_amount:
-                raise ValidationError("O valor pago não pode exceder o valor total da dívida.")
-
-        if self.total_amount is not None and self.paid_amount is not None:
-            if self.paid_amount == 0:
-                self.status = 'PENDING'
-            elif self.paid_amount >= self.total_amount:
-                self.status = 'SETTLED'
-            else:
-                self.status = 'PARTIAL'
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
-
-
 class LearnedTransactionRule(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='learned_transaction_rules')
     keyword = models.CharField(max_length=100)
@@ -1015,13 +862,6 @@ class Asset(models.Model):
         max_length=20, 
         choices=LIQUIDITY_TIER_CHOICES, 
         default='IMMEDIATE'
-    )
-    linked_debt = models.ForeignKey(
-        'Debt', 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name='linked_assets'
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
