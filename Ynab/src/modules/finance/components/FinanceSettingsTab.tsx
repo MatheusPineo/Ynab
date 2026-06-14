@@ -16,7 +16,9 @@ import {
   FileEdit,
   Trash,
   Plus,
-  Users
+  Users,
+  Archive,
+  ArchiveRestore
 } from "lucide-react";
 import {
   Select,
@@ -25,6 +27,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/components/ui/select";
+import { Switch } from "@/shared/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -299,6 +303,8 @@ export const FinanceTemplatesTab = () => {
     distributionTemplates, 
     deleteDistributionTemplate, 
     saveDistributionTemplate,
+    toggleTemplateActive,
+    toggleTemplateArchived,
     getAccountName,
     tree 
   } = useAccountStore();
@@ -319,6 +325,14 @@ export const FinanceTemplatesTab = () => {
     walk(tree);
     return list;
   }, [tree]);
+
+  const activeTemplates = useMemo(() => {
+    return distributionTemplates.filter(t => !t.is_archived);
+  }, [distributionTemplates]);
+
+  const archivedTemplates = useMemo(() => {
+    return distributionTemplates.filter(t => t.is_archived);
+  }, [distributionTemplates]);
 
   const handleEditTemplate = (template: any) => {
     setEditingTemplate(template);
@@ -358,6 +372,91 @@ export const FinanceTemplatesTab = () => {
     setIsEditingTemplate(false);
   };
 
+  const renderTemplateCard = (template: any, isArchivedTab: boolean) => (
+    <div key={template.id} className="flex flex-col gap-4 p-5 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/30 transition-colors group">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h4 className="font-bold text-foreground text-lg">{template.name}</h4>
+          <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
+            Criado em: {template.created_at ? new Date(template.created_at).toLocaleDateString() : "—"}
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          {!isArchivedTab && (
+            <div className="flex items-center gap-2 border border-border/40 rounded-xl px-3 py-1 bg-background/50">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                {template.is_active ? "Ativo" : "Inativo"}
+              </span>
+              <Switch 
+                checked={template.is_active ?? true} 
+                onCheckedChange={() => toggleTemplateActive(template.id, template.is_active ?? true)}
+              />
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            {!isArchivedTab ? (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 text-primary hover:bg-primary/10 rounded-xl"
+                  onClick={() => handleEditTemplate(template)}
+                >
+                  <FileEdit className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 text-amber-500 hover:bg-amber-500/10 rounded-xl"
+                  onClick={() => toggleTemplateArchived(template.id, template.is_archived ?? false)}
+                  title="Arquivar"
+                >
+                  <Archive className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 text-emerald-500 hover:bg-emerald-500/10 rounded-xl"
+                  onClick={() => toggleTemplateArchived(template.id, template.is_archived ?? false)}
+                  title="Desarquivar"
+                >
+                  <ArchiveRestore className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 text-rose-400 hover:bg-rose-400/10 rounded-xl"
+                  onClick={() => {
+                    if (confirm(`Excluir permanentemente o modelo "${template.name}"?`)) {
+                      deleteDistributionTemplate(template.id);
+                    }
+                  }}
+                  title="Excluir"
+                >
+                  <Trash className="h-4 w-4" />
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex flex-wrap gap-2 pt-2 border-t border-border/20">
+        {template.items.map((item: any, idx: number) => (
+          <div key={idx} className="flex items-center gap-2 bg-background/40 border border-border/20 rounded-lg px-3 py-1.5">
+            <span className="text-[10px] font-bold text-muted-foreground">{getAccountName(item.account)}:</span>
+            <span className="text-xs font-black text-primary">
+              {item.percentage ? `${item.percentage}%` : formatMoney(item.fixed_amount, "BRL")}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden">
@@ -369,59 +468,36 @@ export const FinanceTemplatesTab = () => {
           <CardDescription>Visualize, edite ou exclua suas regras de divisão salvas.</CardDescription>
         </CardHeader>
         <CardContent className="p-8 pt-0">
-          <div className="grid gap-4">
-            {distributionTemplates.length === 0 ? (
-              <div className="text-center py-12 bg-muted/10 rounded-2xl border border-dashed border-border/40">
-                <p className="text-muted-foreground italic">Nenhum modelo salvo ainda.</p>
+          <Tabs defaultValue="active" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 max-w-[320px] mb-6 rounded-2xl p-1 bg-muted/20 border border-border/30">
+              <TabsTrigger value="active" className="rounded-xl font-bold text-xs py-2">Minhas Regras</TabsTrigger>
+              <TabsTrigger value="archived" className="rounded-xl font-bold text-xs py-2">Arquivadas</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="active">
+              <div className="grid gap-4">
+                {activeTemplates.length === 0 ? (
+                  <div className="text-center py-12 bg-muted/10 rounded-2xl border border-dashed border-border/40">
+                    <p className="text-muted-foreground italic">Nenhuma regra ativa salva ainda.</p>
+                  </div>
+                ) : (
+                  activeTemplates.map(template => renderTemplateCard(template, false))
+                )}
               </div>
-            ) : (
-              distributionTemplates.map(template => (
-                <div key={template.id} className="flex flex-col gap-4 p-5 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/30 transition-colors group">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <h4 className="font-bold text-foreground text-lg">{template.name}</h4>
-                      <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
-                        Criado em: {template.created_at ? new Date(template.created_at).toLocaleDateString() : "—"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-9 w-9 text-primary hover:bg-primary/10 rounded-xl"
-                        onClick={() => handleEditTemplate(template)}
-                      >
-                        <FileEdit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-9 w-9 text-rose-400 hover:bg-rose-400/10 rounded-xl"
-                        onClick={() => {
-                          if (confirm(`Excluir o modelo "${template.name}"?`)) {
-                            deleteDistributionTemplate(template.id);
-                          }
-                        }}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </TabsContent>
+            
+            <TabsContent value="archived">
+              <div className="grid gap-4">
+                {archivedTemplates.length === 0 ? (
+                  <div className="text-center py-12 bg-muted/10 rounded-2xl border border-dashed border-border/40">
+                    <p className="text-muted-foreground italic">Nenhuma regra arquivada.</p>
                   </div>
-                  
-                  <div className="flex flex-wrap gap-2 pt-2 border-t border-border/20">
-                    {template.items.map((item: any, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2 bg-background/40 border border-border/20 rounded-lg px-3 py-1.5">
-                        <span className="text-[10px] font-bold text-muted-foreground">{getAccountName(item.account)}:</span>
-                        <span className="text-xs font-black text-primary">
-                          {item.percentage ? `${item.percentage}%` : formatMoney(item.fixed_amount, "BRL")}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+                ) : (
+                  archivedTemplates.map(template => renderTemplateCard(template, true))
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 

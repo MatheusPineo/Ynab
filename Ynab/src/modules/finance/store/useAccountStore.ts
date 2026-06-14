@@ -10,7 +10,8 @@ import { toast } from "sonner";
 
 export interface DistributionTemplateItem {
   id?: string;
-  account: string;
+  account?: string | null;
+  category?: string | null;
   percentage?: number;
   fixed_amount?: number;
 }
@@ -18,6 +19,10 @@ export interface DistributionTemplateItem {
 export interface DistributionTemplate {
   id?: string;
   name: string;
+  is_active?: boolean;
+  is_archived?: boolean;
+  trigger_payee?: string | null;
+  fallback_category?: number | null;
   created_at?: string;
   items: DistributionTemplateItem[];
 }
@@ -65,11 +70,13 @@ interface AccountState {
   pendingIcons: Record<string, Blob>;
   distributionTemplates: DistributionTemplate[];
   
-  // Distribution Actions
   fetchDistributionTemplates: () => Promise<void>;
   saveDistributionTemplate: (template: DistributionTemplate) => Promise<void>;
   executeBulkTransfer: (payload: { from_account: string, total_amount: number, date: string, distributions: {to_account: string, amount: number}[], source_transaction?: string }) => Promise<void>;
   keepInAccount: (transactionId: string) => Promise<void>;
+  deleteDistributionTemplate: (id: string) => Promise<void>;
+  toggleTemplateActive: (id: string, currentStatus: boolean) => Promise<void>;
+  toggleTemplateArchived: (id: string, currentStatus: boolean) => Promise<void>;
   
   // Period Actions
   setCurrentPeriod: (month: number, year: number) => void;
@@ -743,6 +750,36 @@ export const useAccountStore = create<AccountState>()(
           if (!response.ok) throw new Error("Falha ao excluir modelo");
           await get().fetchDistributionTemplates();
           toast.success("Modelo excluído com sucesso!");
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      toggleTemplateActive: async (id, currentStatus) => {
+        try {
+          const response = await authenticatedFetch(`/distribution-templates/${id}/`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_active: !currentStatus }),
+          });
+          if (!response.ok) throw new Error("Falha ao alternar status ativo");
+          await get().fetchDistributionTemplates();
+          toast.success(!currentStatus ? "Modelo ativado!" : "Modelo desativado!");
+        } catch (error: any) {
+          toast.error(error.message);
+        }
+      },
+
+      toggleTemplateArchived: async (id, currentStatus) => {
+        try {
+          const response = await authenticatedFetch(`/distribution-templates/${id}/`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_archived: !currentStatus }),
+          });
+          if (!response.ok) throw new Error("Falha ao arquivar/desarquivar modelo");
+          await get().fetchDistributionTemplates();
+          toast.success(!currentStatus ? "Modelo arquivado!" : "Modelo desarquivado!");
         } catch (error: any) {
           toast.error(error.message);
         }

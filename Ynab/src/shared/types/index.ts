@@ -184,6 +184,10 @@ export interface Goal {
 export interface DistributionTemplate {
   id: number;
   name: string;
+  is_active?: boolean;
+  is_archived?: boolean;
+  trigger_payee?: string | null;
+  fallback_category?: number | null;
   created_at: string;
   items: DistributionTemplateItem[];
 }
@@ -194,7 +198,8 @@ export interface DistributionTemplate {
 export interface DistributionTemplateItem {
   id: number;
   template: number; // ID do template associado
-  account: string; // ID da conta que receberá a fração
+  account: string | null; // ID da conta que receberá a fração
+  category: number | null; // ID da categoria correspondente
   /** Porcentagem do montante total a ser alocada (ex: 20.00 para 20%) */
   percentage: number | null;
   /** Valor absoluto fixo a ser alocado (ex: 150.00 para R$ 150) */
