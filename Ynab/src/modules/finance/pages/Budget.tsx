@@ -911,7 +911,7 @@ const Budget = () => {
                   </div>
                   <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-border/20">
                     <Button variant="outline" size="sm" className="rounded-lg border-primary/20 hover:bg-primary/10 hover:text-primary h-7 text-[10px] px-2.5" onClick={() => { keepInAccount(income.id); if (currentIncomes.length <= 1) setIsPendingIncomesModalOpen(false); }}>Manter</Button>
-                    <DistributionModal initialSourceAccount={String(income.account)} initialAmount={String(income.amount)} sourceTransactionId={income.id} trigger={<Button size="sm" onClick={() => currentIncomes.length <= 1 && setIsPendingIncomesModalOpen(false)} className="gradient-primary rounded-lg h-7 text-[10px] px-3">Distribuir</Button>} />
+                    <DistributionModal initialSourceAccount={String(income.account)} initialAmount={String(income.amount)} sourceTransactionId={income.id} trigger={<Button size="sm" className="gradient-primary rounded-lg h-7 text-[10px] px-3">Distribuir</Button>} />
                   </div>
                 </div>
               );
