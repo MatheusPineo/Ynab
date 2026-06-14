@@ -4,6 +4,10 @@
 - Backend: Adicionados os campos `is_active`, `is_archived`, `trigger_payee` e `fallback_category` ao modelo `DistributionTemplate` em `finance/models.py`.
 - Backend: Implementada a ação `apply_to_budget` na `DistributionTemplateViewSet` em `finance/views.py`, adicionando a lógica em cascata ("Cascade Logic") para dotações: valores fixos primeiro, depois percentuais aplicados ao restante (remainder), e finalmente o excedente para a categoria de fallback.
 - Backend: Escrito teste automatizado `test_distribution_template_cascade_logic` em `finance/test_transactions.py` para cobrir o fluxo completo da lógica de cascata.
+- Frontend: Implementado o estado global e hooks da API de templates no Zustand para busca, criação, edição, arquivamento/desarquivamento e ativação em `src/modules/finance/hooks/` e `src/modules/finance/store/`.
+- Frontend: Adicionado controle de abas de gerenciamento ("Minhas Regras" vs. "Arquivadas") com interruptores de ativação em tempo real.
+- Frontend: Construído o formulário construtor de regras (`TemplateBuilderForm.tsx`) contendo campos de nome, gatilho, categoria de fallback e itens dinâmicos do tipo Valor Fixo ou Percentual.
+- Frontend: Integrado o simulador em tempo real ("Simular Regra") no rodapé do construtor de regras seguindo a lógica de cascata do backend e desativação do botão "Salvar" em caso de soma percentual inválida superior a 100%.
 
 ## [1.103.00] - 2026-06-12
 

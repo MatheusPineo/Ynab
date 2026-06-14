@@ -1,5 +1,11 @@
 # Novidades e Atualizações
 
+## Simulador de Regras em Tempo Real no Construtor de Dotação (14/06/2026) ⚡📊
+Implementamos um simulador matemático em tempo real diretamente no formulário de criação e edição de Regras de Dotação Automática (`TemplateBuilderForm.tsx`):
+* **Cálculo Instantâneo:** Digite um valor simulado de recebimento (ex: `€ 1.000,00`) e veja na hora quanto cada categoria receberá exatamente de acordo com as regras configuradas.
+* **Lógica em Cascata Visual:** O simulador demonstra o fluxo exato executado no servidor: abate primeiro as regras de valor fixo e, em seguida, aplica as porcentagens sequencialmente sobre o saldo restante, destacando o valor que sobra para a categoria de Fallback.
+* **Validação de Segurança:** O botão "Salvar" é desativado automaticamente caso a soma das porcentagens configuradas exceda 100% do saldo restante, prevenindo erros matemáticos e regras inválidas antes de enviar para o servidor.
+
 ## Novo Mecanismo de Distribuição e Regra de Cascata para Orçamentos (14/06/2026) 📊🎯
 Lançamos um aprimoramento completo na dotação automática de categorias com suporte à lógica em cascata no Vault Finance OS:
 * **Campos de Controle e Status:** Os modelos de dotação agora suportam arquivamento e desativação temporária, além de permitir definir uma categoria de "fallback" (porto seguro) para receber sobras.
