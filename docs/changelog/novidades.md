@@ -1,5 +1,10 @@
 # Novidades e Atualizações
 
+## Correção na Distribuição de Receitas Pendentes (14/06/2026) 🛠️💰
+Corrigimos um comportamento visual incômodo no painel de Orçamento (`Budget.tsx`):
+* **Fim do Loop de Redirecionamento:** Clicar no botão "Distribuir" dentro do painel de Receitas Recebidas Pendentes agora abre o assistente de dotação corretamente na tela.
+* **Modais Estabilizados:** Corrigimos uma concorrência em que a tentativa de fechar o painel de receitas pendentes desmontava o modal de dotação que estava abrindo, eliminando o comportamento de flicker e mantendo o fluxo estável.
+
 ## Simulador de Regras em Tempo Real no Construtor de Dotação (14/06/2026) ⚡📊
 Implementamos um simulador matemático em tempo real diretamente no formulário de criação e edição de Regras de Dotação Automática (`TemplateBuilderForm.tsx`):
 * **Cálculo Instantâneo:** Digite um valor simulado de recebimento (ex: `€ 1.000,00`) e veja na hora quanto cada categoria receberá exatamente de acordo com as regras configuradas.

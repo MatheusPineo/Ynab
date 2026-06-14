@@ -1,3 +1,8 @@
+## [1.106.00] - 2026-06-14
+
+### Fixed
+- Frontend: Corrigido o bug de flicker e fechamento imediato (loop de redirecionamento) ao acionar o modal "Distribuir" nas receitas pendentes da tela de Orçamento. A instrução redundante de fechamento do modal pai (`isPendingIncomesModalOpen`) foi removida do botão trigger, estabilizando os modais aninhados.
+
 ## [1.104.00] - 2026-06-14
 
 ### Added
