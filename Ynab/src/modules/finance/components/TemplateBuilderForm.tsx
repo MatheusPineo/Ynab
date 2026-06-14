@@ -19,6 +19,7 @@ import {
   DollarSign 
 } from "lucide-react";
 import { toast } from "sonner";
+import { formatMoney } from "@/shared/lib/currency-utils";
 
 interface TemplateBuilderFormProps {
   template: DistributionTemplate | null;
@@ -66,6 +67,8 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
     return [{ destinationType: "category", account: "", category: "", type: "percentage", value: 0 }];
   });
 
+  const [simulatedAmount, setSimulatedAmount] = useState<number>(0);
+
   // Aplanar contas para o select
   const accountsFlat = useMemo(() => {
     const list: any[] = [];
@@ -91,6 +94,64 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
     });
     return list;
   }, [categoryGroups]);
+
+  // Simulador reativo de Cascade Logic
+  const simulationResults = useMemo(() => {
+    const totalPercentages = rows
+      .filter(r => r.type === "percentage")
+      .reduce((acc, r) => acc + r.value, 0);
+    const isValid = totalPercentages <= 100;
+
+    if (simulatedAmount <= 0) {
+      return { allocations: [], leftover: 0, isValid, totalPercentages };
+    }
+
+    let remainder = simulatedAmount;
+    const allocations: { label: string; amount: number; type: "fixed" | "percentage" }[] = [];
+
+    // 1. Valores Fixos
+    rows.forEach(row => {
+      if (row.type === "fixed") {
+        const destName = row.destinationType === "category"
+          ? categoriesFlat.find(c => String(c.id) === row.category)?.name || "Categoria não selecionada"
+          : accountsFlat.find(a => String(a.id) === row.account)?.name || "Conta não selecionada";
+        
+        const allocated = Math.min(row.value, remainder);
+        allocations.push({
+          label: destName,
+          amount: allocated,
+          type: "fixed"
+        });
+        remainder -= allocated;
+      }
+    });
+
+    // 2. Percentuais em cascata sequencial
+    let percentRemainder = remainder;
+    rows.forEach(row => {
+      if (row.type === "percentage") {
+        const destName = row.destinationType === "category"
+          ? categoriesFlat.find(c => String(c.id) === row.category)?.name || "Categoria não selecionada"
+          : accountsFlat.find(a => String(a.id) === row.account)?.name || "Conta não selecionada";
+        
+        const allocated = (row.value / 100) * percentRemainder;
+        const finalAllocated = Math.min(allocated, percentRemainder);
+        allocations.push({
+          label: destName,
+          amount: finalAllocated,
+          type: "percentage"
+        });
+        percentRemainder -= finalAllocated;
+      }
+    });
+
+    return {
+      allocations,
+      leftover: percentRemainder,
+      isValid,
+      totalPercentages
+    };
+  }, [simulatedAmount, rows, categoriesFlat, accountsFlat]);
 
   const handleAddRow = () => {
     setRows([...rows, { destinationType: "category", account: "", category: "", type: "percentage", value: 0 }]);
@@ -327,6 +388,60 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
         </div>
       </div>
 
+      {/* Seção de Simulação de Regra */}
+      <div className="bg-muted/10 p-5 rounded-2xl border border-border/40 space-y-4">
+        <div className="flex items-center justify-between">
+          <Label className="font-black text-sm text-foreground">Simular Regra</Label>
+          {!simulationResults.isValid && (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              Erro: Porcentagens somam {simulationResults.totalPercentages}% (Máx 100%)
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 space-y-1">
+            <Label className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Simular recebimento de</Label>
+            <div className="relative">
+              <span className="absolute left-3 top-2 text-xs font-bold text-muted-foreground">€</span>
+              <Input
+                type="number"
+                value={simulatedAmount || ""}
+                onChange={(e) => setSimulatedAmount(parseFloat(e.target.value) || 0)}
+                placeholder="0,00"
+                className="pl-7 h-9 bg-background/50 rounded-xl"
+              />
+            </div>
+          </div>
+        </div>
+
+        {simulatedAmount > 0 && (
+          <div className="space-y-2 pt-2 border-t border-border/10">
+            <Label className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Resultado da Simulação</Label>
+            <div className="grid gap-2">
+              {simulationResults.allocations.map((alloc, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-background/40 border border-border/20">
+                  <span className="text-muted-foreground font-medium">{alloc.label}</span>
+                  <span className="font-black text-primary">
+                    {formatMoney(alloc.amount, "EUR")}
+                  </span>
+                </div>
+              ))}
+              
+              <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-primary/5 border border-primary/20">
+                <span className="font-bold text-primary">
+                  {fallbackCategory !== "none" 
+                    ? `Sobra para Fallback (${categoriesFlat.find(c => String(c.id) === fallbackCategory)?.name || "Fallback"})`
+                    : "Sobra não atribuída (Pronto para Alocar / RTA)"}
+                </span>
+                <span className="font-black text-primary">
+                  {formatMoney(simulationResults.leftover, "EUR")}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Botões de Ação do Form */}
       <div className="flex items-center justify-end gap-2 pt-4 border-t border-border/20">
         <Button variant="ghost" onClick={onCancel} className="rounded-xl">
@@ -334,6 +449,7 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
         </Button>
         <Button 
           onClick={handleSubmit}
+          disabled={!simulationResults.isValid}
           className="gradient-primary px-8 rounded-xl font-bold shadow-glow"
         >
           {template ? "Salvar Modelo" : "Criar Modelo"}
