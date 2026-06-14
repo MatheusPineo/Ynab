@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useDebtStore } from "@/modules/finance/store/useDebtStore";
+import { TemplateBuilderForm } from "./TemplateBuilderForm";
 import { useTranslation } from "react-i18next";
 import { formatMoney } from "@/shared/lib/currency-utils";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card";
@@ -302,29 +303,13 @@ export const FinanceTemplatesTab = () => {
   const { 
     distributionTemplates, 
     deleteDistributionTemplate, 
-    saveDistributionTemplate,
     toggleTemplateActive,
     toggleTemplateArchived,
     getAccountName,
-    tree 
   } = useAccountStore();
 
   const [isEditingTemplate, setIsEditingTemplate] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);
-  const [editingRows, setEditingRows] = useState<any[]>([]);
-  const [editingName, setEditingName] = useState("");
-
-  const accountsFlat = useMemo(() => {
-    const list: any[] = [];
-    const walk = (nodes: any[]) => {
-      nodes.forEach(n => {
-        list.push(n);
-        if (n.children) walk(n.children);
-      });
-    };
-    walk(tree);
-    return list;
-  }, [tree]);
 
   const activeTemplates = useMemo(() => {
     return distributionTemplates.filter(t => !t.is_archived);
@@ -336,47 +321,26 @@ export const FinanceTemplatesTab = () => {
 
   const handleEditTemplate = (template: any) => {
     setEditingTemplate(template);
-    setEditingName(template.name);
-    setEditingRows(template.items.map((it: any) => ({
-      account: String(it.account),
-      percentage: it.percentage ? Number(it.percentage) : 0,
-      fixed_amount: it.fixed_amount ? Number(it.fixed_amount) : 0
-    })));
     setIsEditingTemplate(true);
   };
 
-  const handleEditingRowChange = (index: number, field: string, value: any) => {
-    const newRows = [...editingRows];
-    const row = { ...newRows[index] };
-    if (field === "account") {
-      row.account = value;
-    } else if (field === "percentage") {
-      row.percentage = parseFloat(value) || 0;
-    }
-    newRows[index] = row;
-    setEditingRows(newRows);
-  };
-
-  const saveEditedTemplate = async () => {
-    if (!editingName.trim()) return;
-    const validRows = editingRows.filter(r => r.account);
-    await saveDistributionTemplate({
-      id: editingTemplate.id,
-      name: editingName,
-      items: validRows.map(r => ({
-        account: Number(r.account),
-        percentage: Number((r.percentage || 0).toFixed(2)),
-        fixed_amount: null
-      }))
-    });
-    setIsEditingTemplate(false);
+  const handleCreateTemplate = () => {
+    setEditingTemplate(null);
+    setIsEditingTemplate(true);
   };
 
   const renderTemplateCard = (template: any, isArchivedTab: boolean) => (
     <div key={template.id} className="flex flex-col gap-4 p-5 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/30 transition-colors group">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
-          <h4 className="font-bold text-foreground text-lg">{template.name}</h4>
+          <div className="flex items-center gap-2">
+            <h4 className="font-bold text-foreground text-lg">{template.name}</h4>
+            {template.trigger_payee && (
+              <span className="text-[9px] font-black px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                Gatilho: {template.trigger_payee}
+              </span>
+            )}
+          </div>
           <p className="text-[10px] text-muted-foreground uppercase font-black tracking-widest">
             Criado em: {template.created_at ? new Date(template.created_at).toLocaleDateString() : "—"}
           </p>
@@ -445,14 +409,23 @@ export const FinanceTemplatesTab = () => {
       </div>
       
       <div className="flex flex-wrap gap-2 pt-2 border-t border-border/20">
-        {template.items.map((item: any, idx: number) => (
-          <div key={idx} className="flex items-center gap-2 bg-background/40 border border-border/20 rounded-lg px-3 py-1.5">
-            <span className="text-[10px] font-bold text-muted-foreground">{getAccountName(item.account)}:</span>
-            <span className="text-xs font-black text-primary">
-              {item.percentage ? `${item.percentage}%` : formatMoney(item.fixed_amount, "BRL")}
-            </span>
+        {template.items.map((item: any, idx: number) => {
+          const targetName = item.category ? `Gaveta: ${getAccountName(item.category)}` : getAccountName(item.account);
+          return (
+            <div key={idx} className="flex items-center gap-2 bg-background/40 border border-border/20 rounded-lg px-3 py-1.5 animate-in fade-in slide-in-from-bottom-1 duration-200">
+              <span className="text-[10px] font-bold text-muted-foreground">{targetName}:</span>
+              <span className="text-xs font-black text-primary">
+                {item.percentage ? `${item.percentage}%` : formatMoney(item.fixed_amount, "BRL")}
+              </span>
+            </div>
+          );
+        })}
+        {template.fallback_category && (
+          <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded-lg px-3 py-1.5">
+            <span className="text-[10px] font-bold text-primary">Fallback → {getAccountName(template.fallback_category)}:</span>
+            <span className="text-xs font-black text-primary">Sobra</span>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -460,12 +433,20 @@ export const FinanceTemplatesTab = () => {
   return (
     <>
       <Card className="rounded-3xl border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2 font-bold">
-            <LayoutGrid className="h-5 w-5 text-primary" />
-            Modelos de Distribuição
-          </CardTitle>
-          <CardDescription>Visualize, edite ou exclua suas regras de divisão salvas.</CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <div className="space-y-1">
+            <CardTitle className="text-lg flex items-center gap-2 font-bold">
+              <LayoutGrid className="h-5 w-5 text-primary" />
+              Modelos de Distribuição
+            </CardTitle>
+            <CardDescription>Visualize, edite ou exclua suas regras de divisão salvas.</CardDescription>
+          </div>
+          <Button 
+            onClick={handleCreateTemplate}
+            className="gradient-primary rounded-xl font-bold text-xs"
+          >
+            <Plus className="h-4 w-4 mr-1" /> Criar Modelo
+          </Button>
         </CardHeader>
         <CardContent className="p-8 pt-0">
           <Tabs defaultValue="active" className="w-full">
@@ -501,93 +482,25 @@ export const FinanceTemplatesTab = () => {
         </CardContent>
       </Card>
 
-      {/* Modal de Edição de Modelo */}
+      {/* Modal de Criação/Edição de Modelo */}
       <Dialog open={isEditingTemplate} onOpenChange={setIsEditingTemplate}>
-        <DialogContent className="rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl sm:max-w-xl max-h-[90vh] flex flex-col">
+        <DialogContent className="rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl sm:max-w-3xl max-h-[90vh] flex flex-col">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Editar Modelo</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">
+              {editingTemplate ? "Editar Modelo" : "Criar Modelo"}
+            </DialogTitle>
             <DialogDescription>
-              Altere o nome e as regras de distribuição deste modelo.
+              Configure o nome, gatilhos, fallback e as regras de distribuição em cascata.
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex-1 overflow-y-auto px-1 space-y-6">
-            <div className="space-y-2 p-1">
-              <Label>Nome do Modelo</Label>
-              <Input 
-                value={editingName} 
-                onChange={(e) => setEditingName(e.target.value)}
-                className="bg-background/50 h-11"
-                placeholder="Ex: Salário Mensal"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label>Regras de Destino</Label>
-                <div className="text-[10px] font-black px-2 py-1 rounded-md bg-primary/10 text-primary border border-primary/20">
-                  TOTAL: {editingRows.reduce((acc, r) => acc + (r.percentage || 0), 0).toFixed(2)}% 
-                  ({(100 - editingRows.reduce((acc, r) => acc + (r.percentage || 0), 0)).toFixed(2)}% restantes)
-                </div>
-              </div>
-              <div className="space-y-3">
-                {editingRows.map((row, idx) => (
-                  <div key={idx} className="flex items-end gap-2 p-3 rounded-xl bg-muted/10 border border-border/40">
-                    <div className="flex-1 space-y-1">
-                      <Label className="text-[10px] text-muted-foreground uppercase font-bold">Conta de Destino</Label>
-                      <Select value={row.account} onValueChange={(v) => handleEditingRowChange(idx, "account", v)}>
-                        <SelectTrigger className="h-9 bg-background/50">
-                          <SelectValue placeholder="Selecione..." />
-                        </SelectTrigger>
-                        <SelectContent className="glass">
-                          {accountsFlat.map(a => (
-                            <SelectItem key={a.id} value={String(a.id)}>{a.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="w-32 space-y-1">
-                      <Label className="text-[10px] text-muted-foreground uppercase font-bold">Porcentagem (%)</Label>
-                      <Input 
-                        type="number" 
-                        step="0.01"
-                        className="h-9 bg-background/50" 
-                        value={row.percentage || ""} 
-                        onChange={(e) => handleEditingRowChange(idx, "percentage", e.target.value)}
-                      />
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-9 w-9 text-rose-400 hover:bg-rose-400/10"
-                      onClick={() => setEditingRows(editingRows.filter((_, i) => i !== idx))}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-                <Button 
-                  variant="outline" 
-                  className="w-full border-dashed rounded-xl h-10 text-primary border-primary/30 hover:bg-primary/5"
-                  onClick={() => setEditingRows([...editingRows, { account: "", percentage: 0, fixed_amount: 0 }])}
-                >
-                  <Plus className="h-4 w-4 mr-2" /> Adicionar Destino
-                </Button>
-              </div>
-            </div>
+          <div className="flex-1 overflow-y-auto px-1">
+            <TemplateBuilderForm 
+              template={editingTemplate}
+              onSave={() => setIsEditingTemplate(false)}
+              onCancel={() => setIsEditingTemplate(false)}
+            />
           </div>
-
-          <DialogFooter className="pt-4 border-t border-border/20 gap-2">
-            <Button variant="ghost" onClick={() => setIsEditingTemplate(false)} className="rounded-xl">
-              Cancelar
-            </Button>
-            <Button 
-              onClick={saveEditedTemplate}
-              className="gradient-primary px-8 rounded-xl font-bold shadow-glow"
-            >
-              Salvar Alterações
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
