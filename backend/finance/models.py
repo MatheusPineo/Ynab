@@ -438,6 +438,10 @@ class Goal(models.Model):
 class DistributionTemplate(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='distribution_templates')
     name = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+    is_archived = models.BooleanField(default=False)
+    trigger_payee = models.CharField(max_length=255, null=True, blank=True)
+    fallback_category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=True, related_name='fallback_templates')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

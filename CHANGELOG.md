@@ -1,3 +1,10 @@
+## [1.104.00] - 2026-06-14
+
+### Added
+- Backend: Adicionados os campos `is_active`, `is_archived`, `trigger_payee` e `fallback_category` ao modelo `DistributionTemplate` em `finance/models.py`.
+- Backend: Implementada a ação `apply_to_budget` na `DistributionTemplateViewSet` em `finance/views.py`, adicionando a lógica em cascata ("Cascade Logic") para dotações: valores fixos primeiro, depois percentuais aplicados ao restante (remainder), e finalmente o excedente para a categoria de fallback.
+- Backend: Escrito teste automatizado `test_distribution_template_cascade_logic` em `finance/test_transactions.py` para cobrir o fluxo completo da lógica de cascata.
+
 ## [1.103.00] - 2026-06-12
 
 ### Fixed

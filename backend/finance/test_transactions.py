@@ -108,6 +108,49 @@ class TransactionsAndTransfersTests(TestCase):
         self.assertEqual(templates.count(), 1)
         self.assertEqual(templates.first().items.count(), 1)
 
+    def test_distribution_template_cascade_logic(self):
+        # 1. Configurar categorias
+        cat_food = Category.objects.create(user=self.user, name='Alimentação')
+        cat_rent = Category.objects.create(user=self.user, name='Aluguel')
+        cat_savings = Category.objects.create(user=self.user, name='Poupança')
+        cat_fallback = Category.objects.create(user=self.user, name='Outros')
+
+        # 2. Criar template de distribuição
+        template = DistributionTemplate.objects.create(
+            user=self.user,
+            name="Salário Split",
+            fallback_category=cat_fallback
+        )
+
+        from .models import DistributionTemplateItem
+        # Itens fixos
+        DistributionTemplateItem.objects.create(template=template, category=cat_food, fixed_amount=Decimal('200.00'))
+        DistributionTemplateItem.objects.create(template=template, category=cat_rent, fixed_amount=Decimal('800.00'))
+        # Itens percentuais
+        DistributionTemplateItem.objects.create(template=template, category=cat_savings, percentage=Decimal('50.00'))
+
+        # 3. Aplicar ao orçamento
+        url = reverse('distribution-template-detail', args=[template.id]) + 'apply-to-budget/'
+        response = self.client.post(url, {
+            'incoming_amount': '1500.00',
+            'month': 6,
+            'year': 2026
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # 4. Validar MonthlyBudget
+        from .models import MonthlyBudget
+        budget_food = MonthlyBudget.objects.get(category=cat_food, month=6, year=2026)
+        budget_rent = MonthlyBudget.objects.get(category=cat_rent, month=6, year=2026)
+        budget_savings = MonthlyBudget.objects.get(category=cat_savings, month=6, year=2026)
+        budget_fallback = MonthlyBudget.objects.get(category=cat_fallback, month=6, year=2026)
+
+        self.assertEqual(budget_food.amount, Decimal('200.00'))
+        self.assertEqual(budget_rent.amount, Decimal('800.00'))
+        self.assertEqual(budget_savings.amount, Decimal('250.00'))
+        self.assertEqual(budget_fallback.amount, Decimal('250.00'))
+
     def test_negative_amount_sanitization(self):
         # Create transaction with a negative amount
         response = self.client.post(reverse('transaction-list'), {

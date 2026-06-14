@@ -1433,6 +1433,80 @@ class DistributionTemplateViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
+    @action(detail=True, methods=['post'], url_path='apply-to-budget')
+    def apply_to_budget(self, request, pk=None):
+        """
+        Aplica a lógica de cascata (Cascade Logic) do template de distribuição para dotação de orçamentos.
+        """
+        template = self.get_object()
+        incoming_amount_raw = request.data.get('incoming_amount')
+        month_raw = request.data.get('month')
+        year_raw = request.data.get('year')
+
+        if incoming_amount_raw is None or month_raw is None or year_raw is None:
+            return Response({'error': 'incoming_amount, month e year são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            incoming_amount = Decimal(str(incoming_amount_raw))
+            month = int(month_raw)
+            year = int(year_raw)
+        except Exception:
+            return Response({'error': 'Valores de entrada inválidos.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if incoming_amount < 0:
+            return Response({'error': 'incoming_amount deve ser maior ou igual a zero.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not (1 <= month <= 12):
+            return Response({'error': 'Mês inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        items = template.items.all()
+        category_allocations = {}
+        current_remainder = incoming_amount
+
+        with transaction.atomic():
+            # 1. Valores Fixos
+            fixed_items = items.filter(fixed_amount__isnull=False, fixed_amount__gt=0).order_by('id')
+            for item in fixed_items:
+                if current_remainder <= 0:
+                    break
+                allocated = min(item.fixed_amount, current_remainder)
+                if item.category_id:
+                    category_allocations[item.category_id] = category_allocations.get(item.category_id, Decimal('0.00')) + allocated
+                current_remainder -= allocated
+
+            # 2. Percentuais aplicados ao restante (remainder)
+            percent_items = items.filter(percentage__isnull=False, percentage__gt=0).order_by('id')
+            percentage_remainder = current_remainder
+            for item in percent_items:
+                if percentage_remainder <= 0:
+                    break
+                allocated = (item.percentage / Decimal('100.00')) * percentage_remainder
+                allocated = min(allocated, percentage_remainder)
+                if item.category_id:
+                    category_allocations[item.category_id] = category_allocations.get(item.category_id, Decimal('0.00')) + allocated
+                percentage_remainder -= allocated
+
+            # 3. Sobra para a categoria de Fallback
+            if percentage_remainder > 0 and template.fallback_category_id:
+                fallback_cat_id = template.fallback_category_id
+                category_allocations[fallback_cat_id] = category_allocations.get(fallback_cat_id, Decimal('0.00')) + percentage_remainder
+                percentage_remainder = Decimal('0.00')
+
+            # 4. Salvar no banco (MonthlyBudget)
+            for category_id, amount_allocated in category_allocations.items():
+                MonthlyBudget.objects.update_or_create(
+                    category_id=category_id,
+                    month=month,
+                    year=year,
+                    defaults={'amount': amount_allocated}
+                )
+
+        return Response({
+            'message': 'Template de distribuição aplicado com sucesso.',
+            'allocations': {str(k): float(v) for k, v in category_allocations.items()},
+            'leftover': float(percentage_remainder)
+        })
+
 class ResetDataView(APIView):
     permission_classes = [IsAuthenticated]
 

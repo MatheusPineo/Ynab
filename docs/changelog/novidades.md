@@ -1,5 +1,13 @@
 # Novidades e Atualizações
 
+## Novo Mecanismo de Distribuição e Regra de Cascata para Orçamentos (14/06/2026) 📊🎯
+Lançamos um aprimoramento completo na dotação automática de categorias com suporte à lógica em cascata no Vault Finance OS:
+* **Campos de Controle e Status:** Os modelos de dotação agora suportam arquivamento e desativação temporária, além de permitir definir uma categoria de "fallback" (porto seguro) para receber sobras.
+* **Orçamento em Cascata (Cascade Logic):** A distribuição automática de fundos segue agora a regra matemática de cascata:
+  1. Primeiro, os valores **fixos** são totalmente preenchidos.
+  2. Depois, os valores **percentuais** são aplicados sobre o valor restante (e não o total original).
+  3. Se sobrar alguma quantia após todas as regras, o sistema envia o restante automaticamente para a sua categoria de fallback (ou deixa no saldo Pronto para Alocar se não configurada).
+
 ## Estabilização do Módulo de Empréstimos Concedidos (12/06/2026) 🤝💖
 Corrigimos falhas e estabilizamos a experiência de uso do novo módulo de Empréstimos Concedidos no Vault Finance OS:
 * **Persistência de Tipo de Conta:** Ajustamos a definição interna e a tipagem TypeScript da conta para suportar nativamente o tipo `"Empréstimo Concedido"`. Isso corrige o problema em que o tipo da conta e o card do empréstimo sumiam após o recarregamento da página.

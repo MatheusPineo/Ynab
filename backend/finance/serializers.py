@@ -108,7 +108,7 @@ class DistributionTemplateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DistributionTemplate
-        fields = ['id', 'name', 'created_at', 'items']
+        fields = ['id', 'name', 'is_active', 'is_archived', 'trigger_payee', 'fallback_category', 'created_at', 'items']
         extra_kwargs = {
             'user': {'read_only': True},
         }

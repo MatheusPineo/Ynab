@@ -131,4 +131,17 @@ Com a maturidade da nossa engine de orçamentos, o sistema impõe isolamento est
 * **Transferência de Categorias entre Quadros:** O usuário pode mover manualmente uma categoria existente entre os boards de moedas. Ao clicar em "Editar" em uma categoria, selecione a nova moeda de destino. O seletor de "Grupo da Categoria" filtrará dinamicamente e exibirá apenas grupos compatíveis com a moeda de destino selecionada para manter a consistência contábil (pois uma categoria deve possuir a mesma moeda que seu grupo pai).
 * **Restauração de Emergência:** Caso detecte incoerências nos saldos convertidos do Nubank, você pode acionar a ação "Restaurar Valores BRL" no menu de opções "⋮" do topo da página do Orçamento. O sistema disparará uma rotina profunda recalculando e normalizando todas as transações, metas e MonthlyBudgets da categoria para seus valores originais em BRL.
 
+---
+
+## 9. Templates de Distribuição e Orçamento em Cascata (Cascade Logic)
+
+Para automatizar a dotação de envelopes de forma mais inteligente quando você recebe uma receita volumosa (como o salário mensal), o Vault Finance OS implementa a ferramenta de **Templates de Distribuição** com um motor de cálculo em cascata:
+
+* **Gerenciamento de Status (Ativo e Arquivado):** Seus templates de dotação podem ser ativados ou desativados a qualquer momento (`is_active`). Se não for mais utilizar um template, você pode arquivá-lo (`is_archived`) para manter o painel organizado.
+* **Gatilho de Transação (Trigger Payee):** Você pode configurar um pagador gatilho (`trigger_payee`) para que, ao lançar uma transação contendo aquele pagador, o sistema sugira automaticamente a aplicação do template correspondente.
+* **A Regra de Cascata (Cascade Logic):** Ao aplicar um template com um determinado montante de dinheiro (ex: salário líquido de R$ 5.000,00):
+  1. **Valores Fixos em Primeiro Lugar:** O sistema varre todos os itens com dotações fixas do template e dota esses envelopes. Se o saldo de salário acabar nessa etapa, a distribuição é interrompida.
+  2. **Percentuais Baseados na Sobra:** A dotação percentual não é calculada com base no salário total original. Em vez disso, ela é aplicada sequencialmente sobre a **sobra** (remainder) resultante da etapa dos valores fixos. 
+  3. **Envio de Sobras para Fallback:** Se ainda sobrar qualquer valor no pool após processar todos os percentuais e o template possuir uma **Categoria de Fallback** configurada, essa sobra de dinheiro é automaticamente orçada no envelope de fallback (evitando que o valor fique flutuando sem rumo no orçamento). Se nenhuma categoria de fallback estiver definida, a sobra é deixada no saldo global "Pronto para Alocar" (RTA) do orçamento.
+
 
