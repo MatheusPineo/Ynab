@@ -152,7 +152,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
 
   const totalAllocated = rows.reduce((acc, r) => acc + (r.fixed_amount || 0), 0);
   const totalPercentage = rows.reduce((acc, r) => acc + (r.percentage || 0), 0);
-  const isComplete = Math.abs(totalAllocated - parsedTotal) < 0.05 && parsedTotal > 0;
+  const isComplete = Math.abs(totalAllocated - parsedTotal) < 0.05 && parsedTotal > 0 && totalAllocated <= parsedTotal + 0.05;
 
   const handleSaveTemplate = async () => {
     if (!templateName.trim()) return;
@@ -174,6 +174,11 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
   };
 
   const handleExecute = async () => {
+    if (totalAllocated > parsedTotal + 0.05) {
+      toast.error("Não é permitido distribuir um valor maior do que o total disponível.");
+      return;
+    }
+
     const validRows = rows.filter(r => r.category && (r.fixed_amount || 0) > 0);
     if (validRows.length === 0) return;
 
@@ -415,10 +420,21 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
           <div className="rounded-xl bg-muted/20 p-6 mt-8 border border-border/40 space-y-3">
             <div className="flex justify-between items-center text-xs sm:text-sm">
               <span className="text-muted-foreground font-medium">Total Alocado:</span>
-              <span className={`font-black ${isComplete ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {formatMoney(totalAllocated, "EUR")} ({totalPercentage.toFixed(1)}%)
+              <span className={`font-black ${
+                totalAllocated > parsedTotal 
+                  ? 'text-rose-500 animate-pulse' 
+                  : isComplete 
+                    ? 'text-emerald-400' 
+                    : 'text-rose-400'
+              }`}>
+                {formatMoney(totalAllocated, "EUR")} ({parsedTotal > 0 ? ((totalAllocated / parsedTotal) * 100).toFixed(1) : "0.0"}%)
               </span>
             </div>
+            {totalAllocated > parsedTotal && (
+              <p className="text-[10px] font-bold text-rose-500 animate-pulse">
+                Aviso: O valor total alocado excede o valor disponível para distribuição. Ajuste os valores.
+              </p>
+            )}
             <div className="flex justify-between items-center text-xs sm:text-sm">
               <span className="text-muted-foreground font-medium">Restante Disponível:</span>
               <span className="font-black text-foreground">

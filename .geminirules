@@ -29,6 +29,8 @@
 - Frontend: Refatorada a store Zustand `useSidebarStore.ts` e o fluxo de login no `useAuthStore.ts` para persistir e carregar a ordem personalizada no banco e localStorage.
 - Frontend: Atualizado o modal `EditSidebarModal.tsx` com as bibliotecas `@dnd-kit/core` e `@dnd-kit/sortable` para suportar ordenação via arrastar (Drag and Drop) com alça visual `GripVertical`.
 - Frontend: Modificado o componente `Sidebar.tsx` para renderizar os links de menu seguindo a ordem personalizada do usuário.
+- Frontend: Corrigido o cálculo da porcentagem no rodapé do modal de Distribuição (`DistributionModal.tsx`) para se basear na relação matemática real entre o montante total alocado e o valor total disponível.
+- Frontend: Adicionado bloqueio visual de validação e verificação de segurança no método `handleExecute` do `DistributionModal.tsx` para impedir dotações que excedam o valor total a distribuir.
 - Testes: Vitest executado com 50/50 testes verdes, Pytest executado com 96/96 testes verdes.
 - Deploy: Deploy contínuo finalizado na Vercel (versão v1.110.00).
 

@@ -6,6 +6,10 @@
   - Atualizado o modal `EditSidebarModal.tsx` com a biblioteca `@dnd-kit/core` e `@dnd-kit/sortable` para permitir ao usuário arrastar e reordenar a sequência de itens visíveis com visualizadores de alças (`GripVertical`).
   - Atualizado o Zustand `useSidebarStore.ts` e o fluxo de login no `useAuthStore.ts` para sincronizar, salvar e carregar as preferências personalizadas de ordenação e atalhos ocultos diretamente do banco de dados e do localStorage.
 
+### Fixed
+- Frontend: Corrigido o cálculo da porcentagem total alocada no sumário de rodapé do modal de Distribuição (`DistributionModal.tsx`). Substituída a soma direta de porcentagens dos envelopes por uma relação matemática real baseada no montante total alocado sobre o valor total disponível.
+- Frontend: Adicionado bloqueio visual de validação no botão "Distribuir para Envelopes" e tratamento de exceção com mensagem de erro amigável (`toast.error`) no método `handleExecute` impedindo o usuário de submeter distribuições que excedam o valor total a distribuir.
+
 ## [1.109.01] - 2026-06-15
 
 ### Fixed
