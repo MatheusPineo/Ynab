@@ -484,7 +484,7 @@ export const FinanceTemplatesTab = () => {
 
       {/* Modal de Criação/Edição de Modelo */}
       <Dialog open={isEditingTemplate} onOpenChange={setIsEditingTemplate}>
-        <DialogContent className="rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl sm:max-w-3xl max-h-[90vh] flex flex-col">
+        <DialogContent className="rounded-3xl border-border/60 bg-card/95 backdrop-blur-xl sm:max-w-4xl p-6 sm:p-8 max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">
               {editingTemplate ? "Editar Modelo" : "Criar Modelo"}

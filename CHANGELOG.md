@@ -1,3 +1,8 @@
+## [1.107.00] - 2026-06-15
+
+### Changed
+- Frontend: Melhorias gerais de UX/UI, espaçamento e preenchimento no modal e formulário do Construtor de Modelos (Template Builder Modal). Aumentada a largura do modal para `sm:max-w-4xl` com preenchimento de `p-6 sm:p-8`. Alinhamento dos campos superiores com `gap-6` e altura de inputs de controle aumentada para `h-12`. Alinhamento das linhas dinâmicas de cascata via Grid CSS (`grid grid-cols-1 md:grid-cols-12 gap-6 items-end`), altura de inputs secundários aumentada para `h-11`, e respiro aumentado ao redor da seta indicadora (`↓`) com `my-6`.
+
 ## [1.106.00] - 2026-06-14
 
 ### Fixed

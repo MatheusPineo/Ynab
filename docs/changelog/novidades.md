@@ -1,5 +1,12 @@
 # Novidades e Atualizações
 
+## Melhorias de Espaçamento e Conforto Visual no Construtor de Modelos (15/06/2026) 🎨✨
+Aprimoramos o layout e o conforto visual do formulário e modal de criação e edição de Regras de Dotação Automática (Template Builder Modal):
+* **Mais Espaço Horizontal:** O modal agora abre com uma largura maior (`sm:max-w-4xl`), dando mais amplitude e conforto à interface.
+* **Preenchimento Generoso:** Aumentamos o espaçamento interno do modal (`p-6 sm:p-8`), permitindo que a tela respire.
+* **Interface Mais Confortável para Clique:** O formulário agora conta com campos maiores (`h-12` nos inputs de controle superior e `h-11` nos campos das regras dinâmicas) e maior espaçamento (`gap-6`) para diminuir o cansaço visual.
+* **Grid Alinhado e Organizado:** As regras em cascata dinâmicas foram organizadas em colunas utilizando Grid CSS, facilitando a visualização e acompanhamento dos dados, além de mais respiro ao redor das setas indicadoras do fluxo de distribuição (`↓`).
+
 ## Correção na Distribuição de Receitas Pendentes (14/06/2026) 🛠️💰
 Corrigimos um comportamento visual incômodo no painel de Orçamento (`Budget.tsx`):
 * **Fim do Loop de Redirecionamento:** Clicar no botão "Distribuir" dentro do painel de Receitas Recebidas Pendentes agora abre o assistente de dotação corretamente na tela.

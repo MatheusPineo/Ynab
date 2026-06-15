@@ -206,14 +206,14 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
   return (
     <div className="space-y-6">
       {/* Campos Superiores */}
-      <div className="grid gap-4 sm:grid-cols-2 bg-muted/10 p-5 rounded-2xl border border-border/40">
+      <div className="grid gap-6 sm:grid-cols-2 bg-muted/10 p-5 rounded-2xl border border-border/40">
         <div className="sm:col-span-2 space-y-2">
           <Label className="font-bold text-xs text-muted-foreground uppercase tracking-wider">Nome da Regra</Label>
           <Input 
             value={name} 
             onChange={(e) => setName(e.target.value)}
             placeholder="Ex: Salário Split Egberto"
-            className="bg-background/50 h-11 rounded-xl"
+            className="bg-background/50 h-12 px-4 rounded-xl"
           />
         </div>
         <div className="space-y-2">
@@ -222,13 +222,13 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
             value={triggerPayee} 
             onChange={(e) => setTriggerPayee(e.target.value)}
             placeholder="Ex: EGBERTO CORP"
-            className="bg-background/50 h-11 rounded-xl"
+            className="bg-background/50 h-12 px-4 rounded-xl"
           />
         </div>
         <div className="space-y-2">
           <Label className="font-bold text-xs text-muted-foreground uppercase tracking-wider">Categoria de Sobra (Fallback)</Label>
           <Select value={fallbackCategory} onValueChange={setFallbackCategory}>
-            <SelectTrigger className="h-11 bg-background/50 rounded-xl">
+            <SelectTrigger className="h-12 px-4 bg-background/50 rounded-xl">
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
             <SelectContent className="glass">
@@ -266,19 +266,19 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
           {rows.map((row, idx) => (
             <div key={idx} className="flex flex-col">
               {idx > 0 && (
-                <div className="flex justify-center my-2 text-muted-foreground/40">
+                <div className="flex justify-center my-6 text-muted-foreground/40">
                   <ArrowDown className="h-4 w-4 animate-pulse" />
                 </div>
               )}
-              <div className="flex flex-wrap items-end gap-3 p-4 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/20 transition-all">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end p-5 rounded-2xl bg-muted/20 border border-border/40 hover:border-primary/20 transition-all">
                 {/* Tipo de Destino: Conta ou Categoria */}
-                <div className="w-[110px] space-y-1">
+                <div className="md:col-span-2 space-y-2">
                   <Label className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Destino</Label>
                   <Select 
                     value={row.destinationType} 
                     onValueChange={(v: "account" | "category") => handleRowChange(idx, "destinationType", v)}
                   >
-                    <SelectTrigger className="h-9 bg-background/50 rounded-xl">
+                    <SelectTrigger className="h-11 px-4 bg-background/50 rounded-xl">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="glass">
@@ -289,7 +289,7 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
                 </div>
 
                 {/* Seletor do Destino */}
-                <div className="flex-1 min-w-[150px] space-y-1">
+                <div className="md:col-span-4 space-y-2">
                   <Label className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">
                     {row.destinationType === "category" ? "Categoria" : "Conta"}
                   </Label>
@@ -298,7 +298,7 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
                       value={row.category} 
                       onValueChange={(v) => handleRowChange(idx, "category", v)}
                     >
-                      <SelectTrigger className="h-9 bg-background/50 rounded-xl">
+                      <SelectTrigger className="h-11 px-4 bg-background/50 rounded-xl">
                         <SelectValue placeholder="Selecione a categoria..." />
                       </SelectTrigger>
                       <SelectContent className="glass">
@@ -314,7 +314,7 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
                       value={row.account} 
                       onValueChange={(v) => handleRowChange(idx, "account", v)}
                     >
-                      <SelectTrigger className="h-9 bg-background/50 rounded-xl">
+                      <SelectTrigger className="h-11 px-4 bg-background/50 rounded-xl">
                         <SelectValue placeholder="Selecione a conta..." />
                       </SelectTrigger>
                       <SelectContent className="glass">
@@ -329,9 +329,9 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
                 </div>
 
                 {/* Tipo de Lógica: Fixo vs Percentual */}
-                <div className="w-[140px] space-y-1">
+                <div className="md:col-span-3 space-y-2">
                   <Label className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Modo de Alocação</Label>
-                  <div className="grid grid-cols-2 rounded-xl p-0.5 bg-background/50 border border-border/40 h-9">
+                  <div className="grid grid-cols-2 rounded-xl p-0.5 bg-background/50 border border-border/40 h-11">
                     <Button
                       type="button"
                       variant="ghost"
@@ -360,7 +360,7 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
                 </div>
 
                 {/* Valor */}
-                <div className="w-[100px] space-y-1">
+                <div className="md:col-span-2 space-y-2">
                   <Label className="text-[9px] text-muted-foreground uppercase font-black tracking-wider">Valor / %</Label>
                   <Input
                     type="number"
@@ -368,20 +368,22 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
                     value={row.value || ""}
                     onChange={(e) => handleRowChange(idx, "value", parseFloat(e.target.value) || 0)}
                     placeholder={row.type === "fixed" ? "0,00" : "0%"}
-                    className="h-9 bg-background/50 rounded-xl"
+                    className="h-11 px-4 bg-background/50 rounded-xl"
                   />
                 </div>
 
                 {/* Ações */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleRemoveRow(idx)}
-                  className="h-9 w-9 text-rose-400 hover:bg-rose-400/10 rounded-xl"
-                  disabled={rows.length <= 1}
-                >
-                  <Trash className="h-4 w-4" />
-                </Button>
+                <div className="md:col-span-1 flex justify-end pb-0.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleRemoveRow(idx)}
+                    className="h-11 w-11 text-rose-400 hover:bg-rose-400/10 rounded-xl"
+                    disabled={rows.length <= 1}
+                  >
+                    <Trash className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
