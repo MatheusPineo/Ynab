@@ -289,3 +289,81 @@ class YNABBudgetEngineTests(TestCase):
         serializer = CategorySerializer(new_cat)
         self.assertEqual(serializer.data['macro_allocation'], 'NEEDS')
 
+    def test_parent_category_aggregation_includes_child_rollovers(self):
+        """
+        Verifica se a rota `tree` de categorias consolida corretamente no nó pai
+        a soma de assigned, spent, rollover e available das categorias filhas,
+        incluindo rollover acumulado do mês anterior.
+        """
+        from django.urls import reverse
+        from rest_framework.test import APIClient
+        
+        # Mês 1: Alimentação (food_cat) e Lazer (leisure_cat) sob o pai Estilo de Vida (parent_cat)
+        # Alimentação: Aloca 100, gasta 40 -> sobra 60 de disponível/rollover para o mês 2.
+        # Lazer: Aloca 50, gasta 10 -> sobra 40 de disponível/rollover para o mês 2.
+        MonthlyBudget.objects.create(
+            category=self.food_cat,
+            month=5,
+            year=2026,
+            amount=Decimal('100.00')
+        )
+        Transaction.objects.create(
+            account=self.checking,
+            category=self.food_cat,
+            amount=Decimal('40.00'),
+            date=date(2026, 5, 15),
+            is_income=False,
+            is_applied_to_balance=True
+        )
+
+        MonthlyBudget.objects.create(
+            category=self.leisure_cat,
+            month=5,
+            year=2026,
+            amount=Decimal('50.00')
+        )
+        Transaction.objects.create(
+            account=self.checking,
+            category=self.leisure_cat,
+            amount=Decimal('10.00'),
+            date=date(2026, 5, 16),
+            is_income=False,
+            is_applied_to_balance=True
+        )
+
+        # Mês 2: Alimentação recebe 20 (Total disponível esperado = 60 + 20 = 80)
+        # Lazer recebe 30 (Total disponível esperado = 40 + 30 = 70)
+        # Total esperado no pai para o Mês 2:
+        # Assigned: 20 + 30 = 50
+        # Rollover: 60 + 40 = 100
+        # Available: 80 + 70 = 150
+        MonthlyBudget.objects.create(
+            category=self.food_cat,
+            month=6,
+            year=2026,
+            amount=Decimal('20.00')
+        )
+        MonthlyBudget.objects.create(
+            category=self.leisure_cat,
+            month=6,
+            year=2026,
+            amount=Decimal('30.00')
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+        
+        url = reverse('category-tree')
+        response = client.get(url, {'month': 6, 'year': 2026})
+        self.assertEqual(response.status_code, 200)
+        
+        # Encontra a categoria pai no JSON retornado
+        parent_node = next((node for node in response.data if node['id'] == str(self.parent_cat.id)), None)
+        self.assertIsNotNone(parent_node)
+        
+        # Verifica a agregação
+        self.assertEqual(parent_node['assigned_amount'], 50.00)
+        self.assertEqual(parent_node['rollover_amount'], 100.00)
+        self.assertEqual(parent_node['available_amount'], 150.00)
+
+
