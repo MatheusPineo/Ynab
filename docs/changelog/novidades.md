@@ -1,5 +1,11 @@
 # Novidades e Atualizações
 
+## Melhorias de UX no Lançamento e Edição de Transações (15/06/2026) 🛠️💸
+Aprimoramos o lançamento de transações e a filtragem de envelopes/categorias para tornar o fluxo mais ágil e inteligente:
+* **Filtro Automático de Categorias por Moeda:** Agora, ao selecionar uma conta (ex: uma conta em Euro como o Novo Banco), o seletor de categorias exibe automaticamente apenas as categorias e grupos pertencentes à mesma moeda da conta ativa. Categorias em moedas diferentes são ocultadas automaticamente para evitar confusões e erros de alocação de saldo.
+* **Correção no Scroll de Categorias:** Corrigimos o comportamento em que a lista de categorias ficava travada sem aceitar rolagem do mouse/toque dentro do modal. O scroll agora funciona perfeitamente em qualquer dispositivo.
+* **Fluxo de Edição Direta e Limpa:** Corrigimos o fluxo de edição de movimentações a partir do histórico de transações. O formulário agora abre de forma programática instantânea ao clicar em "Editar", sem a necessidade de clicar em um botão redundante "Nova transação" que aparecia indevidamente no rodapé da página.
+
 ## Redesenho do Modal de Distribuição para Envelopes (15/06/2026) 🎨💸
 Redesenhamos e reestruturamos o modal "Distribuição para Envelopes" (`DistributionModal.tsx`) para proporcionar maior respiro, organização visual e conforto no gerenciamento de valores:
 * **Modal Mais Amplo:** Aumentamos a largura máxima do modal para `sm:max-w-3xl` e o preenchimento interno para `p-6 sm:p-8`, dando mais espaço para a leitura e interação.

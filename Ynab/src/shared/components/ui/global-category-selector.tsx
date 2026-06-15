@@ -11,6 +11,7 @@ interface GlobalCategorySelectorProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  currency?: string;
 }
 
 export const GlobalCategorySelector = ({
@@ -19,6 +20,7 @@ export const GlobalCategorySelector = ({
   placeholder = "Selecione uma categoria",
   className,
   disabled = false,
+  currency,
 }: GlobalCategorySelectorProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -46,9 +48,14 @@ export const GlobalCategorySelector = ({
 
   // Percorre os grupos de categoria e filtra as categorias filhas que batem com a busca
   (categoryGroups || []).forEach((group: any) => {
-    const matchingChildren = (group.children || []).filter((cat: any) =>
-      normalizeStr(cat.name).includes(searchNormalized)
-    );
+    if (currency && group.currency !== currency) {
+      return;
+    }
+
+    const matchingChildren = (group.children || []).filter((cat: any) => {
+      if (currency && cat.currency !== currency) return false;
+      return normalizeStr(cat.name).includes(searchNormalized);
+    });
 
     if (matchingChildren.length > 0) {
       // Adiciona o cabeçalho do grupo
@@ -167,7 +174,11 @@ export const GlobalCategorySelector = ({
           className="h-8.5 text-xs bg-background/40 border-border/50 placeholder:text-muted-foreground/60 rounded-lg focus-visible:ring-primary/50"
         />
 
-        <div className="max-h-[250px] overflow-y-auto overscroll-contain flex flex-col gap-0.5 scrollbar-thin scrollbar-thumb-muted">
+        <div 
+          className="max-h-[250px] overflow-y-auto overscroll-contain flex flex-col gap-0.5 scrollbar-thin scrollbar-thumb-muted"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {displayItems.length === 0 ? (
             <div className="py-2.5 px-3 text-xs text-muted-foreground text-center select-none">
               Nenhuma categoria encontrada

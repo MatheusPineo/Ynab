@@ -48,11 +48,19 @@ interface Props {
   transaction?: Transaction; // If provided, we are in Edit mode
   onClose?: () => void;
   initialAccountId?: string;
+  isOpen?: boolean;
 }
 
-export const AddTransactionModal = ({ children, transaction, onClose, initialAccountId }: Props) => {
+export const AddTransactionModal = ({ children, transaction, onClose, initialAccountId, isOpen }: Props) => {
   const navigate = useNavigate();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(isOpen || false);
+
+  // Sincronizar prop isOpen externa com o estado open interno
+  useEffect(() => {
+    if (isOpen !== undefined) {
+      setOpen(isOpen);
+    }
+  }, [isOpen]);
   const [isRecurring, setIsRecurring] = useState(false);
   
   // Estados para caixas de busca de contas
@@ -452,14 +460,16 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       setOpen(val);
       if (!val && onClose) onClose();
     }}>
-      <DialogTrigger asChild>
-        {children || (
-          <Button className="rounded-full gradient-primary text-primary-foreground hover:opacity-90 shadow-glow font-semibold">
-            <Plus className="h-4 w-4 mr-1" />
-            Nova transação
-          </Button>
-        )}
-      </DialogTrigger>
+      {!isEdit && (
+        <DialogTrigger asChild>
+          {children || (
+            <Button className="rounded-full gradient-primary text-primary-foreground hover:opacity-90 shadow-glow font-semibold">
+              <Plus className="h-4 w-4 mr-1" />
+              Nova transação
+            </Button>
+          )}
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-[425px] glass border-border/60 max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Transação" : "Lançar Transação"}</DialogTitle>
@@ -701,6 +711,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                     setUseCategory(v !== "none");
                   }}
                   placeholder="Selecione uma categoria"
+                  currency={allAccounts.find(a => String(a.id) === String(accountId))?.currency}
                 />
               </div>
             )}

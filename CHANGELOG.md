@@ -1,3 +1,10 @@
+## [1.109.00] - 2026-06-15
+
+### Fixed
+- Frontend: Corrigido o bloqueio de rolagem (scroll) no menu suspenso de categorias (`GlobalCategorySelector.tsx`) dentro de modais, adicionando propagação controlada de eventos `onWheel` e `onTouchMove` (`e.stopPropagation()`).
+- Frontend: Implementada filtragem dinâmica de categorias por moeda no lançamento de transações. O `GlobalCategorySelector.tsx` agora recebe a moeda correspondente à conta ativa (`BRL` ou `EUR`) e exibe exclusivamente os envelopes e grupos daquela moeda específica.
+- Frontend: Corrigido o fluxo de edição de transações em `Transactions.tsx` e `AddTransactionModal.tsx`. Adicionada a propriedade `isOpen` para acionamento programático transparente, sincronizada com o estado `open` via `useEffect`, e ocultado o trigger de botão "Nova transação" redundante no rodapé durante o modo de edição.
+
 ## [1.108.02] - 2026-06-15
 
 ### Fixed
