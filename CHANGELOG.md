@@ -1,3 +1,8 @@
+## [1.108.00] - 2026-06-15
+
+### Changed
+- Frontend: Redesenho do modal "Distribuição para Envelopes" (`DistributionModal.tsx`) para maior conforto visual e espaçamento. Aumentada a largura máxima do modal para `sm:max-w-3xl` e o padding interno para `p-6 sm:p-8`. Aumentado o espaçamento vertical entre blocos (`space-y-8`) e a altura do input principal "Valor Total a Distribuir" para `h-14` (com texto `text-lg`). As linhas dinâmicas de envelopes agora utilizam uma grade estrita de colunas (`grid grid-cols-[1fr_100px_150px_auto] gap-6 items-center`) com inputs de altura `h-11`, além de margem vertical (`my-4`) adicionada ao botão de inserção. Aumentado o recuo superior da caixa de sumário para `mt-8` com preenchimento interno `p-6`, e adicionado espaçamento `gap-4` e `mt-6` nas ações do rodapé.
+
 ## [1.107.00] - 2026-06-15
 
 ### Changed
