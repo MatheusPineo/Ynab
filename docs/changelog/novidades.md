@@ -1,7 +1,9 @@
 # Novidades e Atualizações
 
 ## Melhorias de Usabilidade na Distribuição e Configuração de Modelos (15/06/2026) 🛠️📐
-Implementamos correções importantes para eliminar scrollbars duplicadas e garantir que seus modelos de dotação carreguem instantaneamente:
+Implementamos correções importantes para eliminar scrollbars duplicadas e garantir que seus modelos de dotação carreguem e salvem seu estado perfeitamente:
+* **Correção no Switch de Ativação do Modelo:** Corrigimos um problema em que, ao alternar a chave de ligar/desligar de um modelo de dotação nas configurações ("Ativo" / "Inativo"), o sistema confirmava a ação mas o switch permanecia inalterado. O backend do Django foi corrigido para persistir os campos de status de ativação (`is_active`), mantendo a interface sincronizada.
+* **Tooltip "Editar" no Botão:** Adicionamos a etiqueta flutuante (tooltip) que diz "Editar" ao passar o mouse sobre o ícone do lápis nas regras de distribuição, trazendo a mesma clareza de uso já existente no botão de arquivamento.
 * **Fim do Scroll Duplo na Distribuição para Envelopes:** Removemos a rolagem interna redundante na lista de envelopes dentro do painel de Distribuição (`DistributionModal.tsx`). Agora o modal usa um único fluxo de rolagem limpo e confortável.
 * **Carregamento Automático de Modelos nas Configurações:** Corrigimos o problema em que novos modelos de divisão (como "salario de egberto") criados pelo painel de Distribuição não apareciam ou sumiam ao atualizar as Configurações. Agora, a aba de Modelos nas Configurações carrega automaticamente e mantém todas as suas regras atualizadas diretamente do servidor ao carregar a página.
 

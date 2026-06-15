@@ -1,6 +1,8 @@
 ## [1.109.01] - 2026-06-15
 
 ### Fixed
+- Backend & Frontend: Corrigido o comportamento do Switch de ativação/desativação ("Ativo" / "Inativo") de modelos na aba de Configurações (`FinanceSettingsTab.tsx`). O método `update` no `DistributionTemplateSerializer` do Django foi atualizado para persistir os campos `is_active`, `is_archived`, `trigger_payee` e `fallback_category`, garantindo que o estado de ativação seja corretamente salvo e refletido na tela.
+- Frontend: Adicionado atributo `title="Editar"` ao botão de edição de modelo na listagem de Configurações, adicionando suporte a tooltip visual idêntico ao botão de arquivamento.
 - Frontend: Removido o scroll duplo (scrollbars aninhadas) na visualização de Distribuição para Envelopes (`DistributionModal.tsx`) eliminando a restrição de altura máxima (`max-h-[36vh] sm:max-h-[42vh]`) e rolagem interna (`overflow-y-auto`) da lista de envelopes dinâmicos.
 - Frontend: Corrigido o carregamento assíncrono dos modelos de distribuição automática na aba de Configurações (`FinanceSettingsTab.tsx`). Adicionado efeito `useEffect` para buscar os templates diretamente da store Zustand ao montar o painel, garantindo que as regras (ex: "salario de egberto") fiquem sempre atualizadas e visíveis sem depender de acessos prévios em outras telas.
 

@@ -123,6 +123,10 @@ class DistributionTemplateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items', None)
         instance.name = validated_data.get('name', instance.name)
+        instance.is_active = validated_data.get('is_active', instance.is_active)
+        instance.is_archived = validated_data.get('is_archived', instance.is_archived)
+        instance.trigger_payee = validated_data.get('trigger_payee', instance.trigger_payee)
+        instance.fallback_category = validated_data.get('fallback_category', instance.fallback_category)
         instance.save()
 
         if items_data is not None:

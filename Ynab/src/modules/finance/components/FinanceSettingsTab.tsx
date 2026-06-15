@@ -370,6 +370,7 @@ export const FinanceTemplatesTab = () => {
                   size="icon" 
                   className="h-9 w-9 text-primary hover:bg-primary/10 rounded-xl"
                   onClick={() => handleEditTemplate(template)}
+                  title="Editar"
                 >
                   <FileEdit className="h-4 w-4" />
                 </Button>
