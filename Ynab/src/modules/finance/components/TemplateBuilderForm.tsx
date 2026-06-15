@@ -262,7 +262,7 @@ export const TemplateBuilderForm = ({ template, onSave, onCancel }: TemplateBuil
           </Button>
         </div>
 
-        <div className="space-y-2 relative max-h-[40vh] overflow-y-auto pr-1">
+        <div className="space-y-2 relative pr-1">
           {rows.map((row, idx) => (
             <div key={idx} className="flex flex-col">
               {idx > 0 && (

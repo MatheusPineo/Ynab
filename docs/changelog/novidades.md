@@ -13,6 +13,7 @@ Aprimoramos o layout e o conforto visual do formulário e modal de criação e e
 * **Preenchimento Generoso:** Aumentamos o espaçamento interno do modal (`p-6 sm:p-8`), permitindo que a tela respire.
 * **Interface Mais Confortável para Clique:** O formulário agora conta com campos maiores (`h-12` nos inputs de controle superior e `h-11` nos campos das regras dinâmicas) e maior espaçamento (`gap-6`) para diminuir o cansaço visual.
 * **Grid Alinhado e Organizado:** As regras em cascata dinâmicas foram organizadas em colunas utilizando Grid CSS, facilitando a visualização e acompanhamento dos dados, além de mais respiro ao redor das setas indicadoras do fluxo de distribuição (`↓`).
+* **Fim das Barras de Rolagem Duplas (Scrollbars Aninhadas):** Removemos a rolagem interna na lista de destinos do construtor de modelos, fazendo com que todo o formulário utilize um único scroll de visualização global no modal. Isso remove a poluição visual e torna a navegação no formulário muito mais fluida.
 
 ## Correção na Distribuição de Receitas Pendentes (14/06/2026) 🛠️💰
 Corrigimos um comportamento visual incômodo no painel de Orçamento (`Budget.tsx`):

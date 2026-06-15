@@ -1,3 +1,8 @@
+## [1.108.02] - 2026-06-15
+
+### Fixed
+- Frontend: Corrigido o comportamento de scrollbars duplas (scroll aninhado) no construtor de modelos (`TemplateBuilderForm.tsx`). Removida a restrição de altura máxima (`max-h-[40vh]`) e rolagem interna (`overflow-y-auto`) da lista de regras em cascata dinâmicas, permitindo que ela cresça e use o scroll global único do DialogContent do modal.
+
 ## [1.108.01] - 2026-06-15
 
 ### Fixed
