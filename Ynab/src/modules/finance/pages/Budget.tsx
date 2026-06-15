@@ -541,7 +541,7 @@ const Budget = () => {
   const renderBudgetBoard = (groups: CategoryNode[], boardCurrency: 'EUR' | 'BRL') => {
     return (
       <div className="flex flex-col gap-6 bg-card/10 border border-border/40 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-sm">
-        <div className="flex items-center justify-between border-b border-border/40 pb-2">
+        <div className="flex items-center justify-between border-b border-border/40 pb-4">
           <h2 className="text-base font-black uppercase tracking-wider text-primary">
             Quadro de Orçamento — {boardCurrency} ({boardCurrency === 'BRL' ? 'R$' : '€'})
           </h2>
@@ -564,18 +564,13 @@ const Budget = () => {
             <span className="text-xs text-muted-foreground">Nenhum grupo de categorias cadastrado em {boardCurrency}.</span>
           </div>
         ) : (
-          <div className="space-y-4 pb-12">
-            <div className="hidden sm:flex items-center justify-end pr-4 pl-7 text-[10px] uppercase font-black tracking-wider text-muted-foreground gap-2 sm:gap-6 mb-2">
-              <div className="w-[120px] text-right shrink-0">Separei</div>
-              <div className="w-[90px] text-right shrink-0">Gastei</div>
-              <div className="w-[100px] text-right shrink-0">Sobrou</div>
-            </div>
-
+          <div className="space-y-6 pb-12">
             {groups.map((group, idx) => {
               const isExpanded = expandedGroups[group.id] !== false; // Default to true
               const groupAssigned = group.children?.reduce((acc, cat) => acc + Number(cat.assigned_amount || 0), 0) || 0;
               const groupSpent = group.children?.reduce((acc, cat) => acc + Number(cat.spent_amount || 0), 0) || 0;
-              const groupAvailable = groupAssigned - groupSpent;
+              const groupRollover = group.children?.reduce((acc, cat) => acc + Number(cat.rollover_amount || 0), 0) || 0;
+              const groupAvailable = groupAssigned + groupRollover - groupSpent;
 
               return (
                 <motion.div 
@@ -621,16 +616,11 @@ const Budget = () => {
                       </div>
                     </div>
                     
-                    <div className="hidden sm:flex items-center justify-end gap-2 sm:gap-6 text-sm shrink-0">
-                      <span className="w-[120px] text-right font-medium text-muted-foreground truncate shrink-0">{formatMoney(groupAssigned, boardCurrency)}</span>
-                      <span className="w-[90px] text-right font-medium text-muted-foreground truncate shrink-0">{formatMoney(groupSpent, boardCurrency)}</span>
-                      <span className={cn("w-[100px] text-right font-bold truncate shrink-0", groupAvailable > 0 ? "text-emerald-500" : groupAvailable < 0 ? "text-rose-500" : "text-muted-foreground")}>
+                    <div className="flex items-center gap-2 text-right">
+                      <span className="text-[10px] uppercase font-black tracking-wider text-muted-foreground mr-1 hidden sm:inline">Disponível no Grupo:</span>
+                      <span className={cn("font-bold text-sm sm:text-base truncate", groupAvailable > 0 ? "text-emerald-500" : groupAvailable < 0 ? "text-rose-500" : "text-muted-foreground")}>
                         {formatMoney(groupAvailable, boardCurrency)}
                       </span>
-                    </div>
-
-                    <div className={cn("sm:hidden w-[100px] text-right font-semibold text-sm truncate", groupAvailable > 0 ? "text-emerald-500" : groupAvailable < 0 ? "text-rose-500" : "text-muted-foreground")}>
-                      {formatMoney(groupAvailable, boardCurrency)}
                     </div>
                   </button>
 
@@ -643,10 +633,10 @@ const Budget = () => {
                         transition={{ duration: 0.22, ease: "easeOut" }}
                         className="overflow-hidden border-t border-border/40"
                       >
-                        <div className="flex flex-col bg-background/50">
+                        <div className="p-4 bg-muted/5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                           <SortableContext items={(group.children || []).map(c => c.id)} strategy={verticalListSortingStrategy}>
                             {(group.children || []).map(cat => (
-                              <SortableCategoryRow key={cat.id} cat={cat} assignMoney={assignMoney} />
+                              <SortableCategoryCard key={cat.id} cat={cat} assignMoney={assignMoney} />
                             ))}
                           </SortableContext>
                         </div>
@@ -745,7 +735,7 @@ const Budget = () => {
                     <DropdownMenuPortal>
                       <DropdownMenuSubContent className="glass border-border/60 max-h-60 overflow-y-auto w-48">
                         {leafCategories.map(cat => (
-                          <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="cursor-pointer text-xs">{cat.name}</DropdownMenuItem>
+                           <DropdownMenuItem key={cat.id} onSelect={() => handleCascade(cat.id)} className="cursor-pointer text-xs">{cat.name}</DropdownMenuItem>
                         ))}
                       </DropdownMenuSubContent>
                     </DropdownMenuPortal>
@@ -924,9 +914,9 @@ const Budget = () => {
   );
 };
 
-// --- Sortable Category Row Component (Optimized State Layout) ---
+// --- Sortable Category Card Component (Modern, Minimalist Cards with Progress Bars) ---
 
-const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMoney: any }) => {
+const SortableCategoryCard = ({ cat, assignMoney }: { cat: CategoryNode, assignMoney: any }) => {
   const {
     attributes,
     listeners,
@@ -948,79 +938,88 @@ const SortableCategoryRow = ({ cat, assignMoney }: { cat: CategoryNode, assignMo
     setLocalValue(cat.assigned_amount || 0);
   }, [cat.assigned_amount]);
 
-  const available = cat.available_amount ?? ((cat.assigned_amount || 0) - (cat.spent_amount || 0));
+  const assigned = Number(cat.assigned_amount) || 0;
+  const spent = Math.abs(Number(cat.spent_amount) || 0);
+  const rollover = Number(cat.rollover_amount) || 0;
+  
+  const totalAllocated = assigned + rollover;
+  const available = cat.available_amount ?? (totalAllocated - spent);
+
+  const pct = totalAllocated > 0 ? Math.min(100, (spent / totalAllocated) * 100) : 0;
 
   const handleSave = async () => {
     const numericVal = Number(localValue) || 0;
-    if (numericVal !== Number(cat.assigned_amount)) {
+    if (numericVal !== assigned) {
       await assignMoney(cat.id, numericVal);
       setLocalValue(numericVal);
     }
   };
 
   return (
-    <div ref={setNodeRef} style={style} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 bg-background hover:bg-muted/10 border-b border-border/30 transition-colors group gap-3 sm:gap-0">
-      {/* LEFT SIDE (Drag + Name + Progress) */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-primary transition-colors shrink-0">
-          <GripVertical className="h-4 w-4" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-bold text-foreground truncate">{cat.name}</p>
-          {(() => {
-            const pct = cat.assigned_amount > 0 ? Math.min(100, (cat.spent_amount / cat.assigned_amount) * 100) : 0;
-            return (
-              <Progress
-                value={pct}
-                className={cn(
-                  "h-1.5 mt-2 bg-muted/30 w-24 sm:w-32",
-                  pct >= 100 && "[&>div]:bg-rose-500",
-                  pct < 100 && pct >= 80 && "[&>div]:bg-amber-500",
-                  pct < 80 && "[&>div]:bg-emerald-500"
-                )}
-              />
-            );
-          })()}
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className="bg-card border border-border/40 hover:border-border/80 rounded-2xl p-4 shadow-sm flex flex-col justify-between transition-all group gap-4 min-h-[170px]"
+    >
+      {/* Top row: Name + Icon + Actions */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground/30 hover:text-primary transition-colors shrink-0">
+            <GripVertical className="h-4 w-4" />
+          </div>
+          <span className="font-bold text-sm text-foreground truncate">{cat.name}</span>
         </div>
         <CategoryActions category={cat} />
       </div>
 
-      {/* RIGHT SIDE (3 Columns: Separei, Gastei, Sobrou) */}
-      <div className="flex flex-row items-center justify-between sm:justify-end gap-2 sm:gap-6 w-full sm:w-auto shrink-0">
-        {/* SEPAREI */}
-        <div className="flex flex-col items-start sm:items-end w-auto sm:w-[120px]">
-          <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1 sm:hidden">Separei</span>
-          <div className="relative w-full">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-medium">{cat.currency === "EUR" ? "€" : "R$"}</span>
-            <Input
-              type="number" step="0.01"
-              value={localValue}
-              onChange={(e) => setLocalValue(e.target.value)}
-              onBlur={handleSave}
-              onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
-              className={cn(
-                "w-full h-9 pl-7 pr-2 text-right font-semibold bg-transparent border-border/40 hover:bg-muted/20 focus:bg-background focus:border-primary/50 transition-all rounded-xl",
-                Number(localValue) !== Number(cat.assigned_amount) && "text-primary bg-primary/5"
-              )}
-            />
-          </div>
+      {/* Center: Available amount prominent */}
+      <div className="flex flex-col gap-1.5">
+        <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Disponível</div>
+        <div className={cn(
+          "text-2xl font-black tracking-tight",
+          available > 0 ? "text-emerald-500" : available < 0 ? "text-rose-500" : "text-muted-foreground/50"
+        )}>
+          {formatMoney(available, cat.currency as any || "EUR")}
         </div>
+      </div>
 
-        {/* GASTEI */}
-        <div className="flex flex-col items-end w-auto sm:w-[90px]">
-          <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1 sm:hidden">Gastei</span>
-          <span className="text-sm font-medium text-muted-foreground truncate">{formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}</span>
+      {/* Middle: Horizontal Progress Bar */}
+      <div className="space-y-1">
+        <Progress 
+          value={pct} 
+          className={cn(
+            "h-2 bg-muted/40 rounded-full",
+            available > 0 ? "[&>div]:bg-emerald-500" : available < 0 ? "[&>div]:bg-rose-500" : "[&>div]:bg-muted-foreground/40"
+          )}
+        />
+        <div className="flex justify-between items-center text-[10px] text-muted-foreground/80">
+          <span>{pct.toFixed(0)}% utilizado</span>
+          <span>Sobra: {formatMoney(available, cat.currency as any || "EUR")}</span>
         </div>
+      </div>
 
-        {/* SOBROU */}
-        <div className="flex flex-col items-end w-auto sm:w-[100px]">
-          <span className="text-[10px] uppercase font-bold text-muted-foreground mb-1 sm:hidden">Sobrou</span>
-          <span className={cn(
-            "text-base font-black tracking-tight truncate",
-            available > 0 ? "text-emerald-500" : available < 0 ? "text-rose-500" : "text-muted-foreground/40"
-          )}>
-            {formatMoney(available, cat.currency as any || "EUR")}
+      {/* Bottom: Inline input for budgeting and muted spent details */}
+      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/20 mt-1">
+        <div className="relative w-[100px] shrink-0">
+          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-semibold">
+            {cat.currency === "EUR" ? "€" : "R$"}
           </span>
+          <Input
+            type="number" 
+            step="0.01"
+            value={localValue}
+            onChange={(e) => setLocalValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
+            className={cn(
+              "w-full h-7 pl-6 pr-1 text-xs font-semibold bg-muted/20 border-border/40 hover:bg-muted/30 focus:bg-background focus:border-primary/50 transition-all rounded-lg",
+              assigned !== Number(localValue) && "text-primary bg-primary/5 border-primary/30"
+            )}
+            placeholder="Alocar"
+          />
+        </div>
+        <div className="text-right text-[10px] text-muted-foreground truncate flex-1">
+          <span>Gasto: {formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}</span>
         </div>
       </div>
     </div>
