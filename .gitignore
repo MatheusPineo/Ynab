@@ -40,3 +40,5 @@ backend/media/
 # Reference repositories (clean room)
 111111---eng_rev/
 
+
+.vercel

@@ -4,7 +4,7 @@
 Redesenhamos e reestruturamos o modal "Distribuição para Envelopes" (`DistributionModal.tsx`) para proporcionar maior respiro, organização visual e conforto no gerenciamento de valores:
 * **Modal Mais Amplo:** Aumentamos a largura máxima do modal para `sm:max-w-3xl` e o preenchimento interno para `p-6 sm:p-8`, dando mais espaço para a leitura e interação.
 * **Espaçamento e Conforto:** Aumentamos os gaps verticais entre as seções de entrada e listas, e tornamos o campo de "Valor Total a Distribuir" muito mais destacado (`text-lg` e altura `h-14`).
-* **Visualização Simétrica:** As linhas de envelopes agora utilizam uma grade estrita (Grid CSS), com inputs confortáveis de altura `h-11` e labels de porcentagem e valores milimetricamente alinhados com suas respectivas caixas.
+* **Visualização Simétrica e Alinhamento:** As colunas agora utilizam uma grade de tamanho estrito (Grid CSS) redimensionada, eliminando desalinhamentos e impedindo que a etiqueta de "Porcentagem (%)" quebre de linha. Os cabeçalhos e caixas de texto de valores e ações agora ficam simétricos e organizados de forma impecável.
 * **Sumário e Ações com Respiro:** O sumário de totais alocados ganhou recuo superior (`mt-8`) e preenchimento interno maior (`p-6`). As ações do rodapé agora contam com espaçamento aprimorado de `gap-4` e margem superior `mt-6`.
 
 ## Melhorias de Espaçamento e Conforto Visual no Construtor de Modelos (15/06/2026) 🎨✨

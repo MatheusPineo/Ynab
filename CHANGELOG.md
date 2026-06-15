@@ -1,3 +1,8 @@
+## [1.108.01] - 2026-06-15
+
+### Fixed
+- Frontend: Corrigido o desalinhamento dos cabeçalhos das colunas (Porcentagem %, Valor €, Ações) com os inputs das linhas dinâmicas no modal de dotação de envelopes (`DistributionModal.tsx`). Ajustadas as larguras de coluna do grid para `grid-cols-[1fr_125px_150px_80px]` para evitar a quebra de linha de "Porcentagem (%)" e garantir alinhamento vertical e horizontal simétrico.
+
 ## [1.108.00] - 2026-06-15
 
 ### Changed

@@ -275,7 +275,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
           {/* Envelope Rows */}
           <div className="space-y-4 max-h-[36vh] sm:max-h-[42vh] overflow-y-auto pr-1 py-1">
             {rows.length > 0 && (
-              <div className="hidden sm:grid grid-cols-[1fr_100px_150px_auto] gap-6 px-1 text-xs font-semibold text-muted-foreground">
+              <div className="hidden sm:grid grid-cols-[1fr_125px_150px_80px] gap-6 px-1 items-center text-xs font-semibold text-muted-foreground">
                 <div>Categoria (Envelope)</div>
                 <div className="text-right">Porcentagem (%)</div>
                 <div className="text-right">Valor (€)</div>
@@ -286,7 +286,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
             {rows.map((row, idx) => (
               <div key={idx} className="animate-in fade-in duration-200">
                 {/* Desktop layout */}
-                <div className="hidden sm:grid grid-cols-[1fr_100px_150px_auto] gap-6 items-center p-1">
+                <div className="hidden sm:grid grid-cols-[1fr_125px_150px_80px] gap-6 items-center p-1">
                   <div>
                     <Select value={row.category} onValueChange={(v) => handleRowChange(idx, "category", v)}>
                       <SelectTrigger className="h-11 text-xs bg-background/50 rounded-xl border-border/40 px-4">
