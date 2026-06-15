@@ -945,21 +945,13 @@ const SortableCategoryCard = ({ cat, assignMoney }: { cat: CategoryNode, assignM
   const totalAllocated = assigned + rollover;
   const available = cat.available_amount ?? (totalAllocated - spent);
 
-  const pct = totalAllocated > 0 ? Math.min(100, (spent / totalAllocated) * 100) : 0;
-
-  const handleSave = async () => {
-    const numericVal = Number(localValue) || 0;
-    if (numericVal !== assigned) {
-      await assignMoney(cat.id, numericVal);
-      setLocalValue(numericVal);
-    }
-  };
+  const pctAvailable = totalAllocated > 0 ? Math.max(0, Math.min(100, (available / totalAllocated) * 100)) : 0;
 
   return (
     <div 
       ref={setNodeRef} 
       style={style} 
-      className="bg-card border border-border/40 hover:border-border/80 rounded-2xl p-4 shadow-sm flex flex-col justify-between transition-all group gap-4 min-h-[170px]"
+      className="bg-card border-t-4 border-t-primary/70 border-x border-b border-border/40 hover:border-border/80 rounded-2xl p-4 shadow-md flex flex-col justify-between transition-all group gap-4 min-h-[170px] relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-2 before:bg-gradient-to-b before:from-primary/10 before:to-transparent before:pointer-events-none"
     >
       {/* Top row: Name + Icon + Actions */}
       <div className="flex items-center justify-between gap-2">
@@ -973,8 +965,8 @@ const SortableCategoryCard = ({ cat, assignMoney }: { cat: CategoryNode, assignM
       </div>
 
       {/* Center: Available amount prominent */}
-      <div className="flex flex-col gap-1.5">
-        <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Disponível</div>
+      <div className="flex flex-col gap-1">
+        <div className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Disponível para gastar</div>
         <div className={cn(
           "text-2xl font-black tracking-tight",
           available > 0 ? "text-emerald-500" : available < 0 ? "text-rose-500" : "text-muted-foreground/50"
@@ -983,43 +975,27 @@ const SortableCategoryCard = ({ cat, assignMoney }: { cat: CategoryNode, assignM
         </div>
       </div>
 
-      {/* Middle: Horizontal Progress Bar */}
+      {/* Middle: Horizontal Progress Bar representing percent available */}
       <div className="space-y-1">
         <Progress 
-          value={pct} 
+          value={pctAvailable} 
           className={cn(
             "h-2 bg-muted/40 rounded-full",
             available > 0 ? "[&>div]:bg-emerald-500" : available < 0 ? "[&>div]:bg-rose-500" : "[&>div]:bg-muted-foreground/40"
           )}
         />
         <div className="flex justify-between items-center text-[10px] text-muted-foreground/80">
-          <span>{pct.toFixed(0)}% utilizado</span>
-          <span>Sobra: {formatMoney(available, cat.currency as any || "EUR")}</span>
+          <span>{pctAvailable.toFixed(0)}% disponível</span>
         </div>
       </div>
 
-      {/* Bottom: Inline input for budgeting and muted spent details */}
+      {/* Bottom: Muted summary description details */}
       <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/20 mt-1">
-        <div className="relative w-[100px] shrink-0">
-          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-semibold">
-            {cat.currency === "EUR" ? "€" : "R$"}
-          </span>
-          <Input
-            type="number" 
-            step="0.01"
-            value={localValue}
-            onChange={(e) => setLocalValue(e.target.value)}
-            onBlur={handleSave}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.currentTarget.blur(); } }}
-            className={cn(
-              "w-full h-7 pl-6 pr-1 text-xs font-semibold bg-muted/20 border-border/40 hover:bg-muted/30 focus:bg-background focus:border-primary/50 transition-all rounded-lg",
-              assigned !== Number(localValue) && "text-primary bg-primary/5 border-primary/30"
-            )}
-            placeholder="Alocar"
-          />
+        <div className="text-xs text-muted-foreground/90 font-medium">
+          Orçado: <span className="font-bold">{formatMoney(assigned, cat.currency as any || "EUR")}</span>
         </div>
-        <div className="text-right text-[10px] text-muted-foreground truncate flex-1">
-          <span>Gasto: {formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}</span>
+        <div className="text-right text-xs text-muted-foreground/90 font-medium">
+          Gasto: <span className="font-bold">{formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}</span>
         </div>
       </div>
     </div>
