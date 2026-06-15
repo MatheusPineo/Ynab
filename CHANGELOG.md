@@ -1,3 +1,11 @@
+## [1.110.00] - 2026-06-15
+
+### Added
+- Backend & Frontend: Implementada a funcionalidade de reordenação (Drag and Drop) de atalhos no menu lateral (Sidebar).
+  - Adicionado o campo `sidebar_order` (JSONField) ao modelo de banco de dados `UserProfile` no Django e atualizado seu serializer e view correspondentes para leitura e escrita.
+  - Atualizado o modal `EditSidebarModal.tsx` com a biblioteca `@dnd-kit/core` e `@dnd-kit/sortable` para permitir ao usuário arrastar e reordenar a sequência de itens visíveis com visualizadores de alças (`GripVertical`).
+  - Atualizado o Zustand `useSidebarStore.ts` e o fluxo de login no `useAuthStore.ts` para sincronizar, salvar e carregar as preferências personalizadas de ordenação e atalhos ocultos diretamente do banco de dados e do localStorage.
+
 ## [1.109.01] - 2026-06-15
 
 ### Fixed

@@ -96,6 +96,9 @@ export const useAuthStore = create<AuthState>()(
         if (data.user.profile?.hidden_sidebar_items) {
           useSidebarStore.getState().setHiddenItems(data.user.profile.hidden_sidebar_items);
         }
+        if (data.user.profile?.sidebar_order) {
+          useSidebarStore.getState().setSidebarOrder(data.user.profile.sidebar_order);
+        }
       },
 
 
@@ -150,6 +153,9 @@ export const useAuthStore = create<AuthState>()(
         if (data.user.profile?.hidden_sidebar_items) {
           useSidebarStore.getState().setHiddenItems(data.user.profile.hidden_sidebar_items);
         }
+        if (data.user.profile?.sidebar_order) {
+          useSidebarStore.getState().setSidebarOrder(data.user.profile.sidebar_order);
+        }
       },
 
 
@@ -202,6 +208,9 @@ export const useAuthStore = create<AuthState>()(
         
         if (data.user.profile?.hidden_sidebar_items) {
           useSidebarStore.getState().setHiddenItems(data.user.profile.hidden_sidebar_items);
+        }
+        if (data.user.profile?.sidebar_order) {
+          useSidebarStore.getState().setSidebarOrder(data.user.profile.sidebar_order);
         }
       },
 

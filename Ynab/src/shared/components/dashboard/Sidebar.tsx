@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { NavLink, useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -60,12 +60,37 @@ export const navItems = [
 export const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const { hiddenItems, sidebarOrder } = useSidebarStore();
   const { user, logout } = useAuthStore();
-  const { hiddenItems } = useSidebarStore();
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const activeNavItems = navItems.filter((item) => !hiddenItems.includes(item.key));
+  const activeNavItems = useMemo(() => {
+    // 1. Filtrar itens que não estão escondidos
+    const visibleItems = navItems.filter((item) => !hiddenItems.includes(item.key));
+    
+    // 2. Se não houver ordem customizada, retorna a padrão
+    if (!sidebarOrder || sidebarOrder.length === 0) {
+      return visibleItems;
+    }
+    
+    // 3. Ordenar os itens visíveis com base no array sidebarOrder
+    const sorted = [...visibleItems].sort((a, b) => {
+      const idxA = sidebarOrder.indexOf(a.key);
+      const idxB = sidebarOrder.indexOf(b.key);
+      
+      // Se ambos estão na ordem salva, respeita o índice
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      // Se apenas A tem ordem, ele vem antes
+      if (idxA !== -1) return -1;
+      // Se apenas B tem ordem, ele vem antes
+      if (idxB !== -1) return 1;
+      // Caso contrário, mantém a ordem original do navItems
+      return navItems.findIndex(n => n.key === a.key) - navItems.findIndex(n => n.key === b.key);
+    });
+    
+    return sorted;
+  }, [hiddenItems, sidebarOrder]);
 
   const handleLogout = () => {
     logout();

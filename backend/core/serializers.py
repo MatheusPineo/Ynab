@@ -7,7 +7,7 @@ from .models import UserProfile
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ('bio', 'avatar_url', 'preferred_currency', 'language', 'hidden_sidebar_items', 'pinned_countries', 'needs_target_pct', 'wants_target_pct', 'savings_target_pct')
+        fields = ('bio', 'avatar_url', 'preferred_currency', 'language', 'hidden_sidebar_items', 'sidebar_order', 'pinned_countries', 'needs_target_pct', 'wants_target_pct', 'savings_target_pct')
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

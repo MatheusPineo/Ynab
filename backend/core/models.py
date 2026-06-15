@@ -14,6 +14,7 @@ class UserProfile(models.Model):
     preferred_currency = models.CharField(max_length=3, default='EUR')
     language = models.CharField(max_length=10, default='pt-BR')
     hidden_sidebar_items = models.JSONField(default=list, blank=True)
+    sidebar_order = models.JSONField(default=list, blank=True)
     pinned_countries = models.JSONField(default=list, blank=True)
     
     # 50/30/20 customizable percentage targets

@@ -1,5 +1,10 @@
 # Novidades e Atualizações
 
+## Reordenação Personalizada de Atalhos no Menu (15/06/2026) 🛸✨
+Agora você tem controle total sobre a disposição dos seus atalhos no menu lateral (Sidebar):
+* **Reordenação via Drag and Drop (Arrastar e Soltar):** Na janela de **Editar Atalhos** (acessível pelo botão "Editar Menu" na barra lateral), agora você pode clicar e segurar no ícone de alça (seis pontinhos) ao lado de qualquer atalho e arrastá-lo para cima ou para baixo para reorganizar a ordem.
+* **Persistência Inteligente na Nuvem:** A ordem que você escolher é salva automaticamente no seu perfil no banco de dados e sincronizada na nuvem. Suas preferências de visualização e ordem são mantidas mesmo se você recarregar a página, trocar de navegador ou usar outro dispositivo.
+
 ## Melhorias de Usabilidade na Distribuição e Configuração de Modelos (15/06/2026) 🛠️📐
 Implementamos correções importantes para eliminar scrollbars duplicadas e garantir que seus modelos de dotação carreguem e salvem seu estado perfeitamente:
 * **Correção no Switch de Ativação do Modelo:** Corrigimos um problema em que, ao alternar a chave de ligar/desligar de um modelo de dotação nas configurações ("Ativo" / "Inativo"), o sistema confirmava a ação mas o switch permanecia inalterado. O backend do Django foi corrigido para persistir os campos de status de ativação (`is_active`), mantendo a interface sincronizada.
