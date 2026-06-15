@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useDebtStore } from "@/modules/finance/store/useDebtStore";
@@ -306,7 +306,12 @@ export const FinanceTemplatesTab = () => {
     toggleTemplateActive,
     toggleTemplateArchived,
     getAccountName,
+    fetchDistributionTemplates,
   } = useAccountStore();
+
+  useEffect(() => {
+    fetchDistributionTemplates();
+  }, [fetchDistributionTemplates]);
 
   const [isEditingTemplate, setIsEditingTemplate] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<any>(null);

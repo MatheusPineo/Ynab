@@ -1,3 +1,9 @@
+## [1.109.01] - 2026-06-15
+
+### Fixed
+- Frontend: Removido o scroll duplo (scrollbars aninhadas) na visualização de Distribuição para Envelopes (`DistributionModal.tsx`) eliminando a restrição de altura máxima (`max-h-[36vh] sm:max-h-[42vh]`) e rolagem interna (`overflow-y-auto`) da lista de envelopes dinâmicos.
+- Frontend: Corrigido o carregamento assíncrono dos modelos de distribuição automática na aba de Configurações (`FinanceSettingsTab.tsx`). Adicionado efeito `useEffect` para buscar os templates diretamente da store Zustand ao montar o painel, garantindo que as regras (ex: "salario de egberto") fiquem sempre atualizadas e visíveis sem depender de acessos prévios em outras telas.
+
 ## [1.109.00] - 2026-06-15
 
 ### Fixed

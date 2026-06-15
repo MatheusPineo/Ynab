@@ -1,5 +1,10 @@
 # Novidades e Atualizações
 
+## Melhorias de Usabilidade na Distribuição e Configuração de Modelos (15/06/2026) 🛠️📐
+Implementamos correções importantes para eliminar scrollbars duplicadas e garantir que seus modelos de dotação carreguem instantaneamente:
+* **Fim do Scroll Duplo na Distribuição para Envelopes:** Removemos a rolagem interna redundante na lista de envelopes dentro do painel de Distribuição (`DistributionModal.tsx`). Agora o modal usa um único fluxo de rolagem limpo e confortável.
+* **Carregamento Automático de Modelos nas Configurações:** Corrigimos o problema em que novos modelos de divisão (como "salario de egberto") criados pelo painel de Distribuição não apareciam ou sumiam ao atualizar as Configurações. Agora, a aba de Modelos nas Configurações carrega automaticamente e mantém todas as suas regras atualizadas diretamente do servidor ao carregar a página.
+
 ## Melhorias de UX no Lançamento e Edição de Transações (15/06/2026) 🛠️💸
 Aprimoramos o lançamento de transações e a filtragem de envelopes/categorias para tornar o fluxo mais ágil e inteligente:
 * **Filtro Automático de Categorias por Moeda:** Agora, ao selecionar uma conta (ex: uma conta em Euro como o Novo Banco), o seletor de categorias exibe automaticamente apenas as categorias e grupos pertencentes à mesma moeda da conta ativa. Categorias em moedas diferentes são ocultadas automaticamente para evitar confusões e erros de alocação de saldo.

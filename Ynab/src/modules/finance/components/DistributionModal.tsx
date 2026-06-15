@@ -273,7 +273,7 @@ export const DistributionModal = ({ initialSourceAccount, initialAmount, sourceT
           </div>
 
           {/* Envelope Rows */}
-          <div className="space-y-4 max-h-[36vh] sm:max-h-[42vh] overflow-y-auto pr-1 py-1">
+          <div className="space-y-4 pr-1 py-1">
             {rows.length > 0 && (
               <div className="hidden sm:grid grid-cols-[1fr_125px_150px_80px] gap-6 px-1 items-center text-xs font-semibold text-muted-foreground">
                 <div>Categoria (Envelope)</div>
