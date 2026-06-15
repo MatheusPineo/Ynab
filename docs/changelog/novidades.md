@@ -1,5 +1,14 @@
 # Novidades e Atualizações
 
+## Novo Layout de Envelopes e Agrupamento no Orçamento (15/06/2026) 🛸💼
+O Vault Finance OS ganhou um redesenho estético e correções estruturais na aba de Orçamento (Budget) para trazer transparência e simplicidade na gestão dos seus recursos:
+* **Cards Estilo Envelopes Físicos:** Diga adeus à tabela com colunas pesadas. Cada categoria de orçamento agora é representada como um card moderno e minimalista com uma borda superior colorida e degradê indicando a aba do envelope.
+* **Foco no que Importa ("Disponível para Gastar"):** O saldo final restante disponível do envelope é exibido de forma proeminente com cores intuitivas (verde para positivo, vermelho para rombo, cinza para zerado).
+* **Barra de Progresso Inversa (% Disponível):** A barra de progresso horizontal agora ilustra a porcentagem de saldo que *resta disponível* no envelope frente ao total alocado acumulado, evitando que você precise fazer contas mentais.
+* **Ações Rápidas de Dotação (+ e -):** Ajuste seus envelopes diretamente sem precisar digitar números na planilha. Use os botões **`+ Adicionar`** (puxa recursos do Pronto para Alocar / RTA) e **`- Retirar`** (devolve ao RTA ou transfere diretamente para outra categoria compatível).
+* **Ver Transações (Recibos) do Envelope:** Deseja auditar de onde veio o gasto de uma categoria? Use a opção **"Ver Transações (Recibos)"** no menu `...` do card para abrir uma listagem compacta com data, descrição e valor de todas as movimentações daquele envelope no mês ativo.
+* **Cálculo Correto de Grupos (Categorias Pai):** Corrigimos o cálculo de soma do grupo de categorias no backend. A categoria pai agora soma perfeitamente os saldos finais corretos de suas categorias filhas (contemplando rollovers de meses anteriores de forma real), em vez de apenas agrupar orçamentos diretos.
+
 ## Reordenação Personalizada de Atalhos no Menu (15/06/2026) 🛸✨
 Agora você tem controle total sobre a disposição dos seus atalhos no menu lateral (Sidebar):
 * **Reordenação via Drag and Drop (Arrastar e Soltar):** Na janela de **Editar Atalhos** (acessível pelo botão "Editar Menu" na barra lateral), agora você pode clicar e segurar no ícone de alça (seis pontinhos) ao lado de qualquer atalho e arrastá-lo para cima ou para baixo para reorganizar a ordem.

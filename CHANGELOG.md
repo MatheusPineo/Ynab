@@ -1,3 +1,15 @@
+## [1.111.00] - 2026-06-15
+
+### Added
+- Frontend: Refatoração da tabela de categorias de orçamento para uma visualização moderna em **Cards com Barras de Progresso** representando o conceito físico de **Envelopes**.
+  - O envelope exibe de forma destacada o texto **"Disponível para gastar"** com coloração inteligente: verde (saldo positivo), vermelho (saldo estourado) e cinza (zerado).
+  - A barra de progresso horizontal agora calcula e ilustra a porcentagem restante de dinheiro no envelope (`disponível / (orçado + acumulado)`).
+  - Adicionados botões de ação minimalistas **`+ Adicionar`** e **`- Retirar`** no rodapé do envelope facilitando alocações rápidas a partir do Pronto para Alocar (RTA) ou transferências entre envelopes compatíveis.
+  - Adicionado o link **"Ver Transações (Recibos)"** no menu de opções `...` do envelope, abrindo um modal para listar e auditar todas as transações lançadas nesta categoria no respectivo mês.
+
+### Fixed
+- Backend: Corrigida a agregação das categorias pai (Grupos) para incorporar o rollover acumulado do mês anterior vindo das subcategorias filhas. A rota `/categories/tree/` agora calcula o saldo total do grupo somando os saldos já computados das categorias folha correspondentes, resolvendo discrepâncias.
+
 ## [1.110.00] - 2026-06-15
 
 ### Added
