@@ -18,7 +18,7 @@ import { CurrencyInput } from "@/shared/components/ui/currency-input";
 import { Progress } from "@/shared/components/ui/progress";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/shared/lib/utils";
-import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark, RefreshCw, ArrowRightLeft, Check } from "lucide-react";
+import { Wallet, Plus, FolderPlus, GripVertical, MoreHorizontal, Edit, Trash, ChevronLeft, ChevronRight, Shield, ArrowDownToLine, Eraser, ChevronDown, Target, MoreVertical, Landmark, RefreshCw, ArrowRightLeft, Check, Receipt } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -129,7 +129,8 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
   const [editedCurrency, setEditedCurrency] = useState<'EUR' | 'BRL'>(category.currency as any || 'EUR');
   const [editedParent, setEditedParent] = useState<string | null>(category.parent);
   
-  const { updateCategory, deleteCategory, categoryGroups } = useAccountStore();
+  const { updateCategory, deleteCategory, categoryGroups, transactions, currentMonth, currentYear } = useAccountStore();
+  const [isTxDialogOpen, setIsTxDialogOpen] = useState(false);
 
   useEffect(() => {
     if (isEditDialogOpen) {
@@ -176,6 +177,20 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
     }
   };
 
+  // Filtra as transações pertencentes a esta categoria no mês/ano ativo
+  const categoryTransactions = useMemo(() => {
+    if (isGroup) return [];
+    const raw = Array.isArray(transactions) ? transactions : [];
+    return raw.filter(t => {
+      if (!t || !t.date || typeof t.date !== 'string') return false;
+      const parts = t.date.split('-');
+      if (parts.length < 2) return false;
+      const y = Number(parts[0]);
+      const m = Number(parts[1]);
+      return String(t.category) === String(category.id) && m === currentMonth && y === currentYear;
+    });
+  }, [transactions, category.id, currentMonth, currentYear, isGroup]);
+
   // Calcula o saldo disponível da categoria para alimentar o modal de transferência
   const available = category.available_amount ?? ((category.assigned_amount || 0) - (category.spent_amount || 0));
 
@@ -190,6 +205,14 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>Ações</DropdownMenuLabel>
           
+          {/* Opção para Ver Transações (Recibos) */}
+          {!isGroup && (
+            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setIsTxDialogOpen(true); }} className="cursor-pointer">
+              <Receipt className="mr-2 h-4 w-4 text-muted-foreground" />
+              Ver Transações (Recibos)
+            </DropdownMenuItem>
+          )}
+
           {/* Opção de transferência adicionada dentro do menu de ações */}
           {!isGroup && (
             <MoveMoneyModal
@@ -214,6 +237,50 @@ const CategoryActions = ({ category, isGroup }: CategoryActionsProps) => {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Modal para Visualizar Histórico de Transações do Envelope */}
+      <Dialog open={isTxDialogOpen} onOpenChange={setIsTxDialogOpen}>
+        <DialogContent className="sm:max-w-[450px] glass border-border/60 max-h-[85vh] flex flex-col p-4 sm:p-6 rounded-3xl">
+          <DialogHeader className="pb-3 border-b border-border/30">
+            <DialogTitle className="flex items-center gap-2 text-base font-black uppercase tracking-tight text-primary">
+              <Receipt className="h-4 w-4 text-primary" />
+              Recibos do Envelope: {category.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto py-4 space-y-3 pr-1">
+            {categoryTransactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center p-6 border border-dashed border-border/40 rounded-2xl bg-card/25 gap-1.5 my-2">
+                <Receipt className="h-8 w-8 text-muted-foreground/35" />
+                <span className="text-xs text-muted-foreground font-semibold">Nenhuma transação lançada neste mês.</span>
+              </div>
+            ) : (
+              categoryTransactions.map((tx) => (
+                <div key={tx.id} className="flex items-center justify-between p-3 rounded-xl bg-background/40 border border-border/30 hover:border-primary/10 hover:bg-background/60 transition-all gap-2">
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-xs sm:text-sm text-foreground truncate">
+                      {tx.description || "Transação Sem Descrição"}
+                    </span>
+                    <span className="text-[9px] uppercase tracking-wider font-black text-muted-foreground/75 mt-0.5">
+                      {tx.date}
+                    </span>
+                  </div>
+                  <span className={cn(
+                    "text-xs sm:text-sm font-black tabular-nums shrink-0",
+                    tx.is_income ? "text-emerald-500" : "text-rose-500"
+                  )}>
+                    {tx.is_income ? "+" : "-"} {formatMoney(tx.amount, (category.currency || "EUR") as any)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+          <DialogFooter className="pt-2 border-t border-border/30">
+            <Button onClick={() => setIsTxDialogOpen(false)} className="w-full gradient-primary font-bold h-10 text-xs sm:text-sm">
+              Fechar Recibos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[425px] glass border-border/60">
