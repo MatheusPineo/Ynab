@@ -947,11 +947,89 @@ const SortableCategoryCard = ({ cat, assignMoney }: { cat: CategoryNode, assignM
 
   const pctAvailable = totalAllocated > 0 ? Math.max(0, Math.min(100, (available / totalAllocated) * 100)) : 0;
 
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isRemoveOpen, setIsRemoveOpen] = useState(false);
+  const [valueToMove, setValueToMove] = useState(0);
+  const [removeDestination, setRemoveDestination] = useState<string>("RTA");
+
+  const destinationCategories = useMemo(() => {
+    const list: { id: string; name: string }[] = [];
+    const walk = (nodes: CategoryNode[]) => {
+      if (!Array.isArray(nodes)) return;
+      for (const n of nodes) {
+        if (!n) continue;
+        if (n.children && n.children.length > 0) {
+          walk(n.children);
+        } else if (n.id !== cat.id && n.currency === cat.currency) {
+          list.push({ id: n.id, name: n.name });
+        }
+      }
+    };
+    const store = useAccountStore.getState();
+    walk(store.categoryGroups);
+    return list;
+  }, [cat.id, cat.currency]);
+
+  const handleAddFunds = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (valueToMove <= 0) {
+      toast.error("Insira um valor maior que zero.");
+      return;
+    }
+    try {
+      const newAssigned = assigned + valueToMove;
+      await assignMoney(cat.id, newAssigned);
+      toast.success("Fundos adicionados com sucesso!");
+      setValueToMove(0);
+      setIsAddOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao adicionar fundos.");
+    }
+  };
+
+  const handleRemoveFunds = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (valueToMove <= 0) {
+      toast.error("Insira um valor maior que zero.");
+      return;
+    }
+    if (valueToMove > available) {
+      toast.error("Você não pode retirar mais do que o saldo disponível para gastar.");
+      return;
+    }
+    try {
+      const newAssigned = assigned - valueToMove;
+      await assignMoney(cat.id, newAssigned);
+      
+      if (removeDestination !== "RTA") {
+        const store = useAccountStore.getState();
+        let targetRef: any = null;
+        const findTarget = (nodes: CategoryNode[]) => {
+          for (const n of nodes) {
+            if (n.id === removeDestination) targetRef = n;
+            if (n.children) findTarget(n.children);
+          }
+        };
+        findTarget(store.categoryGroups);
+        const newTargetAssigned = (targetRef?.assigned_amount || 0) + valueToMove;
+        await assignMoney(removeDestination, newTargetAssigned);
+      }
+
+      toast.success("Fundos movidos com sucesso!");
+      setValueToMove(0);
+      setIsRemoveOpen(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao remover fundos.");
+    }
+  };
+
   return (
     <div 
       ref={setNodeRef} 
       style={style} 
-      className="bg-card border-t-4 border-t-primary/70 border-x border-b border-border/40 hover:border-border/80 rounded-2xl p-4 shadow-md flex flex-col justify-between transition-all group gap-4 min-h-[170px] relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-2 before:bg-gradient-to-b before:from-primary/10 before:to-transparent before:pointer-events-none"
+      className="bg-card border-t-4 border-t-primary/70 border-x border-b border-border/40 hover:border-border/80 rounded-2xl p-4 shadow-md flex flex-col justify-between transition-all group gap-4 min-h-[190px] relative overflow-hidden before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-2 before:bg-gradient-to-b before:from-primary/10 before:to-transparent before:pointer-events-none"
     >
       {/* Top row: Name + Icon + Actions */}
       <div className="flex items-center justify-between gap-2">
@@ -989,13 +1067,85 @@ const SortableCategoryCard = ({ cat, assignMoney }: { cat: CategoryNode, assignM
         </div>
       </div>
 
-      {/* Bottom: Muted summary description details */}
-      <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/20 mt-1">
-        <div className="text-xs text-muted-foreground/90 font-medium">
-          Orçado: <span className="font-bold">{formatMoney(assigned, cat.currency as any || "EUR")}</span>
+      {/* Bottom Controls + Summary details */}
+      <div className="space-y-3 pt-2 border-t border-border/20 mt-1">
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground/80 font-medium">
+          <span>Orçado: <span className="font-bold">{formatMoney(assigned, cat.currency as any || "EUR")}</span></span>
+          <span>Gasto: <span className="font-bold">{formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}</span></span>
         </div>
-        <div className="text-right text-xs text-muted-foreground/90 font-medium">
-          Gasto: <span className="font-bold">{formatMoney(cat.spent_amount || 0, cat.currency as any || "EUR")}</span>
+
+        {/* Action buttons side-by-side */}
+        <div className="flex items-center gap-2">
+          {/* REMOVE MONEY DIALOG */}
+          <Dialog open={isRemoveOpen} onOpenChange={setIsRemoveOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="flex-1 rounded-lg border-border/60 hover:bg-muted/40 hover:text-rose-400 font-bold h-7 gap-1 text-[10px]">
+                - Retirar
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px] glass border-border/60">
+              <DialogHeader>
+                <DialogTitle className="text-base font-black uppercase tracking-tight text-rose-400">
+                  Retirar Fundos de {cat.name}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleRemoveFunds} className="grid gap-4 py-3 text-left">
+                <div className="rounded-xl bg-muted/30 border border-border/40 p-3 text-xs space-y-1">
+                  <div className="text-muted-foreground font-medium">Disponível: <span className="font-mono font-bold text-emerald-400">{formatMoney(available, cat.currency as any)}</span></div>
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="remove-amount" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quanto deseja retirar?</Label>
+                  <CurrencyInput id="remove-amount" value={valueToMove} onChange={(val) => setValueToMove(val || 0)} className="bg-background/50 h-10 text-sm" autoFocus />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor="remove-destination" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Enviar para:</Label>
+                  <Select value={removeDestination} onValueChange={setRemoveDestination}>
+                    <SelectTrigger id="remove-destination" className="bg-background/50 h-10 text-xs sm:text-sm">
+                      <SelectValue placeholder="Selecione o destino" />
+                    </SelectTrigger>
+                    <SelectContent className="glass border-border/60 max-h-52">
+                      <SelectItem value="RTA" className="text-xs sm:text-sm font-bold text-primary">Pronto para Alocar (RTA)</SelectItem>
+                      {destinationCategories.map((dest) => (
+                        <SelectItem key={dest.id} value={dest.id} className="text-xs sm:text-sm">{dest.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter className="pt-2">
+                  <Button type="submit" className="w-full gradient-primary font-bold h-10 text-xs sm:text-sm">
+                    Confirmar Retirada
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* ADD MONEY DIALOG */}
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="flex-1 rounded-lg border-border/60 hover:bg-muted/40 hover:text-emerald-400 font-bold h-7 gap-1 text-[10px]">
+                + Adicionar
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px] glass border-border/60">
+              <DialogHeader>
+                <DialogTitle className="text-base font-black uppercase tracking-tight text-emerald-400">
+                  Adicionar Fundos a {cat.name}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleAddFunds} className="grid gap-4 py-3 text-left">
+                <div className="grid gap-1.5">
+                  <Label htmlFor="add-amount" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Quanto deseja adicionar do Pronto para Alocar (RTA)?</Label>
+                  <CurrencyInput id="add-amount" value={valueToMove} onChange={(val) => setValueToMove(val || 0)} className="bg-background/50 h-10 text-sm" autoFocus />
+                </div>
+                <DialogFooter className="pt-2">
+                  <Button type="submit" className="w-full gradient-primary font-bold h-10 text-xs sm:text-sm">
+                    Adicionar Fundos
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
