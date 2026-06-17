@@ -2,7 +2,7 @@
 
 Todas as mudanças de engenharia relevantes para o projeto serão registradas neste arquivo.
 
-## [1.112.00] - 2026-06-18
+## [2.112.00] - 2026-06-18
 
 ### Alterado
 - **Contas Físicas (`src/modules/finance/pages/CommandCenter.tsx`):**
@@ -14,7 +14,7 @@ Todas as mudanças de engenharia relevantes para o projeto serão registradas ne
 - **Componente de Cadastro (`src/modules/finance/components/AddAccountModal.tsx`):**
   - Adicionado optional chaining estrito (`parentAccount?.id`, `parentAccount?.name`, `parentAccount?.currency`) para evitar quebras por `undefined` na renderização e submissão.
 
-## [1.111.00] - 2026-06-17
+## [2.111.00] - 2026-06-17
 
 ### Corrigido
 - **Command Center (`src/modules/finance/pages/CommandCenter.tsx`):**
