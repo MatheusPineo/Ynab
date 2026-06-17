@@ -25,19 +25,17 @@
 - [v1.35.17] Componente Universal GlobalAccountSelector: A seleção hierárquica avançada com busca ("AccountCombobox") foi extraída para `src/shared/components/ui/global-account-selector.tsx` e agora é o padrão global absoluto na aplicação para todas as dropdowns de contas. Regra enforçada: Este componente SEMPRE deve ocupar `w-full` e `col-span-full` nos grids, jamais dividindo linha.
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no Cartão de Crédito agora aceita números dinâmicos e customizados de parcelamento (ex: 24x, 36x) via input numérico e a propriedade `total_amount` foi corrigida na requisição, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitações do select.
 - [v1.62.00] Comando de Restauração Definitiva e Separação de Moedas: Criação do Django Management Command `fix_currency_mess` e migrações profundas de dados do ledger (multiplicador 6.000857) para restauração de val# MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-15 20:46:00): Novo Layout de Envelopes e Agrupamento no Orçamento (v1.111.00).
-- Backend: Corrigido o cálculo de agrupamento no `/categories/tree/` em views.py para incorporar rollovers acumulados do mês anterior no saldo das categorias pai.
-- Frontend: Refatorada a tabela de orçamento para visualização moderna em Cards Estilo Envelopes Físicos com borda de aba superior, destaque do saldo disponível para gastar e barra de progresso inversa baseada no percentual disponível de saldo.
-- Frontend: Implementados botões de ação rápida (+ Adicionar e - Retirar) para controle intuitivo de dotação e movimentação de fundos entre envelopes e RTA via store assignMoney.
-- Frontend: Integrado modal compacto no menu do card do envelope para auditoria e listagem de transações (recibos) do mês ativo na categoria.
-- Testes: Vitest executado com 50/50 testes verdes, Pytest executado com 97/97 testes verdes (incluindo teste unitário novo para rollover de grupos).
-- Deploy: Deploy contínuo finalizado na Vercel (versão v1.111.00).
+(Atualizado em 2026-06-17 15:15:00): Novo Ledger de Partidas Dobradas (v2.0.0-alpha.1).
+- Backend: Criados os novos modelos LedgerAccount, JournalEntry e LedgerPosting para a nova arquitetura contábil Double-Entry Ledger.
+- Backend: Geradas e aplicadas as migrações no banco de dados.
+- Testes: Pytest executado com 97/97 testes verdes, confirmando o funcionamento seguro após a migração do banco.
 
-### Status Atual (Versão 1.111.00)
-- **Marco:** Novo Layout de Envelopes e Agrupamento no Orçamento (v1.111.00).
-- **Estado:** Backend e frontend 100% atualizados e sincronizados, testes unitários verdes, manuais de ajuda e CHANGELOG atualizados, e deploy de produção ativo.
-- **Arquitetura:** Conversão cambial no motor YNAB, quadros multi-moedas segregados EUR/BRL, interface de rateio de despesas Split Bill, contas de Empréstimo Concedido (LOAN_GIVEN) com badge "A Receber", DistributionTemplate com Cascade Logic e simulador em tempo real, menus de atalho ordenáveis via Drag and Drop persistidos em banco, e refatoração completa das categorias de orçamento para Cards de Envelope com botões integrados (+/-), progresso reativo e histórico de recibos por modal.
-- **Testes:** Pytest (97/97 passed) e Vitest (50/50 passed) compilados 100% verde.
+### Status Atual (Versão 2.0.0-alpha.1)
+- **Marco:** Novo Ledger de Partidas Dobradas (v2.0.0-alpha.1).
+- **Estado:** Backend atualizado com novo esquema de banco de dados para livro razão, migrações aplicadas, testes unitários verdes, manuais de ajuda, CHANGELOG e novidades atualizados.
+- **Arquitetura:** Início da migração contábil para partidas dobradas com modelos de LedgerAccount (tipagem estrita ASSET/LIABILITY/EQUITY/INCOME/EXPENSE/SHADOW_CLAIM), JournalEntry (associação de lançamentos e transações originais) e LedgerPosting (débitos/créditos individuais com controle de status).
+- **Testes:** Pytest (97/97 passed) compilado 100% verde.
+
 
 - [v1.55.00] Classificação 50/30/20 na UI: Adicionado seletor dropdown no form de edição, seletor de store Zustand recursivo para o widget de análises e badges visuais nas linhas da tabela de orçamento.
 - [v1.54.00] Camada Analítica de Macroalocação: Adicionado o campo `macro_allocation` no modelo `Category` no Django, geradas e aplicadas as migrações, e atualizados os serializers e a view de árvore para expor a classificação 50/30/20.

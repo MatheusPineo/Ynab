@@ -1,5 +1,11 @@
 # Novidades e Atualizações
 
+## Novo Ledger de Partidas Dobradas (v2.0.0-alpha.1 - 17/06/2026) 🧾🏦
+Iniciamos a modernização do motor de contabilidade do Vault Finance OS. Criamos a fundação para a Arquitetura de Contabilidade de Partidas Dobradas (Double-Entry Ledger) com:
+* **LedgerAccount:** Estruturação de contas do livro razão do sistema (Ativos, Passivos, Patrimônio, Receitas, Despesas e Shadow Claims do orçamento).
+* **JournalEntry e LedgerPosting:** Suporte a lançamentos e partidas individuais, abrindo caminho para uma conciliação automática mais robusta e para o conceito de "Clearing House" (controle estrito de limite e liquidação de cartões de crédito).
+Toda a base de dados já foi atualizada automaticamente na nuvem para suportar essa infraestrutura de segurança.
+
 ## Novo Layout de Envelopes e Agrupamento no Orçamento (15/06/2026) 🛸💼
 O Vault Finance OS ganhou um redesenho estético e correções estruturais na aba de Orçamento (Budget) para trazer transparência e simplicidade na gestão dos seus recursos:
 * **Cards Estilo Envelopes Físicos:** Diga adeus à tabela com colunas pesadas. Cada categoria de orçamento agora é representada como um card moderno e minimalista com uma borda superior colorida e degradê indicando a aba do envelope.

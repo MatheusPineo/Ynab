@@ -877,4 +877,87 @@ class Asset(models.Model):
         return f"{self.name} ({self.get_liquidity_tier_display()}): {self.current_market_value}"
 
 
+class LedgerAccount(models.Model):
+    ACCOUNT_TYPES = [
+        ('ASSET', 'Asset'),
+        ('LIABILITY', 'Liability'),
+        ('EQUITY', 'Equity'),
+        ('INCOME', 'Income'),
+        ('EXPENSE', 'Expense'),
+        ('SHADOW_CLAIM', 'Shadow Claim'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ledger_accounts')
+    name = models.CharField(max_length=100)
+    type = models.CharField(max_length=20, choices=ACCOUNT_TYPES)
+    currency = models.CharField(max_length=3, default='EUR')
+    linked_account = models.OneToOneField(
+        Account,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='ledger_account'
+    )
+    linked_category = models.OneToOneField(
+        Category,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='ledger_account'
+    )
+
+    class Meta:
+        db_table = 'core_ledgeraccount'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.name} ({self.type}) - {self.user.username}"
+
+
+class JournalEntry(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='journal_entries')
+    date = models.DateField(db_index=True)
+    description = models.CharField(max_length=255)
+    original_transaction = models.OneToOneField(
+        Transaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='journal_entry'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_journalentry'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.description} ({self.date}) - {self.user.username}"
+
+
+class LedgerPosting(models.Model):
+    DIRECTION_CHOICES = [
+        ('DR', 'Debit'),
+        ('CR', 'Credit'),
+    ]
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending'),
+        ('CLEARED', 'Cleared'),
+    ]
+
+    journal_entry = models.ForeignKey(JournalEntry, on_delete=models.CASCADE, related_name='postings')
+    ledger_account = models.ForeignKey(LedgerAccount, on_delete=models.CASCADE, related_name='postings')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='CLEARED')
+
+    class Meta:
+        db_table = 'core_ledgerposting'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.direction} {self.amount} -> {self.ledger_account.name} ({self.status})"
+
+
+
 

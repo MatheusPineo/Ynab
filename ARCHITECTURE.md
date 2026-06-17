@@ -1566,3 +1566,12 @@ O Vault Finance OS implementa uma arquitetura robusta de isolamento de moedas no
   - Garante a integridade da moeda setando o campo `currency='BRL'` em todas as entidades dependentes.
   - Todo o pipeline roda em transação atômica (`transaction.atomic`) e executa de forma transparente no pipeline do Render durante a etapa de build (`python manage.py migrate`).
 
+
+## 16. Arquitetura de Contabilidade de Partidas Dobradas (Double-Entry Ledger) (v1.112.00)
+
+A transição de um balanço simples para o Livro Razão de Partidas Dobradas baseia-se em três novos modelos atômicos que representam transações de forma contábil estrita e controlada:
+* **`LedgerAccount`**: Classificação de contas do livro razão com tipos bem definidos (`ASSET`, `LIABILITY`, `EQUITY`, `INCOME`, `EXPENSE`, `SHADOW_CLAIM`). Possui relacionamentos `OneToOne` opcionais com as tabelas `Account` (para ativos e passivos reais) e `Category` (para fins de budget/shadow claims).
+* **`JournalEntry`**: O container lógico que reúne um evento de movimentação financeira, indexando a data, a descrição e opcionalmente uma `Transaction` de origem para propósitos de migração e auditoria.
+* **`LedgerPosting`**: A representação de uma partida de débito (`DR`) ou crédito (`CR`) atrelada a uma conta do Ledger, com controle interno de status (`PENDING` ou `CLEARED`) projetado especialmente para a automação do fluxo de cartões de crédito e conciliação bancária.
+
+

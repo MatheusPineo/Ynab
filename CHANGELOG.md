@@ -1,3 +1,13 @@
+## [2.0.0-alpha.1] - 2026-06-17
+
+### Added
+- Backend: Início da transição arquitetural de um sistema de balanço de entrada única (Single-Entry Balance) para um Ledger de Partidas Dobradas estrito (Strict Double-Entry Ledger) com as seguintes fundações:
+  - Criação do modelo `LedgerAccount` para controle de plano de contas (Chart of Accounts) com tipos estritos (`ASSET`, `LIABILITY`, `EQUITY`, `INCOME`, `EXPENSE`, `SHADOW_CLAIM`) e suporte a moedas e mapeamentos diretos (`Account` e `Category`).
+  - Implementação do `JournalEntry` como agregador atômico de lançamentos contábeis vinculados a datas, descrições e transações originais para compatibilidade de migração.
+  - Implementação do `LedgerPosting` para representar as partidas de débito (`DR`) e crédito (`CR`) individuais com controle de conciliação e compensação por status (`PENDING`, `CLEARED`) para a "Clearing House" de cartões de crédito.
+- Backend: Geração da migração de schema e aplicação da nova estrutura de dados de forma não destrutiva.
+
+
 ## [1.111.00] - 2026-06-15
 
 ### Added
