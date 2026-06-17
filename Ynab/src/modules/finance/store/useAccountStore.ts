@@ -838,7 +838,7 @@ export const useAccountStore = create<AccountState>()(
 
       getAccountName: (id) => {
         const acc = get().getAccount(id);
-        return acc ? acc.name : "Conta";
+        return acc?.name || "Conta";
       },
 
       getCategoryName: (id) => {
@@ -847,7 +847,7 @@ export const useAccountStore = create<AccountState>()(
         const findCategory = (nodes: CategoryNode[]): string | undefined => {
           if (!Array.isArray(nodes)) return undefined;
           for (const node of nodes) {
-            if (node && String(node.id) === idStr) return node.name;
+            if (node && String(node.id) === idStr) return node?.name;
             if (node && Array.isArray(node.children)) {
               const name = findCategory(node.children);
               if (name) return name;
