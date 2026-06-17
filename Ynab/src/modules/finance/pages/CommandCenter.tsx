@@ -5,7 +5,7 @@ import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { useAssetStore } from "@/modules/finance/store/useAssetStore";
 import { useDebtStore } from "@/modules/finance/store/useDebtStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
-import { Wallet, ArrowRightLeft, Clock, CheckCircle2, ArrowRight } from "lucide-react";
+import { Wallet, ArrowRightLeft, Clock, CheckCircle2, ArrowRight, Landmark, CreditCard, Plus } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Progress } from "@/shared/components/ui/progress";
 import { NetWorthHeader } from "@/modules/finance/components/NetWorthHeader";
@@ -14,6 +14,7 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/shared/lib/utils";
 import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 
 const CommandCenter = () => {
   const { 
@@ -108,61 +109,126 @@ const CommandCenter = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
-          {/* 3. MAIN GRID (70%): The Operating Ledger (Envelopes) */}
+                    {/* 3. MAIN AREA (70%): Tabs for Ledger vs Physical Accounts */}
           <div className="lg:col-span-8 flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-foreground">Livro Razão Operacional</h3>
-            </div>
-            
-            <div className="flex flex-col gap-4">
-              {categoryGroups.map((group) => (
-                <div key={group.id} className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
-                  <div className="bg-muted/20 px-4 py-3 border-b border-border/40">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{group.name}</h4>
-                  </div>
-                  <div className="divide-y divide-border/40">
-                    {group.children?.map((cat) => {
-                      const available = (cat.assigned_amount || 0) - (cat.spent_amount || 0);
-                      const isOverspent = available < 0;
-                      const progressPct = cat.assigned_amount > 0 ? Math.min(100, ((cat.spent_amount || 0) / cat.assigned_amount) * 100) : 0;
+            <Tabs defaultValue="ledger" className="w-full flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <TabsList className="bg-card/40 border border-border/60 backdrop-blur-md p-1 h-11 rounded-xl">
+                  <TabsTrigger value="ledger" className="rounded-lg text-xs font-bold uppercase tracking-wider data-[state=active]:bg-emerald-500/20 data-[state=active]:text-emerald-500">
+                    Livro Razão (Envelopes)
+                  </TabsTrigger>
+                  <TabsTrigger value="accounts" className="rounded-lg text-xs font-bold uppercase tracking-wider data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
+                    Contas Físicas
+                  </TabsTrigger>
+                </TabsList>
+              </div>
 
-                      return (
-                        <div key={cat.id} className={cn("p-4 transition-colors hover:bg-muted/10 group", isOverspent && "bg-rose-500/5")}>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-foreground">{cat.name}</span>
-                            <span className={cn("text-sm font-bold font-mono", isOverspent ? "text-rose-400" : "text-emerald-400")}>
-                              {formatMoney(available, baseCurrency)}
-                            </span>
+              {/* TAB 1: OPERATING LEDGER (Envelopes) */}
+              <TabsContent value="ledger" className="flex flex-col gap-4 mt-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {categoryGroups.map((group) => (
+                  <div key={group.id} className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
+                    <div className="bg-muted/20 px-4 py-3 border-b border-border/40">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{group.name}</h4>
+                    </div>
+                    <div className="divide-y divide-border/40">
+                      {group.children?.map((cat) => {
+                        const available = (cat.assigned_amount || 0) - (cat.spent_amount || 0);
+                        const isOverspent = available < 0;
+                        const progressPct = cat.assigned_amount > 0 ? Math.min(100, ((cat.spent_amount || 0) / cat.assigned_amount) * 100) : 0;
+
+                        return (
+                          <div key={cat.id} className={cn("p-4 transition-colors hover:bg-muted/10 group", isOverspent && "bg-rose-500/5")}>
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-semibold text-foreground">{cat.name}</span>
+                              <span className={cn("text-sm font-bold font-mono", isOverspent ? "text-rose-400" : "text-emerald-400")}>
+                                {formatMoney(available, baseCurrency)}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2 font-mono">
+                              <span>Alocado: {formatMoney(cat.assigned_amount || 0, baseCurrency)}</span>
+                              <span>Gasto: {formatMoney(cat.spent_amount || 0, baseCurrency)}</span>
+                            </div>
+                            <div className="relative h-1.5 w-full rounded-full bg-muted/40 overflow-hidden mb-3">
+                              <div 
+                                className={cn("h-full rounded-full transition-all duration-700", isOverspent ? "bg-rose-500" : "bg-emerald-500")}
+                                style={{ width: `${Math.max(progressPct, isOverspent ? 100 : 0)}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoveMoneyModal
+                                sourceCategory={cat}
+                                currentAvailable={available}
+                                trigger={
+                                  <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold gap-1 rounded-lg hover:bg-primary/10 hover:text-primary">
+                                    <ArrowRightLeft className="h-3 w-3" /> Mover Dinheiro
+                                  </Button>
+                                }
+                              />
+                            </div>
                           </div>
-                          <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2 font-mono">
-                            <span>Alocado: {formatMoney(cat.assigned_amount || 0, baseCurrency)}</span>
-                            <span>Gasto: {formatMoney(cat.spent_amount || 0, baseCurrency)}</span>
-                          </div>
-                          <div className="relative h-1.5 w-full rounded-full bg-muted/40 overflow-hidden mb-3">
-                            <div 
-                              className={cn("h-full rounded-full transition-all duration-700", isOverspent ? "bg-rose-500" : "bg-emerald-500")}
-                              style={{ width: `${Math.max(progressPct, isOverspent ? 100 : 0)}%` }}
-                            />
-                          </div>
-                          <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <MoveMoneyModal
-                              sourceCategory={cat}
-                              currentAvailable={available}
-                              trigger={
-                                <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold gap-1 rounded-lg hover:bg-primary/10 hover:text-primary">
-                                  <ArrowRightLeft className="h-3 w-3" /> Mover Dinheiro
-                                </Button>
-                              }
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </TabsContent>
+
+              {/* TAB 2: PHYSICAL ACCOUNTS (Redesigned) */}
+              <TabsContent value="accounts" className="flex flex-col gap-6 mt-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {tree.map((group) => (
+                  <div key={group.id} className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between px-1">
+                      <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{group.name}</h4>
+                      <Button variant="ghost" size="sm" className="h-6 text-[10px] text-primary hover:bg-primary/10 hover:text-primary px-2 rounded-md">
+                        <Plus className="h-3 w-3 mr-1" /> Adicionar
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {group.children?.map((acc) => (
+                        <div 
+                          key={acc.id} 
+                          className="group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/60 to-muted/20 backdrop-blur-md p-5 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_20px_rgba(var(--primary),0.1)] hover:-translate-y-0.5 cursor-pointer"
+                        >
+                          <div className="flex justify-between items-start mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-xl bg-background/50 border border-border/50 flex items-center justify-center shadow-inner overflow-hidden">
+                                {acc.icon_url ? (
+                                  <img src={acc.icon_url} alt={acc.name} className="h-6 w-6 object-contain" />
+                                ) : acc.account_type === 'credit_card' ? (
+                                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                                ) : (
+                                  <Landmark className="h-5 w-5 text-muted-foreground" />
+                                )}
+                              </div>
+                              <div>
+                                <h5 className="text-sm font-bold text-foreground">{acc.name}</h5>
+                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                  {acc.account_type === 'credit_card' ? 'Cartão de Crédito' : 'Conta Corrente'}
+                                </p>
+                              </div>
+                            </div>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-background/50">
+                              <ArrowRight className="h-4 w-4 text-primary" />
+                            </Button>
+                          </div>
+                          
+                          <div className="mt-2">
+                            <p className="text-xs text-muted-foreground mb-1">Saldo Atual</p>
+                            <p className="text-2xl font-black font-mono tracking-tight text-foreground">
+                              {formatMoney(acc.actual_balance || 0, acc.currency || baseCurrency)}
+                            </p>
+                          </div>
+                          
+                          {/* Subtle decorative glow */}
+                          <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl group-hover:bg-primary/10 transition-colors" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* 4. RIGHT SIDEBAR (30%): The Clearing House */}
