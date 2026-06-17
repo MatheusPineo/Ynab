@@ -5,7 +5,7 @@ import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { useAssetStore } from "@/modules/finance/store/useAssetStore";
 import { useDebtStore } from "@/modules/finance/store/useDebtStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
-import { Wallet, ArrowRightLeft, Clock, CheckCircle2, ArrowRight, Landmark, CreditCard, Plus, Wifi } from "lucide-react";
+import { Wallet, ArrowRightLeft, Clock, CheckCircle2, ArrowRight, Landmark, CreditCard, Plus, Wifi, MoreVertical, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Progress } from "@/shared/components/ui/progress";
 import { NetWorthHeader } from "@/modules/finance/components/NetWorthHeader";
@@ -15,6 +15,8 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/shared/lib/utils";
 import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import { AddAccountModal } from "@/modules/finance/components/AddAccountModal";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/components/ui/dropdown-menu";
 
 const CommandCenter = () => {
   const { 
@@ -173,76 +175,130 @@ const CommandCenter = () => {
                 ))}
               </TabsContent>
 
-              {/* TAB 2: PHYSICAL ACCOUNTS (Digital Wallet / Credit Card Design) */}
+              {/* TAB 2: PHYSICAL ACCOUNTS (Premium Digital Wallet with Operations) */}
               <TabsContent value="accounts" className="flex flex-col gap-6 mt-4 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {tree.map((group) => {
-                    const accountsToRender = group.children && group.children.length > 0 ? group.children : [group];
+                
+                {/* Operational Header: Create Account */}
+                <div className="flex justify-end items-center px-1">
+                  <AddAccountModal 
+                    trigger={
+                      <Button className="gradient-primary text-xs font-bold rounded-xl h-9 px-4 shadow-glow flex items-center gap-1.5">
+                        <Plus className="h-4 w-4" /> Adicionar Conta
+                      </Button>
+                    }
+                  />
+                </div>
 
+                {/* Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {tree.flatMap((group) => {
+                    const accountsToRender = group.children && group.children.length > 0 ? group.children : [group];
+                    
                     return accountsToRender.map((acc) => {
-                      // Dynamic Icon from Google Favicon API or stored URL
-                      const bankDomain = (acc as any).bank_domain || '';
-                      const iconSrc = acc.icon_url || (bankDomain ? `https://www.google.com/s2/favicons?domain=${bankDomain}&sz=128` : null);
+                      // Safely skip rendering if it's an empty group placeholder
+                      if (!acc.id && !acc.name) return null;
+
+                      // Google Favicon URL Generation
+                      const domain = acc.bank_domain || (acc as any).domain || '';
+                      const iconSrc = acc.icon_url || (domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : null);
                       
-                      // Fallback logic for premium bank colors if the DB doesn't provide acc.color
+                      // Premium High-Fidelity Bank Palette Mapping
                       const getBankColor = (name: string) => {
                          const n = name?.toLowerCase() || '';
                          if (n.includes('nubank')) return '#8A05BE';
                          if (n.includes('novo banco') || n.includes('novobanco')) return '#007A65';
-                         if (n.includes('tesouro')) return '#005CA9';
-                         if (n.includes('doracy') || n.includes('miguel')) return '#475569'; // slate for loans
-                         return '#1e293b'; // default slate-800
+                         if (n.includes('cgd') || n.includes('caixa geral')) return '#005CA9';
+                         if (n.includes('revolut')) return '#111827';
+                         if (n.includes('trade republic')) return '#000000';
+                         if (n.includes('activobank') || n.includes('activo bank')) return '#10B981';
+                         if (n.includes('santander')) return '#EC0000';
+                         if (n.includes('itau') || n.includes('itaú')) return '#EC7000';
+                         if (n.includes('inter')) return '#FF7A00';
+                         if (n.includes('bradesco')) return '#CC092F';
+                         return '#1E293B'; // Premium Dark Slate default
                       };
                       
                       const cardColor = (acc as any).color || getBankColor(acc.name);
 
                       return (
                         <div 
-                          key={acc.id} 
-                          className="relative overflow-hidden rounded-2xl p-5 shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer flex flex-col justify-between min-h-[200px] border border-white/10 group"
+                          key={acc.id || Math.random()} 
+                          className="relative overflow-hidden rounded-2xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col justify-between min-h-[200px] border border-white/10 group select-none"
                           style={{
-                            background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)`
+                            background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}bf 100%)`
                           }}
                         >
-                          {/* Ambient Lighting & Glass Overlay */}
+                          {/* Glass & Glossy Overlays */}
                           <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 rounded-full bg-white/10 blur-3xl transition-opacity group-hover:bg-white/20"></div>
-                          <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/20 to-transparent"></div>
+                          <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
 
-                          {/* Top Section: Icon & Bank Name */}
-                          <div className="relative z-10 flex justify-between items-start">
-                            <div className="flex items-center gap-3">
-                              <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center p-2 shadow-inner border border-white/30">
+                          {/* Top Row: Circular Icon, Name, and Operations Dropdown */}
+                          <div className="relative z-10 flex justify-between items-start w-full">
+                            <div className="flex items-center gap-3 min-w-0">
+                              {/* FORCE PERFECT CIRCLE: flex-shrink-0, aspect-square, hidden overflow */}
+                              <div className="h-11 w-11 rounded-full bg-white flex-shrink-0 aspect-square flex items-center justify-center p-1.5 shadow-md border border-white/40 overflow-hidden">
                                 {iconSrc ? (
-                                  <img src={iconSrc} alt={acc.name} className="h-full w-full object-contain drop-shadow-sm rounded-full" />
+                                  <img 
+                                    src={iconSrc} 
+                                    alt="" 
+                                    className="h-full w-full object-contain rounded-full flex-shrink-0 aspect-square" 
+                                    onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+                                  />
+                                ) : acc.account_type === 'credit_card' ? (
+                                  <CreditCard className="h-5 w-5 text-slate-700" />
                                 ) : (
-                                  <Landmark className="h-6 w-6 text-white drop-shadow-sm" />
+                                  <Landmark className="h-5 w-5 text-slate-700" />
                                 )}
                               </div>
-                              <span className="text-white font-bold text-sm tracking-wider drop-shadow-md max-w-[140px] leading-tight text-left">
-                                {acc.name}
-                              </span>
+                              <div className="flex flex-col min-w-0">
+                                <span className="text-white font-black text-sm tracking-wide drop-shadow truncate leading-tight text-left">
+                                  {acc.name}
+                                </span>
+                                <span className="text-white/60 text-[9px] uppercase tracking-widest mt-0.5 text-left">
+                                  {acc.account_type === 'credit_card' ? 'Cartão de Crédito' : 'Conta Corrente'}
+                                </span>
+                              </div>
                             </div>
-                            {/* NFC / Contactless Icon */}
-                            <Wifi className="h-6 w-6 text-white/50 rotate-90" />
+
+                            {/* Management Context Menu */}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white hover:bg-white/10 opacity-60 group-hover:opacity-100 transition-opacity">
+                                  <MoreVertical className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="glass border-border/60 min-w-[140px]">
+                                <DropdownMenuItem className="text-xs font-semibold gap-2 cursor-pointer hover:bg-primary/10">
+                                  <Edit2 className="h-3 w-3 text-primary" /> Editar Conta
+                                </DropdownMenuItem>
+                                <DropdownMenuItem className="text-xs font-semibold gap-2 text-rose-400 focus:text-rose-400 cursor-pointer hover:bg-rose-500/10">
+                                  <Trash2 className="h-3 w-3" /> Excluir Conta
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
 
-                          {/* Bottom Section: Balance & Mock Chip */}
-                          <div className="relative z-10 mt-8 flex justify-between items-end">
-                            <div className="text-left">
-                              <p className="text-white/70 text-[9px] font-bold uppercase tracking-widest mb-1 text-left">Saldo Atual</p>
-                              <p className="text-white text-2xl font-black font-mono tracking-tight drop-shadow-md text-left">
+                          {/* Bottom Row: Balance & Simulated Smart Chip */}
+                          <div className="relative z-10 mt-6 flex justify-between items-end w-full">
+                            <div className="min-w-0 text-left">
+                              <p className="text-white/60 text-[8px] font-bold uppercase tracking-widest mb-0.5 text-left">Saldo Disponível</p>
+                              <p className="text-white text-2xl font-black font-mono tracking-tight drop-shadow-md truncate text-left">
                                 {formatMoney(acc.balance || 0, acc.currency || baseCurrency)}
                               </p>
                             </div>
-                            {/* Mock Credit Card Chip */}
-                            <div className="h-7 w-9 border border-white/20 rounded bg-white/10 flex items-center justify-center backdrop-blur-sm opacity-80">
-                              <div className="h-4 w-5 border border-white/30 rounded-sm"></div>
+                            
+                            {/* Credit Card Gold/Silver Chip Geometry */}
+                            <div className="h-7 w-9 border border-white/30 rounded bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center backdrop-blur-sm shadow-inner opacity-75 flex-shrink-0">
+                              <div className="h-4 w-5 border border-white/20 rounded-sm grid grid-cols-2 opacity-60">
+                                <div className="border-r border-b border-white/20"></div>
+                                <div className="border-b border-white/20"></div>
+                              </div>
                             </div>
                           </div>
                         </div>
                       );
                     });
-                  })}
+                  }).filter(Boolean)}
                 </div>
               </TabsContent>
             </Tabs>
