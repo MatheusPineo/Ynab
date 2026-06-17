@@ -7,7 +7,7 @@ Todas as mudanças de engenharia relevantes para o projeto serão registradas ne
 ### Alterado
 - **Contas Físicas (`src/modules/finance/pages/CommandCenter.tsx`):**
   - Removido o chip simulado de cartão de crédito das contas.
-  - Refatorado o layout da linha do topo dos cartões utilizando flexbox (`flex-1`, `pr-2`, `gap-2`) para corrigir truncamentos e sobreposição de textos com o menu de opções.
+  - Refatorado o layout da linha do topo dos cartões utilizando flexbox (`flex-1`, `pr-2`, `gap-2`) e substituído o truncamento precoce (`truncate`) por quebra de linha flexível de até 2 linhas (`line-clamp-2`) para corrigir a sobreposição e corte precoce de nomes.
   - Reativado o modal de criação de contas `<AddAccountModal>` após as correções defensivas.
 
 ### Corrigido

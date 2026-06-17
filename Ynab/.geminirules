@@ -3,7 +3,7 @@
 ## Última Atualização
 - **Data:** 18 de Junho de 2026
 - **Status da Aplicação:** Estável, compilando com sucesso (`npm run build` bem-sucedido) e UI 100% restaurada com o modal reativado. Versão `1.112.00`.
-- **Funcionalidade Implementada:** Refinamento estético das Contas Físicas (remoção do chip, correção de truncamento de texto com flexbox) no CommandCenter.tsx e reativação segura do AddAccountModal.tsx após implementar Optional Chaining estrito contra erros de propriedades nulas/indefinidas.
+- **Funcionalidade Implementada:** Refinamento estético das Contas Físicas (remoção do chip, correção definitiva de truncamento de nomes com line-clamp-2 e flexbox) no CommandCenter.tsx e reativação segura do AddAccountModal.tsx após implementar Optional Chaining estrito contra erros de propriedades nulas/indefinidas.
 
 ## Estrutura de Documentação de Governança
 - **Técnica:** [README.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/README.md) e [ARCHITECTURE.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/ARCHITECTURE.md) atualizados.

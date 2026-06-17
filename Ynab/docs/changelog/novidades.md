@@ -8,7 +8,7 @@ Fizemos ajustes de design importantes na aba de Contas Físicas do Centro de Com
 
 ### O que mudou?
 - **Limpeza no Visual dos Cartões:** Removemos o chip simulado dos cartões/contas físicas para deixar a interface mais minimalista, moderna e limpa.
-- **Correção de Textos Cortados:** Ajustamos os espaçamentos internos para garantir que os nomes das contas não se sobreponham ao menu de três pontinhos em nenhuma resolução de tela.
+- **Correção Definitiva de Nomes Cortados:** Substituímos o truncamento rígido que cortava nomes curtos (como "Nubank" e "Novo Banco") por uma exibição em até duas linhas (`line-clamp-2`), garantindo visibilidade total sem quebras prematuras ou sobreposição com os botões de controle.
 - **Reativação Segura do Modal de Cadastro:** O modal de criação de contas ("Adicionar Conta") foi devidamente corrigido internamente para evitar crashes no sistema e está 100% ativo novamente para uso.
 
 ## 🛠️ Restauração do Painel Principal e Manutenção de Contas Físicas (17/06/2026)

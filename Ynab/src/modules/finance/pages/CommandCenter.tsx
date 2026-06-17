@@ -255,7 +255,7 @@ const CommandCenter = () => {
                                 )}
                               </div>
                               <div className="flex flex-col min-w-0 flex-1 pr-2">
-                                <span className="text-white font-black text-sm tracking-wide drop-shadow truncate leading-tight text-left">
+                                <span className="text-white font-black text-sm tracking-wide drop-shadow leading-tight text-left line-clamp-2">
                                   {accName}
                                 </span>
                                 <span className="text-white/60 text-[9px] uppercase tracking-widest mt-0.5 text-left">
