@@ -83,7 +83,7 @@ export const NetWorthHeader = ({ base, onBaseChange, customTotal }: Props) => {
       {/* Per-currency breakdown */}
       <div className="relative mt-4 sm:mt-6 grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
         {(Object.entries(byCurrency) as [any, number][])
-          .filter(([, v]) => v > 0)
+          .filter(([, v]) => v !== 0)
           .map(([cur, value]) => (
             <div
               key={cur}
