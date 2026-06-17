@@ -58,8 +58,11 @@ const CommandCenter = () => {
 
   // Pending Clearing Calculations
   const pendingTotal = useMemo(() => {
-    return globalPendingTransactions.reduce((acc, t) => acc + (!t.is_income ? Math.abs(Number(t.amount)) : 0), 0);
-  }, [globalPendingTransactions]);
+    return globalPendingTransactions.reduce((acc, t) => {
+      const amt = !t.is_income ? Math.abs(Number(t.amount)) : 0;
+      return acc + convert(amt, (t.currency || baseCurrency) as any, baseCurrency);
+    }, 0);
+  }, [globalPendingTransactions, convert, baseCurrency]);
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -183,7 +186,7 @@ const CommandCenter = () => {
                   <div key={t.id} className="p-3 rounded-xl border border-border/40 bg-card/60 hover:border-amber-500/30 transition-colors">
                     <div className="flex justify-between items-start mb-1">
                       <p className="text-xs font-semibold text-foreground truncate pr-2">{t.description}</p>
-                      <p className="text-xs font-bold text-rose-400 font-mono shrink-0">-{formatMoney(Math.abs(Number(t.amount)), baseCurrency)}</p>
+                      <p className="text-xs font-bold text-rose-400 font-mono shrink-0">-{formatMoney(Math.abs(Number(t.amount)), t.currency || baseCurrency)}</p>
                     </div>
                     <div className="flex justify-between items-center mt-2">
                       <span className="text-[9px] text-muted-foreground">
