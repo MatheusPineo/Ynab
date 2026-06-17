@@ -33,7 +33,7 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    addNode(parentAccount.id, {
+    addNode(parentAccount?.id || "root", {
       name: formData.get("name") as string,
       balance: balance,
       base: balance, // Default target to same as initial balance
@@ -42,7 +42,7 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
       bank_domain: (formData.get("bank_domain") as string) || ""
     });
 
-    toast.success(`Sub-conta criada em "${parentAccount.name}"`);
+    toast.success(`Sub-conta criada em "${parentAccount?.name || 'Conta'}"`);
     setExcludeFromTotals(false);
     setBalance(0);
     setOpen(false);
@@ -59,7 +59,7 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] glass border-border/60 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Sub-conta em {parentAccount.name}</DialogTitle>
+          <DialogTitle>Nova Sub-conta em {parentAccount?.name || 'Conta'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid gap-2">
@@ -79,7 +79,7 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
 
           <div className="grid gap-2">
             <Label htmlFor="currency">Moeda</Label>
-            <Select name="currency" defaultValue={parentAccount.currency || "EUR"}>
+            <Select name="currency" defaultValue={parentAccount?.currency || "EUR"}>
               <SelectTrigger className="bg-background/50 border-border/60 rounded-xl">
                 <SelectValue placeholder="Selecione a moeda" />
               </SelectTrigger>

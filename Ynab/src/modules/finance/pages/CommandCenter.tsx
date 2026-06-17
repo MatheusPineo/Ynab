@@ -15,6 +15,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/shared/lib/utils";
 import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
+import { AddAccountModal } from "@/modules/finance/components/AddAccountModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/components/ui/dropdown-menu";
 
 const CommandCenter = () => {
@@ -183,9 +184,13 @@ const CommandCenter = () => {
                 
                 {/* Operational Header: Create Account */}
                 <div className="flex justify-end items-center px-1">
-                  <Button onClick={() => alert('Modal de Criação desativado temporariamente para manutenção.')} className="gradient-primary text-xs font-bold rounded-xl h-9 px-4 shadow-glow flex items-center gap-1.5">
-                    <Plus className="h-4 w-4" /> Adicionar Conta
-                  </Button>
+                  <AddAccountModal 
+                    trigger={
+                      <Button className="gradient-primary text-xs font-bold rounded-xl h-9 px-4 shadow-glow flex items-center gap-1.5">
+                        <Plus className="h-4 w-4" /> Adicionar Conta
+                      </Button>
+                    }
+                  />
                 </div>
 
                 {/* Cards Grid */}
@@ -232,8 +237,8 @@ const CommandCenter = () => {
                           <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
 
                           {/* Top Row: Circular Icon, Name, and Operations Dropdown */}
-                          <div className="relative z-10 flex justify-between items-start w-full">
-                            <div className="flex items-center gap-3 min-w-0">
+                          <div className="relative z-10 flex justify-between items-start w-full gap-2">
+                            <div className="flex items-center gap-3 min-w-0 flex-1">
                               {/* FORCE PERFECT CIRCLE: flex-shrink-0, aspect-square, hidden overflow */}
                               <div className="h-11 w-11 rounded-full bg-white flex-shrink-0 aspect-square flex items-center justify-center p-1.5 shadow-md border border-white/40 overflow-hidden">
                                 {iconSrc ? (
@@ -249,7 +254,7 @@ const CommandCenter = () => {
                                   <Landmark className="h-5 w-5 text-slate-700" />
                                 )}
                               </div>
-                              <div className="flex flex-col min-w-0">
+                              <div className="flex flex-col min-w-0 flex-1 pr-2">
                                 <span className="text-white font-black text-sm tracking-wide drop-shadow truncate leading-tight text-left">
                                   {accName}
                                 </span>
@@ -277,21 +282,13 @@ const CommandCenter = () => {
                             </DropdownMenu>
                           </div>
 
-                          {/* Bottom Row: Balance & Simulated Smart Chip */}
+                          {/* Bottom Row: Balance */}
                           <div className="relative z-10 mt-6 flex justify-between items-end w-full">
                             <div className="min-w-0 text-left">
                               <p className="text-white/60 text-[8px] font-bold uppercase tracking-widest mb-0.5 text-left">Saldo Disponível</p>
                               <p className="text-white text-2xl font-black font-mono tracking-tight drop-shadow-md truncate text-left">
                                 {formatMoney(acc?.balance || 0, acc?.currency || baseCurrency)}
                               </p>
-                            </div>
-                            
-                            {/* Credit Card Gold/Silver Chip Geometry */}
-                            <div className="h-7 w-9 border border-white/30 rounded bg-gradient-to-br from-white/20 to-white/5 flex items-center justify-center backdrop-blur-sm shadow-inner opacity-75 flex-shrink-0">
-                              <div className="h-4 w-5 border border-white/20 rounded-sm grid grid-cols-2 opacity-60">
-                                <div className="border-r border-b border-white/20"></div>
-                                <div className="border-b border-white/20"></div>
-                              </div>
                             </div>
                           </div>
                         </div>

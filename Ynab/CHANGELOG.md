@@ -2,6 +2,18 @@
 
 Todas as mudanças de engenharia relevantes para o projeto serão registradas neste arquivo.
 
+## [1.112.00] - 2026-06-18
+
+### Alterado
+- **Contas Físicas (`src/modules/finance/pages/CommandCenter.tsx`):**
+  - Removido o chip simulado de cartão de crédito das contas.
+  - Refatorado o layout da linha do topo dos cartões utilizando flexbox (`flex-1`, `pr-2`, `gap-2`) para corrigir truncamentos e sobreposição de textos com o menu de opções.
+  - Reativado o modal de criação de contas `<AddAccountModal>` após as correções defensivas.
+
+### Corrigido
+- **Componente de Cadastro (`src/modules/finance/components/AddAccountModal.tsx`):**
+  - Adicionado optional chaining estrito (`parentAccount?.id`, `parentAccount?.name`, `parentAccount?.currency`) para evitar quebras por `undefined` na renderização e submissão.
+
 ## [1.111.00] - 2026-06-17
 
 ### Corrigido

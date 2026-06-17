@@ -1,9 +1,9 @@
 # MEMÓRIA DE DESENVOLVIMENTO E STATUS
 
 ## Última Atualização
-- **Data:** 17 de Junho de 2026
-- **Status da Aplicação:** Estável, compilando com sucesso (`npm run build` bem-sucedido) e UI restaurada. Versão `1.111.00`.
-- **Funcionalidade Implementada:** Remoção do depurador de dados puros (Pure Data Extractor Hijack) do CommandCenter.tsx e substituição temporária do componente problemático `<AddAccountModal>` por um botão nativo com aviso de manutenção para evitar crash por Error Boundary.
+- **Data:** 18 de Junho de 2026
+- **Status da Aplicação:** Estável, compilando com sucesso (`npm run build` bem-sucedido) e UI 100% restaurada com o modal reativado. Versão `1.112.00`.
+- **Funcionalidade Implementada:** Refinamento estético das Contas Físicas (remoção do chip, correção de truncamento de texto com flexbox) no CommandCenter.tsx e reativação segura do AddAccountModal.tsx após implementar Optional Chaining estrito contra erros de propriedades nulas/indefinidas.
 
 ## Estrutura de Documentação de Governança
 - **Técnica:** [README.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/README.md) e [ARCHITECTURE.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/ARCHITECTURE.md) atualizados.

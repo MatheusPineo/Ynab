@@ -2,6 +2,15 @@
 
 Fique por dentro das últimas melhorias e novos fluxos do sistema criados especialmente para otimizar sua experiência financeira.
 
+## 💎 Ajustes Visuais nas Contas Físicas e Retorno do Modal de Criação (18/06/2026)
+
+Fizemos ajustes de design importantes na aba de Contas Físicas do Centro de Comando e restabelecemos a possibilidade de adicionar contas com total estabilidade.
+
+### O que mudou?
+- **Limpeza no Visual dos Cartões:** Removemos o chip simulado dos cartões/contas físicas para deixar a interface mais minimalista, moderna e limpa.
+- **Correção de Textos Cortados:** Ajustamos os espaçamentos internos para garantir que os nomes das contas não se sobreponham ao menu de três pontinhos em nenhuma resolução de tela.
+- **Reativação Segura do Modal de Cadastro:** O modal de criação de contas ("Adicionar Conta") foi devidamente corrigido internamente para evitar crashes no sistema e está 100% ativo novamente para uso.
+
 ## 🛠️ Restauração do Painel Principal e Manutenção de Contas Físicas (17/06/2026)
 
 Restauramos com sucesso a interface de usuário do Centro de Comando que estava impedida de carregar devido a um conflito no componente de criação de novas contas.
