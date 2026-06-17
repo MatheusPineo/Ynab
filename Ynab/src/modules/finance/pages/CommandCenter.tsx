@@ -67,6 +67,26 @@ const CommandCenter = () => {
     }, 0);
   }, [globalPendingTransactions, convert, baseCurrency]);
 
+  // 🛑 PURE DATA EXTRACTOR HIJACK 🛑
+  // This bypasses the UI completely to expose corrupted null nodes.
+  return (
+    <div className="bg-slate-950 text-emerald-400 font-mono text-[10px] sm:text-xs p-4 sm:p-8 min-h-screen w-full overflow-auto absolute top-0 left-0 z-[9999]">
+      <h1 className="text-lg sm:text-xl font-black text-rose-500 mb-6 border-b border-rose-500/30 pb-2">
+        ⚠️ EXTRATOR DE DADOS PUROS ATIVADO
+      </h1>
+      
+      <h2 className="text-white font-bold mb-2">1. Árvore de Contas Físicas (tree):</h2>
+      <pre className="mb-8 bg-black p-4 rounded-xl border border-emerald-500/30 whitespace-pre-wrap break-all shadow-inner text-left">
+        {JSON.stringify(tree, null, 2)}
+      </pre>
+
+      <h2 className="text-white font-bold mb-2">2. Livro Razão Operacional (categoryGroups):</h2>
+      <pre className="mb-8 bg-black p-4 rounded-xl border border-emerald-500/30 whitespace-pre-wrap break-all shadow-inner text-left">
+        {JSON.stringify(categoryGroups, null, 2)}
+      </pre>
+    </div>
+  );
+
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="flex flex-col gap-6 pb-10 animate-in fade-in duration-500">
