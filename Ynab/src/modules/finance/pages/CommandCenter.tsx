@@ -127,52 +127,56 @@ const CommandCenter = () => {
 
               {/* TAB 1: OPERATING LEDGER (Envelopes) */}
               <TabsContent value="ledger" className="flex flex-col gap-4 mt-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
-                {categoryGroups.map((group) => (
-                  <div key={group.id} className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
-                    <div className="bg-muted/20 px-4 py-3 border-b border-border/40">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{group.name}</h4>
-                    </div>
-                    <div className="divide-y divide-border/40">
-                      {group.children?.map((cat) => {
-                        const available = (cat.assigned_amount || 0) - (cat.spent_amount || 0);
-                        const isOverspent = available < 0;
-                        const progressPct = cat.assigned_amount > 0 ? Math.min(100, ((cat.spent_amount || 0) / cat.assigned_amount) * 100) : 0;
+                {categoryGroups?.map((group) => {
+                  if (!group) return null;
+                  return (
+                    <div key={group?.id || Math.random()} className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
+                      <div className="bg-muted/20 px-4 py-3 border-b border-border/40">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{group?.name || 'Grupo'}</h4>
+                      </div>
+                      <div className="divide-y divide-border/40">
+                        {group?.children?.map((cat) => {
+                          if (!cat) return null;
+                          const available = (cat?.assigned_amount || 0) - (cat?.spent_amount || 0);
+                          const isOverspent = available < 0;
+                          const progressPct = (cat?.assigned_amount || 0) > 0 ? Math.min(100, ((cat?.spent_amount || 0) / cat.assigned_amount) * 100) : 0;
 
-                        return (
-                          <div key={cat.id} className={cn("p-4 transition-colors hover:bg-muted/10 group", isOverspent && "bg-rose-500/5")}>
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-semibold text-foreground">{cat.name}</span>
-                              <span className={cn("text-sm font-bold font-mono", isOverspent ? "text-rose-400" : "text-emerald-400")}>
-                                {formatMoney(available, baseCurrency)}
-                              </span>
+                          return (
+                            <div key={cat?.id || Math.random()} className={cn("p-4 transition-colors hover:bg-muted/10 group", isOverspent && "bg-rose-500/5")}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-sm font-semibold text-foreground">{cat?.name || 'Categoria'}</span>
+                                <span className={cn("text-sm font-bold font-mono", isOverspent ? "text-rose-400" : "text-emerald-400")}>
+                                  {formatMoney(available, baseCurrency)}
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2 font-mono">
+                                <span>Alocado: {formatMoney(cat?.assigned_amount || 0, baseCurrency)}</span>
+                                <span>Gasto: {formatMoney(cat?.spent_amount || 0, baseCurrency)}</span>
+                              </div>
+                              <div className="relative h-1.5 w-full rounded-full bg-muted/40 overflow-hidden mb-3">
+                                <div 
+                                  className={cn("h-full rounded-full transition-all duration-700", isOverspent ? "bg-rose-500" : "bg-emerald-500")}
+                                  style={{ width: `${Math.max(progressPct, isOverspent ? 100 : 0)}%` }}
+                                />
+                              </div>
+                              <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoveMoneyModal
+                                  sourceCategory={cat}
+                                  currentAvailable={available}
+                                  trigger={
+                                    <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold gap-1 rounded-lg hover:bg-primary/10 hover:text-primary">
+                                      <ArrowRightLeft className="h-3 w-3" /> Mover Dinheiro
+                                    </Button>
+                                  }
+                                />
+                              </div>
                             </div>
-                            <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2 font-mono">
-                              <span>Alocado: {formatMoney(cat.assigned_amount || 0, baseCurrency)}</span>
-                              <span>Gasto: {formatMoney(cat.spent_amount || 0, baseCurrency)}</span>
-                            </div>
-                            <div className="relative h-1.5 w-full rounded-full bg-muted/40 overflow-hidden mb-3">
-                              <div 
-                                className={cn("h-full rounded-full transition-all duration-700", isOverspent ? "bg-rose-500" : "bg-emerald-500")}
-                                style={{ width: `${Math.max(progressPct, isOverspent ? 100 : 0)}%` }}
-                              />
-                            </div>
-                            <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MoveMoneyModal
-                                sourceCategory={cat}
-                                currentAvailable={available}
-                                trigger={
-                                  <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold gap-1 rounded-lg hover:bg-primary/10 hover:text-primary">
-                                    <ArrowRightLeft className="h-3 w-3" /> Mover Dinheiro
-                                  </Button>
-                                }
-                              />
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </TabsContent>
 
               {/* TAB 2: PHYSICAL ACCOUNTS (Premium Digital Wallet with Operations) */}
@@ -191,16 +195,16 @@ const CommandCenter = () => {
 
                 {/* Cards Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {tree.flatMap((group) => {
-                    const accountsToRender = group.children && group.children.length > 0 ? group.children : [group];
+                  {tree?.flatMap((group) => {
+                    if (!group) return [];
+                    const accountsToRender = group?.children?.length ? group.children : [group];
                     
                     return accountsToRender.map((acc) => {
-                      // Safely skip rendering if acc is null or undefined, or lacks basic details
-                      if (!acc || (!acc.id && !acc.name)) return null;
-
-                      // Google Favicon URL Generation
-                      const domain = acc.bank_domain || (acc as any).domain || '';
-                      const iconSrc = acc.icon_url || (domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : null);
+                      if (!acc) return null;
+                      
+                      const accName = acc?.name || 'Conta Desconhecida';
+                      const domain = acc?.bank_domain || (acc as any)?.domain || '';
+                      const iconSrc = acc?.icon_url || (domain ? `https://www.google.com/s2/favicons?domain=${domain}&sz=128` : null);
                       
                       // Premium High-Fidelity Bank Palette Mapping
                       const getBankColor = (name: string) => {
@@ -218,11 +222,11 @@ const CommandCenter = () => {
                          return '#1E293B'; // Premium Dark Slate default
                       };
                       
-                      const cardColor = (acc as any).color || getBankColor(acc.name);
+                      const cardColor = acc?.color || getBankColor(accName);
 
                       return (
                         <div 
-                          key={acc.id || Math.random()} 
+                          key={acc?.id || Math.random()} 
                           className="relative overflow-hidden rounded-2xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col justify-between min-h-[200px] border border-white/10 group select-none"
                           style={{
                             background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}bf 100%)`
@@ -244,7 +248,7 @@ const CommandCenter = () => {
                                     className="h-full w-full object-contain rounded-full flex-shrink-0 aspect-square" 
                                     onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
                                   />
-                                ) : acc.account_type === 'credit_card' ? (
+                                ) : acc?.account_type === 'credit_card' ? (
                                   <CreditCard className="h-5 w-5 text-slate-700" />
                                 ) : (
                                   <Landmark className="h-5 w-5 text-slate-700" />
@@ -252,10 +256,10 @@ const CommandCenter = () => {
                               </div>
                               <div className="flex flex-col min-w-0">
                                 <span className="text-white font-black text-sm tracking-wide drop-shadow truncate leading-tight text-left">
-                                  {acc.name}
+                                  {accName}
                                 </span>
                                 <span className="text-white/60 text-[9px] uppercase tracking-widest mt-0.5 text-left">
-                                  {acc.account_type === 'credit_card' ? 'Cartão de Crédito' : 'Conta Corrente'}
+                                  {acc?.account_type === 'credit_card' ? 'Cartão de Crédito' : 'Conta Corrente'}
                                 </span>
                               </div>
                             </div>
@@ -283,7 +287,7 @@ const CommandCenter = () => {
                             <div className="min-w-0 text-left">
                               <p className="text-white/60 text-[8px] font-bold uppercase tracking-widest mb-0.5 text-left">Saldo Disponível</p>
                               <p className="text-white text-2xl font-black font-mono tracking-tight drop-shadow-md truncate text-left">
-                                {formatMoney(acc.balance || 0, acc.currency || baseCurrency)}
+                                {formatMoney(acc?.balance || 0, acc?.currency || baseCurrency)}
                               </p>
                             </div>
                             
