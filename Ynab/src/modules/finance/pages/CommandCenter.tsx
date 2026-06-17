@@ -195,8 +195,8 @@ const CommandCenter = () => {
                     const accountsToRender = group.children && group.children.length > 0 ? group.children : [group];
                     
                     return accountsToRender.map((acc) => {
-                      // Safely skip rendering if it's an empty group placeholder
-                      if (!acc.id && !acc.name) return null;
+                      // Safely skip rendering if acc is null or undefined, or lacks basic details
+                      if (!acc || (!acc.id && !acc.name)) return null;
 
                       // Google Favicon URL Generation
                       const domain = acc.bank_domain || (acc as any).domain || '';
