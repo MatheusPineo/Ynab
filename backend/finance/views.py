@@ -1050,6 +1050,9 @@ class TransactionViewSet(viewsets.ModelViewSet):
                     instance.is_applied_to_balance = False
                 instance._skip_balance_update = True
                 instance.save()
+                # Exclui o JournalEntry associado
+                from .models import JournalEntry
+                JournalEntry.objects.filter(original_transaction=instance).delete()
             elif scope == 'future' and instance.recurring_parent:
                 template = instance.recurring_parent
                 template.recurring_children.filter(date__gte=instance.date).delete()

@@ -321,26 +321,197 @@ class Transaction(models.Model):
             if old_self.is_applied_to_balance and not getattr(self, '_skip_balance_update', False):
                 # Reverte saldo antigo da conta
                 if old_self.is_income:
-                    old_self.account.balance = Decimal(str(old_self.account.balance)) - Decimal(str(old_self.amount))
+                    self.account.balance = Decimal(str(self.account.balance)) - Decimal(str(old_self.amount))
                 else:
-                    old_self.account.balance = Decimal(str(old_self.account.balance)) + Decimal(str(old_self.amount))
-                old_self.account.save()
-                
-                # Sincroniza a instância de conta em memória com o saldo revertido
-                if self.account_id == old_self.account_id:
-                    self.account.balance = old_self.account.balance
+                    self.account.balance = Decimal(str(self.account.balance)) + Decimal(str(old_self.amount))
+                self.account.save()
         
         # 1. Salva a transação atual
         super().save(*args, **kwargs)
         
-        # Ajusta e aplica o HTML/novo saldo na conta
+        # Ajusta e aplica o novo saldo na conta física
         if self.is_applied_to_balance and not getattr(self, '_skip_balance_update', False):
             if self.is_income:
                 self.account.balance = Decimal(str(self.account.balance)) + Decimal(str(self.amount))
             else:
                 self.account.balance = Decimal(str(self.account.balance)) - Decimal(str(self.amount))
             self.account.save()
+        
+        # Lógica de atualização/criação do Ledger (Double-Entry Ledger)
+        if self.is_applied_to_balance or self.status == 'realized':
+            from .models import LedgerAccount, JournalEntry, LedgerPosting
             
+            # Garante a existência do LedgerAccount para a conta
+            source_ledger_acct, _ = LedgerAccount.objects.get_or_create(
+                user=self.account.user,
+                linked_account=self.account,
+                defaults={'name': self.account.name, 'type': 'ASSET', 'currency': self.account.currency}
+            )
+            
+            # Cria ou recupera o JournalEntry vinculado
+            je, created = JournalEntry.objects.get_or_create(
+                original_transaction=self,
+                defaults={
+                    'user': self.account.user,
+                    'date': self.date,
+                    'description': self.description or f"Transação {self.id}",
+                    'created_at': self.created_at
+                }
+            )
+            if not created:
+                je.date = self.date
+                je.description = self.description or f"Transação {self.id}"
+                je.save()
+                # Limpa postings antigos para recriar
+                je.postings.all().delete()
+                
+            user = self.account.user
+            amount = self.amount
+            
+            # Detecção de Transferência
+            is_transfer = False
+            target_account = None
+            if self.payee and self.payee.transfer_acct:
+                is_transfer = True
+                target_account = self.payee.transfer_acct
+            elif self.linked_transfer:
+                is_transfer = True
+                target_account = self.linked_transfer.account
+            elif self.transfer_group:
+                sibling = Transaction.objects.filter(transfer_group=self.transfer_group).exclude(id=self.id).first()
+                if sibling:
+                    is_transfer = True
+                    target_account = sibling.account
+                    
+            if is_transfer and target_account:
+                target_ledger_acct, _ = LedgerAccount.objects.get_or_create(
+                    user=user,
+                    linked_account=target_account,
+                    defaults={'name': target_account.name, 'type': 'ASSET', 'currency': target_account.currency}
+                )
+                
+                # Invertemos de acordo com a direção/sinal
+                # A transação original tem amount positivo. No YNAB, despesa = saída da origem.
+                # Se is_income for False (padrão para transferência enviada), sai da origem (CR) e entra no destino (DR)
+                if not self.is_income:
+                    LedgerPosting.objects.create(
+                        journal_entry=je,
+                        ledger_account=source_ledger_acct,
+                        amount=amount,
+                        direction='CR',
+                        status='CLEARED'
+                    )
+                    LedgerPosting.objects.create(
+                        journal_entry=je,
+                        ledger_account=target_ledger_acct,
+                        amount=amount,
+                        direction='DR',
+                        status='CLEARED'
+                    )
+                else:
+                    LedgerPosting.objects.create(
+                        journal_entry=je,
+                        ledger_account=target_ledger_acct,
+                        amount=amount,
+                        direction='CR',
+                        status='CLEARED'
+                    )
+                    LedgerPosting.objects.create(
+                        journal_entry=je,
+                        ledger_account=source_ledger_acct,
+                        amount=amount,
+                        direction='DR',
+                        status='CLEARED'
+                    )
+                    
+            elif self.is_income:
+                system_income, _ = LedgerAccount.objects.get_or_create(
+                    user=user,
+                    type='INCOME',
+                    name='System Income',
+                    defaults={'currency': 'EUR'}
+                )
+                LedgerPosting.objects.create(
+                    journal_entry=je,
+                    ledger_account=source_ledger_acct,
+                    amount=amount,
+                    direction='DR',
+                    status='CLEARED'
+                )
+                LedgerPosting.objects.create(
+                    journal_entry=je,
+                    ledger_account=system_income,
+                    amount=amount,
+                    direction='CR',
+                    status='CLEARED'
+                )
+            else:
+                is_credit_card = self.account.account_type == 'credit_card'
+                if is_credit_card:
+                    cc_clearing, _ = LedgerAccount.objects.get_or_create(
+                        user=user,
+                        type='LIABILITY',
+                        name='Credit Card Clearing',
+                        defaults={'currency': 'EUR'}
+                    )
+                    dest_ledger_acct = None
+                    if self.category:
+                        dest_ledger_acct, _ = LedgerAccount.objects.get_or_create(
+                            user=user,
+                            linked_category=self.category,
+                            defaults={'name': self.category.name, 'type': 'SHADOW_CLAIM', 'currency': self.category.currency}
+                        )
+                    if not dest_ledger_acct:
+                        dest_ledger_acct, _ = LedgerAccount.objects.get_or_create(
+                            user=user,
+                            type='EXPENSE',
+                            name='System Expense',
+                            defaults={'currency': 'EUR'}
+                        )
+                    LedgerPosting.objects.create(
+                        journal_entry=je,
+                        ledger_account=cc_clearing,
+                        amount=amount,
+                        direction='CR',
+                        status='PENDING'
+                    )
+                    LedgerPosting.objects.create(
+                        journal_entry=je,
+                        ledger_account=dest_ledger_acct,
+                        amount=amount,
+                        direction='DR',
+                        status='PENDING'
+                    )
+                else:
+                    dest_ledger_acct = None
+                    if self.category:
+                        dest_ledger_acct, _ = LedgerAccount.objects.get_or_create(
+                            user=user,
+                            linked_category=self.category,
+                            defaults={'name': self.category.name, 'type': 'SHADOW_CLAIM', 'currency': self.category.currency}
+                        )
+                    if not dest_ledger_acct:
+                        dest_ledger_acct, _ = LedgerAccount.objects.get_or_create(
+                            user=user,
+                            type='EXPENSE',
+                            name='System Expense',
+                            defaults={'currency': 'EUR'}
+                        )
+                    LedgerPosting.objects.create(
+                        journal_entry=je,
+                        ledger_account=source_ledger_acct,
+                        amount=amount,
+                        direction='CR',
+                        status='CLEARED'
+                    )
+                    LedgerPosting.objects.create(
+                        journal_entry=je,
+                        ledger_account=dest_ledger_acct,
+                        amount=amount,
+                        direction='DR',
+                        status='CLEARED'
+                    )
+        
         # 2. Lógica de Sincronização de Transferência Espelhada (semelhante ao loot-core/transfer.ts)
         if not is_syncing and self.payee and self.payee.transfer_acct:
             dest_account = self.payee.transfer_acct
@@ -397,6 +568,10 @@ class Transaction(models.Model):
         if self.reconciled and not getattr(self, '_skip_reconciliation_lock', False):
             raise ValidationError("Transações reconciliadas estão travadas e não podem ser excluídas.")
 
+        # Deleta o JournalEntry vinculado (o que cascateia e deleta LedgerPostings)
+        from .models import JournalEntry
+        JournalEntry.objects.filter(original_transaction=self).delete()
+            
         # Remove o impacto no saldo da conta
         if self.is_applied_to_balance and not getattr(self, '_skip_balance_update', False):
             if self.is_income:
@@ -404,7 +579,7 @@ class Transaction(models.Model):
             else:
                 self.account.balance = Decimal(str(self.account.balance)) + Decimal(str(self.amount))
             self.account.save()
-            
+
         # Armazena a referência do espelho antes que a deleção quebre o vínculo
         mirror = self.linked_transfer
         
@@ -416,6 +591,7 @@ class Transaction(models.Model):
             mirror.linked_transfer = None  # Evita loop de deleção
             mirror._skip_balance_update = False  # Espelhos devem reverter saldo na deleção
             mirror.delete()
+
 
 
 class Goal(models.Model):
