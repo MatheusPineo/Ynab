@@ -2,6 +2,14 @@
 
 Todas as mudanças de engenharia relevantes para o projeto serão registradas neste arquivo.
 
+## [1.111.00] - 2026-06-17
+
+### Corrigido
+- **Command Center (`src/modules/finance/pages/CommandCenter.tsx`):**
+  - Removido o bloco de depuração Pure Data Extractor (`// 🛑 PURE DATA EXTRACTOR HIJACK 🛑`), restaurando o fluxo normal da UI (`PullToRefresh`).
+  - Isolado temporariamente o componente `<AddAccountModal>` devido a falhas internas que causavam a quebra do Error Boundary na aba de Contas Físicas.
+  - Substituído o botão de criar conta por um botão nativo com ação informativa (`alert`) até a conclusão da manutenção no modal.
+
 ## [1.103.00] - 2026-06-12
 
 ### Adicionado

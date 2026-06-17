@@ -2,6 +2,14 @@
 
 Fique por dentro das últimas melhorias e novos fluxos do sistema criados especialmente para otimizar sua experiência financeira.
 
+## 🛠️ Restauração do Painel Principal e Manutenção de Contas Físicas (17/06/2026)
+
+Restauramos com sucesso a interface de usuário do Centro de Comando que estava impedida de carregar devido a um conflito no componente de criação de novas contas.
+
+### O que mudou?
+- **Recuperação da Interface:** Removido o visualizador de depuração temporário para que você possa voltar a visualizar seus envelopes e saldos normalmente.
+- **Manutenção Temporária no Modal de Contas:** O botão "Adicionar Conta" dentro da aba de Contas Físicas foi substituído temporariamente por um alerta informativo. A funcionalidade de criação está em manutenção para correção técnica e será reestabelecida em breve.
+
 ## 🚀 Integração e Ativação do Roteiro de Empréstimos (12/06/2026)
 
 Concluímos o registro oficial do novo painel de controle financeiro no roteador da aplicação, ativando formalmente o acesso direto e completo ao dashboard de empréstimos concedidos.

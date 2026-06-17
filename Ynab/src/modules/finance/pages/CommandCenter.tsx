@@ -15,7 +15,6 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/shared/lib/utils";
 import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import { AddAccountModal } from "@/modules/finance/components/AddAccountModal";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/components/ui/dropdown-menu";
 
 const CommandCenter = () => {
@@ -66,26 +65,6 @@ const CommandCenter = () => {
       return acc + convert(amt, (t.currency || baseCurrency) as any, baseCurrency);
     }, 0);
   }, [globalPendingTransactions, convert, baseCurrency]);
-
-  // 🛑 PURE DATA EXTRACTOR HIJACK 🛑
-  // This bypasses the UI completely to expose corrupted null nodes.
-  return (
-    <div className="bg-slate-950 text-emerald-400 font-mono text-[10px] sm:text-xs p-4 sm:p-8 min-h-screen w-full overflow-auto absolute top-0 left-0 z-[9999]">
-      <h1 className="text-lg sm:text-xl font-black text-rose-500 mb-6 border-b border-rose-500/30 pb-2">
-        ⚠️ EXTRATOR DE DADOS PUROS ATIVADO
-      </h1>
-      
-      <h2 className="text-white font-bold mb-2">1. Árvore de Contas Físicas (tree):</h2>
-      <pre className="mb-8 bg-black p-4 rounded-xl border border-emerald-500/30 whitespace-pre-wrap break-all shadow-inner text-left">
-        {JSON.stringify(tree, null, 2)}
-      </pre>
-
-      <h2 className="text-white font-bold mb-2">2. Livro Razão Operacional (categoryGroups):</h2>
-      <pre className="mb-8 bg-black p-4 rounded-xl border border-emerald-500/30 whitespace-pre-wrap break-all shadow-inner text-left">
-        {JSON.stringify(categoryGroups, null, 2)}
-      </pre>
-    </div>
-  );
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
@@ -204,13 +183,9 @@ const CommandCenter = () => {
                 
                 {/* Operational Header: Create Account */}
                 <div className="flex justify-end items-center px-1">
-                  <AddAccountModal 
-                    trigger={
-                      <Button className="gradient-primary text-xs font-bold rounded-xl h-9 px-4 shadow-glow flex items-center gap-1.5">
-                        <Plus className="h-4 w-4" /> Adicionar Conta
-                      </Button>
-                    }
-                  />
+                  <Button onClick={() => alert('Modal de Criação desativado temporariamente para manutenção.')} className="gradient-primary text-xs font-bold rounded-xl h-9 px-4 shadow-glow flex items-center gap-1.5">
+                    <Plus className="h-4 w-4" /> Adicionar Conta
+                  </Button>
                 </div>
 
                 {/* Cards Grid */}
