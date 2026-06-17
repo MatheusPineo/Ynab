@@ -5,7 +5,7 @@ import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { useAssetStore } from "@/modules/finance/store/useAssetStore";
 import { useDebtStore } from "@/modules/finance/store/useDebtStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
-import { Wallet, ArrowRightLeft, Clock, CheckCircle2, ArrowRight, Landmark, CreditCard, Plus } from "lucide-react";
+import { Wallet, ArrowRightLeft, Clock, CheckCircle2, ArrowRight, Landmark, CreditCard, Plus, Wifi } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Progress } from "@/shared/components/ui/progress";
 import { NetWorthHeader } from "@/modules/finance/components/NetWorthHeader";
@@ -173,60 +173,77 @@ const CommandCenter = () => {
                 ))}
               </TabsContent>
 
-              {/* TAB 2: PHYSICAL ACCOUNTS (Redesigned) */}
-              <TabsContent value="accounts" className="flex flex-col gap-6 mt-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
-                {tree.map((group) => (
-                  <div key={group.id} className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between px-1">
-                      <h4 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{group.name}</h4>
-                      <Button variant="ghost" size="sm" className="h-6 text-[10px] text-primary hover:bg-primary/10 hover:text-primary px-2 rounded-md">
-                        <Plus className="h-3 w-3 mr-1" /> Adicionar
-                      </Button>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {group.children?.map((acc) => (
+              {/* TAB 2: PHYSICAL ACCOUNTS (Digital Wallet / Credit Card Design) */}
+              <TabsContent value="accounts" className="flex flex-col gap-6 mt-4 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {tree.map((group) => {
+                    const accountsToRender = group.children && group.children.length > 0 ? group.children : [group];
+
+                    return accountsToRender.map((acc) => {
+                      // Dynamic Icon from Google Favicon API or stored URL
+                      const bankDomain = (acc as any).bank_domain || '';
+                      const iconSrc = acc.icon_url || (bankDomain ? `https://www.google.com/s2/favicons?domain=${bankDomain}&sz=128` : null);
+                      
+                      // Fallback logic for premium bank colors if the DB doesn't provide acc.color
+                      const getBankColor = (name: string) => {
+                         const n = name?.toLowerCase() || '';
+                         if (n.includes('nubank')) return '#8A05BE';
+                         if (n.includes('novo banco') || n.includes('novobanco')) return '#007A65';
+                         if (n.includes('tesouro')) return '#005CA9';
+                         if (n.includes('doracy') || n.includes('miguel')) return '#475569'; // slate for loans
+                         return '#1e293b'; // default slate-800
+                      };
+                      
+                      const cardColor = (acc as any).color || getBankColor(acc.name);
+
+                      return (
                         <div 
                           key={acc.id} 
-                          className="group relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-card/60 to-muted/20 backdrop-blur-md p-5 transition-all duration-300 hover:border-primary/40 hover:shadow-[0_0_20px_rgba(var(--primary),0.1)] hover:-translate-y-0.5 cursor-pointer"
+                          className="relative overflow-hidden rounded-2xl p-5 shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl cursor-pointer flex flex-col justify-between min-h-[200px] border border-white/10 group"
+                          style={{
+                            background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}dd 100%)`
+                          }}
                         >
-                          <div className="flex justify-between items-start mb-4">
+                          {/* Ambient Lighting & Glass Overlay */}
+                          <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 rounded-full bg-white/10 blur-3xl transition-opacity group-hover:bg-white/20"></div>
+                          <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/20 to-transparent"></div>
+
+                          {/* Top Section: Icon & Bank Name */}
+                          <div className="relative z-10 flex justify-between items-start">
                             <div className="flex items-center gap-3">
-                              <div className="h-10 w-10 rounded-xl bg-background/50 border border-border/50 flex items-center justify-center shadow-inner overflow-hidden">
-                                {acc.icon_url ? (
-                                  <img src={acc.icon_url} alt={acc.name} className="h-6 w-6 object-contain" />
-                                ) : acc.account_type === 'credit_card' ? (
-                                  <CreditCard className="h-5 w-5 text-muted-foreground" />
+                              <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center p-2 shadow-inner border border-white/30">
+                                {iconSrc ? (
+                                  <img src={iconSrc} alt={acc.name} className="h-full w-full object-contain drop-shadow-sm rounded-full" />
                                 ) : (
-                                  <Landmark className="h-5 w-5 text-muted-foreground" />
+                                  <Landmark className="h-6 w-6 text-white drop-shadow-sm" />
                                 )}
                               </div>
-                              <div>
-                                <h5 className="text-sm font-bold text-foreground">{acc.name}</h5>
-                                <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                  {acc.account_type === 'credit_card' ? 'Cartão de Crédito' : 'Conta Corrente'}
-                                </p>
-                              </div>
+                              <span className="text-white font-bold text-sm tracking-wider drop-shadow-md max-w-[140px] leading-tight text-left">
+                                {acc.name}
+                              </span>
                             </div>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100 transition-opacity bg-background/50">
-                              <ArrowRight className="h-4 w-4 text-primary" />
-                            </Button>
+                            {/* NFC / Contactless Icon */}
+                            <Wifi className="h-6 w-6 text-white/50 rotate-90" />
                           </div>
-                          
-                          <div className="mt-2">
-                            <p className="text-xs text-muted-foreground mb-1">Saldo Atual</p>
-                            <p className="text-2xl font-black font-mono tracking-tight text-foreground">
-                              {formatMoney(acc.actual_balance || 0, acc.currency || baseCurrency)}
-                            </p>
+
+                          {/* Bottom Section: Balance & Mock Chip */}
+                          <div className="relative z-10 mt-8 flex justify-between items-end">
+                            <div className="text-left">
+                              <p className="text-white/70 text-[9px] font-bold uppercase tracking-widest mb-1 text-left">Saldo Atual</p>
+                              <p className="text-white text-2xl font-black font-mono tracking-tight drop-shadow-md text-left">
+                                {formatMoney(acc.balance || 0, acc.currency || baseCurrency)}
+                              </p>
+                            </div>
+                            {/* Mock Credit Card Chip */}
+                            <div className="h-7 w-9 border border-white/20 rounded bg-white/10 flex items-center justify-center backdrop-blur-sm opacity-80">
+                              <div className="h-4 w-5 border border-white/30 rounded-sm"></div>
+                            </div>
                           </div>
-                          
-                          {/* Subtle decorative glow */}
-                          <div className="absolute -bottom-10 -right-10 h-32 w-32 rounded-full bg-primary/5 blur-3xl group-hover:bg-primary/10 transition-colors" />
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                      );
+                    });
+                  })}
+                </div>
               </TabsContent>
             </Tabs>
           </div>
