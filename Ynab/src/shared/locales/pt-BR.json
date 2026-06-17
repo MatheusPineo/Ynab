@@ -1,10 +1,9 @@
 {
   "navigation": {
-    "dashboard": "Dashboard",
+    "dashboard": "Centro de Comando",
     "accounts": "Contas",
     "transactions": "Transações",
     "loans": "Empréstimos",
-    "budget": "Orçamento",
     "debts": "Dívidas",
     "goals": "Metas",
     "insights": "Insights",
@@ -24,7 +23,6 @@
     "transactions": "Registre e acompanhe suas entradas e saídas de dinheiro.",
     "loans": "Gerencie seus empréstimos concedidos e tomados.",
     "inbox": "Faça o staging de recibos e extraia valores via Gemini AI de forma automática.",
-    "budget": "Distribua sua renda e planeje seus gastos do mês.",
     "debts": "Controle quem te deve dinheiro e o que você deve a terceiros.",
     "goals": "Crie objetivos financeiros de médio e longo prazo.",
     "insights": "Relatórios inteligentes sobre seus hábitos financeiros.",

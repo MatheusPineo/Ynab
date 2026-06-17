@@ -31,10 +31,9 @@ const lazyWithRetry = (importFn: () => Promise<any>) =>
 // Limpa o flag de reload ao carregar com sucesso (prova que o reload funcionou)
 if (sessionStorage.getItem("chunk_reload")) sessionStorage.removeItem("chunk_reload");
 
-const Dashboard = lazyWithRetry(() => import("@/modules/finance/pages/Dashboard"));
+const CommandCenter = lazyWithRetry(() => import("@/modules/finance/pages/CommandCenter"));
 const Accounts = lazyWithRetry(() => import("@/modules/finance/pages/Accounts"));
 const Transactions = lazyWithRetry(() => import("@/modules/finance/pages/Transactions"));
-const Budget = lazyWithRetry(() => import("@/modules/finance/pages/Budget"));
 const Goals = lazyWithRetry(() => import("@/modules/finance/pages/Goals"));
 const Settings = lazyWithRetry(() => import("@/modules/auth/pages/Settings"));
 const AccountDetails = lazyWithRetry(() => import("@/modules/finance/pages/AccountDetails"));
@@ -159,12 +158,12 @@ const App = () => {
                   <Route path="/ajuda" element={<Navigate to="/help-center?tab=articles" replace />} />
 
                   <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                    <Route path="dashboard" element={<FeatureProtectedRoute featureKey="dashboard"><Dashboard /></FeatureProtectedRoute>} />
+                    <Route path="dashboard" element={<FeatureProtectedRoute featureKey="dashboard"><CommandCenter /></FeatureProtectedRoute>} />
                     <Route path="accounts" element={<FeatureProtectedRoute featureKey="accounts"><Accounts /></FeatureProtectedRoute>} />
                     <Route path="transactions" element={<FeatureProtectedRoute featureKey="transactions"><Transactions /></FeatureProtectedRoute>} />
                     <Route path="/loans" element={<LoansDashboard />} />
                     <Route path="inbox" element={<Inbox />} />
-                    <Route path="budget" element={<FeatureProtectedRoute featureKey="budget"><Budget /></FeatureProtectedRoute>} />
+                    <Route path="budget" element={<Navigate to="/dashboard" replace />} />
                     <Route path="goals" element={<FeatureProtectedRoute featureKey="goals"><Goals /></FeatureProtectedRoute>} />
                     <Route path="reports" element={<FeatureProtectedRoute featureKey="reports"><Reports /></FeatureProtectedRoute>} />
                     <Route path="rule-503020" element={<FeatureProtectedRoute featureKey="rule503020"><Rule503020 /></FeatureProtectedRoute>} />

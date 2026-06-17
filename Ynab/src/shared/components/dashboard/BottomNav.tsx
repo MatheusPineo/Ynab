@@ -30,7 +30,6 @@ const primaryNavItems = [
   { icon: LayoutDashboard, key: "dashboard", to: "/dashboard" },
   { icon: Wallet, key: "accounts", to: "/accounts" },
   { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
-  { icon: PieChart, key: "budget", to: "/budget" },
 ];
 
 const moreNavItems = [

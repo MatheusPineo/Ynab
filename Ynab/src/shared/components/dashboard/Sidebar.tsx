@@ -51,7 +51,6 @@ export const navItems = [
   { icon: ArrowLeftRight, key: "transactions", to: "/transactions" },
   { icon: HandCoins, key: "loans", to: "/loans" },
   { icon: InboxIcon, key: "inbox", to: "/inbox" },
-  { icon: PieChart, key: "budget", to: "/budget" },
   { icon: Scale, key: "rule503020", to: "/rule-503020" },
   { icon: Target, key: "goals", to: "/goals" },
   { icon: BarChart3, key: "reports", featureKey: "reports", to: "/reports" },
