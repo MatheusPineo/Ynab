@@ -13,11 +13,13 @@ import { PullToRefresh } from "@/shared/components/dashboard/PullToRefresh";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/shared/lib/utils";
+import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 
 const CommandCenter = () => {
   const { 
     fetchAccounts, fetchCategoryGroups, fetchTransactions, fetchGlobalPendingTransactions,
-    tree, categoryGroups, globalPendingTransactions, readyToAssignBalance, currentMonth, currentYear
+    tree, categoryGroups, globalPendingTransactions, readyToAssignBalance, currentMonth, currentYear,
+    autoAssignFunds
   } = useAccountStore();
   
   const { fetchRates, convert, baseCurrency, setBaseCurrency } = useCurrencyStore();
@@ -91,7 +93,7 @@ const CommandCenter = () => {
               </div>
             </div>
             {readyToAssignBalance > 0 ? (
-              <Button className="gradient-primary text-xs font-bold rounded-xl h-9 px-6 shadow-glow">
+              <Button onClick={autoAssignFunds} className="gradient-primary text-xs font-bold rounded-xl h-9 px-6 shadow-glow">
                 Distribuir Fundos
               </Button>
             ) : (
@@ -141,9 +143,15 @@ const CommandCenter = () => {
                             />
                           </div>
                           <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold gap-1 rounded-lg hover:bg-primary/10 hover:text-primary">
-                              <ArrowRightLeft className="h-3 w-3" /> Mover Dinheiro
-                            </Button>
+                            <MoveMoneyModal
+                              sourceCategory={cat}
+                              currentAvailable={available}
+                              trigger={
+                                <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold gap-1 rounded-lg hover:bg-primary/10 hover:text-primary">
+                                  <ArrowRightLeft className="h-3 w-3" /> Mover Dinheiro
+                                </Button>
+                              }
+                            />
                           </div>
                         </div>
                       );
