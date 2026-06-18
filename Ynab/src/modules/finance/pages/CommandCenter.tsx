@@ -240,7 +240,7 @@ const CommandCenter = () => {
                           style={{
                             background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}bf 100%)`
                           }}
-                          onClick={() => acc?.id && navigate(`/accounts/${acc.id}`)}
+                          onClick={() => acc?.id && navigate(`/account/${acc.id}`)}
                         >
                           {/* Glass & Glossy Overlays */}
                           <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 rounded-full bg-white/10 blur-3xl transition-opacity group-hover:bg-white/20"></div>
