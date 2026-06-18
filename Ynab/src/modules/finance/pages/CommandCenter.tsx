@@ -44,15 +44,13 @@ const CommandCenter = () => {
       fetchCategoryGroups(),
       fetchTransactions(),
       fetchGlobalPendingTransactions(),
-      fetchRates(),
-      fetchAssets(),
-      fetchDebts()
+      fetchRates()
     ]).catch(err => console.error("Erro no carregamento do Command Center:", err));
-  }, [fetchAccounts, fetchCategoryGroups, fetchTransactions, fetchGlobalPendingTransactions, fetchRates, fetchAssets, fetchDebts, currentMonth, currentYear]);
+  }, [fetchAccounts, fetchCategoryGroups, fetchTransactions, fetchGlobalPendingTransactions, fetchRates, currentMonth, currentYear]);
 
   const handleRefresh = async () => {
     await Promise.all([
-      fetchAccounts(), fetchCategoryGroups(), fetchTransactions(), fetchGlobalPendingTransactions(), fetchRates(), fetchAssets(), fetchDebts()
+      fetchAccounts(), fetchCategoryGroups(), fetchTransactions(), fetchGlobalPendingTransactions(), fetchRates()
     ]);
   };
 
