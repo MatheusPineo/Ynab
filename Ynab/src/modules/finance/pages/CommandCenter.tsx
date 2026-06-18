@@ -5,7 +5,7 @@ import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
 import { useAssetStore } from "@/modules/finance/store/useAssetStore";
 import { useDebtStore } from "@/modules/finance/store/useDebtStore";
 import { formatMoney } from "@/shared/lib/currency-utils";
-import { Wallet, ArrowRightLeft, Clock, CheckCircle2, ArrowRight, Landmark, CreditCard, Plus, Wifi, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { Wallet, ArrowRightLeft, Clock, CheckCircle2, ArrowRight, Landmark, CreditCard, Plus, Wifi, MoreVertical, Edit2, Trash2, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { Progress } from "@/shared/components/ui/progress";
 import { NetWorthHeader } from "@/modules/finance/components/NetWorthHeader";
@@ -24,6 +24,8 @@ import { useNavigate } from "react-router-dom";
 
 const CommandCenter = () => {
   const navigate = useNavigate();
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const toggleGroup = (groupId: string) => setCollapsedGroups(prev => ({ ...prev, [groupId]: !prev[groupId] }));
   const { 
     fetchAccounts, fetchCategoryGroups, fetchTransactions, fetchGlobalPendingTransactions,
     tree, categoryGroups, globalPendingTransactions, readyToAssignBalance, currentMonth, currentYear,
@@ -142,11 +144,38 @@ const CommandCenter = () => {
                       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
 
                       {/* Group Header */}
-                      <div className="bg-white/5 px-5 py-3 border-b border-white/5 flex items-center justify-between">
-                        <h4 className="text-xs font-black uppercase tracking-widest text-white/80 drop-shadow-sm">{group?.name || 'Grupo'}</h4>
+                      <div 
+                        className="bg-white/5 px-5 py-3 border-b border-white/5 flex items-center justify-between cursor-pointer hover:bg-white/10 transition-colors"
+                        onClick={() => toggleGroup(group.id)}
+                      >
+                        <div className="flex items-center gap-2">
+                          {collapsedGroups[group.id] ? <ChevronRight className="h-4 w-4 text-white/50" /> : <ChevronDown className="h-4 w-4 text-white/50" />}
+                          <h4 className="text-xs font-black uppercase tracking-widest text-white/80 drop-shadow-sm">{group?.name || 'Grupo'}</h4>
+                        </div>
+                        <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full text-white/50 hover:text-white hover:bg-white/10">
+                                <MoreVertical className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="glass border-border/60 min-w-[140px]">
+                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer">
+                                <Plus className="h-3.5 w-3.5" /> Adicionar Categoria
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer">
+                                <Edit2 className="h-3.5 w-3.5" /> Editar Grupo
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer text-rose-400 focus:text-rose-400">
+                                <Trash2 className="h-3.5 w-3.5" /> Excluir Grupo
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
                       </div>
 
                       {/* Categories List */}
+                      {!collapsedGroups[group.id] && (
                       <div className="divide-y divide-white/5">
                         {group?.children?.map((cat) => {
                           if (!cat) return null;
@@ -163,10 +192,29 @@ const CommandCenter = () => {
                               
                               {/* Main Row: Name & Balance */}
                               <div className="flex items-center justify-between mb-3 relative z-10">
-                                <span className="text-sm font-bold text-white/90 group-hover/cat:text-white transition-colors">{cat?.name || 'Categoria'}</span>
-                                <span className={cn("text-base font-black font-mono tracking-tight", isOverspent ? "text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]" : "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]")}>
-                                  {formatMoney(available, cat?.currency || baseCurrency)}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold text-white/90 group-hover/cat:text-white transition-colors">{cat?.name || 'Categoria'}</span>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <span className={cn("text-base font-black font-mono tracking-tight", isOverspent ? "text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]" : "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]")}>
+                                    {formatMoney(available, cat?.currency || baseCurrency)}
+                                  </span>
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full text-white/50 hover:text-white hover:bg-white/10 opacity-0 group-hover/cat:opacity-100 transition-opacity">
+                                        <MoreVertical className="h-3 w-3" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="glass border-border/60 min-w-[140px]" onClick={(e) => e.stopPropagation()}>
+                                      <DropdownMenuItem className="text-xs gap-2 cursor-pointer">
+                                        <Edit2 className="h-3.5 w-3.5" /> Editar Categoria
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem className="text-xs gap-2 cursor-pointer text-rose-400 focus:text-rose-400">
+                                        <Trash2 className="h-3.5 w-3.5" /> Excluir Categoria
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
                               </div>
                               
                               {/* Sub Row: Assigned & Spent */}
@@ -202,6 +250,7 @@ const CommandCenter = () => {
                           );
                         })}
                       </div>
+                      )}
                     </div>
                   );
                 })}
