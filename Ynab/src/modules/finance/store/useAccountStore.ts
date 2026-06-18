@@ -199,6 +199,7 @@ export const useAccountStore = create<AccountState>()(
             exclude_from_totals: partialNode.exclude_from_totals ?? false,
             bank_domain: partialNode.bank_domain ?? "",
             icon_url: partialNode.icon_url ?? null,
+            color: partialNode.color ?? null,
           };
 
           const response = await authenticatedFetch("/accounts/", {

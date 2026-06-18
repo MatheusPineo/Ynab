@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { useAccountStore } from "@/modules/finance/store/useAccountStore";
 import { useCurrencyStore } from "@/modules/finance/store/useCurrencyStore";
@@ -15,8 +15,11 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/shared/lib/utils";
 import { MoveMoneyModal } from "@/modules/finance/components/MoveMoneyModal";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
-import { AddAccountModal } from "@/modules/finance/components/AddAccountModal";
+import { CreateAccountModal } from "@/modules/finance/components/CreateAccountModal";
+import { EditAccountModal } from "@/modules/finance/components/EditAccountModal";
+import { DeleteAccountDialog } from "@/modules/finance/components/DeleteAccountDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/components/ui/dropdown-menu";
+import { type AccountNode } from "@/types";
 
 const CommandCenter = () => {
   const { 
@@ -28,6 +31,10 @@ const CommandCenter = () => {
   const { fetchRates, convert, baseCurrency, setBaseCurrency } = useCurrencyStore();
   const { fetchAssets, assets } = useAssetStore();
   const { fetchDebts, debts } = useDebtStore();
+
+  // States for Edit/Delete modals
+  const [editingAccount, setEditingAccount] = useState<AccountNode | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState<AccountNode | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -184,17 +191,17 @@ const CommandCenter = () => {
                 
                 {/* Operational Header: Create Account */}
                 <div className="flex justify-end items-center px-1">
-                  <AddAccountModal 
+                  <CreateAccountModal 
                     trigger={
-                      <Button className="gradient-primary text-xs font-bold rounded-xl h-9 px-4 shadow-glow flex items-center gap-1.5">
-                        <Plus className="h-4 w-4" /> Adicionar Conta
+                      <Button className="gradient-primary text-xs font-bold rounded-xl h-9 px-5 shadow-glow flex items-center gap-2 whitespace-nowrap">
+                        <Plus className="h-4 w-4 shrink-0" /> Adicionar Conta
                       </Button>
                     }
                   />
                 </div>
 
                 {/* Cards Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   {tree?.flatMap((group) => {
                     if (!group) return [];
                     const accountsToRender = group?.children?.length ? group.children : [group];
@@ -271,11 +278,17 @@ const CommandCenter = () => {
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="glass border-border/60 min-w-[140px]">
-                                <DropdownMenuItem className="text-xs font-semibold gap-2 cursor-pointer hover:bg-primary/10">
+                              <DropdownMenuContent align="end" className="glass border-border/60 min-w-[160px]">
+                                <DropdownMenuItem 
+                                  className="text-xs font-semibold gap-2 cursor-pointer hover:bg-primary/10"
+                                  onClick={() => setEditingAccount(acc)}
+                                >
                                   <Edit2 className="h-3 w-3 text-primary" /> Editar Conta
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-xs font-semibold gap-2 text-rose-400 focus:text-rose-400 cursor-pointer hover:bg-rose-500/10">
+                                <DropdownMenuItem 
+                                  className="text-xs font-semibold gap-2 text-rose-400 focus:text-rose-400 cursor-pointer hover:bg-rose-500/10"
+                                  onClick={() => setDeletingAccount(acc)}
+                                >
                                   <Trash2 className="h-3 w-3" /> Excluir Conta
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
@@ -344,6 +357,24 @@ const CommandCenter = () => {
 
         </div>
       </div>
+
+      {/* Edit Account Modal */}
+      {editingAccount && (
+        <EditAccountModal
+          account={editingAccount}
+          open={!!editingAccount}
+          onOpenChange={(open) => { if (!open) setEditingAccount(null); }}
+        />
+      )}
+
+      {/* Delete Account Dialog */}
+      {deletingAccount && (
+        <DeleteAccountDialog
+          account={deletingAccount}
+          open={!!deletingAccount}
+          onOpenChange={(open) => { if (!open) setDeletingAccount(null); }}
+        />
+      )}
     </PullToRefresh>
   );
 };

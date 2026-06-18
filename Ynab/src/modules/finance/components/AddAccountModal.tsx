@@ -27,6 +27,7 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
   const [open, setOpen] = useState(false);
   const [excludeFromTotals, setExcludeFromTotals] = useState(false);
   const [balance, setBalance] = useState(0);
+  const [color, setColor] = useState("#1E293B");
   const { addNode } = useAccountStore();
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -39,12 +40,14 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
       base: balance, // Default target to same as initial balance
       currency: formData.get("currency") as any,
       exclude_from_totals: excludeFromTotals,
-      bank_domain: (formData.get("bank_domain") as string) || ""
+      bank_domain: (formData.get("bank_domain") as string) || "",
+      color: color || null,
     });
 
     toast.success(`Sub-conta criada em "${parentAccount?.name || 'Conta'}"`);
     setExcludeFromTotals(false);
     setBalance(0);
+    setColor("#1E293B");
     setOpen(false);
   };
 
@@ -89,6 +92,34 @@ export const AddAccountModal = ({ parentAccount, children }: Props) => {
                 <SelectItem value="USD">Dólar ($)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="sub_color" className="flex items-center gap-1.5">
+              Cor do Cartão
+              <HelpTooltip content="Cor personalizada para o background do card desta conta." />
+            </Label>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                id="sub_color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                className="h-10 w-10 rounded-lg cursor-pointer border-2 border-border/60 bg-transparent p-0.5 transition-all hover:border-primary/60 hover:scale-105"
+              />
+              <Input
+                type="text"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                placeholder="#1E293B"
+                maxLength={7}
+                className="flex-1 bg-background/50 font-mono text-sm"
+              />
+              <div
+                className="h-10 w-20 rounded-xl border border-white/10 shadow-inner shrink-0"
+                style={{ background: `linear-gradient(135deg, ${color} 0%, ${color}bf 100%)` }}
+              />
+            </div>
           </div>
 
           <div className="flex items-center space-x-3 py-1 bg-muted/20 border border-border/40 px-3.5 py-3 rounded-xl">

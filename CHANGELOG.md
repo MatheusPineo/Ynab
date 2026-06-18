@@ -1,3 +1,15 @@
+## [2.0.0-alpha.4] - 2026-06-18
+
+### Added
+- Frontend: Criado o componente **`CreateAccountModal`** — modal completo para criar contas raiz (master accounts) diretamente da aba "Contas Físicas" do Centro de Controle. Campos: nome, domínio do banco (para ícone automático), saldo inicial, moeda, tipo de conta e flag de exclusão de totais.
+- Frontend: Criado o componente **`EditAccountModal`** — formulário de edição de conta pré-preenchido com os dados atuais. Permite alterar nome, domínio do banco, moeda, tipo de conta e flag de exclusão de totais. Conectado ao `updateNode` do store (PATCH `/accounts/{id}/`).
+- Frontend: Criado o componente **`DeleteAccountDialog`** — diálogo de confirmação de exclusão com proteção por digitação do nome da conta. Exibe warnings detalhados sobre dados que serão perdidos (transações, sub-contas, saldo). Conectado ao `deleteNode` do store (DELETE `/accounts/{id}/`).
+- Frontend: Os itens "Editar Conta" e "Excluir Conta" do menu de contexto (⋮) de cada card de conta na aba "Contas Físicas" agora abrem os respectivos modais funcionais.
+
+### Fixed
+- Frontend: Corrigido o botão **"Adicionar Conta"** que exibia apenas o ícone "+" sem o texto. O `AddAccountModal` (para sub-contas) foi substituído pelo novo `CreateAccountModal` com prop `trigger` correta e `whitespace-nowrap`.
+- Frontend: Corrigido o layout do grid de **Cards de Contas Físicas** na aba "Centro de Controle" (CommandCenter). Os cards estavam com 3 colunas em telas grandes (`xl:grid-cols-3`), causando corte nos nomes das contas (ex: "Tesouro Diret...", "Empres..."). O grid foi ajustado para no máximo **2 colunas** (`sm:grid-cols-2`), garantindo que todos os nomes e informações sejam exibidos por completo tanto no desktop quanto no mobile.
+
 ## [2.0.0-alpha.1] - 2026-06-17
 
 ### Added

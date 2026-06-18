@@ -89,6 +89,8 @@ export interface AccountNode {
   debtors_summary?: { debtor_name: string; amount: number }[];
   bank_domain?: string;
   bank_logo_url?: string;
+  /** Cor hexadecimal personalizada para o background do card da conta (ex: #8A05BE) */
+  color?: string;
 }
 
 /**

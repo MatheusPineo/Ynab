@@ -28,6 +28,7 @@ class Account(models.Model):
     exclude_from_totals = models.BooleanField(default=False)
     last_reconciled = models.DateTimeField(null=True, blank=True)
     reserved_credit_balance = models.DecimalField(max_digits=15, decimal_places=2, default=Decimal('0.00'))
+    color = models.CharField(max_length=7, null=True, blank=True, help_text="Hex color for account card, e.g., #8A05BE")
 
     class Meta:
         db_table = 'core_account'
