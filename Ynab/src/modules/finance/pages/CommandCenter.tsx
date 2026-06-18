@@ -20,8 +20,10 @@ import { EditAccountModal } from "@/modules/finance/components/EditAccountModal"
 import { DeleteAccountDialog } from "@/modules/finance/components/DeleteAccountDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/components/ui/dropdown-menu";
 import { type AccountNode } from "@/types";
+import { useNavigate } from "react-router-dom";
 
 const CommandCenter = () => {
+  const navigate = useNavigate();
   const { 
     fetchAccounts, fetchCategoryGroups, fetchTransactions, fetchGlobalPendingTransactions,
     tree, categoryGroups, globalPendingTransactions, readyToAssignBalance, currentMonth, currentYear,
@@ -234,10 +236,11 @@ const CommandCenter = () => {
                       return (
                         <div 
                           key={acc?.id || Math.random()} 
-                          className="relative overflow-hidden rounded-2xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col justify-between min-h-[200px] border border-white/10 group select-none"
+                          className="relative overflow-hidden rounded-2xl p-6 shadow-xl transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl flex flex-col justify-between min-h-[200px] border border-white/10 group select-none cursor-pointer"
                           style={{
                             background: `linear-gradient(135deg, ${cardColor} 0%, ${cardColor}bf 100%)`
                           }}
+                          onClick={() => acc?.id && navigate(`/accounts/${acc.id}`)}
                         >
                           {/* Glass & Glossy Overlays */}
                           <div className="absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 rounded-full bg-white/10 blur-3xl transition-opacity group-hover:bg-white/20"></div>
@@ -274,11 +277,16 @@ const CommandCenter = () => {
                             {/* Management Context Menu */}
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-white/70 hover:text-white hover:bg-white/10 opacity-60 group-hover:opacity-100 transition-opacity">
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  className="h-8 w-8 rounded-full text-white/70 hover:text-white hover:bg-white/10 opacity-60 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
                                   <MoreVertical className="h-4 w-4" />
                                 </Button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="glass border-border/60 min-w-[160px]">
+                              <DropdownMenuContent align="end" className="glass border-border/60 min-w-[160px]" onClick={(e) => e.stopPropagation()}>
                                 <DropdownMenuItem 
                                   className="text-xs font-semibold gap-2 cursor-pointer hover:bg-primary/10"
                                   onClick={() => setEditingAccount(acc)}
