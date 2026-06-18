@@ -34,6 +34,8 @@ import { RecurringScopeModal } from "@/modules/finance/components/RecurringScope
 import { RecurrenceEditModal } from "@/modules/finance/components/RecurrenceEditModal";
 import { authenticatedFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
+import { useDebtStore } from "@/modules/finance/store/useDebtStore";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/components/ui/tabs";
 
 interface SplitItem {
   id: string;
@@ -89,20 +91,48 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   
   const allAccounts = getAllAccounts(tree);
   
-  const [loanSplits, setLoanSplits] = useState<{ id: string, accountId: string, amount: number }[]>([]);
+  type SplitMode = "equally" | "percentage" | "exact";
   const [isSplitting, setIsSplitting] = useState(false);
+  const [splitMode, setSplitMode] = useState<SplitMode>("equally");
 
-  const handleAddLoanSplit = () => {
-    setLoanSplits(prev => [...prev, { id: crypto.randomUUID(), accountId: "", amount: 0 }]);
-  };
+  interface SplitMember {
+    id: string; // debtor_id or "user"
+    name: string;
+    active: boolean;
+    percentage: number;
+    exactValue: number;
+    isUser?: boolean;
+  }
+  const [splitMembers, setSplitMembers] = useState<SplitMember[]>([]);
 
-  const handleRemoveLoanSplit = (id: string) => {
-    setLoanSplits(prev => prev.filter(item => item.id !== id));
-  };
+  const { debts } = useDebtStore();
 
-  const handleUpdateLoanSplit = (id: string, field: 'accountId' | 'amount', value: any) => {
-    setLoanSplits(prev => prev.map(item => item.id === id ? { ...item, [field]: value } : item));
-  };
+  useEffect(() => {
+    if (open) {
+      try {
+        useDebtStore.getState().fetchDebts();
+      } catch (e) {}
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      const uniqueFriends = Array.from(new Map(debts.map(d => [d.counterparty_name, d])).values());
+      const members: SplitMember[] = [
+        { id: "user", name: "Você", active: true, percentage: 0, exactValue: 0, isUser: true },
+        ...uniqueFriends.map(d => ({
+          id: d.id,
+          name: d.counterparty_name,
+          active: false,
+          percentage: 0,
+          exactValue: 0
+        }))
+      ];
+      setSplitMembers(members);
+      setIsSplitting(false);
+      setSplitMode("equally");
+    }
+  }, [open, debts.length]);
 
   const [recurrenceEditModalOpen, setRecurrenceEditModalOpen] = useState(false);
   const [date, setDate] = useState<string>(transaction?.date ? new Date(transaction.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
@@ -370,36 +400,35 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
         }
       }
 
-      // NEW SPLIT LOGIC FOR REGULAR TRANSACTIONS
-      if (isSplitting && loanSplits.length > 0 && type === "expense") {
-        const totalSplitAmount = loanSplits.reduce((acc, curr) => acc + curr.amount, 0);
-        const myAmount = amountValue - totalSplitAmount;
+      // ADVANCED SPLIT ENGINE LOGIC
+      if (isSplitting && type === "expense") {
+        const activeMembers = splitMembers.filter(m => m.active);
         
-        if (myAmount < 0) {
-          toast.error("O valor dividido não pode ser maior que o total da compra.");
-          return;
+        // Build payload splits
+        const splits = activeMembers.filter(m => !m.isUser).map(m => {
+          let splitAmount = 0;
+          if (splitMode === "equally") splitAmount = equalAmount;
+          else if (splitMode === "percentage") splitAmount = (amountValue * m.percentage) / 100;
+          else if (splitMode === "exact") splitAmount = m.exactValue;
+          
+          return {
+            debtor_id: m.id,
+            amount: splitAmount,
+            src_category_id: categoryId === "none" ? null : categoryId
+          };
+        });
+
+        const userMember = activeMembers.find(m => m.isUser);
+        let userAmount = 0;
+        if (userMember) {
+          if (splitMode === "equally") userAmount = equalAmount;
+          else if (splitMode === "percentage") userAmount = (amountValue * userMember.percentage) / 100;
+          else if (splitMode === "exact") userAmount = userMember.exactValue;
         }
 
-        // 1. Save my portion (if any)
-        if (myAmount > 0) {
-          await addTransaction.mutateAsync({ ...transactionData, amount: myAmount } as any);
-        }
+        // Pass unified payload with splits array to the store
+        await addTransaction.mutateAsync({ ...transactionData, amount: userAmount, total_amount: amountValue, splits } as any);
 
-        // 2. Save transfers for friends
-        for (const split of loanSplits) {
-          if (split.accountId && split.amount > 0) {
-            await transferTransaction.mutateAsync({
-              from_account: accountId,
-              to_account: split.accountId,
-              amount: split.amount,
-              to_amount: split.amount,
-              description: `${formData.get("description")} (Parte de terceiros)`,
-              date: formData.get("date") as string || new Date().toISOString().split('T')[0],
-              category_id: (!useCategory || categoryId === "none") ? undefined : categoryId,
-            });
-          }
-        }
-        
         setOpen(false);
         if (onClose) onClose();
         return;
@@ -432,6 +461,25 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     setOpen(false);
     if (onClose) onClose();
   };
+
+  // Math Engine Computations
+  const activeMembersCount = splitMembers.filter(m => m.active).length;
+  const equalAmount = activeMembersCount > 0 ? Number((amount / activeMembersCount).toFixed(2)) : 0;
+  const totalPercentage = splitMembers.filter(m => m.active).reduce((sum, m) => sum + (m.percentage || 0), 0);
+  const totalExact = splitMembers.filter(m => m.active).reduce((sum, m) => sum + (m.exactValue || 0), 0);
+  const remainingExact = amount - totalExact;
+
+  // Validation guard
+  let splitError: string | null = null;
+  if (isSplitting && type === "expense") {
+    if (activeMembersCount < 2) {
+      splitError = "Selecione pelo menos 2 pessoas (incluindo você).";
+    } else if (splitMode === "percentage" && totalPercentage !== 100) {
+      splitError = `Soma atual (${totalPercentage}%) não atinge 100%.`;
+    } else if (splitMode === "exact" && Math.abs(remainingExact) >= 0.01) {
+      splitError = `Restam ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingExact)} para fechar o valor.`;
+    }
+  }
 
   const handleConfirmRecurrenceEdit = async (scope: "single" | "future") => {
     if (!transaction) return;
@@ -815,79 +863,90 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           )}
 
           {!isEdit && type === "expense" && (
-            <div className="grid gap-4 rounded-lg border border-border/50 p-4 bg-background/30">
-              <div 
-                className="flex items-center space-x-2 border border-border/40 bg-card p-3 rounded-xl" 
+            <div className="grid gap-4 mt-2">
+              <button 
+                type="button"
+                onClick={() => setIsSplitting(!isSplitting)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all shadow-soft"
               >
-                <Checkbox 
-                  id="split_transaction_checkbox"
-                  checked={isSplitting} 
-                  onCheckedChange={(checked) => {
-                    const newState = !!checked;
-                    setIsSplitting(newState);
-                    if (newState && loanSplits.length === 0) handleAddLoanSplit();
-                  }}
-                />
-                <Label htmlFor="split_transaction_checkbox" className="text-sm cursor-pointer select-none">Dividir compra com terceiros (Eles te devem)?</Label>
-              </div>
+                <ArrowLeftRight className="h-4 w-4 text-primary" />
+                <span className="text-sm font-bold text-foreground">
+                  ⇄ Dividir Conta com alguém?
+                </span>
+              </button>
 
               {isSplitting && (
-                <div className="mt-3 p-4 border border-rose-500/20 bg-rose-500/5 rounded-2xl space-y-4 animate-in slide-in-from-top-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs font-bold text-rose-500 flex items-center gap-1.5">
-                      <HandCoins className="h-3.5 w-3.5"/>
-                      Eles te devem (Será transferido)
-                    </Label>
-                    <Button 
-                      className="h-7 text-[10px] font-bold text-rose-500 hover:bg-rose-500/10 rounded-lg" 
-                      onClick={handleAddLoanSplit} 
-                      size="sm" 
-                      type="button" 
-                      variant="ghost"
-                    >
-                      <Plus className="h-3 w-3 mr-1"/> Adicionar Pessoa
-                    </Button>
-                  </div>
+                <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-white/10 animate-in fade-in slide-in-from-top-4 duration-300 space-y-5">
+                  <Tabs value={splitMode} onValueChange={(v: any) => setSplitMode(v)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 bg-background/50 border border-border/50 h-11">
+                      <TabsTrigger value="equally" className="text-xs font-bold">Igualitário</TabsTrigger>
+                      <TabsTrigger value="percentage" className="text-xs font-bold">Porcentagem</TabsTrigger>
+                      <TabsTrigger value="exact" className="text-xs font-bold">Valor Exato</TabsTrigger>
+                    </TabsList>
+                  </Tabs>
 
-                  <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
-                    {loanSplits.map((item) => (
-                      <div key={item.id} className="p-3 border border-border/50 bg-background rounded-xl space-y-3 relative group">
-                        <button 
-                          type="button" 
-                          onClick={() => handleRemoveLoanSplit(item.id)} 
-                          className="absolute top-2 right-2 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <Trash2 className="h-3.5 w-3.5"/>
-                        </button>
+                  {(splitMode === "percentage" || splitMode === "exact") && (
+                    <div className="flex justify-between items-center bg-background/50 p-3 rounded-xl border border-border/40">
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        {splitMode === "percentage" ? "Total Alocado:" : "Valor Restante:"}
+                      </span>
+                      <span className={cn("text-sm font-black", splitError ? "text-rose-400" : "text-emerald-400")}>
+                        {splitMode === "percentage" ? `${totalPercentage}% / 100%` : new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingExact)}
+                      </span>
+                    </div>
+                  )}
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pr-6">
-                          <div className="space-y-1.5">
-                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Quem pagará?</Label>
-                            <GlobalAccountSelector
-                              value={item.accountId}
-                              onValueChange={(val) => handleUpdateLoanSplit(item.id, 'accountId', val)}
-                              placeholder="Conta de Empréstimo..."
-                              excludeAccountId={accountId}
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-[10px] uppercase font-bold text-muted-foreground">Qual o valor?</Label>
-                            <CurrencyInput 
-                              value={item.amount}
-                              onChange={(val) => handleUpdateLoanSplit(item.id, 'amount', val)} 
-                              className="h-9 text-xs rounded-lg bg-muted/20 text-left"
-                            />
-                          </div>
+                  <div className="space-y-3 max-h-[250px] overflow-y-auto pr-1 scrollbar-thin">
+                    {splitMembers.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between p-3.5 rounded-xl border border-border/40 bg-background/40 hover:bg-background/60 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <Checkbox 
+                            id={`member-${member.id}`}
+                            checked={member.active}
+                            onCheckedChange={(checked) => {
+                              setSplitMembers(prev => prev.map(m => m.id === member.id ? { ...m, active: !!checked } : m));
+                            }}
+                            className="h-5 w-5 rounded-md"
+                          />
+                          <Label htmlFor={`member-${member.id}`} className="text-sm font-semibold cursor-pointer">
+                            {member.name}
+                          </Label>
                         </div>
+                        {member.active && splitMode === "equally" && (
+                          <span className="text-sm font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-lg">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(equalAmount)}
+                          </span>
+                        )}
+                        {member.active && splitMode === "percentage" && (
+                          <div className="flex items-center gap-1 w-24">
+                            <Input 
+                              type="number" 
+                              min="0" 
+                              max="100" 
+                              value={member.percentage || ""}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setSplitMembers(prev => prev.map(m => m.id === member.id ? { ...m, percentage: val } : m));
+                              }}
+                              className="h-9 text-right bg-background border-border/50 text-sm font-mono font-bold"
+                            />
+                            <span className="text-xs text-muted-foreground font-bold">%</span>
+                          </div>
+                        )}
+                        {member.active && splitMode === "exact" && (
+                          <div className="w-32">
+                            <CurrencyInput 
+                              value={member.exactValue || 0}
+                              onChange={(val) => {
+                                setSplitMembers(prev => prev.map(m => m.id === member.id ? { ...m, exactValue: val } : m));
+                              }}
+                              className="h-9 text-right bg-background border-border/50 text-sm font-mono font-bold"
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-
-                  {loanSplits.reduce((acc, curr) => acc + curr.amount, 0) > 0 && (
-                    <div className="flex items-center gap-2 mt-2 px-2.5 py-1.5 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-lg text-[10px] font-bold">
-                      Sua parte na compra será: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Math.max(0, amount - loanSplits.reduce((acc, curr) => acc + curr.amount, 0)))}
-                    </div>
-                  )}
                 </div>
               )}
             </div>
@@ -928,9 +987,9 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
             </div>
           )}
 
-          <DialogFooter>
-            <Button type="submit" className="w-full gradient-primary">
-              {isEdit ? "Salvar Alterações" : "Salvar Transação"}
+          <DialogFooter className="flex-col gap-2 sm:gap-2">
+            <Button type="submit" className="w-full gradient-primary font-bold h-11" disabled={!!splitError}>
+              {splitError || (isEdit ? "Salvar Alterações" : "Salvar Transação")}
             </Button>
           </DialogFooter>
         </form>
