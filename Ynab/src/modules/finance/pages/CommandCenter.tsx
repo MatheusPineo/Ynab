@@ -132,47 +132,68 @@ const CommandCenter = () => {
                 </TabsList>
               </div>
 
-              {/* TAB 1: OPERATING LEDGER (Envelopes) */}
-              <TabsContent value="ledger" className="flex flex-col gap-4 mt-0 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
+              {/* TAB 1: OPERATING LEDGER (Premium Envelopes) */}
+              <TabsContent value="ledger" className="flex flex-col gap-6 mt-4 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
                 {categoryGroups?.map((group) => {
                   if (!group) return null;
                   return (
-                    <div key={group?.id || Math.random()} className="rounded-2xl border border-border/60 bg-card/40 backdrop-blur-sm overflow-hidden shadow-soft">
-                      <div className="bg-muted/20 px-4 py-3 border-b border-border/40">
-                        <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">{group?.name || 'Grupo'}</h4>
+                    <div key={group?.id || Math.random()} className="rounded-2xl border border-white/10 bg-gradient-to-b from-card/60 to-background/40 backdrop-blur-xl shadow-2xl overflow-hidden relative group/group">
+                      {/* Subtle top glare */}
+                      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+
+                      {/* Group Header */}
+                      <div className="bg-white/5 px-5 py-3 border-b border-white/5 flex items-center justify-between">
+                        <h4 className="text-xs font-black uppercase tracking-widest text-white/80 drop-shadow-sm">{group?.name || 'Grupo'}</h4>
                       </div>
-                      <div className="divide-y divide-border/40">
+
+                      {/* Categories List */}
+                      <div className="divide-y divide-white/5">
                         {group?.children?.map((cat) => {
                           if (!cat) return null;
-                          const available = (cat?.assigned_amount || 0) - (cat?.spent_amount || 0);
+                          
+                          // CRITICAL MATH FIX: Use backend's available_amount as the absolute source of truth
+                          const available = cat?.available_amount || 0;
                           const isOverspent = available < 0;
-                          const progressPct = (cat?.assigned_amount || 0) > 0 ? Math.min(100, ((cat?.spent_amount || 0) / cat.assigned_amount) * 100) : 0;
+                          const spentAbs = Math.abs(cat?.spent_amount || 0);
+                          const assignedAbs = Math.abs(cat?.assigned_amount || 0);
+                          const progressPct = assignedAbs > 0 ? Math.min(100, (spentAbs / assignedAbs) * 100) : (spentAbs > 0 ? 100 : 0);
 
                           return (
-                            <div key={cat?.id || Math.random()} className={cn("p-4 transition-colors hover:bg-muted/10 group", isOverspent && "bg-rose-500/5")}>
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-semibold text-foreground">{cat?.name || 'Categoria'}</span>
-                                <span className={cn("text-sm font-bold font-mono", isOverspent ? "text-rose-400" : "text-emerald-400")}>
-                                  {formatMoney(available, baseCurrency)}
+                            <div key={cat?.id || Math.random()} className={cn("p-5 transition-all duration-300 hover:bg-white/5 group/cat relative overflow-hidden", isOverspent && "bg-rose-500/10 hover:bg-rose-500/20")}>
+                              
+                              {/* Main Row: Name & Balance */}
+                              <div className="flex items-center justify-between mb-3 relative z-10">
+                                <span className="text-sm font-bold text-white/90 group-hover/cat:text-white transition-colors">{cat?.name || 'Categoria'}</span>
+                                <span className={cn("text-base font-black font-mono tracking-tight", isOverspent ? "text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.6)]" : "text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.3)]")}>
+                                  {formatMoney(available, cat?.currency || baseCurrency)}
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-2 font-mono">
-                                <span>Alocado: {formatMoney(cat?.assigned_amount || 0, baseCurrency)}</span>
-                                <span>Gasto: {formatMoney(cat?.spent_amount || 0, baseCurrency)}</span>
+                              
+                              {/* Sub Row: Assigned & Spent */}
+                              <div className="flex items-center justify-between text-[11px] text-white/50 mb-3 font-mono tracking-wider uppercase relative z-10">
+                                <span>Aloc: <span className="text-white/80">{formatMoney(cat?.assigned_amount || 0, cat?.currency || baseCurrency)}</span></span>
+                                <span>Gasto: <span className="text-white/80">{formatMoney(cat?.spent_amount || 0, cat?.currency || baseCurrency)}</span></span>
                               </div>
-                              <div className="relative h-1.5 w-full rounded-full bg-muted/40 overflow-hidden mb-3">
+                              
+                              {/* Premium Sleek Progress Bar */}
+                              <div className="relative h-1.5 w-full rounded-full bg-black/50 shadow-inner overflow-hidden border border-white/5 relative z-10">
                                 <div 
-                                  className={cn("h-full rounded-full transition-all duration-700", isOverspent ? "bg-rose-500" : "bg-emerald-500")}
-                                  style={{ width: `${Math.max(progressPct, isOverspent ? 100 : 0)}%` }}
-                                />
+                                  className={cn("absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out", isOverspent ? "bg-gradient-to-r from-rose-600 to-rose-400" : "bg-gradient-to-r from-emerald-600 to-emerald-400")}
+                                  style={{ width: `${isOverspent ? 100 : progressPct}%` }}
+                                >
+                                  {/* Glow thumb at the end of the progress bar */}
+                                  <div className="absolute right-0 top-0 bottom-0 w-6 bg-white/30 blur-[2px] rounded-full"></div>
+                                </div>
                               </div>
-                              <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                              
+                              {/* Action Button (Slides in on hover) */}
+                              <div className="absolute inset-y-0 right-4 flex items-center opacity-0 group-hover/cat:opacity-100 transition-all duration-300 translate-x-4 group-hover/cat:translate-x-0 z-20">
                                 <MoveMoneyModal
                                   sourceCategory={cat}
                                   currentAvailable={available}
                                   trigger={
-                                    <Button variant="ghost" size="sm" className="h-7 text-[10px] font-bold gap-1 rounded-lg hover:bg-primary/10 hover:text-primary">
-                                      <ArrowRightLeft className="h-3 w-3" /> Mover Dinheiro
+                                    <Button variant="ghost" size="sm" className="h-9 bg-black/60 backdrop-blur-md text-[10px] font-bold gap-1.5 rounded-xl hover:bg-primary hover:text-white border border-white/10 shadow-2xl">
+                                      <ArrowRightLeft className="h-3.5 w-3.5" /> Mover
                                     </Button>
                                   }
                                 />
