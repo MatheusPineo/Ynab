@@ -19,6 +19,7 @@ import { CreateAccountModal } from "@/modules/finance/components/CreateAccountMo
 import { EditAccountModal } from "@/modules/finance/components/EditAccountModal";
 import { DeleteAccountDialog } from "@/modules/finance/components/DeleteAccountDialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/shared/components/ui/dropdown-menu";
+import { toast } from "sonner";
 import { type AccountNode } from "@/types";
 import { useNavigate } from "react-router-dom";
 
@@ -29,7 +30,7 @@ const CommandCenter = () => {
   const { 
     fetchAccounts, fetchCategoryGroups, fetchTransactions, fetchGlobalPendingTransactions,
     tree, categoryGroups, globalPendingTransactions, readyToAssignBalance, currentMonth, currentYear,
-    autoAssignFunds
+    autoAssignFunds, addCategory, updateCategory, deleteCategory
   } = useAccountStore();
   
   const { fetchRates, convert, baseCurrency, setBaseCurrency } = useCurrencyStore();
@@ -39,6 +40,41 @@ const CommandCenter = () => {
   // States for Edit/Delete modals
   const [editingAccount, setEditingAccount] = useState<AccountNode | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<AccountNode | null>(null);
+
+  const handleAddCategory = async (groupId: string) => {
+    const name = window.prompt("Nome da nova categoria:");
+    if (name && name.trim()) {
+      try {
+        await addCategory(groupId, name.trim());
+      } catch (err: any) {
+        toast.error("Erro ao criar categoria: " + err.message);
+      }
+    }
+  };
+
+  const handleEditCategory = async (cat: any) => {
+    const name = window.prompt("Editar nome:", cat.name);
+    if (name && name.trim() && name !== cat.name) {
+      try {
+        await updateCategory(cat.id, { name: name.trim() });
+      } catch (err: any) {
+        toast.error("Erro ao atualizar: " + err.message);
+      }
+    }
+  };
+
+  const handleDeleteCategory = async (id: string, isGroup = false) => {
+    const msg = isGroup 
+      ? 'Tem certeza que deseja excluir este grupo?' 
+      : 'Tem certeza que deseja excluir esta categoria?';
+    if (window.confirm(msg)) {
+      try {
+        await deleteCategory(id);
+      } catch (err: any) {
+        toast.error("Erro ao excluir: " + err.message);
+      }
+    }
+  };
 
   useEffect(() => {
     Promise.all([
@@ -160,13 +196,13 @@ const CommandCenter = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="glass border-border/60 min-w-[140px]">
-                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer">
+                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => handleAddCategory(group.id)}>
                                 <Plus className="h-3.5 w-3.5" /> Adicionar Categoria
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer">
+                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => handleEditCategory(group)}>
                                 <Edit2 className="h-3.5 w-3.5" /> Editar Grupo
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer text-rose-400 focus:text-rose-400">
+                              <DropdownMenuItem className="text-xs gap-2 cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteCategory(group.id, true)}>
                                 <Trash2 className="h-3.5 w-3.5" /> Excluir Grupo
                               </DropdownMenuItem>
                             </DropdownMenuContent>
@@ -206,10 +242,10 @@ const CommandCenter = () => {
                                       </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="glass border-border/60 min-w-[140px]" onClick={(e) => e.stopPropagation()}>
-                                      <DropdownMenuItem className="text-xs gap-2 cursor-pointer">
+                                      <DropdownMenuItem className="text-xs gap-2 cursor-pointer" onClick={() => handleEditCategory(cat)}>
                                         <Edit2 className="h-3.5 w-3.5" /> Editar Categoria
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem className="text-xs gap-2 cursor-pointer text-rose-400 focus:text-rose-400">
+                                      <DropdownMenuItem className="text-xs gap-2 cursor-pointer text-rose-400 focus:text-rose-400" onClick={() => handleDeleteCategory(cat.id)}>
                                         <Trash2 className="h-3.5 w-3.5" /> Excluir Categoria
                                       </DropdownMenuItem>
                                     </DropdownMenuContent>
