@@ -241,6 +241,7 @@ class AccountViewSet(viewsets.ModelViewSet):
                         'icon_url': account.icon_url,
                         'bank_domain': account.bank_domain,
                         'bank_logo_url': account.bank_logo_url,
+                        'color': account.color,
                         'parent': str(account.parent_id) if account.parent_id else None,
                         'ceiling': float(account.ceiling) if account.ceiling is not None else None,
                         'exclude_from_totals': account.exclude_from_totals,
