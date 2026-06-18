@@ -1,6 +1,13 @@
 # Novidades e Atualizações
 
-## Novo Ledger de Partidas Dobradas (v2.0.0-alpha.1 - 17/06/2026) 🧾🏦
+
+## Rateio Avançado & Loop Umbilical (v2.0.0 - 18/06/2026) 🚀
+
+- **Split Engine:** O modal de transações agora conta com um assistente de divisão altamente inteligente, suportando cálculos igualitários, percentuais ou em valores exatos, todos com validação e travas de segurança dinâmicas.
+- **Painel de Devedores (Tickets):** Adeus aos saldos estáticos! A gestão de recebimentos de terceiros agora é baseada em _Tickets_ individuais.
+- **Umbilical Loop:** Ao quitar múltiplos tickets parciais, o sistema injeta o estorno financeiro milimetricamente de volta no envelope original daquela despesa. Contabilidade de alto nível automatizada!
+
+## Novo Ledger de Partidas Dobradas (v2.0.0 - 17/06/2026) 🧾🏦
 Iniciamos a modernização do motor de contabilidade do Vault Finance OS. Criamos a fundação para a Arquitetura de Contabilidade de Partidas Dobradas (Double-Entry Ledger) com:
 * **LedgerAccount:** Estruturação de contas do livro razão do sistema (Ativos, Passivos, Patrimônio, Receitas, Despesas e Shadow Claims do orçamento).
 * **JournalEntry e LedgerPosting:** Suporte a lançamentos e partidas individuais, abrindo caminho para uma conciliação automática mais robusta e para o conceito de "Clearing House" (controle estrito de limite e liquidação de cartões de crédito).

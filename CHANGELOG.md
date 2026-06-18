@@ -1,6 +1,10 @@
-## [2.0.0-alpha.4] - 2026-06-18
+## [2.0.0] - 2026-06-18
 
 ### Added
+- Frontend: Implementado o **Split Engine (Rateio Avançado)** no modal de transações, incluindo modos de cálculo Igualitário, Porcentagem e Exato com validação em tempo real.
+- Frontend: Refatorada a aba **Devedores (LoansDashboard.tsx)** adotando um painel avançado baseado em Tickets individuais (com checkboxes para seleção parcial) em vez de saldo engessado.
+- Frontend: Implementado o **Loop Umbilical (Macro Settlement)** na aba de Devedores, automatizando o estorno de recebimentos parciais e retornando o fluxo de caixa diretamente para a Categoria Orçamentária original da despesa.
+
 - Frontend: Criado o componente **`CreateAccountModal`** — modal completo para criar contas raiz (master accounts) diretamente da aba "Contas Físicas" do Centro de Controle. Campos: nome, domínio do banco (para ícone automático), saldo inicial, moeda, tipo de conta e flag de exclusão de totais.
 - Frontend: Criado o componente **`EditAccountModal`** — formulário de edição de conta pré-preenchido com os dados atuais. Permite alterar nome, domínio do banco, moeda, tipo de conta e flag de exclusão de totais. Conectado ao `updateNode` do store (PATCH `/accounts/{id}/`).
 - Frontend: Criado o componente **`DeleteAccountDialog`** — diálogo de confirmação de exclusão com proteção por digitação do nome da conta. Exibe warnings detalhados sobre dados que serão perdidos (transações, sub-contas, saldo). Conectado ao `deleteNode` do store (DELETE `/accounts/{id}/`).
@@ -10,7 +14,7 @@
 - Frontend: Corrigido o botão **"Adicionar Conta"** que exibia apenas o ícone "+" sem o texto. O `AddAccountModal` (para sub-contas) foi substituído pelo novo `CreateAccountModal` com prop `trigger` correta e `whitespace-nowrap`.
 - Frontend: Corrigido o layout do grid de **Cards de Contas Físicas** na aba "Centro de Controle" (CommandCenter). Os cards estavam com 3 colunas em telas grandes (`xl:grid-cols-3`), causando corte nos nomes das contas (ex: "Tesouro Diret...", "Empres..."). O grid foi ajustado para no máximo **2 colunas** (`sm:grid-cols-2`), garantindo que todos os nomes e informações sejam exibidos por completo tanto no desktop quanto no mobile.
 
-## [2.0.0-alpha.1] - 2026-06-17
+
 
 ### Added
 - Backend: Início da transição arquitetural de um sistema de balanço de entrada única (Single-Entry Balance) para um Ledger de Partidas Dobradas estrito (Strict Double-Entry Ledger) com as seguintes fundações:
