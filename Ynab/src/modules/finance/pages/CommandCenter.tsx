@@ -176,6 +176,11 @@ const CommandCenter = () => {
               <TabsContent value="ledger" className="flex flex-col gap-6 mt-4 outline-none animate-in fade-in slide-in-from-bottom-2 duration-500">
                 {categoryGroups?.map((group) => {
                   if (!group) return null;
+                  
+                  // 🛑 SILENT TRACKING FILTER 🛑
+                  // Keeps the accounting database synchronized while maintaining an immaculate UI.
+                  if (group.name === "Rateios Pendentes") return null;
+
                   return (
                     <div key={group?.id || Math.random()} className="rounded-2xl border border-white/10 bg-gradient-to-b from-card/60 to-background/40 backdrop-blur-xl shadow-2xl overflow-hidden relative group/group">
                       {/* Subtle top glare */}
