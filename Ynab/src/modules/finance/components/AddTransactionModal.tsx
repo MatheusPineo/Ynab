@@ -105,6 +105,53 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   }
   const [splitMembers, setSplitMembers] = useState<SplitMember[]>([]);
 
+  // Inline Debtor Creation State
+  const [isAddingPerson, setIsAddingPerson] = useState(false);
+  const [newPersonName, setNewPersonName] = useState("");
+  const [isCreatingDebtor, setIsCreatingDebtor] = useState(false);
+
+  const handleCreateAndAddPerson = async () => {
+    if (!newPersonName.trim()) {
+      toast.error("Por favor, digite um nome válido.");
+      return;
+    }
+    setIsCreatingDebtor(true);
+    try {
+      const response = await authenticatedFetch("/debts/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          counterparty_name: newPersonName.trim(),
+          original_amount: 0.00,
+          currency: "EUR",
+          is_mine: true,
+          notes: "Adicionado via rateio"
+        })
+      });
+      if (!response.ok) {
+        throw new Error("Erro ao criar devedor.");
+      }
+      const data = await response.json();
+      
+      // Append created debtor dynamically to split members list
+      const newMember: SplitMember = {
+        id: data.id,
+        name: data.counterparty_name,
+        active: true,
+        percentage: 0,
+        exactValue: 0
+      };
+      setSplitMembers(prev => [...prev, newMember]);
+      setNewPersonName("");
+      setIsAddingPerson(false);
+      toast.success(`${data.counterparty_name} adicionado com sucesso!`);
+    } catch (error: any) {
+      toast.error(error.message || "Erro de conexão ao criar devedor.");
+    } finally {
+      setIsCreatingDebtor(false);
+    }
+  };
+
   const { debts } = useDebtStore();
 
   useEffect(() => {
@@ -945,6 +992,60 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                         )}
                       </div>
                     ))}
+                  </div>
+
+                  {/* Inline Debtor Creation Controls */}
+                  <div className="pt-2 border-t border-border/20 mt-2">
+                    {isAddingPerson ? (
+                      <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
+                        <Input
+                          placeholder="Nome da pessoa..."
+                          value={newPersonName}
+                          onChange={(e) => setNewPersonName(e.target.value)}
+                          className="h-9 text-xs bg-background/50 border-border/50"
+                          disabled={isCreatingDebtor}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              handleCreateAndAddPerson();
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={handleCreateAndAddPerson}
+                          disabled={isCreatingDebtor}
+                          className="h-9 px-3 text-xs"
+                        >
+                          {isCreatingDebtor ? "..." : "Adicionar"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setIsAddingPerson(false);
+                            setNewPersonName("");
+                          }}
+                          disabled={isCreatingDebtor}
+                          className="h-9 px-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                        >
+                          Cancelar
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsAddingPerson(true)}
+                        className="w-full h-9 justify-center gap-1 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border/40 hover:border-border/80 bg-background/20 rounded-xl"
+                      >
+                        + Adicionar Pessoa no Rateio
+                      </Button>
+                    )}
                   </div>
                 </div>
               )}
