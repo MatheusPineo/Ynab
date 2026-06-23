@@ -642,7 +642,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                         {sug.category && (
                           <>
                             <span>•</span>
-                            <span className="bg-primary/10 text-primary-foreground/90 px-1 rounded-sm">
+                            <span className="text-[9px] font-semibold px-1 py-0.5 rounded-md text-emerald-200 bg-emerald-500/20 border border-emerald-500/30">
                               {getCategoryName(sug.category)}
                             </span>
                           </>
@@ -650,7 +650,9 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                         {sAcc && (
                           <>
                             <span>•</span>
-                            <span>{sAcc.name}</span>
+                            <span className="text-[9px] font-semibold px-1 py-0.5 rounded-md text-white/80 bg-white/10 border border-white/10">
+                              {sAcc.name}
+                            </span>
                           </>
                         )}
                       </div>
