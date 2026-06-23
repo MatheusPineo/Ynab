@@ -1,6 +1,5 @@
 import { Bell, AlertCircle, FileText, ArrowRight } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { ModeToggle } from "@/shared/components/ui/mode-toggle";
 import { AddTransactionModal } from "@/modules/finance/components/AddTransactionModal";
 import { useAuthStore } from "@/modules/auth/store/useAuthStore";
 import { format } from "date-fns";
@@ -106,8 +105,6 @@ export const Topbar = () => {
         <div className="hidden md:block">
           <GlobalSearch />
         </div>
-
-        <ModeToggle />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
