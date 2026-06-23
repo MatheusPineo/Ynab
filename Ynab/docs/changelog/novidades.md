@@ -2,6 +2,15 @@
 
 Fique por dentro das últimas melhorias e novos fluxos do sistema criados especialmente para otimizar sua experiência financeira.
 
+## 💎 Restauração da API de Rateio e Integração com Central de Devedores (23/06/2026)
+
+Restauramos por completo a integração de dados e o suporte backend para o novo motor de **Divisão de Contas (Split Bill)** e o **Painel de Devedores**.
+
+### O que mudou?
+- **Infraestrutura Pronta:** O banco de dados e os endpoints do backend foram atualizados para armazenar e atualizar as regras de rateio e os tickets de dívida originados a partir do lançamento de despesas no modal.
+- **Divisão de Contas Sincronizada:** Ao realizar uma despesa dividida no modal, o backend agora processa de forma atômica o array de splits e registra cada ticket de dívida associado ao devedor de forma segura.
+- **Rastreamento de Tickets Ativo:** Os checkboxes do painel de Devedores para amortizar recebimentos parciais e o loop umbilical agora contam com o salvamento permanente no backend através de transações seguras.
+
 ## 💎 Ajustes Visuais nas Contas Físicas e Retorno do Modal de Criação (18/06/2026)
 
 Fizemos ajustes de design importantes na aba de Contas Físicas do Centro de Comando e restabelecemos a possibilidade de adicionar contas com total estabilidade.

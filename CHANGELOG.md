@@ -1,3 +1,11 @@
+## [2.1.0] - 2026-06-23
+
+### Added
+- Backend: Restauração completa da API REST para devedores e rateios. Recriados os modelos `Debt`, `DebtPayment`, `SplitRule` e `SplitRuleItem` sob o app label `core`.
+- Backend: Modificado o gancho contábil de criação de transações (`perform_create` em `TransactionViewSet`) para interceptar o array `splits` e criar os tickets de dívida (`Debt`) atômica e automaticamente no banco de dados.
+- Backend: Adicionados endpoints `/split-rules/`, `/debts/` e `/debt-payments/` no roteador do Django REST Framework.
+- Testes: Adicionado arquivo `test_debts_restored.py` com testes automatizados para validar a criação de splits e ciclo de pagamentos de dívidas no backend (99/99 testes verdes).
+
 ## [2.0.0] - 2026-06-18
 
 ### Added

@@ -1,9 +1,10 @@
 # MEMÓRIA DE DESENVOLVIMENTO E STATUS
 
 ## Última Atualização
-- **Data:** 18 de Junho de 2026
-- **Status da Aplicação:** Estável, compilando com sucesso (`npm run build` bem-sucedido) e UI 100% restaurada com o modal reativado. Versão `2.112.00`.
-- **Funcionalidade Implementada:** Refinamento estético das Contas Físicas (remoção do chip, correção definitiva de truncamento de nomes com line-clamp-2 e flexbox) no CommandCenter.tsx e reativação segura do AddAccountModal.tsx após implementar Optional Chaining estrito contra erros de propriedades nulas/indefinidas.
+- **Data:** 23 de Junho de 2026
+- **Status da Aplicação:** Estável, backend restaurado com API e modelos de Devedores e Rateio operacionais, suíte de 99 testes passando (Vitest/Pytest). Versão `2.1.0`.
+- **Funcionalidade Implementada:** Reintrodução da infraestrutura REST API para devedores e suporte nativo ao payload atômico de splits no backend para integração com a Split Engine e o Loans Dashboard.
+
 
 ## Estrutura de Documentação de Governança
 - **Técnica:** [README.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/README.md) e [ARCHITECTURE.md](file:///C:/Users/mathe/PROJETO-YNAB/Ynab/ARCHITECTURE.md) atualizados.

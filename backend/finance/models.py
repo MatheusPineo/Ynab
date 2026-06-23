@@ -1136,5 +1136,100 @@ class LedgerPosting(models.Model):
         return f"{self.direction} {self.amount} -> {self.ledger_account.name} ({self.status})"
 
 
+class SplitRule(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='split_rules')
+    name = models.CharField(max_length=150)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_splitrule'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.name} ({self.user.username})"
+
+
+class SplitRuleItem(models.Model):
+    template = models.ForeignKey(SplitRule, on_delete=models.CASCADE, related_name='items')
+    debtor_name = models.CharField(max_length=150)
+    percentage = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    fixed_amount = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+
+    class Meta:
+        db_table = 'core_splitruleitem'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"{self.debtor_name} no template {self.template.name}"
+
+
+class Debt(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='debts')
+    counterparty_name = models.CharField(max_length=150)
+    original_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    currency = models.CharField(max_length=3, default='EUR')
+    is_mine = models.BooleanField(default=True)
+    notes = models.CharField(max_length=255, blank=True)
+    origin_transaction = models.ForeignKey(
+        Transaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='debts'
+    )
+    origin_category = models.ForeignKey(
+        Category,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='debts'
+    )
+    applied_rule = models.ForeignKey(
+        SplitRule,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='applied_debts'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_debt'
+        app_label = 'core'
+
+    def __str__(self):
+        role = "credor" if self.is_mine else "devedor"
+        return f"Dívida de {self.counterparty_name}: R$ {self.original_amount} ({role})"
+
+
+class DebtPayment(models.Model):
+    debt = models.ForeignKey(Debt, on_delete=models.CASCADE, related_name='payments')
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    date = models.DateField()
+    account = models.ForeignKey(
+        Account,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='debt_payments'
+    )
+    transaction = models.ForeignKey(
+        Transaction,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='debt_payments'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'core_debtpayment'
+        app_label = 'core'
+
+    def __str__(self):
+        return f"Pagamento de {self.amount} em {self.date} para {self.debt.counterparty_name}"
+
+
+
 
 

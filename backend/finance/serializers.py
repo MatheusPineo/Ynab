@@ -260,3 +260,73 @@ class AssetSerializer(serializers.ModelSerializer):
 
     def get_effective_asset_value(self, obj):
         return float(obj.current_market_value)
+
+
+from .models import SplitRule, SplitRuleItem, Debt, DebtPayment
+
+class SplitRuleItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SplitRuleItem
+        fields = ['id', 'debtor_name', 'percentage', 'fixed_amount']
+
+
+class SplitRuleSerializer(serializers.ModelSerializer):
+    items = SplitRuleItemSerializer(many=True, required=False, allow_empty=True)
+
+    class Meta:
+        model = SplitRule
+        fields = ['id', 'name', 'created_at', 'items']
+        extra_kwargs = {
+            'user': {'read_only': True},
+        }
+
+    def create(self, validated_data):
+        items_data = validated_data.pop('items', [])
+        split_rule = SplitRule.objects.create(user=self.context['request'].user, **validated_data)
+        for item in items_data:
+            SplitRuleItem.objects.create(template=split_rule, **item)
+        return split_rule
+
+    def update(self, instance, validated_data):
+        items_data = validated_data.pop('items', None)
+        instance.name = validated_data.get('name', instance.name)
+        instance.save()
+        if items_data is not None:
+            instance.items.all().delete()
+            for item in items_data:
+                SplitRuleItem.objects.create(template=instance, **item)
+        return instance
+
+
+class DebtPaymentSerializer(serializers.ModelSerializer):
+    account_name = serializers.CharField(source='account.name', read_only=True)
+    class Meta:
+        model = DebtPayment
+        fields = '__all__'
+
+
+class DebtSerializer(serializers.ModelSerializer):
+    payments = DebtPaymentSerializer(many=True, read_only=True)
+    amount_paid = serializers.SerializerMethodField()
+    amount_remaining = serializers.SerializerMethodField()
+    origin_category_name = serializers.CharField(source='origin_category.name', read_only=True)
+    origin_transaction_description = serializers.CharField(source='origin_transaction.description', read_only=True)
+
+    class Meta:
+        model = Debt
+        fields = [
+            'id', 'counterparty_name', 'original_amount', 'currency', 'is_mine', 
+            'notes', 'origin_transaction', 'origin_category', 'applied_rule', 
+            'created_at', 'payments', 'amount_paid', 'amount_remaining',
+            'origin_category_name', 'origin_transaction_description'
+        ]
+        extra_kwargs = {
+            'user': {'read_only': True},
+        }
+
+    def get_amount_paid(self, obj):
+        return float(sum(p.amount for p in obj.payments.all()))
+
+    def get_amount_remaining(self, obj):
+        total_paid = sum(p.amount for p in obj.payments.all())
+        return float(max(obj.original_amount - total_paid, 0))

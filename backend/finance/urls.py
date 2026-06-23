@@ -6,7 +6,8 @@ from .views import (
     ResetDataView, CreditCardViewSet,
     InboxUploadView, TransactionInboxViewSet, CategoryGoalViewSet, TransactionRuleViewSet,
     InvestmentAssetViewSet, InvestmentActivityViewSet, WealthSummaryView, WealthBatchUpdateView, DemoModeView,
-    ReportsViewSet, NotificationInboxView, AssetViewSet
+    ReportsViewSet, NotificationInboxView, AssetViewSet,
+    SplitRuleViewSet, DebtViewSet, DebtPaymentViewSet
 )
 
 # Novas importações para os Dispositivos Confiáveis
@@ -27,6 +28,10 @@ router.register(r'transaction-rules', TransactionRuleViewSet, basename='transact
 router.register(r'wealth/assets', InvestmentAssetViewSet, basename='wealth-asset')
 router.register(r'wealth/activities', InvestmentActivityViewSet, basename='wealth-activity')
 router.register(r'assets', AssetViewSet, basename='asset')
+router.register(r'split-rules', SplitRuleViewSet, basename='split-rule')
+router.register(r'debts', DebtViewSet, basename='debt')
+router.register(r'debt-payments', DebtPaymentViewSet, basename='debt-payment')
+
 
 
 urlpatterns = [

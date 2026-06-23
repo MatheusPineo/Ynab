@@ -170,7 +170,6 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       setIsRecurring(transaction?.is_recurring || false);
       setRecurrenceInterval(transaction?.recurrence_interval || "monthly");
       setIsSplitting(false);
-      setLoanSplits([]);
     }
   }, [open, transaction, initialAccountId]);
 

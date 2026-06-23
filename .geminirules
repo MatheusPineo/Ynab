@@ -25,10 +25,10 @@
 - [v1.35.17] Componente Universal GlobalAccountSelector: A seleção hierárquica avançada com busca ("AccountCombobox") foi extraída para `src/shared/components/ui/global-account-selector.tsx` e agora é o padrão global absoluto na aplicação para todas as dropdowns de contas. Regra enforçada: Este componente SEMPRE deve ocupar `w-full` e `col-span-full` nos grids, jamais dividindo linha.
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no Cartão de Crédito agora aceita números dinâmicos e customizados de parcelamento (ex: 24x, 36x) via input numérico e a propriedade `total_amount` foi corrigida na requisição, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitações do select.
 - [v1.62.00] Comando de Restauração Definitiva e Separação de Moedas: Criação do Django Management Command `fix_currency_mess` e migrações profundas de dados do ledger (multiplicador 6.000857) para restauração de val# MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-17 15:15:00): Novo Ledger de Partidas Dobradas (v2.0.0).
-- Backend: Criados os novos modelos LedgerAccount, JournalEntry e LedgerPosting para a nova arquitetura contábil Double-Entry Ledger.
-- Backend: Geradas e aplicadas as migrações no banco de dados.
-- Testes: Pytest executado com 97/97 testes verdes, confirmando o funcionamento seguro após a migração do banco.
+(Atualizado em 2026-06-23 15:25:00): Restauração do Backend de Devedores e Rateio (v2.1.0).
+- Backend: Recriados os modelos `Debt`, `DebtPayment`, `SplitRule` e `SplitRuleItem` para sincronização completa com o frontend.
+- Backend: Registrados ViewSets de CRUD e action de incremento no backend, processando e criando devedores em lote através do payload atômico `splits` na criação de transações.
+- Testes: Criado o arquivo `test_debts_restored.py` com testes passando 100% (99/99 testes verdes), validando o motor do backend contra regressões.
 
-### Status Atual (Versão 2.0.0)
-- **Marco:** Refatoração visual (Premium Glassmorphism), Split Engine, e Central de Devedores com Loop Umbilical (v2.0.0).
+### Status Atual (Versão 2.1.0)
+- **Marco:** Restauração do Backend para Split Transactions e Central de Devedores (v2.1.0).

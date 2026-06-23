@@ -958,10 +958,36 @@ class TransactionViewSet(viewsets.ModelViewSet):
         is_applied = (status_data == 'realized' and date_data <= today)
         
         instance = serializer.save(is_applied_to_balance=is_applied)
+
+        # Process splits if present in request data
+        request_data = serializer.context.get('request').data if serializer.context.get('request') else {}
+        splits = request_data.get('splits')
+        if splits and isinstance(splits, list):
+            from .models import Debt
+            for split_item in splits:
+                debtor_name = split_item.get('debtor_id') or split_item.get('debtor_name') or "Desconhecido"
+                split_amount = split_item.get('amount')
+                if split_amount is not None:
+                    try:
+                        val_amount = Decimal(str(split_amount))
+                    except Exception:
+                        continue
+                    
+                    Debt.objects.create(
+                        user=self.request.user,
+                        counterparty_name=debtor_name,
+                        original_amount=val_amount,
+                        currency=instance.account.currency if instance.account else 'EUR',
+                        is_mine=True,
+                        notes=f"Divisão da despesa: {instance.description}",
+                        origin_transaction=instance,
+                        origin_category=instance.category
+                    )
         
         # Gerenciamento do agendamento recorrente
         if instance.is_recurring and not instance.next_recurrence_date:
             def add_months(sourcedate, months):
+
                 month = sourcedate.month - 1 + months
                 year = sourcedate.year + month // 12
                 month = month % 12 + 1
@@ -2682,6 +2708,110 @@ class AssetViewSet(viewsets.ModelViewSet):
             "average_monthly_expenses": float(monthly_avg_expenses),
             "runway_months": runway_months
         }, status=status.HTTP_200_OK)
+
+
+from .models import Debt, DebtPayment, SplitRule
+from .serializers import DebtSerializer, DebtPaymentSerializer, SplitRuleSerializer
+
+class SplitRuleViewSet(viewsets.ModelViewSet):
+    serializer_class = SplitRuleSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return SplitRule.objects.filter(user=self.request.user).prefetch_related('items')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+
+class DebtViewSet(viewsets.ModelViewSet):
+    serializer_class = DebtSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Debt.objects.filter(user=self.request.user).prefetch_related('payments')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=['post'])
+    def add_debt_amount(self, request, pk=None):
+        debt = self.get_object()
+        amount = request.data.get('amount')
+        description = request.data.get('description', '')
+        date_val = request.data.get('date', date.today().strftime('%Y-%m-%d'))
+        account_id = request.data.get('account')
+
+        try:
+            val_amount = Decimal(str(amount))
+        except Exception:
+            return Response({'error': 'Valor inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Atualiza o valor original somando o novo débito
+        debt.original_amount += val_amount
+        if description:
+            debt.notes = f"{debt.notes} | {description}" if debt.notes else description
+        debt.save()
+
+        # Cria a transação correspondente caso uma conta tenha sido informada
+        if account_id:
+            try:
+                account = Account.objects.get(id=account_id, user=request.user)
+                applied = (datetime.strptime(date_val, '%Y-%m-%d').date() <= date.today())
+                tx = Transaction.objects.create(
+                    account=account,
+                    description=f"Aumento de dívida: {debt.counterparty_name} - {description}",
+                    amount=val_amount,
+                    date=date_val,
+                    is_income=not debt.is_mine, # Se a dívida é minha, eu recebi dinheiro (crédito/financiamento) ou paguei a mais? Na UI, se is_mine=True, eu sou o credor, logo aumentar significa que emprestei mais (despesa).
+                    status='realized',
+                    is_applied_to_balance=applied
+                )
+                # Vincula a transação
+                DebtPayment.objects.create(
+                    debt=debt,
+                    amount=-val_amount if debt.is_mine else val_amount, # Ajuste contábil ou apenas registro de log
+                    date=date_val,
+                    account=account,
+                    transaction=tx
+                )
+            except Account.DoesNotExist:
+                pass
+
+        return Response(DebtSerializer(debt).data, status=status.HTTP_200_OK)
+
+
+class DebtPaymentViewSet(viewsets.ModelViewSet):
+    serializer_class = DebtPaymentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return DebtPayment.objects.filter(debt__user=self.request.user)
+
+    @transaction.atomic
+    def perform_create(self, serializer):
+        payment = serializer.save()
+        # Ao registrar um pagamento de dívida, cria a transação de retorno automaticamente caso account esteja presente
+        if payment.account and not payment.transaction:
+            applied = (payment.date <= date.today())
+            tx = Transaction.objects.create(
+                account=payment.account,
+                description=f"Pagamento recebido/feito: {payment.debt.counterparty_name}",
+                amount=payment.amount,
+                date=payment.date,
+                is_income=payment.debt.is_mine, # Se a dívida é minha (eu emprestei), eu recebo (income).
+                status='realized',
+                is_applied_to_balance=applied
+            )
+            payment.transaction = tx
+            payment.save()
+
+    @transaction.atomic
+    def perform_destroy(self, instance):
+        if instance.transaction:
+            instance.transaction.delete()
+        instance.delete()
+
 
 
 
