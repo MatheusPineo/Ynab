@@ -1183,7 +1183,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                                         className={cn(
                                           "text-[10px] px-2 py-0.5 rounded-lg border transition-all font-semibold",
                                           isChecked 
-                                            ? "bg-primary/20 border-primary text-primary-foreground font-bold shadow-soft" 
+                                            ? "bg-primary/20 border-primary text-white font-bold shadow-soft" 
                                             : "bg-background/20 border-border/40 text-muted-foreground hover:text-foreground"
                                         )}
                                       >
@@ -1201,13 +1201,34 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                                               const updated = [...receiptItems];
                                               const currentShared = [...updated[itemIdx].sharedBy];
                                               const existingIndex = currentShared.findIndex(s => s.id === member.id);
+                                              
                                               if (existingIndex >= 0) {
+                                                // 1. Update the triggering member's percentage
                                                 currentShared[existingIndex].weight = val;
-                                                updated[itemIdx].sharedBy = currentShared;
-                                                setReceiptItems(updated);
+
+                                                // 2. Auto-balance the remainder among the other active members
+                                                const remainder = 100 - val;
+                                                const otherActiveMembers = currentShared.filter(s => s.id !== member.id && s.weight > 0);
+                                                
+                                                if (otherActiveMembers.length > 0) {
+                                                  // Distribute remainder equally among the other active members
+                                                  const equalPercentage = Math.round(remainder / otherActiveMembers.length);
+                                                  let runningSum = 0;
+                                                  otherActiveMembers.forEach((act, idx) => {
+                                                    if (idx === otherActiveMembers.length - 1) {
+                                                      act.weight = remainder - runningSum;
+                                                    } else {
+                                                      act.weight = equalPercentage;
+                                                      runningSum += equalPercentage;
+                                                    }
+                                                  });
+                                                }
                                               }
+
+                                              updated[itemIdx].sharedBy = currentShared;
+                                              setReceiptItems(updated);
                                             }}
-                                            className="w-full h-6 text-right bg-background/50 border border-border/40 rounded px-1 text-[10px] font-mono font-bold focus:outline-none focus:border-primary"
+                                            className="w-full h-6 text-right bg-background/50 border border-border/40 rounded px-1 text-[10px] font-mono font-bold focus:outline-none focus:border-primary text-white"
                                           />
                                           <span className="text-[9px] text-muted-foreground ml-0.5">%</span>
                                         </div>
