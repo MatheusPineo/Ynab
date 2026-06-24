@@ -282,7 +282,7 @@ class SplitRuleSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop('items', [])
-        split_rule = SplitRule.objects.create(user=self.context['request'].user, **validated_data)
+        split_rule = SplitRule.objects.create(**validated_data)
         for item in items_data:
             SplitRuleItem.objects.create(template=split_rule, **item)
         return split_rule
