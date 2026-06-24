@@ -1030,9 +1030,10 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                           if (splitMode === "itemized" && receiptItems.length > 0) {
                             setReceiptItems(prev => prev.map((item) => {
                               const sharedMembers = selectedRule.items.map(ri => {
+                                // Sincronização correta de ID: ri.debtor do backend mapeia para 'user' ou para o id real
                                 const matchedMember = updatedSplitMembers.find(sm => sm.id === ri.debtor || (sm.isUser && ri.debtor === "user"));
                                 return {
-                                  id: ri.debtor,
+                                  id: matchedMember ? matchedMember.id : ri.debtor,
                                   name: matchedMember ? matchedMember.name : (ri.debtor_name || "Membro"),
                                   weight: ri.percentage || 0
                                 };
