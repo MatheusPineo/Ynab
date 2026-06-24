@@ -108,7 +108,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
   interface ReceiptItemMember {
     id: string;
     name: string;
-    weight: number; // 0 or 1, or direct allocation percentage weight
+    weight: number; // percentage (e.g. 50 for 50%) or weight (0 or standard weight)
   }
 
   interface ReceiptItem {
@@ -137,6 +137,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
       const totalWeight = activeShares.reduce((sum, s) => sum + s.weight, 0);
       if (totalWeight > 0 && item.amount > 0) {
         activeShares.forEach(share => {
+          // Calculate based on the percentage/weight input directly
           const shareAmount = (item.amount * share.weight) / totalWeight;
           if (aggregatedShares[share.id] !== undefined) {
             aggregatedShares[share.id] += Number(shareAmount.toFixed(2));
@@ -581,6 +582,17 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     } else if (splitMode === "itemized") {
       if (Math.abs(remainingReceiptExact) >= 0.01) {
         splitError = `O total dos produtos (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalReceiptItemsSum)}) não bate com o valor total da transação (${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(amount)}).`;
+      } else {
+        // Check if any active item has percentages that do not sum to 100%
+        const hasInvalidItemPercentage = receiptItems.some(item => {
+          const activeShares = item.sharedBy.filter(s => s.weight > 0);
+          if (activeShares.length === 0) return false;
+          const totalPercentageSum = activeShares.reduce((sum, s) => sum + s.weight, 0);
+          return Math.abs(totalPercentageSum - 100) >= 0.01;
+        });
+        if (hasInvalidItemPercentage) {
+          splitError = "Certifique-se de que a soma das porcentagens de cada produto seja exatamente 100%.";
+        }
       }
     }
   }
@@ -622,7 +634,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           )}
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[425px] glass border-border/60 max-h-[85vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="sm:max-w-3xl glass border-border/60 max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Transação" : "Lançar Transação"}</DialogTitle>
         </DialogHeader>
@@ -1044,38 +1056,98 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                             </div>
 
                             {/* Checklist of participants for this specific item */}
-                            <div className="space-y-1.5 pl-1 min-w-0">
-                              <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Quem divide esse item?</div>
-                              <div className="flex flex-wrap gap-2">
+                            <div className="space-y-2 pl-1 min-w-0">
+                              <div className="flex justify-between items-center">
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Quem divide esse item?</div>
+                                {(() => {
+                                  const activeShares = item.sharedBy.filter(s => s.weight > 0);
+                                  const totalPercentageSum = activeShares.reduce((sum, s) => sum + s.weight, 0);
+                                  if (activeShares.length > 0 && Math.abs(totalPercentageSum - 100) >= 0.01) {
+                                    return (
+                                      <span className="text-[9px] font-bold text-rose-400 bg-rose-500/10 border border-rose-500/20 px-1.5 py-0.5 rounded animate-pulse">
+                                        Soma: {totalPercentageSum}% (deve ser 100%)
+                                      </span>
+                                    );
+                                  }
+                                  return null;
+                                })()}
+                              </div>
+                              <div className="flex flex-wrap gap-3">
                                 {splitMembers.map((member) => {
                                   const match = item.sharedBy.find(s => s.id === member.id);
                                   const isChecked = match ? match.weight > 0 : false;
                                   return (
-                                    <button
-                                      key={member.id}
-                                      type="button"
-                                      onClick={() => {
-                                        const updated = [...receiptItems];
-                                        const currentShared = [...updated[itemIdx].sharedBy];
-                                        const existingIndex = currentShared.findIndex(s => s.id === member.id);
-                                        
-                                        if (existingIndex >= 0) {
-                                          currentShared[existingIndex].weight = currentShared[existingIndex].weight > 0 ? 0 : 1;
-                                        } else {
-                                          currentShared.push({ id: member.id, name: member.name, weight: 1 });
-                                        }
-                                        updated[itemIdx].sharedBy = currentShared;
-                                        setReceiptItems(updated);
-                                      }}
-                                      className={cn(
-                                        "text-[10px] px-2.5 py-1 rounded-full border transition-all font-semibold",
-                                        isChecked 
-                                          ? "bg-primary/20 border-primary text-primary-foreground font-bold shadow-soft" 
-                                          : "bg-background/20 border-border/40 text-muted-foreground hover:text-foreground"
+                                    <div key={member.id} className="flex items-center gap-1.5 bg-background/25 border border-border/40 p-1 px-2 rounded-xl transition-all hover:bg-background/40">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const updated = [...receiptItems];
+                                          const currentShared = [...updated[itemIdx].sharedBy];
+                                          const existingIndex = currentShared.findIndex(s => s.id === member.id);
+                                          
+                                          if (existingIndex >= 0) {
+                                            // Toggle off
+                                            if (currentShared[existingIndex].weight > 0) {
+                                              currentShared[existingIndex].weight = 0;
+                                            } else {
+                                              // Toggle back on
+                                              currentShared[existingIndex].weight = 100;
+                                            }
+                                          } else {
+                                            currentShared.push({ id: member.id, name: member.name, weight: 100 });
+                                          }
+
+                                          // Auto-redistribute to sum 100% among active ones for smooth UX
+                                          const activeOnes = currentShared.filter(s => s.weight > 0);
+                                          if (activeOnes.length > 0) {
+                                            const equalPercentage = Math.round(100 / activeOnes.length);
+                                            let runningSum = 0;
+                                            activeOnes.forEach((act, idx) => {
+                                              if (idx === activeOnes.length - 1) {
+                                                act.weight = 100 - runningSum;
+                                              } else {
+                                                act.weight = equalPercentage;
+                                                runningSum += equalPercentage;
+                                              }
+                                            });
+                                          }
+
+                                          updated[itemIdx].sharedBy = currentShared;
+                                          setReceiptItems(updated);
+                                        }}
+                                        className={cn(
+                                          "text-[10px] px-2 py-0.5 rounded-lg border transition-all font-semibold",
+                                          isChecked 
+                                            ? "bg-primary/20 border-primary text-primary-foreground font-bold shadow-soft" 
+                                            : "bg-background/20 border-border/40 text-muted-foreground hover:text-foreground"
+                                        )}
+                                      >
+                                        {member.name}
+                                      </button>
+                                      {isChecked && (
+                                        <div className="flex items-center w-14">
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            value={match ? match.weight : 0}
+                                            onChange={(e) => {
+                                              const val = Number(e.target.value);
+                                              const updated = [...receiptItems];
+                                              const currentShared = [...updated[itemIdx].sharedBy];
+                                              const existingIndex = currentShared.findIndex(s => s.id === member.id);
+                                              if (existingIndex >= 0) {
+                                                currentShared[existingIndex].weight = val;
+                                                updated[itemIdx].sharedBy = currentShared;
+                                                setReceiptItems(updated);
+                                              }
+                                            }}
+                                            className="w-full h-6 text-right bg-background/50 border border-border/40 rounded px-1 text-[10px] font-mono font-bold focus:outline-none focus:border-primary"
+                                          />
+                                          <span className="text-[9px] text-muted-foreground ml-0.5">%</span>
+                                        </div>
                                       )}
-                                    >
-                                      {member.name}
-                                    </button>
+                                    </div>
                                   );
                                 })}
                               </div>
