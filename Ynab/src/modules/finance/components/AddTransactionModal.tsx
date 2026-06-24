@@ -1036,15 +1036,18 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                           // 2. If splitMode is itemized, deeply populate the receipt items
                           if (splitMode === "itemized" && receiptItems.length > 0) {
                             setReceiptItems(prev => prev.map((item) => {
-                              // Mapeamento direto bruto dos itens da regra
+                              // 1. Map directly from the rule.items array coming from the API
                               const forcedSharedBy = selectedRule.items.map(ruleItem => {
+                                // 2. Find the corresponding UI member object (from the global splitMembers/availableMembers)
                                 const matchedUIMember = updatedSplitMembers.find(
-                                  m => normalizeStr(m.name) === normalizeStr(ruleItem.debtor_name)
+                                  m => m.name.trim().toLowerCase() === ruleItem.debtor_name.trim().toLowerCase()
                                 );
+
+                                // 3. Reconstruct the object combining the UI's ID structure with the Rule's percentage
                                 return {
-                                  id: matchedUIMember ? matchedUIMember.id : ruleItem.debtor,
-                                  name: ruleItem.debtor_name || (matchedUIMember ? matchedUIMember.name : "Membro"),
-                                  weight: Number(ruleItem.percentage || 0)
+                                  id: matchedUIMember ? matchedUIMember.id : ruleItem.debtor_name, // Fallback to name if ID fails
+                                  name: ruleItem.debtor_name,
+                                  weight: Number(ruleItem.percentage) // Note: weight is used as the percentage in the UI shape
                                 };
                               });
 
