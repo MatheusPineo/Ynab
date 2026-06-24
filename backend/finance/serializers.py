@@ -284,7 +284,7 @@ class SplitRuleSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items', [])
         split_rule = SplitRule.objects.create(**validated_data)
         for item in items_data:
-            SplitRuleItem.objects.create(template=split_rule, **item)
+            SplitRuleItem.objects.create(split_rule=split_rule, **item)
         return split_rule
 
     def update(self, instance, validated_data):
@@ -294,7 +294,7 @@ class SplitRuleSerializer(serializers.ModelSerializer):
         if items_data is not None:
             instance.items.all().delete()
             for item in items_data:
-                SplitRuleItem.objects.create(template=instance, **item)
+                SplitRuleItem.objects.create(split_rule=instance, **item)
         return instance
 
 
