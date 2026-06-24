@@ -1036,23 +1036,21 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                           // 2. If splitMode is itemized, deeply populate the receipt items
                           if (splitMode === "itemized" && receiptItems.length > 0) {
                             setReceiptItems(prev => prev.map((item) => {
-                              // Cross-referenciar com o updatedSplitMembers
-                              const sharedMembers = updatedSplitMembers.map(member => {
-                                const matchedRuleItem = selectedRule.items.find(ri => 
-                                  ri.debtor === member.id || 
-                                  (member.isUser && ri.debtor === "user") || 
-                                  normalizeStr(ri.debtor_name) === normalizeStr(member.name)
+                              // Mapeamento direto bruto dos itens da regra
+                              const forcedSharedBy = selectedRule.items.map(ruleItem => {
+                                const matchedUIMember = updatedSplitMembers.find(
+                                  m => normalizeStr(m.name) === normalizeStr(ruleItem.debtor_name)
                                 );
                                 return {
-                                  id: member.id,
-                                  name: member.name,
-                                  weight: matchedRuleItem ? Number(matchedRuleItem.percentage || 0) : 0
+                                  id: matchedUIMember ? matchedUIMember.id : ruleItem.debtor,
+                                  name: ruleItem.debtor_name || (matchedUIMember ? matchedUIMember.name : "Membro"),
+                                  weight: Number(ruleItem.percentage || 0)
                                 };
                               });
 
                               return {
                                 ...item,
-                                sharedBy: sharedMembers
+                                sharedBy: forcedSharedBy
                               };
                             }));
                           }
