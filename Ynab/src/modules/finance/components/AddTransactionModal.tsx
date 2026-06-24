@@ -1011,7 +1011,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
 
                           // 1. Map existing members and populate percentages/exact value or activate them
                           const updatedSplitMembers = splitMembers.map(m => {
-                            const ruleItem = selectedRule.items.find(ri => ri.debtor === m.id || (m.isUser && ri.debtor === "user"));
+                            const ruleItem = selectedRule.items.find(ri => ri.debtor === m.id || (m.isUser && ri.debtor === "user") || ri.debtor_name === m.name);
                             if (ruleItem) {
                               const pct = ruleItem.percentage || 0;
                               return {
@@ -1029,15 +1029,16 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                           // 2. If splitMode is itemized, deeply populate the receipt items
                           if (splitMode === "itemized" && receiptItems.length > 0) {
                             setReceiptItems(prev => prev.map((item) => {
-                              const sharedMembers = selectedRule.items.map(ri => {
-                                // Sincronização correta de ID: ri.debtor do backend mapeia para 'user' ou para o id real
-                                const matchedMember = updatedSplitMembers.find(sm => sm.id === ri.debtor || (sm.isUser && ri.debtor === "user"));
+                              // Cross-referenciar com o updatedSplitMembers
+                              const sharedMembers = updatedSplitMembers.map(member => {
+                                const matchedRuleItem = selectedRule.items.find(ri => ri.debtor === member.id || (member.isUser && ri.debtor === "user") || ri.debtor_name === member.name);
                                 return {
-                                  id: matchedMember ? matchedMember.id : ri.debtor,
-                                  name: matchedMember ? matchedMember.name : (ri.debtor_name || "Membro"),
-                                  weight: ri.percentage || 0
+                                  id: member.id,
+                                  name: member.name,
+                                  weight: matchedRuleItem ? (matchedRuleItem.percentage || 0) : 0
                                 };
                               });
+
                               return {
                                 ...item,
                                 sharedBy: sharedMembers
