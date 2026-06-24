@@ -622,7 +622,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           )}
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[425px] glass border-border/60 max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[425px] glass border-border/60 max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>{isEdit ? "Editar Transação" : "Lançar Transação"}</DialogTitle>
         </DialogHeader>
@@ -1005,8 +1005,8 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
 
                       <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
                         {receiptItems.map((item, itemIdx) => (
-                          <div key={item.id} className="p-3.5 rounded-xl border border-border/40 bg-background/40 space-y-3">
-                            <div className="flex gap-2">
+                          <div key={item.id} className="p-3.5 rounded-xl border border-border/40 bg-background/40 space-y-3 overflow-hidden min-w-0">
+                            <div className="flex gap-2 items-center min-w-0">
                               <Input
                                 placeholder="Ex: Hambúrguer"
                                 value={item.name}
@@ -1044,7 +1044,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                             </div>
 
                             {/* Checklist of participants for this specific item */}
-                            <div className="space-y-1.5 pl-1">
+                            <div className="space-y-1.5 pl-1 min-w-0">
                               <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Quem divide esse item?</div>
                               <div className="flex flex-wrap gap-2">
                                 {splitMembers.map((member) => {
