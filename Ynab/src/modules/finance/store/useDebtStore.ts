@@ -257,7 +257,7 @@ export const useDebtStore = create<DebtState>((set, get) => ({
       const res = await authenticatedFetch("/split-rules/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
       if (!res.ok) throw new Error("Failed to create split rule");
       await get().fetchSplitRules();
-      toast.success("Split rule created!");
+      toast.success("Modelo de rateio salvo com sucesso!");
     } catch (error: any) { toast.error(error.message); }
   },
   updateSplitRule: async (id, data) => {

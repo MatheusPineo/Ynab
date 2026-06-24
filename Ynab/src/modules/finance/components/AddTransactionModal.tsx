@@ -1010,7 +1010,7 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                           if (!selectedRule) return;
 
                           // 1. Map existing members and populate percentages/exact value or activate them
-                          setSplitMembers(prev => prev.map(m => {
+                          const updatedSplitMembers = splitMembers.map(m => {
                             const ruleItem = selectedRule.items.find(ri => ri.debtor === m.id || (m.isUser && ri.debtor === "user"));
                             if (ruleItem) {
                               const pct = ruleItem.percentage || 0;
@@ -1022,14 +1022,15 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                               };
                             }
                             return { ...m, active: m.isUser ? true : false, percentage: 0, exactValue: 0 };
-                          }));
+                          });
 
-                          // 2. If splitMode is itemized, automatically populate the currently selected item or receipt items with these percentages
+                          setSplitMembers(updatedSplitMembers);
+
+                          // 2. If splitMode is itemized, deeply populate the receipt items
                           if (splitMode === "itemized" && receiptItems.length > 0) {
-                            setReceiptItems(prev => prev.map((item, idx) => {
-                              // If it is the first item or user wants to apply to all, map it:
+                            setReceiptItems(prev => prev.map((item) => {
                               const sharedMembers = selectedRule.items.map(ri => {
-                                const matchedMember = splitMembers.find(sm => sm.id === ri.debtor || (sm.isUser && ri.debtor === "user"));
+                                const matchedMember = updatedSplitMembers.find(sm => sm.id === ri.debtor || (sm.isUser && ri.debtor === "user"));
                                 return {
                                   id: ri.debtor,
                                   name: matchedMember ? matchedMember.name : (ri.debtor_name || "Membro"),
@@ -1344,77 +1345,81 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                           <Button
                             type="button"
                             size="sm"
-                            onClick={async () => {
+                            onClick={async (e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
                               if (!ruleName || !ruleName.trim()) {
                                 toast.error("O nome do modelo de rateio é obrigatório.");
-                                  return;
-                                }
+                                return;
+                              }
 
-                                const activeMembers = splitMembers.filter(m => m.active);
-                                if (activeMembers.length === 0) {
-                                  toast.error("Adicione pelo menos uma pessoa ativa para criar um modelo.");
-                                  return;
-                                }
+                              const activeMembers = splitMembers.filter(m => m.active);
+                              if (activeMembers.length === 0) {
+                                toast.error("Adicione pelo menos uma pessoa ativa para criar um modelo.");
+                                return;
+                              }
 
-                                const items = activeMembers.map(m => {
-                                  let pct = 0;
-                                  if (splitMode === "equally") {
-                                    pct = Number((100 / activeMembers.length).toFixed(2));
-                                  } else if (splitMode === "percentage") {
-                                    pct = m.percentage || 0;
-                                  } else if (splitMode === "exact") {
-                                    pct = amount > 0 ? Number(((m.exactValue / amount) * 100).toFixed(2)) : 0;
-                                  } else if (splitMode === "itemized") {
-                                    let aggregatedPercentage = 0;
-                                    let itemsCount = 0;
-                                    receiptItems.forEach(item => {
-                                      const match = item.sharedBy.find(s => s.id === m.id);
-                                      if (match && match.weight > 0) {
-                                        aggregatedPercentage += match.weight;
-                                        itemsCount++;
-                                      }
-                                    });
-                                    pct = itemsCount > 0 ? Number((aggregatedPercentage / itemsCount).toFixed(2)) : 0;
-                                  }
-
-                                  return {
-                                    debtor: m.id === "user" ? "user" : m.id,
-                                    debtor_name: m.name, // <-- CRITICAL FIX: Backend strictly requires debtor_name
-                                    percentage: pct
-                                  };
-                                });
-
-                                try {
-                                  await createSplitRule({
-                                    name: ruleName.trim(),
-                                    items: items as any
+                              const items = activeMembers.map(m => {
+                                let pct = 0;
+                                if (splitMode === "equally") {
+                                  pct = Number((100 / activeMembers.length).toFixed(2));
+                                } else if (splitMode === "percentage") {
+                                  pct = m.percentage || 0;
+                                } else if (splitMode === "exact") {
+                                  pct = amount > 0 ? Number(((m.exactValue / amount) * 100).toFixed(2)) : 0;
+                                } else if (splitMode === "itemized") {
+                                  let aggregatedPercentage = 0;
+                                  let itemsCount = 0;
+                                  receiptItems.forEach(item => {
+                                    const match = item.sharedBy.find(s => s.id === m.id);
+                                    if (match && match.weight > 0) {
+                                      aggregatedPercentage += match.weight;
+                                      itemsCount++;
+                                    }
                                   });
-                                  setRuleName('');
-                                  setIsNamingRule(false);
-                                } catch (err) {
-                                  console.error("Erro ao salvar regra de rateio:", err);
+                                  pct = itemsCount > 0 ? Number((aggregatedPercentage / itemsCount).toFixed(2)) : 0;
                                 }
-                              }}
-                              className="h-9 text-xs gradient-primary"
-                            >
-                              Salvar
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setIsNamingRule(false);
+
+                                return {
+                                  debtor: m.id === "user" ? "user" : m.id,
+                                  debtor_name: m.name, // <-- CRITICAL FIX: Backend strictly requires debtor_name
+                                  percentage: pct
+                                };
+                              });
+
+                              try {
+                                await createSplitRule({
+                                  name: ruleName.trim(),
+                                  items: items as any
+                                });
                                 setRuleName('');
-                              }}
-                              className="h-9 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
-                            >
-                              Cancelar
-                            </Button>
-                          </div>
+                                setIsNamingRule(false);
+                              } catch (err) {
+                                console.error("Erro ao salvar regra de rateio:", err);
+                              }
+                            }}
+                            className="h-9 text-xs gradient-primary"
+                          >
+                            Salvar
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIsNamingRule(false);
+                              setRuleName('');
+                            }}
+                            className="h-9 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                          >
+                            Cancelar
+                          </Button>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
+                  </div>
 
                     {/* Inline Debtor Creation Controls */}
                     <div className="pt-2 border-t border-border/20 mt-2">
