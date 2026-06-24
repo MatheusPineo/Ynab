@@ -1,6 +1,12 @@
 # Novidades e Atualizações
 
 
+## Estabilização de Rateio, API Serializer e JWT Token Refresh (v2.2.0 - 24/06/2026) 🛡️⚡
+
+* **Correção no Carregamento de Modelos de Rateio:** Corrigimos a aplicação de modelos de rateio na aba de lançamento "Por Produto". Agora, ao carregar um modelo de rateio salvo (ex: "Compras Casa"), os badges e porcentagens de todos os membros do grupo (ex: Davi, Miguel) são ativados e coloridos visualmente em verde na hora.
+* **Salvamento Integral de Modelos no Banco de Dados:** Corrigimos o salvamento no backend em que apenas o criador ("Você") estava sendo associado ao modelo. As sub-regras e membros agora são salvos de forma atômica e correta no servidor.
+* **Sessões Sempre Ativas com Auto-Refresh JWT:** Adicionamos um interceptor inteligente na conexão de dados do aplicativo. Caso a sua sessão expire enquanto você preenche ou edita um lançamento, o sistema renovará o token JWT de acesso automaticamente nos bastidores sem interromper o seu fluxo de uso e sem disparar erros 401 de sessão inválida.
+
 ## Rateio Avançado & Loop Umbilical (v2.0.0 - 18/06/2026) 🚀
 
 - **Split Engine:** O modal de transações agora conta com um assistente de divisão altamente inteligente, suportando cálculos igualitários, percentuais ou em valores exatos, todos com validação e travas de segurança dinâmicas.

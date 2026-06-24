@@ -1,3 +1,10 @@
+## [2.2.0] - 2026-06-24
+
+### Fixed
+- Frontend: Refatoração no modal de transação (`AddTransactionModal.tsx`) para usar override bruto de estado ao carregar modelos salvos de rateio no modo por produto, mapeando e ativando corretamente as pílulas dos membros e seus pesos usando o nome e ID local.
+- Backend: Correção no `SplitRuleSerializer` em `finance/serializers.py` para salvar corretamente os sub-itens aninhados de rateio (`SplitRuleItem`) no banco associando-os à chave estrangeira `split_rule` (antes incorretamente associados a `template`).
+- Frontend/Segurança: Implementação de interceptação de token JWT expirado (status 401) com fila de espera (lock) na função `authenticatedFetch` em `api.ts`, salvando automaticamente o novo `accessToken` no `localStorage` e repetindo a requisição original com sucesso.
+
 ## [2.1.0] - 2026-06-23
 
 ### Added
