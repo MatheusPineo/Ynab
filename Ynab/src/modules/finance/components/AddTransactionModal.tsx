@@ -1009,9 +1009,16 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                           const selectedRule = splitRules.find(r => r.id === ruleId);
                           if (!selectedRule) return;
 
+                          // Normalizador robusto de strings para evitar case sensitivity ou espaços em branco
+                          const normalizeStr = (s: string | undefined | null) => (s || "").trim().toLowerCase();
+
                           // 1. Map existing members and populate percentages/exact value or activate them
                           const updatedSplitMembers = splitMembers.map(m => {
-                            const ruleItem = selectedRule.items.find(ri => ri.debtor === m.id || (m.isUser && ri.debtor === "user") || ri.debtor_name === m.name);
+                            const ruleItem = selectedRule.items.find(ri => 
+                              ri.debtor === m.id || 
+                              (m.isUser && ri.debtor === "user") || 
+                              normalizeStr(ri.debtor_name) === normalizeStr(m.name)
+                            );
                             if (ruleItem) {
                               const pct = ruleItem.percentage || 0;
                               return {
@@ -1031,11 +1038,15 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                             setReceiptItems(prev => prev.map((item) => {
                               // Cross-referenciar com o updatedSplitMembers
                               const sharedMembers = updatedSplitMembers.map(member => {
-                                const matchedRuleItem = selectedRule.items.find(ri => ri.debtor === member.id || (member.isUser && ri.debtor === "user") || ri.debtor_name === member.name);
+                                const matchedRuleItem = selectedRule.items.find(ri => 
+                                  ri.debtor === member.id || 
+                                  (member.isUser && ri.debtor === "user") || 
+                                  normalizeStr(ri.debtor_name) === normalizeStr(member.name)
+                                );
                                 return {
                                   id: member.id,
                                   name: member.name,
-                                  weight: matchedRuleItem ? (matchedRuleItem.percentage || 0) : 0
+                                  weight: matchedRuleItem ? Number(matchedRuleItem.percentage || 0) : 0
                                 };
                               });
 
