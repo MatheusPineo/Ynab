@@ -54,13 +54,16 @@ export async function authenticatedFetch(endpoint: string, options: RequestInit 
       throw netError;
     }
 
-    // Tratamento de expiração com Fila de Espera (Lock)
+    // Tratamento de expiração com Fila de Espera (Lock) e sincronização com localStorage
     if (response.status === 401) {
       // Se não houver nenhuma renovação acontecendo agora, inicia a primeira
       if (!activeRefreshPromise) {
         activeRefreshPromise = useAuthStore.getState().refreshAccessToken()
           .then((token) => {
             activeRefreshPromise = null; // Libera a trava para futuras expirações
+            if (token) {
+              localStorage.setItem('accessToken', token);
+            }
             return token;
           })
           .catch((err) => {
