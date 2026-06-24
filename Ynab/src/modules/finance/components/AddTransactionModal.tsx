@@ -204,12 +204,13 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
     }
   };
 
-  const { debts } = useDebtStore();
+  const { debts, splitRules, fetchSplitRules, createSplitRule } = useDebtStore();
 
   useEffect(() => {
     if (open) {
       try {
         useDebtStore.getState().fetchDebts();
+        useDebtStore.getState().fetchSplitRules();
       } catch (e) {}
     }
   }, [open]);
@@ -995,6 +996,66 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
 
               {isSplitting && (
                 <div className="bg-white/5 backdrop-blur-md rounded-2xl p-4 sm:p-6 border border-white/10 animate-in fade-in slide-in-from-top-4 duration-300 space-y-5">
+                  {/* Load Predefined Split Rules */}
+                  {splitRules && splitRules.length > 0 && (
+                    <div className="flex flex-col gap-1.5 bg-background/20 p-3 rounded-xl border border-border/40">
+                      <Label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Carregar Regra / Modelo Salvo</Label>
+                      <Select
+                        onValueChange={(ruleId) => {
+                          const selectedRule = splitRules.find(r => r.id === ruleId);
+                          if (!selectedRule) return;
+
+                          // 1. Map existing members and populate percentages/exact value or activate them
+                          setSplitMembers(prev => prev.map(m => {
+                            const ruleItem = selectedRule.items.find(ri => ri.debtor === m.id || (m.isUser && ri.debtor === "user"));
+                            if (ruleItem) {
+                              const pct = ruleItem.percentage || 0;
+                              return {
+                                ...m,
+                                active: true,
+                                percentage: pct,
+                                exactValue: Number(((amount * pct) / 100).toFixed(2))
+                              };
+                            }
+                            return { ...m, active: m.isUser ? true : false, percentage: 0, exactValue: 0 };
+                          }));
+
+                          // 2. If splitMode is itemized, automatically populate the currently selected item or receipt items with these percentages
+                          if (splitMode === "itemized" && receiptItems.length > 0) {
+                            setReceiptItems(prev => prev.map((item, idx) => {
+                              // If it is the first item or user wants to apply to all, map it:
+                              const sharedMembers = selectedRule.items.map(ri => {
+                                const matchedMember = splitMembers.find(sm => sm.id === ri.debtor || (sm.isUser && ri.debtor === "user"));
+                                return {
+                                  id: ri.debtor,
+                                  name: matchedMember ? matchedMember.name : (ri.debtor_name || "Membro"),
+                                  weight: ri.percentage || 0
+                                };
+                              });
+                              return {
+                                ...item,
+                                sharedBy: sharedMembers
+                              };
+                            }));
+                          }
+
+                          toast.success(`Modelo "${selectedRule.name}" carregado!`);
+                        }}
+                      >
+                        <SelectTrigger className="bg-background/50 border-border/60 h-9 text-xs">
+                          <SelectValue placeholder="Selecione um modelo de rateio..." />
+                        </SelectTrigger>
+                        <SelectContent className="glass border-border/60">
+                          {splitRules.map(rule => (
+                            <SelectItem key={rule.id} value={rule.id} className="text-xs">
+                              {rule.name} ({rule.items.length} pessoas)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
                   <Tabs value={splitMode} onValueChange={(v: any) => setSplitMode(v)} className="w-full">
                     <TabsList className="grid w-full grid-cols-4 bg-background/50 border border-border/50 h-11">
                       <TabsTrigger value="equally" className="text-[10px] font-bold">Igualitário</TabsTrigger>
@@ -1233,8 +1294,72 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                     </div>
                   )}
 
-                  {/* Inline Debtor Creation Controls */}
-                  <div className="pt-2 border-t border-border/20 mt-2">
+                    {/* Guardar este rateio como novo Modelo */}
+                    <div className="pt-2 border-t border-border/20 mt-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={async () => {
+                          const ruleName = prompt("Digite o nome deste modelo de rateio (ex: Compras Casa - Davi/Miguel):");
+                          if (!ruleName || !ruleName.trim()) {
+                            toast.error("O nome do modelo de rateio é obrigatório.");
+                            return;
+                          }
+
+                          // Build the items list with percentages
+                          // We calculate the percentage relative to standard distribution or current percentages
+                          const activeMembers = splitMembers.filter(m => m.active);
+                          if (activeMembers.length === 0) {
+                            toast.error("Adicione pelo menos uma pessoa ativa para criar um modelo.");
+                            return;
+                          }
+
+                          const items = activeMembers.map(m => {
+                            let pct = 0;
+                            if (splitMode === "equally") {
+                              pct = Number((100 / activeMembers.length).toFixed(2));
+                            } else if (splitMode === "percentage") {
+                              pct = m.percentage || 0;
+                            } else if (splitMode === "exact") {
+                              pct = amount > 0 ? Number(((m.exactValue / amount) * 100).toFixed(2)) : 0;
+                            } else if (splitMode === "itemized") {
+                              // Aggregate weights of this member across all receiptItems
+                              let aggregatedPercentage = 0;
+                              let itemsCount = 0;
+                              receiptItems.forEach(item => {
+                                const match = item.sharedBy.find(s => s.id === m.id);
+                                if (match && match.weight > 0) {
+                                  aggregatedPercentage += match.weight;
+                                  itemsCount++;
+                                }
+                              });
+                              pct = itemsCount > 0 ? Number((aggregatedPercentage / itemsCount).toFixed(2)) : 0;
+                            }
+
+                            return {
+                              debtor: m.id === "user" ? "user" : m.id,
+                              percentage: pct
+                            };
+                          });
+
+                          try {
+                            await createSplitRule({
+                              name: ruleName.trim(),
+                              items: items as any
+                            });
+                          } catch (err) {
+                            console.error("Erro ao salvar regra de rateio:", err);
+                          }
+                        }}
+                        className="w-full h-9 justify-center gap-1.5 text-xs text-emerald-400 border border-emerald-500/30 hover:border-emerald-500/50 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl"
+                      >
+                        💾 Guardar este rateio como novo Modelo
+                      </Button>
+                    </div>
+
+                    {/* Inline Debtor Creation Controls */}
+                    <div className="pt-2 border-t border-border/20 mt-2">
                     {isAddingPerson ? (
                       <div className="flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2">
                         <Input
