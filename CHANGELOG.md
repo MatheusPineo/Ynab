@@ -1,3 +1,9 @@
+## [2.3.1] - 2026-06-27
+
+### Fixed
+- Frontend: Corrigida a exibição de devedores na central (`LoansDashboard.tsx`). Implementado um mapeador reativo de IDs numéricos para nomes baseando-se no histórico de dívidas legítimas, garantindo que os cards exibam o nome do devedor (ex: "Davi", "Miguel") em vez de seu ID numérico.
+- Frontend: Corrigido o modal de transação (`AddTransactionModal.tsx`) para enviar o nome correto do devedor nos splits (parâmetro `debtor_id` e `debtor_name`), prevenindo a criação de novas dívidas com IDs numéricos no counterparty_name do banco.
+
 ## [2.3.0] - 2026-06-27
 
 ### Added

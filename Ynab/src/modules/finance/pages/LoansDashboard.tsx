@@ -28,15 +28,33 @@ const LoansDashboard = () => {
 
   const activeDebts = useMemo(() => debts.filter(d => d.amount_remaining > 0 && d.is_mine), [debts]);
 
+  const nameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    debts.forEach(d => {
+      if (d.counterparty_name && isNaN(Number(d.counterparty_name))) {
+        map[d.id] = d.counterparty_name;
+      }
+    });
+    return map;
+  }, [debts]);
+
+  const resolveDebtorName = (rawName: string) => {
+    if (!rawName) return "Desconhecido";
+    if (!isNaN(Number(rawName)) && nameMap[rawName]) {
+      return nameMap[rawName];
+    }
+    return rawName;
+  };
+
   const persons = useMemo(() => {
     const groups: Record<string, Debt[]> = {};
     activeDebts.forEach(d => {
-      const name = d.counterparty_name || "Desconhecido";
+      const name = resolveDebtorName(d.counterparty_name);
       if (!groups[name]) groups[name] = [];
       groups[name].push(d);
     });
     return Object.entries(groups).map(([name, tickets]) => ({ name, tickets }));
-  }, [activeDebts]);
+  }, [activeDebts, nameMap]);
 
   const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
   const [isModalOpen, setIsModalOpen] = useState(false);

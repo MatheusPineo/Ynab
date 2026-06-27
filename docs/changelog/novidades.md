@@ -1,5 +1,10 @@
 # Novidades e Atualizações
 
+## Correção de Exibição e Cadastro de Devedores (v2.3.1 - 27/06/2026) 🤝🛠️
+
+* **Exibição Correta dos Nomes na Central:** Corrigimos o bug visual na Central de Devedores onde alguns devedores estavam aparecendo com o ID numérico (ex: "1", "2") no título de seus cartões em vez de seus nomes de verdade ("Davi", "Miguel"). O sistema agora traduz automaticamente os identificadores históricos para os nomes originais correspondentes.
+* **Blindagem no Envio de Splits:** Ajustamos o modal de transações para que envie o nome real do participante em vez de IDs no payload, evitando que novas cobranças sejam criadas sob registros numéricos no banco de dados.
+
 ## Botão "Atribuir Restante a Mim" no Rateio Por Produto (v2.3.0 - 27/06/2026) 🪄💵
 
 * **Autocomplete Inteligente de Saldo Restante:** Facilitamos o processo de divisão de contas! Agora, no rateio de despesas "Por Produto", se o valor total de itens não bater com o total da transação, um novo botão inteligente `Atribuir restante a mim` aparecerá. Com um único clique, o sistema cria um produto para o saldo restante ("Outros itens (Meu gasto)") e o atribui 100% a você, eliminando a digitação manual e liberando o salvamento instantaneamente.

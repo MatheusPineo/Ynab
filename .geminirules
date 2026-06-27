@@ -1,3 +1,7 @@
+- [v2.3.1] Correção de Exibição e Cadastro de Devedores:
+  - Frontend: Corrigida a exibição de devedores na central (`LoansDashboard.tsx`) traduzindo IDs numéricos de `counterparty_name` para os nomes correspondentes usando mapeamento de histórico.
+  - Frontend: Corrigido o modal de transação (`AddTransactionModal.tsx`) para enviar o nome correto do devedor nos splits, prevenindo IDs numéricos no banco de dados.
+
 - [v2.3.0] Botão "Atribuir Restante a Mim" no Rateio Por Produto:
   - Frontend: Adicionado botão inteligente de autocomplete no rateio de despesas "Por Produto" (`AddTransactionModal.tsx`). Calcula o valor restante para fechar a transação e cria um produto correspondente ("Outros itens (Meu gasto)") atribuído 100% ao usuário ("Você").
   - Testes: Corrigido teste desatualizado de `BottomNav.test.tsx` referente ao item "Orçamento" na navegação inferior.
@@ -34,11 +38,11 @@
 - [v1.35.17] Componente Universal GlobalAccountSelector: A seleção hierárquica avançada com busca ("AccountCombobox") foi extraída para `src/shared/components/ui/global-account-selector.tsx` e agora é o padrão global absoluto na aplicação para todas as dropdowns de contas. Regra enforçada: Este componente SEMPRE deve ocupar `w-full` e `col-span-full` nos grids, jamais dividindo linha.
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no Cartão de Crédito agora aceita números dinâmicos e customizados de parcelamento (ex: 24x, 36x) via input numérico e a propriedade `total_amount` foi corrigida na requisição, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitações do select.
 - [v1.62.00] Comando de Restauração Definitiva e Separação de Moedas: Criação do Django Management Command `fix_currency_mess` e migrações profundas de dados do ledger (multiplicador 6.000857) para restauração de val# MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-27 16:00:00): Botão "Atribuir Restante a Mim" no Rateio Por Produto (v2.3.0).
-- Frontend: Adicionado o botão de autocomplete inteligente para atribuir o saldo restante ao usuário ("Você") na aba "Por Produto" (`AddTransactionModal.tsx`).
-- Testes: Corrigida quebra legada no teste `BottomNav.test.tsx` referente ao item "Orçamento" no menu de navegação inferior.
+(Atualizado em 2026-06-27 16:15:00): Correção de Exibição e Cadastro de Devedores (v2.3.1).
+- Frontend: Corrigida a exibição de devedores mapeando IDs numéricos para nomes legítimos no `LoansDashboard.tsx`.
+- Frontend: Corrigido o envio de splits no `AddTransactionModal.tsx` para passar o nome do devedor no `debtor_id`.
 
-### Status Atual (Versão 2.3.0)
-- **Marco:** Botão "Atribuir Restante a Mim" no Rateio Por Produto (v2.3.0).
+### Status Atual (Versão 2.3.1)
+- **Marco:** Correção de Exibição e Cadastro de Devedores (v2.3.1).
 - Frontend/Segurança: Implementação do interceptor de token expirado com fila única em `api.ts`.
 - Backend: Correção no salvamento de listas aninhadas no SplitRuleSerializer (v2.2.0).

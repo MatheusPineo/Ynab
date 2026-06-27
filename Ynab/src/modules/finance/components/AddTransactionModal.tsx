@@ -515,7 +515,8 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
           else if (splitMode === "exact" || splitMode === "itemized") splitAmount = m.exactValue;
           
           return {
-            debtor_id: m.id,
+            debtor_id: m.name,
+            debtor_name: m.name,
             amount: splitAmount,
             src_category_id: categoryId === "none" ? null : categoryId
           };
