@@ -34,3 +34,9 @@ Ao registrar qualquer despesa ou receita na tela principal, você pode ativar a 
 4. Preencha a **Descrição do Produto/Despesa**, o **Valor do Item**, a **Qtd. de Pessoas** pela qual dividir e selecione quais **Categorias/Devedores** devem reembolsar (clicando sobre as tags/badges dos participantes).
 5. O sistema calcula automaticamente em tempo real a parcela exata que cada pessoa selecionada deverá pagar.
 6. A parte correspondente aos devedores gerará títulos de cobrança individuais na fila cronológica de devedores, mantendo o controle total de reembolsos sem poluir o seu saldo do envelope YNAB.
+
+### 3.1. Botão "Atribuir Restante a Mim" (Autocomplete) 🪄
+No rateio **Por Produto**, se o valor somado de todos os itens lançados for inferior ao valor total da transação cadastrado, o sistema exibirá o botão secundário:
+`[ Atribuir restante a mim (R$ X.XX) ]`
+
+Ao clicar neste botão, o Vault Finance OS cria automaticamente uma linha de produto denominada `"Outros itens (Meu gasto)"` com o saldo restante exato e a atribui 100% a você, resolvendo de forma rápida e inteligente o bloqueio de validação sem necessidade de inserção manual.

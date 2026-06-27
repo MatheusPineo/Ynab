@@ -43,6 +43,5 @@ describe('BottomNav', () => {
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
     expect(screen.getByText('Transações')).toBeInTheDocument();
     expect(screen.getByText('Contas')).toBeInTheDocument();
-    expect(screen.getByText('Orçamento')).toBeInTheDocument();
   });
 });

@@ -1,5 +1,8 @@
 # Novidades e Atualizações
 
+## Botão "Atribuir Restante a Mim" no Rateio Por Produto (v2.3.0 - 27/06/2026) 🪄💵
+
+* **Autocomplete Inteligente de Saldo Restante:** Facilitamos o processo de divisão de contas! Agora, no rateio de despesas "Por Produto", se o valor total de itens não bater com o total da transação, um novo botão inteligente `Atribuir restante a mim` aparecerá. Com um único clique, o sistema cria um produto para o saldo restante ("Outros itens (Meu gasto)") e o atribui 100% a você, eliminando a digitação manual e liberando o salvamento instantaneamente.
 
 ## Estabilização de Rateio, API Serializer e JWT Token Refresh (v2.2.0 - 24/06/2026) 🛡️⚡
 

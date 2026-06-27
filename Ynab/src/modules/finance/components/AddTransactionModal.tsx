@@ -1095,6 +1095,29 @@ export const AddTransactionModal = ({ children, transaction, onClose, initialAcc
                         </span>
                       </div>
 
+                      {remainingReceiptExact >= 0.01 && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => {
+                            setReceiptItems(prev => [
+                              ...prev,
+                              {
+                                id: Date.now(),
+                                name: "Outros itens (Meu gasto)",
+                                amount: Number(remainingReceiptExact.toFixed(2)),
+                                sharedBy: [{ id: "user", name: "Você", weight: 100 }]
+                              }
+                            ]);
+                          }}
+                          className="w-full h-9 justify-center gap-1.5 text-xs text-primary border border-primary/30 hover:border-primary/50 bg-primary/10 hover:bg-primary/20 rounded-xl animate-pulse"
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          Atribuir restante a mim ({new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(remainingReceiptExact)})
+                        </Button>
+                      )}
+
                       <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 scrollbar-thin">
                         {receiptItems.map((item, itemIdx) => (
                           <div key={item.id} className="p-3.5 rounded-xl border border-border/40 bg-background/40 space-y-3 overflow-hidden min-w-0">

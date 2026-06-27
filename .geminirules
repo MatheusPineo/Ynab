@@ -1,3 +1,7 @@
+- [v2.3.0] Botão "Atribuir Restante a Mim" no Rateio Por Produto:
+  - Frontend: Adicionado botão inteligente de autocomplete no rateio de despesas "Por Produto" (`AddTransactionModal.tsx`). Calcula o valor restante para fechar a transação e cria um produto correspondente ("Outros itens (Meu gasto)") atribuído 100% ao usuário ("Você").
+  - Testes: Corrigido teste desatualizado de `BottomNav.test.tsx` referente ao item "Orçamento" na navegação inferior.
+
 - [v2.2.0] Refatoração de Rateio, Correção de Serializer e Interceptor JWT:
   - Frontend: Refatoração no modal de transação (`AddTransactionModal.tsx`) para usar override bruto de estado ao carregar modelos salvos de rateio no modo por produto, mapeando e ativando corretamente as pílulas dos membros e seus pesos usando o nome e ID local.
   - Backend: Correção no `SplitRuleSerializer` para salvar corretamente os sub-itens aninhados de rateio (`SplitRuleItem`) no banco associando-os à chave estrangeira `split_rule` (antes incorretamente associados a `template`).
@@ -12,7 +16,7 @@
 - [v1.86.00] Full-Width Sticky Cockpit Header: Adicionada a classe w-full al cabeçalho fixo (sticky top-0) de modo a forçá-lo a preencher 100% da largura horizontal do contêiner e se alinhar simetricamente aos cartões e históricos inferiores de receitas.
 - [v1.85.00] Sticky Cockpit Header: Cabeçalho fixo (sticky top-0) permanente com layout compacto estabelecido, sem redimensionamento ou encolhimento no scroll. A classe relative foi removida para garantir colagem vertical perfeita.
 - [v1.84.00] Scroll-Responsive Shrinking Cockpit Header: Adicionado comportamento de encolhimento dinâmico do cockpit superior fixo em Budget.tsx ao rolar a página. O cabeçalho agora escuta o evento de scroll e reduz suas dimensões (paddings, margins, fontes, tamanhos de tabs e botões, além de um MonthSelector compacto) para otimizar ao máximo o espaço vertical útil na tela de categorias e envelopes.
-- [v1.83.00] Ultra-Compact Sticky Cockpit Header: Refatoração do painel superior fixo (cockpit) em `Budget.tsx` para uma versão ultra-compacta. O layout agora agrupa horizontalmente o título do orçamento e o RTA em um badge moderno na esquerda, posicionando as abas (EUR/BRL) de forma minimalista, o `MonthSelector` e o menu de opções na direita em uma única linha, reduzindo a altura do cabeçalho fixo na rolagem.
+- [v1.83.00] Ultra-Compact Sticky Cockpit Header: Refatoração do painel superior fixo (cockpit) em `Budget.tsx` para uma version ultra-compacta. O layout agora agrupa horizontalmente o título do orçamento e o RTA em um badge moderno na esquerda, posicionando as abas (EUR/BRL) de forma minimalista, o `MonthSelector` e o menu de opções na direita em uma única linha, reduzindo a altura do cabeçalho fixo na rolagem.
 - [v1.82.00] Motion-Animated Accordions & Glassmorphism Cockpit UI Transplant: Transplante visual completo na página de Orçamento (Budget.tsx) integrando animações de acordeão expansíveis via Framer Motion (motion.div e AnimatePresence), preservando a lógica de CRUD, Dnd-Kit e Django. Barras de progresso ganharam colorização adaptativa baseada em limites de gastos.
 - [v1.81.00] Perfect Budget Flexbox Grid Alignment: Correção do alinhamento flexbox na listagem de orçamento. Imposição de larguras estritas (120px/90px/100px) e a classe shrink-0 nas colunas "Separei", "Gastei" e "Sobrou" em cabeçalhos globais, do grupo e nas linhas de categorias.
 - [v1.80.00] Glassmorphism Sticky Cockpit & Smooth Budget Tabs: Cabeçalho superior (cockpit) do orçamento transformado em painel fixo de vidro (backdrop-blur-xl, top-2 sm:top-4) e divisão de moedas em abas com animações de transição suaves (animate-in, fade-in, slide-in) e layout centralizado.
@@ -30,10 +34,11 @@
 - [v1.35.17] Componente Universal GlobalAccountSelector: A seleção hierárquica avançada com busca ("AccountCombobox") foi extraída para `src/shared/components/ui/global-account-selector.tsx` e agora é o padrão global absoluto na aplicação para todas as dropdowns de contas. Regra enforçada: Este componente SEMPRE deve ocupar `w-full` e `col-span-full` nos grids, jamais dividindo linha.
 - [v1.35.16] Melhorias de Compras Parceladas: O modal de compra no Cartão de Crédito agora aceita números dinâmicos e customizados de parcelamento (ex: 24x, 36x) via input numérico e a propriedade `total_amount` foi corrigida na requisição, permitindo compras com flexibilidade nativa no motor do YNAB e eliminando limitações do select.
 - [v1.62.00] Comando de Restauração Definitiva e Separação de Moedas: Criação do Django Management Command `fix_currency_mess` e migrações profundas de dados do ledger (multiplicador 6.000857) para restauração de val# MEMÓRIA DE DESENVOLVIMENTO E STATUS
-(Atualizado em 2026-06-24 20:50:00): Estabilização de Rateio, API Serializer e JWT Token Refresh (v2.2.0).
-- Frontend: Correção no carregamento e ativação visual de pílulas de membros e sincronização de valores de rateio.
-- Backend: Correção no salvamento de listas aninhadas no SplitRuleSerializer.
-- Frontend/Segurança: Implementação do interceptor de token expirado com fila única em `api.ts`.
+(Atualizado em 2026-06-27 16:00:00): Botão "Atribuir Restante a Mim" no Rateio Por Produto (v2.3.0).
+- Frontend: Adicionado o botão de autocomplete inteligente para atribuir o saldo restante ao usuário ("Você") na aba "Por Produto" (`AddTransactionModal.tsx`).
+- Testes: Corrigida quebra legada no teste `BottomNav.test.tsx` referente ao item "Orçamento" no menu de navegação inferior.
 
-### Status Atual (Versão 2.2.0)
-- **Marco:** Estabilização de Rateio, API Serializer e JWT Token Refresh (v2.2.0).
+### Status Atual (Versão 2.3.0)
+- **Marco:** Botão "Atribuir Restante a Mim" no Rateio Por Produto (v2.3.0).
+- Frontend/Segurança: Implementação do interceptor de token expirado com fila única em `api.ts`.
+- Backend: Correção no salvamento de listas aninhadas no SplitRuleSerializer (v2.2.0).

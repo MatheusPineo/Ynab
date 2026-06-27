@@ -1,6 +1,10 @@
-## [2.2.0] - 2026-06-24
+## [2.3.0] - 2026-06-27
 
-### Fixed
+### Added
+- Frontend: Adicionado botão inteligente de autocomplete "Atribuir restante a mim" (`AddTransactionModal.tsx`) no rateio de despesas na aba "Por Produto". Caso o valor total dos produtos não atinja o total da transação, o botão aparece calculando o valor restante e, ao ser clicado, cria automaticamente uma linha de produto denominada "Outros itens (Meu gasto)" com o saldo restante e atribuída 100% ao usuário ("Você"), liberando instantaneamente o salvamento da transação.
+- Testes: Corrigido e atualizado teste desatualizado `BottomNav.test.tsx` para refletir a remoção prévia do link de Orçamento na navegação inferior.
+
+## [2.2.0] - 2026-06-24
 - Frontend: Refatoração no modal de transação (`AddTransactionModal.tsx`) para usar override bruto de estado ao carregar modelos salvos de rateio no modo por produto, mapeando e ativando corretamente as pílulas dos membros e seus pesos usando o nome e ID local.
 - Backend: Correção no `SplitRuleSerializer` em `finance/serializers.py` para salvar corretamente os sub-itens aninhados de rateio (`SplitRuleItem`) no banco associando-os à chave estrangeira `split_rule` (antes incorretamente associados a `template`).
 - Frontend/Segurança: Implementação de interceptação de token JWT expirado (status 401) com fila de espera (lock) na função `authenticatedFetch` em `api.ts`, salvando automaticamente o novo `accessToken` no `localStorage` e repetindo a requisição original com sucesso.
