@@ -161,8 +161,8 @@ export const FinanceDataTab = () => {
     setIsResetting(true);
     try {
       const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8002/api";
-      const response = await fetch(`${baseUrl}/auth/profile/reset-data/`, {
-        method: "POST",
+      const response = await fetch(`${baseUrl}/onboarding/reset/`, {
+        method: "DELETE",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${accessToken}`
