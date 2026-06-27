@@ -13,17 +13,38 @@ def reset_user_data(user: User):
     Deleta recursivamente todos os dados financeiros criados pelo usuário
     para retornar a um estado totalmente em branco (exceto o próprio usuário e perfil).
     """
-    # Deletando contas exclui também transações em cascata (dependendo do on_delete)
-    # Mas para segurança, forçamos as remoções principais:
-    from finance.models import Goal, DistributionTemplate
-    DistributionTemplate.objects.filter(user=user).delete()
+    from finance.models import (
+        SplitRuleItem, SplitRule, DebtPayment, Debt, Goal, 
+        DistributionTemplate, InvestmentActivity, InvestmentAsset, 
+        Transaction, Account, Category, Payee
+    )
+    
+    # 1. Deletar itens e regras de rateio
+    SplitRuleItem.objects.filter(template__user=user).delete()
+    SplitRule.objects.filter(user=user).delete()
+    
+    # 2. Deletar pagamentos e tickets de devedores (dívidas)
+    DebtPayment.objects.filter(debt__user=user).delete()
+    Debt.objects.filter(user=user).delete()
+    
+    # 3. Deletar metas
     Goal.objects.filter(user=user).delete()
+    
+    # 4. Deletar modelos de distribuição
+    DistributionTemplate.objects.filter(user=user).delete()
+    
+    # 5. Deletar atividades e ativos de investimentos
+    InvestmentActivity.objects.filter(asset__user=user).delete()
+    InvestmentAsset.objects.filter(user=user).delete()
+    
+    # 6. Deletar transações
     Transaction.objects.filter(account__user=user).delete()
     
+    # 7. Deletar contas, categorias e payees
     Account.objects.filter(user=user).delete()
     Category.objects.filter(user=user).delete()
     Payee.objects.filter(user=user).delete()
-    InvestmentAsset.objects.filter(user=user).delete()
+    
     # Chama o seed de categorias para restaurar a taxonomia padrão limpa
     seed_default_categories(user)
 
